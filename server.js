@@ -14,22 +14,34 @@ app.get('/', function(req, res) {
 });
 
 var pubkey = '';
+var privkey = '';
+
+generateKeyPair(2048, "Test User <test@test.com>", "superawesomesecretpassphrase", function(keyPair) {
+  console.log("KeyPair created...");
+  //showKeys(keyPair.privkey, keyPair.pubkey);
+});
 
 app.get('/:nickName', function(req, res) {
   var nick = req.param('nickName');
   res.render('chat.ejs', {
     nick : nick,
-    pubkey : pubkey.replace(/(\r\n|\n|\r)/gm,"\\n")
+    pubkey : pubkey.replace(/(\r\n|\n|\r)/gm,"\\n"),
+    privkey: privkey.replace(/(\r\n|\n|\r)/gm,"\\n")
   });
 })
 
 io.on('connection', function(socket) {
-  generateKeyPair(2048, "Test User <test@test.com>", "superawesomesecretpassphrase", function(keyPair) {
-    showKeys(keyPair.privkey, keyPair.pubkey);
-  });
   console.log("User connected!");
-  socket.on('chat message', function(msg) {
-    io.emit('chat message', msg);
+  socket.on('chat message', function(data) {
+    var nick = data.nick;
+    var pgpMessage = data.pgpMessage;
+    console.log("Server got chat message from "+nick);
+    io.emit('chat message', data);
+    console.log("Server emitted chat message to users");
+  });
+  socket.on('join', function(nick) {
+    socket.name = nick;
+    console.log(socket.name + ' joined the chat.');
   });
   socket.on('disconnect', function() {
     console.log("User disconnected...");
@@ -44,7 +56,7 @@ function generateKeyPair(numBits, userId, passphrase, callback) {
     passphrase: passphrase
   }
   openpgp.generateKeyPair(options).then(function(keyPair) {
-    var privkey = keyPair.privateKeyArmored;
+    privkey = keyPair.privateKeyArmored;
     pubkey = keyPair.publicKeyArmored;
     var keyPair = {
       privkey: privkey,

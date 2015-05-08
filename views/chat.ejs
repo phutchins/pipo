@@ -24,17 +24,37 @@
     <script>
       var socket = io();
       $('form').submit(function(){
-        socket.emit('chat message', "[<%= nick %>] " + $('#m').val());
-        $('#m').val('');
+        var pubkey = "<%= pubkey %>";
+        var nick = "<%= nick %>";
+        var message = $('#m').val();
+        console.log("attempting to encrypt message");
+        encryptMessage(pubkey, message, function(pgpMessage, err) {
+          if (err) {
+            console.log("Error Encrypting Message: "+err);
+          } else {
+            console.log("Message encrypted successfully");
+            socket.emit('chat message', { nick: nick, pgpMessage: pgpMessage } );
+            console.log("Message emitted to socket.io");
+            $('#m').val('');
+            //return false;
+          }
+        });
         return false;
       });
-      socket.on('chat message', function(msg){
-        $('#messages').append($('<li>').text(msg));
-        encryptMessage("<%= pubkey %>", msg, function(pgpMessage, err) {
+      socket.on('chat message', function(data){
+        var nick = data.nick;
+        var pgpMessage = data.pgpMessage;
+        console.log("Got message, attempting to decrypt");
+        var privkey = "<%= privkey %>";
+        console.log("privkey: "+privkey);
+        decryptMessage(privkey, "superawesomesecretpassphrase", pgpMessage, function(message, err) {
+          console.log("inside decrypt message callback");
           if (err) {
-            console.log("ERROR: "+err);
+            console.log("ERROR Decrypting message: "+err);
           } else {
-            console.log("Encrypted message: "+pgpMessage);
+            console.log("Message decrypted! - '"+message+"'");
+            var messageLine = "["+nick+"] "+message;
+            $('#messages').append($('<li>').text(messageLine));
           }
         });
       });
@@ -52,7 +72,8 @@
         privateKey.decrypt(passphrase);
         pgpMessage = openpgp.message.readArmored(pgpMessage);
         openpgp.decryptMessage(privateKey, pgpMessage).then(function(plaintext) {
-          callback(plaintextMessage, null);
+          console.log("Decrypted message!");
+          callback(plaintext, null);
         }).catch(function(error) {
           return callback(null, error);
         });

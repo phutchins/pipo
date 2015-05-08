@@ -2,7 +2,7 @@
   "name": "PiPo",
   "version": "0.0.1",
   "description": "Encrypted chat server/client",
-  "main": "index.js",
+  "main": "server.js",
   "dependencies": {
     "ejs": "^2.3.1",
     "express": "^4.10.2",

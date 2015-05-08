@@ -23,6 +23,7 @@
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       var socket = io();
+      socket.emit('join', { nick: "<%= nick %>", channel: "general" } );
       $('form').submit(function(){
         var pubkey = "<%= pubkey %>";
         var nick = "<%= nick %>";
@@ -40,6 +41,11 @@
           }
         });
         return false;
+      });
+      socket.on('chat status', function(data) {
+        var statusType = data.statusType;
+        var statusMessage = data.statusMessage;
+        $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
       });
       socket.on('chat message', function(data){
         var nick = data.nick;

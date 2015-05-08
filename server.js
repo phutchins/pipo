@@ -6,6 +6,8 @@ var io = require('socket.io')(http);
 var path = require('path');
 var openpgp = require('openpgp');
 
+var allClients = [];
+
 app.set('view engine', 'ejs');
 app.use(express['static'](path.join(__dirname, 'public')));
 
@@ -16,8 +18,11 @@ app.get('/', function(req, res) {
 var pubkey = '';
 var privkey = '';
 
+console.log("Generating Key Pair, please wait...");
+console.time("genkeypair");
 generateKeyPair(2048, "Test User <test@test.com>", "superawesomesecretpassphrase", function(keyPair) {
   console.log("KeyPair created...");
+  console.timeEnd("genkeypair");
   //showKeys(keyPair.privkey, keyPair.pubkey);
 });
 
@@ -39,12 +44,31 @@ io.on('connection', function(socket) {
     io.emit('chat message', data);
     console.log("Server emitted chat message to users");
   });
-  socket.on('join', function(nick) {
+  socket.on('join', function(data) {
+    var nick = data.nick;
     socket.name = nick;
-    console.log(socket.name + ' joined the chat.');
+    client = socket;
+    allClients.push(client);
+    var channel = data.channel;
+    var statusMessage = client.name+" has joined channel #"+channel;
+    console.log(statusMessage);
+    var data = {
+      statusType: "JOIN",
+      statusMessage: statusMessage
+    };
+    io.emit('chat status', data);
   });
   socket.on('disconnect', function() {
+    var client = allClients.indexOf(socket);
     console.log("User disconnected...");
+    var statusMessage = client.name+" has left the channel...";
+    console.log("client: "+client);
+    var statusData = {
+      statusType: "PART",
+      statusMessage: statusMessage
+    }
+    io.emit('chat status', statusData);
+    allClients.splice(client, 1);
   });
 });
 

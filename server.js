@@ -11,28 +11,19 @@ var allClients = [];
 app.set('view engine', 'ejs');
 app.use(express['static'](path.join(__dirname, 'public')));
 
-app.get('/', function(req, res) {
-  res.sendFile(__dirname + '/index.html');
-});
+// Database
+var db = mongoose.connection;
+db.on('error', console.error);
+db.once('open', function() {
+  // Load any schemas/models here?
+})
+mongoose.connect(configDB.url);
 
-var pubkey = '';
-var privkey = '';
-
-console.log("Generating Key Pair, please wait...");
-console.time("genkeypair");
-generateKeyPair(2048, "Test User <test@test.com>", "superawesomesecretpassphrase", function(keyPair) {
-  console.log("KeyPair created...");
-  console.timeEnd("genkeypair");
-  //showKeys(keyPair.privkey, keyPair.pubkey);
-});
-
-app.get('/:nickName', function(req, res) {
-  var nick = req.param('nickName');
-  res.render('chat.ejs', {
-    nick : nick,
-    pubkey : pubkey.replace(/(\r\n|\n|\r)/gm,"\\n"),
-    privkey: privkey.replace(/(\r\n|\n|\r)/gm,"\\n")
-  });
+// Load routes
+var routePath = './routes';
+fs.readdirSync(routePath).forEach(function(file) {
+  var route = routePath+file;
+  require(route)(app);
 })
 
 io.on('connection', function(socket) {
@@ -72,6 +63,14 @@ io.on('connection', function(socket) {
   });
 });
 
+start();
+
+function start() {
+  var KeyPair = require('../models/keypair.js');
+  // If there is no keypair generated generate one and encrypt it to each user using their public key
+  KeyPair.findOne({ type: 'master'}, function {
+  });
+}
 
 function generateKeyPair(numBits, userId, passphrase, callback) {
   var options = {

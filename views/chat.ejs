@@ -64,6 +64,24 @@
           }
         });
       });
+      function generateClientKeyPair(numBits, userId, passphrase, callback) {
+        var options = {
+          numBits: numBits,
+          userId: userId,
+          passphrase: passphrase
+        }
+        openpgp.generateKeyPair(options).then(function(keyPair) {
+          var privKey = keyPair.privateKeyArmored;
+          var pubKey = keyPair.publicKeyArmored;
+          var keyPair = {
+            privKey: privKey,
+            pubKey: pubKey
+          }
+          return callback(keyPair);
+        }).catch(function(error) {
+          console.log("Error generating key pair: "+error);
+        });
+      };
       function encryptMessage(key, message, callback) {
         var publicKey = openpgp.key.readArmored(key);
         openpgp.encryptMessage(publicKey.keys, message).then(function(pgpMessage) {

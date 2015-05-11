@@ -5,6 +5,9 @@ var http = require('http').Server(app);
 var io = require('socket.io')(http);
 var path = require('path');
 var openpgp = require('openpgp');
+var mongoose = require('mongoose');
+var configDB = require('./config/database.js');
+var fs = require('fs');
 
 var allClients = [];
 
@@ -20,9 +23,10 @@ db.once('open', function() {
 mongoose.connect(configDB.url);
 
 // Load routes
-var routePath = './routes';
+var routePath = './routes/';
 fs.readdirSync(routePath).forEach(function(file) {
   var route = routePath+file;
+  console.log("Loading route: "+route);
   require(route)(app);
 })
 
@@ -66,9 +70,10 @@ io.on('connection', function(socket) {
 start();
 
 function start() {
-  var KeyPair = require('../models/keypair.js');
+  var KeyPair = require('./models/keypair.js');
   // If there is no keypair generated generate one and encrypt it to each user using their public key
-  KeyPair.findOne({ type: 'master'}, function {
+  KeyPair.findOne({ type: 'master'}, function(keyPair) {
+
   });
 }
 

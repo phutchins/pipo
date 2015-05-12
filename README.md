@@ -37,7 +37,16 @@ Options...
 + Server encrypts private key to all users that are granted access using their personal public key
 + Server destroys unencrypted shared private key
 + Server sends new encrypted private key to users as they sign on
+  + Possible to have client with rights to add user create the private key and encrypt to all users then upload to server
 
+
+# Protocol
++ Send noonce with each message and then the clients would see that it's a new one and query the server for new key?
++ When someone joins, they send public key to server. Server temporarily encrypts to both old key and new key until new keys are generated and ready for users to download. Everyone can see messages from new user as soon as they have updated their key to the new key.
+
+
+### Decentralizaing
++ Clients can still communicate if server is down?
 
 ### Local storage of private keys
 

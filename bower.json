@@ -1,0 +1,25 @@
+{
+  "name": "pipo",
+  "version": "0.0.0",
+  "homepage": "https://github.com/phutchins/pipo",
+  "authors": [
+    "Philip Hutchins <flipture@gmail.com>"
+  ],
+  "description": "Client side endcrypted group chat",
+  "main": "server.js",
+  "moduleType": [
+    "amd",
+    "node"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ],
+  "dependencies": {
+    "openpgp": "~1.0.1"
+  }
+}

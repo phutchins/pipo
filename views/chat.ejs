@@ -25,19 +25,33 @@
     <!--<script data-main="scripts/main" src="scripts/require.js"></script>-->
     <script>
       var socket = io();
-      var keyPair = null;
-      var encryptedMasterKeyPair = null;
-      var masterKeyPair = null;
+      var keyPair = ({
+        pubKey: null,
+        privKey: null
+      });
+      var encryptedMasterKeyPair = ({
+        pubKey: null,
+        privKey: null
+      });
+      var masterKeyPair = ({
+        pubKey: null,
+        privKey: null
+      });
       var userName = "<%= userName %>";
-      socket.emit('join', { userName: userName, channel: "general" } );
       start();
       function start() {
         openpgp.initWorker('/js/openpgp.worker.js');
+        var statusType = "STATUS";
+        var statusMessage = "Please wait while your keys are prepared...";
+        $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
         generateClientKeyPair(2048, "<%= userName %>", "superawesomepasswordhere", function(err, generatedKeyPair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
           } else {
             console.log("Generated client key pair.");
+            var statusType = "STATUS";
+            var statusMessage = "Client keys generated.";
+            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             keyPair = generatedKeyPair;
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
@@ -45,30 +59,48 @@
                 return console.log("Error when checking for remote public key: "+err);
               } else {
               // Get master key if we don't have it locally
+                console.log("[START] Joining channel #general");
+                socket.emit('join', { userName: userName, channel: "general" } );
               };
             });
           }
         });
       };
 
-      function decryptMasterKey(userName, privKey, encryptedMasterPrivKey, callback) {
-        openpgp.decryptMessage(privKey, encryptedMasterPrivKey, function(err, decryptedKey) {
-          masterKey = decryptedKey;
-        })
+      function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
+        var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
+        var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
+        clientPrivKey.decrypt('superawesomepasswordhere');
+        //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privKey: "+clientPrivKey+" encMasterPrivateKey: "+encMasterPrivateKey);
+        console.log("[DEBUG] about to start decrypting master key");
+        openpgp.decryptMessage(clientPrivKey, encMasterPrivateKey).then(function(decryptedKey) {
+          console.log("[DEBUG] in decryptMessage callback");
+          //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
+          callback(null, decryptedKey);
+        }).catch(function(err) {
+          if (err) { callback(err, null); };
+        });
       };
 
       function getMasterKeyPair(userName, callback) {
-        console.log("Getting master keyPair");
+        console.log("Getting master keyPair for "+userName);
         $.ajax({
           type: "GET",
           url: "/key/masterKeyPair",
           dataType: "json",
           data: {
             userName: userName
+          },
+          statusCode: {
+            404: function(err) {
+              console.log("[MASTER KEY PAIR] (404) Error getting master keypair: "+err);
+              return callback(err, null);
+            },
+            200: function(data) {
+              console.log("[MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
+              return callback(null, data);
+            }
           }
-        }).then(function(data) {
-          console.log("Encrypted masterKeyPair retrieved and cached");
-          return callback(null, data);
         });
       };
 
@@ -80,40 +112,41 @@
           dataType: "json",
           data: {
             userName: userName
-          }
-        }).then(function(data) {
-          var remotePubKey = data.pubKey;
-          if (remotePubKey == '') {
-            console.log("No key found on remote");
-            updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
-              console.log("1 Updating public key on remote");
-              if (err) {
-                console.log("Error updating pubKey on remote");
-                return callback(err);
-              } else {
-                console.log("Updated remote pubKey");
-                  return callback(null);
-              }
-            });
-          } else if (pubKey !== '') {
-            console.log("Key exists on remote");
-            if (keyPair.pubKey == remotePubKey) {
-              console.log("Key on remote matches local");
-              return callback(null);
-            } else {
-              console.log("Key on remote does not match");
+          },
+          statusCode: {
+            404: function(err) {
+              console.log("No key found on remote");
               updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
+                console.log("1 Updating public key on remote");
                 if (err) {
                   console.log("Error updating pubKey on remote");
                   return callback(err);
                 } else {
                   console.log("Updated remote pubKey");
-                  return callback(null);
+                    return callback(null);
                 }
               });
+            },
+            200: function(data) {
+              console.log("[DEBUG] (updateRemotePubKey) data: "+data);
+              var remotePubKey = data.pubKey;
+              console.log("Key exists on remote");
+              if (keyPair.pubKey == remotePubKey) {
+                console.log("Key on remote matches local");
+                return callback(null);
+              } else {
+                console.log("Key on remote does not match");
+                updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
+                  if (err) {
+                    console.log("Error updating pubKey on remote");
+                    return callback(err);
+                  } else {
+                    console.log("Updated remote pubKey");
+                    return callback(null);
+                  }
+                });
+              }
             }
-          } else {
-            console.log("Something weird went wrong while udpating remote public key");
           }
         });
       };
@@ -144,36 +177,74 @@
       };
 
       $('form').submit(function(){
-        var pubKey = masterKeyPair.pubKey;
-        var userName = userName;
-        var message = $('#m').val();
-        console.log("attempting to encrypt message");
-        encryptMessage(pubKey, message, function(pgpMessage, err) {
-          if (err) {
-            console.log("Error Encrypting Message: "+err);
-          } else {
-            console.log("Message encrypted successfully");
-            socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
-            console.log("Message emitted to socket.io");
-            $('#m').val('');
-            //return false;
-          }
-        });
+        if (masterKeyPair.pubKey !== null) {
+          var pubKey = masterKeyPair.pubKey;
+          var userName = "<%= userName %>";
+          var message = $('#m').val();
+          console.log("attempting to encrypt message");
+          //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
+          encryptMessage(pubKey, message, function(pgpMessage, err) {
+            if (err) {
+              console.log("Error Encrypting Message: "+err);
+            } else {
+              console.log("Message encrypted successfully");
+              socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
+              console.log("Message emitted to socket.io");
+              $('#m').val('');
+              //return false;
+            }
+          });
+        } else {
+          console.log("masterKeyPair does not exist yet, must get it!");
+          var userName = "<%= userName %>";
+          console.log("username is: "+userName);
+          //getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+          //  if (err) {
+          //    console.log("Error getting master key pair: "+err);
+          //  } else {
+          //    console.log("Got master keypair...");
+          //    encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
+          //    encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+          //    if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+          //      //var privKey = keyPair.privKey;
+          //      //console.log("[DEBUG] Client privKey after readArmored: "+privKey);
+          //      console.log("Attempting to decrypt master key...");
+          //      decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+          //        if (err) { return console.log("Error derypting master key: "+err); };
+          //        console.log("Caching master private key decrypted");
+          //        masterKeyPair.privKey = key;
+          //      });
+          //    } else {
+          //      console.log("Client private key does not yet exist so cannot decrypt master key");
+          //    };
+          //  };
+          //});
+        }
         return false;
       });
 
-      socket.on('master key ready', function(data) {
-        console.log("Getting master keyPair");
-        getMasterKeyPair(userName, function(err, keyPair) {
+      socket.on('new master key', function(data) {
+        console.log("Getting master keyPair for "+userName);
+        getMasterKeyPair(userName, function(err, encMasterKeyPair) {
           if (err) {
             console.log("Error getting master key pair: "+err);
           } else {
             console.log("Got master keypair, ready to encrypt/decrypt");
-            encryptedMasterKeyPair = keyPair;
-            decryptMasterKey(userName, privKey, encryptedMasterKeyPair.privKey, function(err, key) {
-              console.log("Cacheing master private key decrypted");
-              masterKey = key;
-            });
+            encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
+            encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+            console.log("Ensuring that client keypair exists");
+            //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
+            if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+              console.log("(new master key) Trying to decrypt master key...");
+              decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+                console.log("(new master key) Caching master private key decrypted");
+                console.log("(new master key) master privKey is "+key);
+                masterKeyPair.privKey = key;
+                masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+              });
+            } else {
+              console.log("Private key does not yet exist so cannot decrypt master key");
+            };
           };
         });
       });
@@ -188,8 +259,7 @@
         var userName = data.userName;
         var pgpMessage = data.pgpMessage;
         console.log("Got message, attempting to decrypt");
-        var privKey = masterKeyPair.privKey;
-        decryptMessage(privkey, "superawesomesecretpassphrase", pgpMessage, function(message, err) {
+        decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(message, err) {
           console.log("inside decrypt message callback");
           if (err) {
             console.log("ERROR Decrypting message: "+err);
@@ -232,10 +302,11 @@
         var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
         masterPrivateKey.decrypt(passphrase);
         pgpMessage = openpgp.message.readArmored(pgpMessage);
-        openpgp.decryptMessage(privateKey, pgpMessage).then(function(plaintext) {
+        openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
           console.log("Decrypted message!");
           callback(plaintext, null);
         }).catch(function(error) {
+          console.log("Error decrypting message");
           return callback(null, error);
         });
       }

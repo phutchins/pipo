@@ -11,6 +11,7 @@ var fs = require('fs');
 var morgan = require('morgan');
 var async = require('async');
 var marked = require('marked');
+var events = require('events');
 
 var configMD = require('./config/markdown.js');
 var configDB = require('./config/database.js');
@@ -48,10 +49,12 @@ connectWithRetry();
 
 // Load routes
 var routePath = './routes/';
+var routes = [];
 fs.readdirSync(routePath).forEach(function(file) {
   var route = routePath+file;
-  console.log("Loading route: "+route);
-  require(route)(app);
+  routeName = route.split('.')[0]
+  console.log("Loading route: "+routeName);
+  routes[routeName] = require(route)(app);
 })
 
 io.on('connection', function(socket) {
@@ -68,21 +71,32 @@ io.on('connection', function(socket) {
     socket.name = userName;
     client = socket;
     allClients.push(client);
-    console.log("[JOIN] Confirming that user "+userName+" exists.");
+    console.log("[JOIN] "+userName+" has joined");
+    console.log("[JOIN] Generating new master key pair.");
+
+    // Remote this later when we're caching private keys and using events to kick this off
+    generateMasterKeyPair(function(err, masterKeyPair) {
+      updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
+        if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
+        console.log("[JOIN] Encrypted master key for all users!");
+        io.emit('new master key', masterKeyPair);
+      });
+    });
+
     addUserIfNotExist(userName, function(err) {
       if (err) { return console.log("Error checking user: "+err); };
       console.log("[JOIN] User check complete");
       User.findOne({ userName: userName }, function(err, user, count) {
         if (user.encryptedMasterPrivKey) {
           console.log("[JOIN] User has master key, emitting ready to client");
-          io.emit('master key ready');
+          io.emit('new master key');
         } else {
           console.log("[JOIN] User does not have master key, regenerating for all users");
           generateMasterKeyPair(function(err, masterKeyPair) {
             updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
               if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
               console.log("[JOIN] Encrypted master key for all users!");
-              io.emit('master key ready', masterKeyPair);
+              io.emit('new master key', masterKeyPair);
             });
           });
         };
@@ -100,7 +114,7 @@ io.on('connection', function(socket) {
   socket.on('disconnect', function() {
     var client = allClients.indexOf(socket);
     console.log("User disconnected...");
-    var statusMessage = client.name+" has left the channel...";
+    var statusMessage = "Someone has left the channel... (we can figure out who later)";
     console.log("client: "+client);
     var statusData = {
       statusType: "PART",
@@ -133,6 +147,7 @@ function start() {
           if (err) { console.log("Error checking master key for all users: "+err); };
           if (response == 'update') {
             generateMasterKeyPair(function(err, masterKeyPair) {
+              console.log("[START] New master keyPair generated...");
               updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
                 if (err) { return console.log("Error encrypting master key for all users: "+err); };
                 console.log("Encrypted master key for all users!");
@@ -150,6 +165,10 @@ function start() {
     });
   });
 };
+
+//routes.keys.on('pubkey updated', function(data) {
+//  console.log("[EVENT] pubkey has been updated");
+//});
 
 function generateMasterKeyPair(callback) {
   generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
@@ -186,7 +205,7 @@ function checkMasterKeyPairForAllUsers(callback) {
   User.find({}, function(err, users, count) {
     users.forEach( function(user) {
       if (user.encryptedMasterPrivKey) {
-        console.log(userName+" has encrypted private key");
+        console.log(user.userName+" has encrypted private key");
         return callback(null, 'ok');
       } else {
         return callback(null, 'update');
@@ -225,6 +244,7 @@ function bootstrapUsers(callback) {
 function addUserIfNotExist(userName, callback) {
   var User = require('./models/user.js');
   User.findOne({ userName: userName }, function(err, user) {
+    if (err) { return callback(err); };
     if (typeof user === 'undefined' || user === null) {
       console.log("No user found in DB with username "+userName);
       new User({
@@ -232,17 +252,24 @@ function addUserIfNotExist(userName, callback) {
       }).save( function(err, user, count) {
         if (err) { return console.log("Error adding user to DB: "+err); }
         console.log("Added user '"+userName+"' to DB");
+        return callback(null);
       });
     } else {
       console.log("User exists");
+      return callback(null);
     }
   });
 };
 
 function updateMasterKeyPairForUser(user, masterKeyPair, callback) {
-  console.log("Updating master keyPair for "+user.usrName);
+  console.log("Updating master keyPair for "+user.userName);
+  //console.log("[DEBUG] (updateMasterKeyPairForUser) user.pubKey: "+user.pubKey);
+  //console.log("[DEBUG] (updateMasterKeyPairForUser) masterKeyPair.privKey: "+masterKeyPair.privKey);
   if (user.pubKey) {
-    openpgp.encryptMessage(user.pubKey, masterKeyPair.privKey).then(function(encKey) {
+    var pubKey = openpgp.key.readArmored(user.pubKey).keys[0];
+    var masterPrivKey = openpgp.key.readArmored(masterKeyPair.privKey).keys[0];
+    masterPrivKey.decrypt('pipo');
+    openpgp.encryptMessage(pubKey, masterKeyPair.privKey).then(function(encKey) {
       user.encryptedMasterPrivKey = encKey;
       user.masterPubKey = masterKeyPair.pubKey;
       user.save( function( err, user, count ) {

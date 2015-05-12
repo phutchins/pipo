@@ -1,6 +1,6 @@
 // routes/chat.js
 
-module.exports = function(app) {
+module.exports = function(app, pipo) {
 
   app.get('/', function(req, res) {
     var userName = 'default';

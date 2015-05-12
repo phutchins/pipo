@@ -1,8 +1,9 @@
 require('../config/database');
 var KeyPair = require('../models/keypair.js');
 var User = require('../models/user.js');
+var Keys = require('events').EventEmitter;
 
-module.exports = function(app) {
+module.exports = function(app, pipo) {
   app.get('/key/pubkey', function(req, res) {
     var userName = req.param('userName');
     User.findOne({ userName: userName }, function(err, user) {
@@ -12,7 +13,7 @@ module.exports = function(app) {
         res.json({ pubKey: '' });
       } else if (typeof user.pubKey != 'undefined') {
         console.log("KeyPair found...");
-        res.json({ pubKey: keyPair.pubKey });
+        res.json({ pubKey: user.pubKey });
       } else {
         console.log("User "+userName+" does not seem to have a pubKey");
         res.status(404).send();
@@ -24,17 +25,18 @@ module.exports = function(app) {
     var userName = req.param('userName');
     var pubKey = req.param('pubKey');
     console.log("Saving public key from user "+userName);
-    new KeyPair ({
-      type: 'user',
-      userName: userName,
-      pubKey: pubKey,
-    }).save( function( err, keyPair, count) {
-      if (err) {
-        console.log("Error saving pubkey from "+userName+": "+err);
-        return res.status(500).send();
-      };
-      console.log("Saved pubkey from "+userName);
-      res.status(200).send();
+    User.findOne({ userName: userName }, function(err, user, count) {
+      user.pubKey = pubKey;
+      user.save(function(err, user, count) {
+        if (err) {
+          console.log("Error saving pubkey from "+userName+": "+err);
+          return res.status(500).send();
+        } else {
+          console.log("Saved pubkey from "+userName);
+          //module.exports.emit('pubkey updated', {data: { userName: userName }} );
+          res.status(200).send();
+        }
+      });
     });
   });
 
@@ -43,18 +45,21 @@ module.exports = function(app) {
     var User = require('../models/user.js');
     var userName = req.param('userName');
     User.findOne({ userName: userName }, function(err, user) {
-      if (err) { res.status(500).send(); };
-      // Check to make sure user is found
-      // If user not found, add user
-      // If user does not have encryptedMasterPrivKey, generate new one for everyone
-      var encryptedMasterPrivKey = user.encryptedMasterPrivKey;
-      var masterPubKey = user.masterPubKey;
-      if (typeof user !== 'undefined' && user !== null) {
-        res.json({ pubKey: masterPubKey, privKey: encryptedMasterPrivKey }).send();
+      if (err) {
+        return res.status(500).send();
       } else {
-        console.log("Didn't find masterKey encrypted to "+userName);
-        res.status(404).send();
-      };
+        // Check to make sure user is found
+        // If user not found, add user
+        // If user does not have encryptedMasterPrivKey, generate new one for everyone
+        if (typeof user !== 'undefined' && user !== null) {
+          var encryptedMasterPrivKey = user.encryptedMasterPrivKey;
+          var masterPubKey = user.masterPubKey;
+          res.json({ pubKey: masterPubKey, privKey: encryptedMasterPrivKey });
+        } else {
+          console.log("Didn't find masterKey encrypted to "+userName);
+          res.status(404).send();
+        };
+      }
     });
   });
 

@@ -9,7 +9,7 @@
       form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
       form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
       #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; }
+      #messages li { padding: 5px 10px; overflow-y: scroll }
       #messages li:nth-child(odd) { background: #eee; }
     </style>
   </head>
@@ -228,7 +228,13 @@
         getMasterKeyPair(userName, function(err, encMasterKeyPair) {
           if (err) {
             console.log("Error getting master key pair: "+err);
+            var statusType = "STATUS";
+            var statusMessage = "Error getting master key pair";
+            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
           } else {
+            var statusType = "KEYS";
+            var statusMessage = "Updated master key pair";
+            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             console.log("Got master keypair, ready to encrypt/decrypt");
             encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
             encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;

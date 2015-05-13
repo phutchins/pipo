@@ -79,7 +79,6 @@ io.on('connection', function(socket) {
       updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
         if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
         console.log("[JOIN] Encrypted master key for all users!");
-        io.emit('new master key', masterKeyPair);
       });
     });
 
@@ -89,14 +88,13 @@ io.on('connection', function(socket) {
       User.findOne({ userName: userName }, function(err, user, count) {
         if (user.encryptedMasterPrivKey) {
           console.log("[JOIN] User has master key, emitting ready to client");
-          io.emit('new master key');
+          //io.emit('new master key');
         } else {
           console.log("[JOIN] User does not have master key, regenerating for all users");
           generateMasterKeyPair(function(err, masterKeyPair) {
             updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
               if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
               console.log("[JOIN] Encrypted master key for all users!");
-              io.emit('new master key', masterKeyPair);
             });
           });
         };
@@ -139,7 +137,6 @@ function start() {
           updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
             if (err) { console.log("Error encrypting master key for all users: "+err); };
             console.log("Encrypted master key for all users!");
-            io.emit('master key ready', masterKeyPair);
           });
         });
       } else {
@@ -151,16 +148,15 @@ function start() {
               updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
                 if (err) { return console.log("Error encrypting master key for all users: "+err); };
                 console.log("Encrypted master key for all users!");
-                io.emit('master key ready', masterKeyPair);
               });
             });
           } else if (response == 'ok') {
-            console.log("All users have master key");
-            io.emit('master key ready', masterKeyPair);
+            //console.log("All users have master key");
+            //io.emit('new master key', masterKeyPair);
           }
         });
         console.log("Using existing master keyPair version: "+masterKeyPair.version);
-        io.emit('master key ready', masterKeyPair);
+        //io.emit('new master key', masterKeyPair);
       };
     });
   });
@@ -194,9 +190,17 @@ function updateMasterKeyPairForAllUsers(masterKeyPair, callback) {
       updateMasterKeyPairForUser(user, masterKeyPair, function(err) {
         if (err) { return asyncCallback(err); }
         console.log("Update master key process for "+user.userName+" done...");
+        asyncCallback(err);
       });
     }, function(err) {
-        console.log("Generated encrypted master key for all users");
+        if (err) {
+          console.log("Error generating key pair for all users");
+          callback(err);
+        } else {
+          console.log("Generated encrypted master key for all users");
+          io.emit('new master key', masterKeyPair);
+          callback(err);
+        };
     });
   });
 }

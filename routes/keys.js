@@ -24,20 +24,39 @@ module.exports = function(app, pipo) {
     // Accept users public key
     var userName = req.param('userName');
     var pubKey = req.param('pubKey');
-    console.log("Saving public key from user "+userName);
-    User.findOne({ userName: userName }, function(err, user, count) {
-      user.pubKey = pubKey;
-      user.save(function(err, user, count) {
-        if (err) {
-          console.log("Error saving pubkey from "+userName+": "+err);
-          return res.status(500).send();
+    if (pubKey !== null && typeof pubKey !== 'undefined') {
+      console.log("Saving public key from user "+userName);
+      User.findOne({ userName: userName }, function(err, user, count) {
+        if (user === null) {
+          console.log("[DEBUG] (/key/pubkey) User not found");
+          new User({
+            userName: userName,
+            pubKey: pubKey
+          }).save(function(err, user) {
+            if (err) {
+              res.status(500).send();
+            } else {
+            res.status(200).send();
+            };
+          });
         } else {
-          console.log("Saved pubkey from "+userName);
-          //module.exports.emit('pubkey updated', {data: { userName: userName }} );
-          res.status(200).send();
+          user.pubKey = pubKey;
+          user.save(function(err, user, count) {
+            if (err) {
+              console.log("Error saving pubkey from "+userName+": "+err);
+              return res.status(500).send();
+            } else {
+              console.log("Saved pubkey from "+userName);
+              //module.exports.emit('pubkey updated', {data: { userName: userName }} );
+              res.status(200).send();
+            };
+          });
         }
       });
-    });
+    } else {
+      console.log("Pub key is not defined");
+      res.status(500).send();
+    };
   });
 
   app.get('/key/masterKeyPair', function(req, res) {

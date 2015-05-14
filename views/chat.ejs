@@ -2,27 +2,31 @@
 <html>
   <head>
     <title>PiPo</title>
-    <style>
-      * { margin: 0; padding: 0; box-sizing: border-box; }
-      body { font: 13px Helvetica, Arial; }
-      form { background: #000; padding: 3px; position: fixed; bottom: 0; width: 100%; }
-      form input { border: 0; padding: 10px; width: 90%; margin-right: .5%; }
-      form button { width: 9%; background: rgb(130, 224, 255); border: none; padding: 10px; }
-      #messages { list-style-type: none; margin: 0; padding: 0; }
-      #messages li { padding: 5px 10px; overflow-y: scroll }
-      #messages li:nth-child(odd) { background: #eee; }
-    </style>
   </head>
   <body>
-    <ul id="messages"></ul>
-    <form action="">
-      <input id="m" autocomplete="off" /><button>Send</button>
-    </form>
+    <div id="mainContainer">
+      <ul id="messages">
+      </ul>
+      <div id="users">
+        <ul id="userlist">
+        </ul>
+      </div>
+    </div>
+    <div class="inputContainer" id="inputContainer">
+      <form action="">
+        <div class="ui left fluid action icon input loading">
+          <input id="inputBox" class="ui left icon loading messageInput" autocomplete="off" type="text" placeholder="Please wait while your secure connection is configured..."></input>
+          <i id="loadingIcon" class="search icon"></i>
+          <button id="sendButton" class="ui button" disabled="true">Send</button>
+        </div>
+      </form>
+    </div>
+    <link rel="stylesheet" href="/css/semantic.css">
+    <link rel="stylesheet" href="/css/pipo.css">
     <script src="/js/openpgp.js"></script>
-    <!--<script src="/js/openpgp.worker.js"></script>-->
+    <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <!--<script data-main="scripts/main" src="scripts/require.js"></script>-->
     <script>
       var socket = io();
       var keyPair = ({
@@ -180,7 +184,7 @@
         if (masterKeyPair.pubKey !== null) {
           var pubKey = masterKeyPair.pubKey;
           var userName = "<%= userName %>";
-          var message = $('#m').val();
+          var message = $('#inputBox').val();
           console.log("attempting to encrypt message");
           //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
           encryptMessage(pubKey, message, function(pgpMessage, err) {
@@ -190,8 +194,7 @@
               console.log("Message encrypted successfully");
               socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
               console.log("Message emitted to socket.io");
-              $('#m').val('');
-              //return false;
+              $('#inputBox').val('');
             }
           });
         } else {
@@ -244,9 +247,11 @@
               console.log("(new master key) Trying to decrypt master key...");
               decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
                 console.log("(new master key) Caching master private key decrypted");
-                console.log("(new master key) master privKey is "+key);
                 masterKeyPair.privKey = key;
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+                $('#inputBox').attr('placeHolder', 'Type your message here...');
+                $('#sendButton').prop('disabled', false);
+                $('#loadingIcon').remove();
               });
             } else {
               console.log("Private key does not yet exist so cannot decrypt master key");
@@ -273,6 +278,8 @@
             console.log("Message decrypted! - '"+message+"'");
             var messageLine = "["+userName+"] "+message;
             $('#messages').append($('<li>').text(messageLine));
+            var $messages = $('#messages');
+            $messages[0].scrollTop = $messages[0].scrollHeight;
           }
         });
       });

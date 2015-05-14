@@ -12,6 +12,8 @@ var morgan = require('morgan');
 var async = require('async');
 var marked = require('marked');
 var events = require('events');
+var winston = require('winston');
+var logger = new winston.Logger();
 
 var configMD = require('./config/markdown.js');
 var configDB = require('./config/database.js');

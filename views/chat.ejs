@@ -264,18 +264,20 @@
         var statusType = data.statusType;
         var statusMessage = data.statusMessage;
         $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+        var $messages = $('#messages');
+        $messages[0].scrollTop = $messages[0].scrollHeight;
       });
 
       socket.on('chat message', function(data){
         var userName = data.userName;
         var pgpMessage = data.pgpMessage;
-        console.log("Got message, attempting to decrypt");
+        //console.log("Got message, attempting to decrypt");
         decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(message, err) {
-          console.log("inside decrypt message callback");
+          //console.log("inside decrypt message callback");
           if (err) {
             console.log("ERROR Decrypting message: "+err);
           } else {
-            console.log("Message decrypted! - '"+message+"'");
+            //console.log("Message decrypted! - '"+message+"'");
             var messageLine = "["+userName+"] "+message;
             $('#messages').append($('<li>').text(messageLine));
             var $messages = $('#messages');

@@ -1,0 +1,8 @@
+node_modules
+
+.idea
+.git
+
+.DS_Store
+.Trashes
+Thumbs.db

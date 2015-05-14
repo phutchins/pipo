@@ -8,6 +8,10 @@ body, html { padding: 0; margin: 0; }
   margin: 0;
 }
 
+#messages p {
+  display: inline;
+}
+
 #messages li {
   padding: 5px 10px;
 }

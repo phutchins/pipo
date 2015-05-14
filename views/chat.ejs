@@ -13,7 +13,7 @@
       </div>
     </div>
     <div class="inputContainer" id="inputContainer">
-      <form action="">
+      <form>
         <div class="ui left fluid action icon input loading">
           <input id="inputBox" class="ui left icon loading messageInput" autocomplete="off" type="text" placeholder="Please wait while your secure connection is configured..."></input>
           <i id="loadingIcon" class="search icon"></i>
@@ -26,6 +26,7 @@
     <script src="/js/openpgp.js"></script>
     <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
+    <script src="js/marked.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script>
       var socket = io();
@@ -57,6 +58,9 @@
             var statusMessage = "Client keys generated.";
             $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             keyPair = generatedKeyPair;
+              var statusType = "STATUS";
+              var statusMessage = "Waiting for MASTER key from server...";
+              $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
               if (err) {
@@ -180,6 +184,36 @@
         });
       };
 
+      $('input').keyup(function (event) {
+        if (event.keyCode == 13 && event.shiftKey) {
+          var content = this.value;
+          var caret = getCaret(this);
+          this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length-1);
+          event.stopPropagation();
+          console.log("got shift+enter");
+          return false;
+        } else if(event.keyCode == 13) {
+          console.log("got enter");
+        }
+      });
+      function getCaret(el) {
+        if (el.selectionStart) {
+          return el.selectionStart;
+        } else if (document.selection) {
+          el.focus();
+          var r = document.selection.createRange();
+          if (r == null) {
+            return 0;
+          }
+          var re = el.createTextRange(),
+          rc = re.duplicate();
+          re.moveToBookmark(r.getBookmark());
+          rc.setEndPoint('EndToStart', re);
+          return rc.text.length;
+        }
+        return 0;
+      }
+
       $('form').submit(function(){
         if (masterKeyPair.pubKey !== null) {
           var pubKey = masterKeyPair.pubKey;
@@ -201,27 +235,6 @@
           console.log("masterKeyPair does not exist yet, must get it!");
           var userName = "<%= userName %>";
           console.log("username is: "+userName);
-          //getMasterKeyPair(userName, function(err, encMasterKeyPair) {
-          //  if (err) {
-          //    console.log("Error getting master key pair: "+err);
-          //  } else {
-          //    console.log("Got master keypair...");
-          //    encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
-          //    encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
-          //    if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
-          //      //var privKey = keyPair.privKey;
-          //      //console.log("[DEBUG] Client privKey after readArmored: "+privKey);
-          //      console.log("Attempting to decrypt master key...");
-          //      decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
-          //        if (err) { return console.log("Error derypting master key: "+err); };
-          //        console.log("Caching master private key decrypted");
-          //        masterKeyPair.privKey = key;
-          //      });
-          //    } else {
-          //      console.log("Client private key does not yet exist so cannot decrypt master key");
-          //    };
-          //  };
-          //});
         }
         return false;
       });
@@ -278,8 +291,10 @@
             console.log("ERROR Decrypting message: "+err);
           } else {
             //console.log("Message decrypted! - '"+message+"'");
-            var messageLine = "["+userName+"] "+message;
-            $('#messages').append($('<li>').text(messageLine));
+            var parsedMessage = marked(message);
+            console.log("raw message is: "+message);
+            var messageLine = "["+userName+"] "+parsedMessage;
+            $('#messages').append($('<li>').html(messageLine));
             var $messages = $('#messages');
             $messages[0].scrollTop = $messages[0].scrollHeight;
           }

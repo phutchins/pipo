@@ -113,8 +113,9 @@ io.on('connection', function(socket) {
   });
   socket.on('disconnect', function() {
     var client = allClients.indexOf(socket);
+    var user = socket.name;
     console.log("User disconnected...");
-    var statusMessage = "Someone has left the channel... (we can figure out who later)";
+    var statusMessage = "[" + user + "] has left the channel";
     console.log("client: "+client);
     var statusData = {
       statusType: "PART",

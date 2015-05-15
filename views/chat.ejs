@@ -13,10 +13,10 @@
       </div>
     </div>
     <div class="inputContainer" id="inputContainer">
-      <form action="">
-        <div class="ui left fluid action icon input loading">
-          <input id="inputBox" class="ui left icon loading messageInput" autocomplete="off" type="text" placeholder="Please wait while your secure connection is configured..."></input>
-          <i id="loadingIcon" class="search icon"></i>
+      <form>
+        <div id="message-input-container" class="ui left fluid action icon input loading">
+          <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
+          <i id="loading-icon" class="search icon"></i>
           <button id="sendButton" class="ui button" disabled="true">Send</button>
         </div>
       </form>
@@ -24,10 +24,29 @@
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <script src="/js/openpgp.js"></script>
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="js/marked.js"></script>
+
+<link rel="stylesheet" href="https://yandex.st/highlightjs/8.0/styles/tomorrow.min.css">
+<script src="https://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
     <script>
+      marked.setOptions({
+        renderer: new marked.Renderer(),
+        gfm: true,
+        tables: true,
+        breaks: false,
+        pedantic: false,
+        sanatize: true,
+        smartLists: true,
+        smartypants: false,
+        highlight: function (code) {
+          return hljs.highlightAuto(code).value;
+        }
+      });
       var socket = io();
       var keyPair = ({
         pubKey: null,
@@ -57,6 +76,9 @@
             var statusMessage = "Client keys generated.";
             $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             keyPair = generatedKeyPair;
+              var statusType = "STATUS";
+              var statusMessage = "Waiting for MASTER key from server...";
+              $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
               if (err) {
@@ -180,11 +202,61 @@
         });
       };
 
+      $('textarea').keydown(function (event) {
+        if (event.keyCode == 13 && event.shiftKey) {
+          var content = this.value;
+          var caret = getCaret(this);
+          this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length);
+          event.stopPropagation();
+          console.log("got shift+enter");
+          var $messageInput = $('#message-input');
+          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+          return false;
+        } else if(event.keyCode == 13) {
+          console.log("got enter");
+          $('form').submit();
+          return false;
+        }
+      });
+      function getCaret(el) {
+        if (el.selectionStart) {
+          return el.selectionStart;
+        } else if (document.selection) {
+          el.focus();
+          var r = document.selection.createRange();
+          if (r == null) {
+            return 0;
+          }
+          var re = el.createTextRange(),
+          rc = re.duplicate();
+          re.moveToBookmark(r.getBookmark());
+          rc.setEndPoint('EndToStart', re);
+          return rc.text.length;
+        }
+        return 0;
+      }
+
+      function localMsg(type, message) {
+        if (type !== null) {
+          $('#messages').append($('<li>').html("["+type+"] "+message));
+        } else {
+          $('#messages').append($('<li>').html(message));
+        }
+      }
+
       $('form').submit(function(){
-        if (masterKeyPair.pubKey !== null) {
+        var input = $('#message-input').val();
+        var commandRegex = /^\//
+        if (input === "") {
+          console.log("Empty input");
+        } else if (input.match(commandRegex) !== null) {
+          console.log("Caught command, sending to server");
+          $('#message-input').val('');
+        } else if (masterKeyPair.pubKey !== null) {
           var pubKey = masterKeyPair.pubKey;
           var userName = "<%= userName %>";
-          var message = $('#inputBox').val();
+          // Do any message preprocessing here
+          var message = input;
           console.log("attempting to encrypt message");
           //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
           encryptMessage(pubKey, message, function(pgpMessage, err) {
@@ -194,34 +266,13 @@
               console.log("Message encrypted successfully");
               socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
               console.log("Message emitted to socket.io");
-              $('#inputBox').val('');
+              $('#message-input').val('');
             }
           });
         } else {
           console.log("masterKeyPair does not exist yet, must get it!");
           var userName = "<%= userName %>";
           console.log("username is: "+userName);
-          //getMasterKeyPair(userName, function(err, encMasterKeyPair) {
-          //  if (err) {
-          //    console.log("Error getting master key pair: "+err);
-          //  } else {
-          //    console.log("Got master keypair...");
-          //    encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
-          //    encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
-          //    if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
-          //      //var privKey = keyPair.privKey;
-          //      //console.log("[DEBUG] Client privKey after readArmored: "+privKey);
-          //      console.log("Attempting to decrypt master key...");
-          //      decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
-          //        if (err) { return console.log("Error derypting master key: "+err); };
-          //        console.log("Caching master private key decrypted");
-          //        masterKeyPair.privKey = key;
-          //      });
-          //    } else {
-          //      console.log("Client private key does not yet exist so cannot decrypt master key");
-          //    };
-          //  };
-          //});
         }
         return false;
       });
@@ -231,13 +282,9 @@
         getMasterKeyPair(userName, function(err, encMasterKeyPair) {
           if (err) {
             console.log("Error getting master key pair: "+err);
-            var statusType = "STATUS";
-            var statusMessage = "Error getting master key pair";
-            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            localMsg("ERROR", "Error getting master key pair");
           } else {
-            var statusType = "KEYS";
-            var statusMessage = "Updated master key pair";
-            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            localMsg(null, "Updated master key pair");
             console.log("Got master keypair, ready to encrypt/decrypt");
             encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
             encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
@@ -249,9 +296,9 @@
                 console.log("(new master key) Caching master private key decrypted");
                 masterKeyPair.privKey = key;
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
-                $('#inputBox').attr('placeHolder', 'Type your message here...');
+                $('#message-input').attr('placeHolder', 'Type your message here...');
                 $('#sendButton').prop('disabled', false);
-                $('#loadingIcon').remove();
+                $('#loading-icon').remove();
               });
             } else {
               console.log("Private key does not yet exist so cannot decrypt master key");
@@ -263,7 +310,7 @@
       socket.on('chat status', function(data) {
         var statusType = data.statusType;
         var statusMessage = data.statusMessage;
-        $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+        localMsg(statusType, statusMessage);
         var $messages = $('#messages');
         $messages[0].scrollTop = $messages[0].scrollHeight;
       });
@@ -278,8 +325,11 @@
             console.log("ERROR Decrypting message: "+err);
           } else {
             //console.log("Message decrypted! - '"+message+"'");
-            var messageLine = "["+userName+"] "+message;
-            $('#messages').append($('<li>').text(messageLine));
+            var sanatizedMessage = sanatize(message);
+            var parsedMessage = marked(message);
+            console.log("raw message is: "+message);
+            var messageLine = "["+userName+"] "+parsedMessage;
+            localMsg(null, messageLine);
             var $messages = $('#messages');
             $messages[0].scrollTop = $messages[0].scrollHeight;
           }
@@ -325,6 +375,30 @@
           return callback(null, error);
         });
       }
+
+      var rAmp = /&/g,
+        rLt = /</g,
+        rGt = />/g,
+        rApos =/\'/g,
+        rQuot = /\"/g,
+        hChars =/[&<>\"\']/;
+
+      function coerceToString(val) {
+        return String((val === null || val === undefined) ? '' : val);
+      }
+
+      function sanatize(str) {
+        str = coerceToString(str);
+
+        return hChars.test(str)
+          ? str
+            .replace(rAmp,'&amp;')
+            .replace(rLt,'&lt;')
+            .replace(rGt,'&gt;')
+            .replace(rApos,'&#39;')
+            .replace(rQuot, '&quot;')
+          : str;
+      };
     </script>
   </body>
 </html>

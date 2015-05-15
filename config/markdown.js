@@ -8,5 +8,8 @@ marked.setOptions({
   pedantic: false,
   sanatize: true,
   smartLists: true,
-  smartypants: false
+  smartypants: false,
+  highlight: function (code) {
+    return require('highlight').highlightAuto(code).value;
+  }
 });

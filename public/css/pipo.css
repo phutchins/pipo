@@ -8,6 +8,10 @@ body, html { padding: 0; margin: 0; }
   margin: 0;
 }
 
+#messages p {
+  display: inline;
+}
+
 #messages li {
   padding: 5px 10px;
 }
@@ -22,7 +26,7 @@ body, html { padding: 0; margin: 0; }
   list-style-type: none;
   top: 0;
   right: 200px;
-  bottom: 38px;
+  bottom: 55px;
   box-sizing: border-box;
   overflow-y: scroll;
   left: 0;
@@ -46,3 +50,30 @@ body, html { padding: 0; margin: 0; }
   bottom: 0;
 }
 
+#inputMultiline {
+
+}
+
+#message-input {
+  overflow-y: hidden;
+  padding: 9px 30px 9px 8px;
+  background: padding-box #fff;
+  border: 2px solid #E0E0E0;
+  resize: none!important;
+  border-radius: 0 .2rem .2rem 0;
+  height: 38px;
+  width: 100%;
+  resize: none;
+}
+
+#message-input-container {
+  position: absolute;
+  right: 210px;
+  left: 10px;
+  bottom: 10px;
+}
+
+#loading-icon {
+  left: 0px;
+  padding-right: 10px;
+}

@@ -14,9 +14,9 @@
     </div>
     <div class="inputContainer" id="inputContainer">
       <form>
-        <div class="ui left fluid action icon input loading">
-          <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="Please wait while your secure connection is configured..."></textarea>
-          <i id="loadingIcon" class="search icon"></i>
+        <div id="message-input-container" class="ui left fluid action icon input loading">
+          <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
+          <i id="loading-icon" class="search icon"></i>
           <button id="sendButton" class="ui button" disabled="true">Send</button>
         </div>
       </form>
@@ -28,7 +28,25 @@
     <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/marked.js"></script>
+
+<link rel="stylesheet" href="https://yandex.st/highlightjs/8.0/styles/tomorrow.min.css">
+<script src="https://yandex.st/highlightjs/8.0/highlight.min.js"></script>
+<script>hljs.initHighlightingOnLoad();</script>
+
     <script>
+      marked.setOptions({
+        renderer: new marked.Renderer(),
+        gfm: true,
+        tables: true,
+        breaks: false,
+        pedantic: false,
+        sanatize: true,
+        smartLists: true,
+        smartypants: false,
+        highlight: function (code) {
+          return hljs.highlightAuto(code).value;
+        }
+      });
       var socket = io();
       var keyPair = ({
         pubKey: null,
@@ -191,6 +209,8 @@
           this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length);
           event.stopPropagation();
           console.log("got shift+enter");
+          var $messageInput = $('#message-input');
+          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
           return false;
         } else if(event.keyCode == 13) {
           console.log("got enter");
@@ -278,7 +298,7 @@
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
                 $('#message-input').attr('placeHolder', 'Type your message here...');
                 $('#sendButton').prop('disabled', false);
-                $('#loadingIcon').remove();
+                $('#loading-icon').remove();
               });
             } else {
               console.log("Private key does not yet exist so cannot decrypt master key");
@@ -306,7 +326,7 @@
           } else {
             //console.log("Message decrypted! - '"+message+"'");
             var sanatizedMessage = sanatize(message);
-            var parsedMessage = marked(sanatizedMessage);
+            var parsedMessage = marked(message);
             console.log("raw message is: "+message);
             var messageLine = "["+userName+"] "+parsedMessage;
             localMsg(null, messageLine);

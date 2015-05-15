@@ -26,7 +26,7 @@ body, html { padding: 0; margin: 0; }
   list-style-type: none;
   top: 0;
   right: 200px;
-  bottom: 38px;
+  bottom: 55px;
   box-sizing: border-box;
   overflow-y: scroll;
   left: 0;
@@ -66,3 +66,14 @@ body, html { padding: 0; margin: 0; }
   resize: none;
 }
 
+#message-input-container {
+  position: absolute;
+  right: 210px;
+  left: 10px;
+  bottom: 10px;
+}
+
+#loading-icon {
+  left: 0px;
+  padding-right: 10px;
+}

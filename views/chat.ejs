@@ -38,7 +38,7 @@
         renderer: new marked.Renderer(),
         gfm: true,
         tables: true,
-        breaks: false,
+        breaks: true,
         pedantic: false,
         sanatize: true,
         smartLists: true,
@@ -218,6 +218,9 @@
           return false;
         }
       });
+
+      $('#mainContainer a').attr('target','_blank');
+
       function getCaret(el) {
         if (el.selectionStart) {
           return el.selectionStart;
@@ -244,6 +247,15 @@
         }
       }
 
+      function prepareMessage(message, callback) {
+        var parsedMessage = marked(message);
+        var container = $('<div>').html(parsedMessage);
+        console.log("Unparsead message: "+container.html());
+        container.find('a').attr('target','_blank');
+        console.log("Parsed message: "+container.html());
+        callback(null, container.html());
+      }
+
       $('form').submit(function(){
         var input = $('#message-input').val();
         var commandRegex = /^\//
@@ -258,16 +270,19 @@
           // Do any message preprocessing here
           var message = input;
           console.log("attempting to encrypt message");
+
+          prepareMessage(message, function(err, preparedMessage) {
           //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
-          encryptMessage(pubKey, message, function(pgpMessage, err) {
-            if (err) {
-              console.log("Error Encrypting Message: "+err);
-            } else {
-              console.log("Message encrypted successfully");
-              socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
-              console.log("Message emitted to socket.io");
-              $('#message-input').val('');
-            }
+            encryptMessage(pubKey, preparedMessage, function(pgpMessage, err) {
+              if (err) {
+                console.log("Error Encrypting Message: "+err);
+              } else {
+                console.log("Message encrypted successfully");
+                socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
+                console.log("Message emitted to socket.io");
+                $('#message-input').val('');
+              }
+            });
           });
         } else {
           console.log("masterKeyPair does not exist yet, must get it!");
@@ -325,13 +340,12 @@
             console.log("ERROR Decrypting message: "+err);
           } else {
             //console.log("Message decrypted! - '"+message+"'");
-            var sanatizedMessage = sanatize(message);
-            var parsedMessage = marked(message);
+            //var sanatizedMessage = sanatize(message);
             console.log("raw message is: "+message);
-            var messageLine = "["+userName+"] "+parsedMessage;
+            var messages = $('#messages');
+            var messageLine = "["+userName+"] "+message;
             localMsg(null, messageLine);
-            var $messages = $('#messages');
-            $messages[0].scrollTop = $messages[0].scrollHeight;
+            messages[0].scrollTop = messages[0].scrollHeight;
           }
         });
       });
@@ -365,15 +379,20 @@
 
       function decryptMessage(key, passphrase, pgpMessage, callback) {
         var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
-        masterPrivateKey.decrypt(passphrase);
-        pgpMessage = openpgp.message.readArmored(pgpMessage);
-        openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
-          console.log("Decrypted message!");
-          callback(plaintext, null);
-        }).catch(function(error) {
-          console.log("Error decrypting message");
-          return callback(null, error);
-        });
+        if (typeof masterPrivateKey !== 'undefined') {
+          masterPrivateKey.decrypt(passphrase);
+          pgpMessage = openpgp.message.readArmored(pgpMessage);
+          openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
+            console.log("Decrypted message!");
+            callback(plaintext, null);
+          }).catch(function(error) {
+            console.log("Error decrypting message");
+            return callback(null, error);
+          });
+        } else {
+          console.log("master private key is undefined!");
+          return callback(null, "master private key is undefined");
+        }
       }
 
       var rAmp = /&/g,

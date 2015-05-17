@@ -47,7 +47,9 @@
           return hljs.highlightAuto(code).value;
         }
       });
-      var socket = io();
+      var host = window.location.host;
+      var socket = io(host+'/main');
+      var currentChannel = "general";
       var keyPair = ({
         pubKey: null,
         privKey: null
@@ -67,6 +69,7 @@
         var statusType = "STATUS";
         var statusMessage = "Please wait while your keys are prepared...";
         $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+        socket.emit('init', { userName: userName });
         generateClientKeyPair(2048, "<%= userName %>", "superawesomepasswordhere", function(err, generatedKeyPair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
@@ -258,11 +261,13 @@
 
       $('form').submit(function(){
         var input = $('#message-input').val();
-        var commandRegex = /^\//
+        var commandRegex = /^\/(.*)$/
+        var regexResult = input.match(commandRegex);
         if (input === "") {
           console.log("Empty input");
-        } else if (input.match(commandRegex) !== null) {
-          console.log("Caught command, sending to server");
+        } else if (regexResult !== null) {
+          socket.emit('server command', { command: regexResult[1], currentChannel: currentChannel });
+          console.log("Sending command '"+regexResult[1]+"' to server");
           $('#message-input').val('');
         } else if (masterKeyPair.pubKey !== null) {
           var pubKey = masterKeyPair.pubKey;
@@ -278,6 +283,7 @@
                 console.log("Error Encrypting Message: "+err);
               } else {
                 console.log("Message encrypted successfully");
+                // Need to not send the username here and derive it from the socket on the server
                 socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
                 console.log("Message emitted to socket.io");
                 $('#message-input').val('');
@@ -323,11 +329,19 @@
       });
 
       socket.on('chat status', function(data) {
+        console.log("Got chat status...");
         var statusType = data.statusType;
         var statusMessage = data.statusMessage;
         localMsg(statusType, statusMessage);
         var $messages = $('#messages');
         $messages[0].scrollTop = $messages[0].scrollHeight;
+      });
+
+      socket.on('privmsg', function(data) {
+        var fromUser = data.fromUser;
+        var toUser = data.toUser;
+        var message = data.message;
+        localMsg(fromUser+" -> "+toUser, message);
       });
 
       socket.on('chat message', function(data){

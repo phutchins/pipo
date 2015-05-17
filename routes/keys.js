@@ -3,7 +3,7 @@ var KeyPair = require('../models/keypair.js');
 var User = require('../models/user.js');
 var Keys = require('events').EventEmitter;
 
-module.exports = function(app, pipo) {
+module.exports = function(app) {
   app.get('/key/pubkey', function(req, res) {
     var userName = req.param('userName');
     User.findOne({ userName: userName }, function(err, user) {

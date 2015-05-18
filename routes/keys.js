@@ -3,13 +3,14 @@ var KeyPair = require('../models/keypair.js');
 var User = require('../models/user.js');
 var Keys = require('events').EventEmitter;
 
-module.exports = function(app, pipo) {
+module.exports = function(app) {
   app.get('/key/pubkey', function(req, res) {
     var userName = req.param('userName');
     User.findOne({ userName: userName }, function(err, user) {
       if (user === null) {
         console.log("pubKey not found");
         //res.status(404).send("pubKey not found");
+        // Might should return 404 here
         res.json({ pubKey: '' });
       } else if (typeof user.pubKey != 'undefined') {
         console.log("KeyPair found...");

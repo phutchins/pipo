@@ -50,6 +50,7 @@
       var host = window.location.host;
       var socket = io(host+'/main');
       var currentChannel = "general";
+      var clientKeyPairPassphrase = "superawesomepasswordhere";
       var keyPair = ({
         pubKey: null,
         privKey: null
@@ -70,7 +71,7 @@
         var statusMessage = "Please wait while your keys are prepared...";
         $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
         socket.emit('init', { userName: userName });
-        generateClientKeyPair(2048, "<%= userName %>", "superawesomepasswordhere", function(err, generatedKeyPair) {
+        generateClientKeyPair(2048, "<%= userName %>", clientKeyPairPassphrase, function(err, generatedKeyPair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
           } else {
@@ -99,7 +100,7 @@
       function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
         var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
         var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
-        clientPrivKey.decrypt('superawesomepasswordhere');
+        clientPrivKey.decrypt(clientKeyPairPassphrase);
         //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privKey: "+clientPrivKey+" encMasterPrivateKey: "+encMasterPrivateKey);
         console.log("[DEBUG] about to start decrypting master key");
         openpgp.decryptMessage(clientPrivKey, encMasterPrivateKey).then(function(decryptedKey) {
@@ -242,8 +243,13 @@
         return 0;
       }
 
-      function localMsg(type, message) {
-        if (type !== null) {
+      function localMsg(data) {
+        var type = data.type;
+        var message = data.message;
+        var id = data.id;
+        if (type !== null && id !== null) {
+          $('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
+        } else if (type !== null) {
           $('#messages').append($('<li>').html("["+type+"] "+message));
         } else {
           $('#messages').append($('<li>').html(message));
@@ -254,6 +260,7 @@
         var parsedMessage = marked(message);
         var container = $('<div>').html(parsedMessage);
         console.log("Unparsead message: "+container.html());
+        // Check the hostname to make sure that it's not a local link...
         container.find('a').attr('target','_blank');
         console.log("Parsed message: "+container.html());
         callback(null, container.html());
@@ -261,24 +268,74 @@
 
       $('form').submit(function(){
         var input = $('#message-input').val();
+        var userName = "<%= userName %>";
         var commandRegex = /^\/(.*)$/
         var regexResult = input.match(commandRegex);
         if (input === "") {
           console.log("Empty input");
         } else if (regexResult !== null) {
-          socket.emit('server command', { command: regexResult[1], currentChannel: currentChannel });
-          console.log("Sending command '"+regexResult[1]+"' to server");
-          $('#message-input').val('');
+          // Catch commands here and encrypt data to users as needed
+          var command = regexResult[1];
+          var splitCommand = command.split(" ");
+
+          // Locally parsed commands
+          if (splitCommand[0] == "msg") {
+            var toUser = splitCommand[1];
+            var fromUser = userName;
+            var length = command.length;
+            var message = command.split(" ").slice(2, command.length).join(" ");
+            // Make sure that to user exists and is signed on
+            prepareMessage(message, function(err, preparedMessage) {
+              $.ajax({
+                type: "GET",
+                url: "/key/pubkey",
+                dataType: "json",
+                data: {
+                  userName: toUser
+                },
+                success: function(data, textStatus, xhr) {
+                },
+                statusCode: {
+                  404: function() {
+                    console.log("Got 404 when updating public key on remote");
+                    return callback("Error finding public key for "+userName);
+                  },
+                  200: function(data, textStatus, xhr) {
+                    var toUserPubKey = data.pubKey;
+                    console.log("Got public key for "+userName);
+                    encryptMessage(toUserPubKey, preparedMessage, function(err, pgpMessage) {
+                      if (err) {
+                        return console.log(err);
+                      } else {
+                        var messageId = getNewMessageId(function(id) {
+                          localMsg({ id: id, type: userName+" -> "+toUser, message: preparedMessage });
+                          console.log("username: "+userName);
+                          socket.emit('privmsg', { id: id, toUser: toUser, message: pgpMessage } );
+                          $('#message-input').val('');
+                          return console.log("Private message sent...");
+                        });
+                      };
+                    });
+                  }
+                }
+              });
+            });
+          } else {
+            // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
+            socket.emit('server command', { command: regexResult[1], currentChannel: currentChannel });
+            console.log("Sending command '"+regexResult[1]+"' to server");
+            $('#message-input').val('');
+          };
         } else if (masterKeyPair.pubKey !== null) {
+          // Normal message to the current channel
           var pubKey = masterKeyPair.pubKey;
           var userName = "<%= userName %>";
-          // Do any message preprocessing here
           var message = input;
           console.log("attempting to encrypt message");
 
           prepareMessage(message, function(err, preparedMessage) {
           //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
-            encryptMessage(pubKey, preparedMessage, function(pgpMessage, err) {
+            encryptMessage(pubKey, preparedMessage, function(err, pgpMessage) {
               if (err) {
                 console.log("Error Encrypting Message: "+err);
               } else {
@@ -303,9 +360,9 @@
         getMasterKeyPair(userName, function(err, encMasterKeyPair) {
           if (err) {
             console.log("Error getting master key pair: "+err);
-            localMsg("ERROR", "Error getting master key pair");
+            localMsg({ type: "ERROR", message: "Error getting master key pair" });
           } else {
-            localMsg(null, "Updated master key pair");
+            localMsg({ type: null, message: "Updated master key pair" });
             console.log("Got master keypair, ready to encrypt/decrypt");
             encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
             encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
@@ -332,7 +389,7 @@
         console.log("Got chat status...");
         var statusType = data.statusType;
         var statusMessage = data.statusMessage;
-        localMsg(statusType, statusMessage);
+        localMsg({ type: statusType, message: statusMessage });
         var $messages = $('#messages');
         $messages[0].scrollTop = $messages[0].scrollHeight;
       });
@@ -340,15 +397,18 @@
       socket.on('privmsg', function(data) {
         var fromUser = data.fromUser;
         var toUser = data.toUser;
-        var message = data.message;
-        localMsg(fromUser+" -> "+toUser, message);
+        var pgpMessage = data.message;
+        var id = data.id;
+        decryptMessage(keyPair.privKey, clientKeyPairPassphrase, pgpMessage, function(err, message) {
+          localMsg({ id: id, type: fromUser+" -> "+toUser, message: message });
+        });
       });
 
       socket.on('chat message', function(data){
         var userName = data.userName;
         var pgpMessage = data.pgpMessage;
         //console.log("Got message, attempting to decrypt");
-        decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(message, err) {
+        decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(err, message) {
           //console.log("inside decrypt message callback");
           if (err) {
             console.log("ERROR Decrypting message: "+err);
@@ -358,11 +418,15 @@
             console.log("raw message is: "+message);
             var messages = $('#messages');
             var messageLine = "["+userName+"] "+message;
-            localMsg(null, messageLine);
+            localMsg({ type: null, message: messageLine });
             messages[0].scrollTop = messages[0].scrollHeight;
           }
         });
       });
+      function getNewMessageId(callback) {
+        var id = new Date().getTime();
+        callback(id);
+      };
       function generateClientKeyPair(numBits, userId, passphrase, callback) {
         var options = {
           numBits: numBits,
@@ -385,9 +449,9 @@
       function encryptMessage(key, message, callback) {
         var masterPubKey = openpgp.key.readArmored(key);
         openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
-          callback(pgpMessage, null);
+          callback(null, pgpMessage);
         }).catch(function(error) {
-          return callback(null, error);
+          return callback(error, null);
         });
       }
 
@@ -398,14 +462,14 @@
           pgpMessage = openpgp.message.readArmored(pgpMessage);
           openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
             console.log("Decrypted message!");
-            callback(plaintext, null);
-          }).catch(function(error) {
+            callback(null, plaintext);
+          }).catch(function(err) {
             console.log("Error decrypting message");
-            return callback(null, error);
+            return callback(err, null);
           });
         } else {
           console.log("master private key is undefined!");
-          return callback(null, "master private key is undefined");
+          return callback("master private key is undefined", null);
         }
       }
 

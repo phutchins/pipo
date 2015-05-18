@@ -88,8 +88,23 @@ ioMain.on('connection', function(socket) {
     console.log("[MSG] Server emitted chat message to users");
   });
 
-  socket.on('privmsg', function(id, message) {
-    socket.broadcast.to(id).emit('privmsg', message);
+  socket.on('privmsg', function(data) {
+    var toUser = data.toUser;
+    var toUserSocketId = userMembership[toUser].socketId;
+    var fromUser = socketMembership[socket.id].userName;
+    var id = data.id;
+    var message = data.message;
+    data = {
+      toUser: toUser,
+      fromUser: fromUser,
+      message: message
+    };
+    socket.broadcast.to(toUserSocketId).emit('privmsg', data);
+    sentData = {
+      id: id,
+      error: null
+    };
+    //socket.broadcast.to(socket.id).emit('privmsg status', sentData);
   });
 
   socket.on('server command', function(data) {
@@ -108,19 +123,8 @@ ioMain.on('connection', function(socket) {
       console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChannel+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
       ioMain.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )"});
       //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )");
-    };
-    if (splitCommand[0] == "msg") {
-      var toUser = splitCommand[1];
-      var fromUser = socketMembership[socket.id].userName;
-      var length = command.length;
-      var splitMessage = command.split(" ");
-      var slicedMessage = splitMessage.slice(2,length);
-      var message = slicedMessage.join(" ");
-      var toUserSocketId = userMembership[toUser].socketId;
-      var fromUserSocketId = socket.id;
-      console.log("Sending privmessage from "+fromUser+" to "+toUser+" with message '"+message+"'");
-      ioMain.to(toUserSocketId).emit('privmsg', { fromUser: fromUser, toUser: toUser, message: message } );
-      ioMain.to(fromUserSocketId).emit('privmsg', { fromUser: fromUser, toUser: toUser, message: message } );
+    } else {
+      console.log("[SERVER COMMAND] Unable to parse server command...");
     };
   });
 

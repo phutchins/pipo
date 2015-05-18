@@ -73,8 +73,8 @@ ioMain.on('connection', function(socket) {
 
   socket.on('init', function(data) {
     userName = data.userName;
-    userMembership[userName] = {};
-    userMembership[userName].socketId = socket.id;
+    userMembership[userName.toLowerCase()] = {};
+    userMembership[userName.toLowerCase()].socketId = socket.id;
     socketMembership[socket.id] = {};
     socketMembership[socket.id].userName = userName;
     console.log("[INIT] Init'd user "+userName);
@@ -90,7 +90,7 @@ ioMain.on('connection', function(socket) {
 
   socket.on('privmsg', function(data) {
     var toUser = data.toUser;
-    var toUserSocketId = userMembership[toUser].socketId;
+    var toUserSocketId = userMembership[toUser.toLowerCase()].socketId;
     var fromUser = socketMembership[socket.id].userName;
     var id = data.id;
     var message = data.message;
@@ -123,6 +123,8 @@ ioMain.on('connection', function(socket) {
       console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChannel+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
       ioMain.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )"});
       //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )");
+    } else if (splitCommand[0] == "help") {
+      // Output help here
     } else {
       console.log("[SERVER COMMAND] Unable to parse server command...");
     };
@@ -134,26 +136,22 @@ ioMain.on('connection', function(socket) {
     socket.join(channel);
     socket.name = userName;
 
+    console.log("[JOIN] Adding user "+userName+" to channel #"+channel);
+    addUserToChannel(userName, channel, socket.id, function(err) {
+      if (err) return console.log("[JOIN] Error adding user to channel: "+err);
+      getChannelUsersArray(channel, function(err, channelUsersArray) {
+        if (err) {
+          console.log("[JOIN] Error getting channel users: "+err);
+        } else {
+          var userListData = {
+            userList: channelUsersArray
+          }
+          console.log("Sending userlist update!");
+          ioMain.emit("userlist update", userListData);
+        };
+      });
+    });
 
-    if (typeof channelMembership[channel] === 'undefined' || channelMembership[channel] === null) {
-      channelMembership[channel] = [];
-      channelMembership[channel].push({userName: userName, socketId: socket.id});
-      console.log("[JOIN] User "+userName+" joining channel "+channel+" and channelMembership is NULL");
-    } else if(userName in channelMembership[channel]) {
-      console.log("User "+userName+" is already in channel #"+channel);
-    } else {
-      channelMembership[channel].push({userName: userName, socketId: socket.id});
-      console.log("[JOIN] Adding user "+userName+" to channel #"+channel);
-    }
-    var channelUsersArray = [];
-    for (var key in channelMembership[channel]) {
-      channelUsersArray.push(channelMembership[channel][key].userName);
-    };
-    console.log("Members in #"+channel+" are ( "+channelUsersArray.toString()+" )");
-    //socket.set("username", userName, function() {
-    //  console.log("added username attr for "+userName);
-    //  console.log(io.nsps['/main'].adapter.rooms[channel]);
-    //});
     console.log("Socket id: "+socket.id);
     console.log("[JOIN] "+userName+" has joined channel #"+channel);
     console.log("[JOIN] Generating new master key pair.");
@@ -200,27 +198,15 @@ ioMain.on('connection', function(socket) {
   });
 
   socket.on('disconnect', function() {
-    var client = allClients.indexOf(socket);
     var userName = '';
-    console.log("socket.id: "+socket.id);
+    console.log("[DISCONNECT] socket.id: "+socket.id);
     if (typeof socket.id !== 'undefined') {
       if (typeof channelMembership === 'undefined') {
         console.log("[DISCONNECT] Channel Membership has not been created");
       } else {
-        Object.keys(channelMembership).forEach(function(channelIndex) {
-          Object.keys(channelMembership[channelIndex]).forEach(function(userIndex) {
-            if (channelMembership[channelIndex][userIndex].socketId === socket.id) {
-              userName = channelMembership[channelIndex][userIndex].userName;
-              delete channelMembership[channelIndex][userIndex];
-              console.log("[DISCONNECT] User "+userName+" disconnected...");
-              var statusMessage = userName+" has left the channel";
-              var statusData = {
-                statusType: "PART",
-                statusMessage: statusMessage
-              }
-              ioMain.emit('chat status', statusData);
-            };
-          });
+        disconnectUser(socket.id, function(err, userName) {
+          if (err) return console.log("Error disconnecting user: "+err);
+          console.log("User "+userName+" disconnected");
         });
       }
     } else {
@@ -228,6 +214,64 @@ ioMain.on('connection', function(socket) {
     };
   });
 });
+
+function disconnectUser(socketId, callback) {
+  if (typeof socketMembership === 'undefined' || typeof socketMembership[socketId] === 'undefined') {
+    callback("Could not find user with socketId '"+socketId+"' in membership");
+  } else {
+    var userName = socketMembership[socketId].userName;
+    removeUserFromAllChannels(socketId, function(err, userName) {
+      if (err) {
+        return console.log("Error removing user "+userName+" from all channels");
+        callback(err);
+      } else {
+        sendUserListUpdate("general", function(err) {
+          console.log("[JOIN] Error getting channel users: "+err);
+        });
+        // Should only send this to the channels the user has parted from
+        var statusMessage = userName+" has left the channel";
+        var statusData = {
+          statusType: "PART",
+          statusMessage: statusMessage
+        }
+        ioMain.emit('chat status', statusData);
+        console.log("[DISCONNECT] User "+userName+" disconnected...");
+        callback(null);
+      }
+    });
+  };
+};
+
+function sendUserListUpdate(channel, callback) {
+  if (channel != null) {
+    getChannelUsersArray(channel, function(err, channelUsersArray) {
+      if (err) {
+        callback(err);
+      } else {
+        var userListData = {
+          userList: channelUsersArray
+        }
+        ioMain.emit("userlist update", userListData);
+        callback(null);
+      };
+    });
+  } else {
+    // update all channels
+  };
+};
+
+function removeUserFromAllChannels(socketId, callback) {
+  var userName = "";
+  Object.keys(channelMembership).forEach(function(channelIndex) {
+    Object.keys(channelMembership[channelIndex]).forEach(function(userIndex) {
+      if (channelMembership[channelIndex][userIndex].socketId === socketId) {
+        userName = channelMembership[channelIndex][userIndex].userName;
+        delete channelMembership[channelIndex][userIndex];
+      };
+    });
+  });
+  callback(null, userName);
+};
 
 start();
 
@@ -386,7 +430,40 @@ function bootstrapUsers(callback) {
       callback(null);
      }
   );
-}
+};
+
+function getChannelUsersArray(channel, callback) {
+  var channelUsersArray = [];
+  for (var key in channelMembership[channel]) {
+    channelUsersArray.push(channelMembership[channel][key].userName);
+  };
+  console.log("Members in #"+channel+" are ( "+channelUsersArray.toString()+" )");
+  return callback(null, channelUsersArray);
+};
+
+function addUserToChannel(userName, channel, socketId, callback) {
+  if (typeof channelMembership[channel] === 'undefined' || channelMembership[channel] === null) {
+    channelMembership[channel] = [];
+    channelMembership[channel].push({userName: userName, socketId: socketId});
+    console.log("[JOIN] User "+userName+" joining channel "+channel+" and channelMembership is NULL");
+    callback(null);
+  } else if(userName in channelMembership[channel]) {
+    console.log("User "+userName+" is already in channel #"+channel);
+    callback(null);
+  } else {
+    channelMembership[channel].push({userName: userName, socketId: socketId});
+    console.log("[JOIN] Adding user "+userName+" to channel #"+channel);
+    callback(null);
+  };
+};
+
+function removeUserFromChannel(userName, channel, callback) {
+  if (typeof ChannelMembership[channel] !== 'undefined' && channelMembership[channel] !== null) {
+    delete channelMembership[channel][userName]
+  } else {
+    console.log("channel membership is undefined");
+  }
+};
 
 function addUserIfNotExist(userName, callback) {
   var User = require('./models/user.js');

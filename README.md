@@ -6,6 +6,7 @@
 # Encryption
 Options...
 + GPG
++ OpenSSL (Eliptic Curve AES 256)
 
 
 ### Authentication

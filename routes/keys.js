@@ -10,6 +10,7 @@ module.exports = function(app) {
       if (user === null) {
         console.log("pubKey not found");
         //res.status(404).send("pubKey not found");
+        // Might should return 404 here
         res.json({ pubKey: '' });
       } else if (typeof user.pubKey != 'undefined') {
         console.log("KeyPair found...");

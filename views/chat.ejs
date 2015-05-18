@@ -8,16 +8,16 @@
       <ul id="messages">
       </ul>
       <div id="users">
-        <ul id="userlist">
+        <ul id="user-list">
         </ul>
       </div>
     </div>
-    <div class="inputContainer" id="inputContainer">
+    <div class="input-container" id="input-container">
       <form>
         <div id="message-input-container" class="ui left fluid action icon input loading">
           <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
           <i id="loading-icon" class="search icon"></i>
-          <button id="sendButton" class="ui button" disabled="true">Send</button>
+          <button id="send-button" class="ui button" disabled="true">Send</button>
         </div>
       </form>
     </div>
@@ -254,7 +254,17 @@
         } else {
           $('#messages').append($('<li>').html(message));
         }
-      }
+      };
+
+      function updateUserList(data, callback) {
+        var userList = data.userList;
+        var userListHtml = "";
+        userList.forEach(function(userName) {
+          userListHtml += "<li>"+userName+"</li>\n";
+        });
+        $('#user-list').html(userListHtml);
+        callback(null);
+      };
 
       function prepareMessage(message, callback) {
         var parsedMessage = marked(message);
@@ -297,7 +307,7 @@
                 },
                 statusCode: {
                   404: function() {
-                    console.log("Got 404 when updating public key on remote");
+                    console.log("Got 404 when finding pubKey for "+userName);
                     return callback("Error finding public key for "+userName);
                   },
                   200: function(data, textStatus, xhr) {
@@ -375,7 +385,7 @@
                 masterKeyPair.privKey = key;
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
                 $('#message-input').attr('placeHolder', 'Type your message here...');
-                $('#sendButton').prop('disabled', false);
+                $('#send-button').prop('disabled', false);
                 $('#loading-icon').remove();
               });
             } else {
@@ -423,10 +433,21 @@
           }
         });
       });
+
+      socket.on('userlist update', function(data) {
+        var userList = data.userList;
+        console.log("[USERLIST UPDATE] Got userlist update of "+userList.toString());
+        updateUserList({ userList: userList }, function(err) {
+          if (err) return console.log("Error updating user list: "+err);
+          console.log("UserList update successful...");
+        });
+      });
+
       function getNewMessageId(callback) {
         var id = new Date().getTime();
         callback(id);
       };
+
       function generateClientKeyPair(numBits, userId, passphrase, callback) {
         var options = {
           numBits: numBits,
@@ -446,6 +467,7 @@
           return callback(err, null);
         });
       };
+
       function encryptMessage(key, message, callback) {
         var masterPubKey = openpgp.key.readArmored(key);
         openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
@@ -453,7 +475,7 @@
         }).catch(function(error) {
           return callback(error, null);
         });
-      }
+      };
 
       function decryptMessage(key, passphrase, pgpMessage, callback) {
         var masterPrivateKey = openpgp.key.readArmored(key).keys[0];

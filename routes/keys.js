@@ -5,31 +5,35 @@ var Keys = require('events').EventEmitter;
 
 module.exports = function(app) {
   app.get('/key/pubkey', function(req, res) {
+    var timestamp = new Date().toString();
     var userName = req.param('userName');
+    console.log("["+timestamp+"] [API] [GET] [/key/pubkey] Getting pubkey for user "+userName);
     User.findOne({ userName: userName }, function(err, user) {
+      console.log("["+timestamp+"] [API] [DEBUG] Found user");
       if (user === null) {
-        console.log("pubKey not found");
+        console.log("["+timestamp+"] pubKey not found");
         //res.status(404).send("pubKey not found");
         // Might should return 404 here
         res.json({ pubKey: '' });
       } else if (typeof user.pubKey != 'undefined') {
-        console.log("KeyPair found...");
+        console.log("["+timestamp+"] KeyPair found...");
         res.json({ pubKey: user.pubKey });
       } else {
-        console.log("User "+userName+" does not seem to have a pubKey");
+        console.log("["+timestamp+"] User "+userName+" does not seem to have a pubKey");
         res.status(404).send();
       }
     });
   });
   app.post('/key/pubkey', function(req, res) {
     // Accept users public key
+    var timestamp = new Date().toString();
     var userName = req.param('userName');
     var pubKey = req.param('pubKey');
     if (pubKey !== null && typeof pubKey !== 'undefined') {
-      console.log("Saving public key from user "+userName);
+      console.log("["+timestamp+"] Saving public key from user "+userName);
       User.findOne({ userName: userName }, function(err, user, count) {
         if (user === null) {
-          console.log("[DEBUG] (/key/pubkey) User not found");
+          console.log("["+timestamp+"] [DEBUG] (/key/pubkey) User not found");
           new User({
             userName: userName,
             pubKey: pubKey
@@ -47,7 +51,7 @@ module.exports = function(app) {
               console.log("Error saving pubkey from "+userName+": "+err);
               return res.status(500).send();
             } else {
-              console.log("Saved pubkey from "+userName);
+              console.log("["+timestamp+"] Saved pubkey from "+userName);
               //module.exports.emit('pubkey updated', {data: { userName: userName }} );
               res.status(200).send();
             };

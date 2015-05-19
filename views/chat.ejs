@@ -113,7 +113,8 @@
       };
 
       function getMasterKeyPair(userName, callback) {
-        console.log("Getting master keyPair for "+userName);
+        var timestamp = new Date().toString();
+        console.log("["+timestamp+"] Getting master keyPair for "+userName);
         $.ajax({
           type: "GET",
           url: "/key/masterKeyPair",
@@ -123,11 +124,11 @@
           },
           statusCode: {
             404: function(err) {
-              console.log("[MASTER KEY PAIR] (404) Error getting master keypair: "+err);
+              console.log("["+timestamp+"] [MASTER KEY PAIR] (404) Error getting master keypair: "+err);
               return callback(err, null);
             },
             200: function(data) {
-              console.log("[MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
+              console.log("["+timestamp+"] [MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
               return callback(null, data);
             }
           }
@@ -415,6 +416,7 @@
       });
 
       socket.on('chat message', function(data){
+        console.log("Just got chat message!");
         var userName = data.userName;
         var pgpMessage = data.pgpMessage;
         //console.log("Got message, attempting to decrypt");

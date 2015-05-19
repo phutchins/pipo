@@ -161,13 +161,10 @@ ioMain.on('connection', function(socket) {
     var timestamp = new Date().toString();
     console.log("["+timestamp+"] [JOIN] Generating new master key pair.");
 
-    // Remote this later when we're caching private keys and using events to kick this off
-    //
-    //
-    generateMasterKeyPair(function(err, masterKeyPair) {
-    var timestamp = new Date().toString();
-      console.log("["+timestamp+"] [JOIN][DEBUG] about to update master keypair");
     // something between here ...
+    generateMasterKeyPair(function(err, masterKeyPair) {
+      var timestamp = new Date().toString();
+      console.log("["+timestamp+"] [JOIN][DEBUG] about to update master keypair");
       updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
         var timestamp = new Date().toString();
         if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
@@ -393,8 +390,24 @@ function generateMasterKeyPair(callback) {
         callback(null, newMasterKeyPair);
       });
     };
-  })
-}
+  });
+};
+
+function newGenerateMasterKeyPair(callback) {
+  generateKeyPair(2048, 'master keypair', 'pipo').then(function(err, newMasterKeyPair) {
+    // Should not be saving the keypair here eventually
+    new KeyPair({
+      type: 'master',
+      pubKey: newMasterKeyPair.pubKey,
+      privKey: newMasterKeyPair.privKey,
+    }).save( function(err, masterKeyPair, count) {
+      console.log("Created and saved new master keyPair");
+      callback(null, newMasterKeyPair);
+    });
+  }).catch(function(err) {
+    callback(err, null);
+  });
+};
 
 function updateMasterKeyPairForAllUsers(masterKeyPair, callback) {
   var timestamp = new Date().toString();
@@ -543,7 +556,11 @@ function generateKeyPair(numBits, userId, passphrase, callback) {
     userId: userId,
     passphrase: passphrase
   };
+  var timestamp = Date().toString();
+  console.log("["+timestamp+"] [GENERATE KEY PAIR] generating keypair now...");
   openpgp.generateKeyPair(options).then(function(keyPair) {
+    var timestamp = Date().toString();
+    console.log("["+timestamp+"] [GENERATE KEY PAIR] in generateKeyPair then");
     privKey = keyPair.privateKeyArmored;
     pubKey = keyPair.publicKeyArmored;
     var keyPair = {

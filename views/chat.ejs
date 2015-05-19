@@ -7,9 +7,25 @@
     <div id="mainContainer">
       <ul id="messages">
       </ul>
-      <div id="users">
-        <ul id="user-list">
-        </ul>
+      <div id="menu">
+        <div id="left-menu-profile">
+        </div>
+        <div id="left-menu-scroll">
+          <div id="room-list-container">
+            <h5 class="room-list-header">Rooms</h5>
+            <ul id="room-list">
+              <li class="room-list-item">#general</li>
+            </ul>
+          </div>
+          <div id="user-list-container">
+            <h5 class="user-list-header">Users</h5>
+            <div id="user-list">
+            </div>
+          </div>
+        </div>
+        <div id="menu-actions">
+          <a class="button-create-room" href="#createroom">Create a room</a>
+        </div>
       </div>
     </div>
     <div class="input-container" id="input-container">
@@ -23,13 +39,14 @@
     </div>
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
+    <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
+
     <script src="/js/openpgp.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/marked.js"></script>
 
-<link rel="stylesheet" href="https://yandex.st/highlightjs/8.0/styles/tomorrow.min.css">
 <script src="https://yandex.st/highlightjs/8.0/highlight.min.js"></script>
 <script>hljs.initHighlightingOnLoad();</script>
 
@@ -108,6 +125,7 @@
           //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
           callback(null, decryptedKey);
         }).catch(function(err) {
+          console.log("[DEBUG] error decrypting message: "+err);
           if (err) { callback(err, null); };
         });
       };
@@ -273,6 +291,7 @@
         console.log("Unparsead message: "+container.html());
         // Check the hostname to make sure that it's not a local link...
         container.find('a').attr('target','_blank');
+        container.find('code').addClass('hljs');
         console.log("Parsed message: "+container.html());
         callback(null, container.html());
       }

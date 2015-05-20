@@ -7,9 +7,24 @@
     <div id="mainContainer">
       <ul id="messages">
       </ul>
-      <div id="users">
-        <ul id="user-list">
-        </ul>
+      <div id="menu">
+        <div id="left-menu-profile">
+        </div>
+        <div id="left-menu-scroll">
+          <div class="room-list-container">
+            <h5 class="room-list-header">Rooms</h5>
+            <ul id="room-list">
+              <li class="room-list-item">#general</li>
+            </ul>
+          </div>
+          <div class="user-list-container">
+            <h5 class="user-list-header">Users</h5>
+            <div id="user-list">
+            </div>
+          </div>
+        </div>
+        <div id="menu-actions">
+        </div>
       </div>
     </div>
     <div class="input-container" id="input-container">
@@ -23,13 +38,14 @@
     </div>
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
+    <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
+
     <script src="/js/openpgp.js"></script>
     <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script src="/js/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="js/marked.js"></script>
 
-<link rel="stylesheet" href="https://yandex.st/highlightjs/8.0/styles/tomorrow.min.css">
 <script src="https://yandex.st/highlightjs/8.0/highlight.min.js"></script>
 <script>hljs.initHighlightingOnLoad();</script>
 
@@ -108,12 +124,14 @@
           //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
           callback(null, decryptedKey);
         }).catch(function(err) {
+          console.log("[DEBUG] error decrypting message: "+err);
           if (err) { callback(err, null); };
         });
       };
 
       function getMasterKeyPair(userName, callback) {
-        console.log("Getting master keyPair for "+userName);
+        var timestamp = new Date().toString();
+        console.log("["+timestamp+"] Getting master keyPair for "+userName);
         $.ajax({
           type: "GET",
           url: "/key/masterKeyPair",
@@ -123,11 +141,11 @@
           },
           statusCode: {
             404: function(err) {
-              console.log("[MASTER KEY PAIR] (404) Error getting master keypair: "+err);
+              console.log("["+timestamp+"] [MASTER KEY PAIR] (404) Error getting master keypair: "+err);
               return callback(err, null);
             },
             200: function(data) {
-              console.log("[MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
+              console.log("["+timestamp+"] [MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
               return callback(null, data);
             }
           }
@@ -272,6 +290,7 @@
         console.log("Unparsead message: "+container.html());
         // Check the hostname to make sure that it's not a local link...
         container.find('a').attr('target','_blank');
+        container.find('code').addClass('hljs');
         console.log("Parsed message: "+container.html());
         callback(null, container.html());
       }
@@ -307,12 +326,12 @@
                 },
                 statusCode: {
                   404: function() {
-                    console.log("Got 404 when finding pubKey for "+userName);
-                    return callback("Error finding public key for "+userName);
+                    localMsg({ type: "ERROR", message: "Could not find this "+toUser+" that you're talking about..." });
+                    return console.log("Could not find public key for "+toUser);
                   },
                   200: function(data, textStatus, xhr) {
                     var toUserPubKey = data.pubKey;
-                    console.log("Got public key for "+userName);
+                    console.log("Got public key for "+toUser);
                     encryptMessage(toUserPubKey, preparedMessage, function(err, pgpMessage) {
                       if (err) {
                         return console.log(err);
@@ -415,6 +434,7 @@
       });
 
       socket.on('chat message', function(data){
+        console.log("Just got chat message!");
         var userName = data.userName;
         var pgpMessage = data.pgpMessage;
         //console.log("Got message, attempting to decrypt");

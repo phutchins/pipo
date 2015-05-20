@@ -13,10 +13,10 @@ var async = require('async');
 var marked = require('marked');
 var events = require('events');
 var winston = require('winston');
-var logger = new winston.Logger();
 
 var configMD = require('./config/markdown.js');
 var configDB = require('./config/database.js');
+var logger = require('./config/logger.js');
 
 var KeyPair = require('./models/keypair.js');
 var User = require('./models/user.js');
@@ -91,20 +91,23 @@ ioMain.on('connection', function(socket) {
   socket.on('privmsg', function(data) {
     var toUser = data.toUser;
     var toUserSocketId = userMembership[toUser.toLowerCase()].socketId;
-    var fromUser = socketMembership[socket.id].userName;
-    var id = data.id;
-    var message = data.message;
-    data = {
-      toUser: toUser,
-      fromUser: fromUser,
-      message: message
+    if (typeof socketMembership[socket.id] !== 'undefined') {
+      var fromUser = socketMembership[socket.id].userName;
+      var id = data.id;
+      var message = data.message;
+      data = {
+        toUser: toUser,
+        fromUser: fromUser,
+        message: message
+      };
+      socket.broadcast.to(toUserSocketId).emit('privmsg', data);
+      sentData = {
+        id: id,
+        error: null
+      };
+    } else {
+      console.log("[PRIVMSG] [ERROR] Could not find users socket in socketMembership");
     };
-    socket.broadcast.to(toUserSocketId).emit('privmsg', data);
-    sentData = {
-      id: id,
-      error: null
-    };
-    //socket.broadcast.to(socket.id).emit('privmsg status', sentData);
   });
 
   socket.on('server command', function(data) {
@@ -136,52 +139,74 @@ ioMain.on('connection', function(socket) {
     socket.join(channel);
     socket.name = userName;
 
-    console.log("[JOIN] Adding user "+userName+" to channel #"+channel);
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [JOIN] Adding user "+userName+" to channel #"+channel);
     addUserToChannel(userName, channel, socket.id, function(err) {
       if (err) return console.log("[JOIN] Error adding user to channel: "+err);
       getChannelUsersArray(channel, function(err, channelUsersArray) {
         if (err) {
-          console.log("[JOIN] Error getting channel users: "+err);
+    var timestamp = new Date().toString();
+          console.log("["+timestamp+"] [JOIN] Error getting channel users: "+err);
         } else {
           var userListData = {
             userList: channelUsersArray
           }
-          console.log("Sending userlist update!");
+    var timestamp = new Date().toString();
+          console.log("["+timestamp+"] Sending userlist update!");
           ioMain.emit("userlist update", userListData);
         };
       });
     });
 
-    console.log("Socket id: "+socket.id);
-    console.log("[JOIN] "+userName+" has joined channel #"+channel);
-    console.log("[JOIN] Generating new master key pair.");
+    //console.log("[JOIN] Socket id: "+socket.id);
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [JOIN] "+userName+" has joined channel #"+channel);
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [JOIN] Generating new master key pair.");
 
-    // Remote this later when we're caching private keys and using events to kick this off
+    // something between here ...
     generateMasterKeyPair(function(err, masterKeyPair) {
+      var timestamp = new Date().toString();
+      console.log("["+timestamp+"] [JOIN][DEBUG] about to update master keypair");
       updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
-        if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
-        console.log("[JOIN] Encrypted master key for all users!");
+        var timestamp = new Date().toString();
+        if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
+        var timestamp = new Date().toString();
+        console.log("["+timestamp+"] [JOIN] Encrypted master key for all users!");
       });
+      var timestamp = new Date().toString();
+      console.log("["+timestamp+"] [JOIN] After updateMasterKeyPairForAllUsers...");
     });
+    // ... and here is blocking everything
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [JOIN][DEBUG] before addUserIfNotExist");
 
     addUserIfNotExist(userName, function(err) {
-      if (err) { return console.log("Error checking user: "+err); };
-      console.log("[JOIN] User check complete");
+    var timestamp = new Date().toString();
+      if (err) { return console.log("["+timestamp+"] Error checking user: "+err); };
+    var timestamp = new Date().toString();
+      console.log("["+timestamp+"] [JOIN] User check complete");
       User.findOne({ userName: userName }, function(err, user, count) {
         if (user.encryptedMasterPrivKey) {
-          console.log("[JOIN] User has master key, emitting ready to client");
+    var timestamp = new Date().toString();
+          console.log("["+timestamp+"] [JOIN] User has master key, emitting ready to client");
           //io.emit('new master key');
         } else {
-          console.log("[JOIN] User does not have master key, regenerating for all users");
+    var timestamp = new Date().toString();
+          console.log("["+timestamp+"] [JOIN] User does not have master key, regenerating for all users");
           generateMasterKeyPair(function(err, masterKeyPair) {
             updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
-              if (err) { console.log("[JOIN] Error encrypting master key for all users: "+err); };
-              console.log("[JOIN] Encrypted master key for all users!");
+    var timestamp = new Date().toString();
+              if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
+    var timestamp = new Date().toString();
+              console.log("["+timestamp+"] [JOIN] Encrypted master key for all users!");
             });
           });
         };
       });
     });
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [JOIN][DEBUG] after addUserIfNotExist");
     var channel = data.channel;
     var statusMessage = userName+" has joined the channel";
     console.log(statusMessage);
@@ -349,10 +374,6 @@ function findClientsSocketByRoomId(roomId) {
 // becomes
 //var clients = findClientsSocket('room', '/chat') ;
 
-//routes.keys.on('pubkey updated', function(data) {
-//  console.log("[EVENT] pubkey has been updated");
-//});
-
 function generateMasterKeyPair(callback) {
   generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
     if (err) {
@@ -368,11 +389,15 @@ function generateMasterKeyPair(callback) {
         callback(null, newMasterKeyPair);
       });
     };
-  })
-}
+  });
+};
 
 function updateMasterKeyPairForAllUsers(masterKeyPair, callback) {
+  var timestamp = new Date().toString();
+  console.log("["+timestamp+"] [UPDATE] starting updateMasterKeyPairForAllUsers");
   User.find({}, function(err, users, count) {
+    var timestamp = new Date().toString();
+    console.log("["+timestamp+"] [UPDATE] found users");
     async.each(users, function(user, asyncCallback) {
       updateMasterKeyPairForUser(user, masterKeyPair, function(err) {
         if (err) { return asyncCallback(err); }
@@ -514,7 +539,11 @@ function generateKeyPair(numBits, userId, passphrase, callback) {
     userId: userId,
     passphrase: passphrase
   };
+  var timestamp = Date().toString();
+  console.log("["+timestamp+"] [GENERATE KEY PAIR] generating keypair now...");
   openpgp.generateKeyPair(options).then(function(keyPair) {
+    var timestamp = Date().toString();
+    console.log("["+timestamp+"] [GENERATE KEY PAIR] in generateKeyPair then");
     privKey = keyPair.privateKeyArmored;
     pubKey = keyPair.publicKeyArmored;
     var keyPair = {

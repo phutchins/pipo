@@ -538,6 +538,46 @@
             .replace(rQuot, '&quot;')
           : str;
       };
+      function notify(subject, body, tag) {
+        // check for notification compatibility
+        if(!window.Notification) {
+          // if browser version is unsupported, be silent
+          return;
+        }
+        // log current permission level
+        console.log(Notification.permission);
+        // if the user has not been asked to grant or deny notifications from this domain
+        if(Notification.permission === 'default') {
+          Notification.requestPermission(function() {
+            // callback this function once a permission level has been set
+            notify();
+          });
+        }
+        // if the user has granted permission for this domain to send notifications
+        else if(Notification.permission === 'granted') {
+          var n = new Notification(
+            subject,
+             {
+               'body': body,
+                // prevent duplicate notifications
+                'tag' : tag
+             }
+          );
+          // remove the notification from Notification Center when it is clicked
+          n.onclick = function() {
+            this.close();
+          };
+          // callback function when the notification is closed
+          n.onclose = function() {
+            console.log('Notification closed');
+          };
+        }
+        // if the user does not want notifications to come from this domain
+        else if(Notification.permission === 'denied') {
+          // be silent
+          return;
+        }
+      };
     </script>
   </body>
 </html>

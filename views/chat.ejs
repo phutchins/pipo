@@ -82,6 +82,7 @@
       var userName = "<%= userName %>";
       start();
       function start() {
+        //if (isHidden()) notify('test', 'test notification here', '123123');
         openpgp.initWorker('/js/openpgp.worker.js');
         var statusType = "STATUS";
         var statusMessage = "Please wait while your keys are prepared...";
@@ -243,6 +244,47 @@
 
       $('#mainContainer a').attr('target','_blank');
 
+      function isHidden() {
+        var hidden = "hidden";
+        // Standards:
+        if (hidden in document)
+          document.addEventListener("visibilitychange", onchange);
+        else if ((hidden = "mozHidden") in document)
+          document.addEventListener("mozvisibilitychange", onchange);
+        else if ((hidden = "webkitHidden") in document)
+          document.addEventListener("webkitvisibilitychange", onchange);
+        else if ((hidden = "msHidden") in document)
+          document.addEventListener("msvisibilitychange", onchange);
+        // IE 9 and lower:
+        else if ("onfocusin" in document)
+          document.onfocusin = document.onfocusout = onchange;
+        // All others:
+        else
+          window.onpageshow = window.onpagehide
+          = window.onfocus = window.onblur = onchange;
+
+        function onchange (evt) {
+          var v = "visible", h = "hidden",
+              evtMap = {
+                focus:v, focusin:v, pageshow:v, blur:h, focusout:h, pagehide:h
+              };
+
+          evt = evt || window.event;
+          if (evt.type in evtMap)
+            document.body.className = evtMap[evt.type];
+          else
+            document.body.className = this[hidden] ? "hidden" : "visible";
+        }
+
+        // set the initial state (but only if browser supports the Page Visibility API)
+        if( document[hidden] !== undefined )
+          onchange({type: document[hidden] ? "blur" : "focus"});
+        if (hidden == "hidden")
+          return true;
+        else
+          return false;
+      };
+
       function getCaret(el) {
         if (el.selectionStart) {
           return el.selectionStart;
@@ -340,6 +382,8 @@
                           localMsg({ id: id, type: userName+" -> "+toUser, message: preparedMessage });
                           console.log("username: "+userName);
                           socket.emit('privmsg', { id: id, toUser: toUser, message: pgpMessage } );
+                          var $messageInput = $('#message-input');
+                          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
                           $('#message-input').val('');
                           return console.log("Private message sent...");
                         });
@@ -430,12 +474,15 @@
         var id = data.id;
         decryptMessage(keyPair.privKey, clientKeyPairPassphrase, pgpMessage, function(err, message) {
           localMsg({ id: id, type: fromUser+" -> "+toUser, message: message });
+          var $messageInput = $('#message-input');
+          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+          sendNotification(null, 'Private Message from '+fromUser, $(message).text(), 3000);
         });
       });
 
       socket.on('chat message', function(data){
         console.log("Just got chat message!");
-        var userName = data.userName;
+        var fromUser = data.userName;
         var pgpMessage = data.pgpMessage;
         //console.log("Got message, attempting to decrypt");
         decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(err, message) {
@@ -447,9 +494,14 @@
             //var sanatizedMessage = sanatize(message);
             console.log("raw message is: "+message);
             var messages = $('#messages');
-            var messageLine = "["+userName+"] "+message;
+            var messageLine = "["+fromUser+"] "+message;
             localMsg({ type: null, message: messageLine });
             messages[0].scrollTop = messages[0].scrollHeight;
+            var mentionRegex = /@<%= userName %>/;
+            var regexResult = message.match(mentionRegex);
+            if (regexResult !== null) {
+              sendNotification(null, fromUser+' mentioned you...', $(message).text(), 3000);
+            }
           }
         });
       });
@@ -537,6 +589,66 @@
             .replace(rApos,'&#39;')
             .replace(rQuot, '&quot;')
           : str;
+      };
+
+      // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
+      function sendNotification(image, title, message, timeout, showOnFocus) {
+        getNotifyPermissions(function(permission) {
+          if (permission) {
+            console.log("[NOTIFICATION] Attempting to display notification");
+            // Default values for optional params
+            timeout = (typeof timeout !== 'undefined') ? timeout : 0;
+            showOnFocus = (typeof showOnFocus !== 'undefined') ? showOnFocus : false;
+            // Check if the browser window is focused
+            var isWindowFocused = document.querySelector(":focus") === null ? false : true;
+            // Check if we should send the notification based on the showOnFocus parameter
+            var shouldNotify = !isWindowFocused || isWindowFocused && showOnFocus;
+            console.log("[NOTIFICATION] shouldNotify is "+shouldNotify);
+            if (shouldNotify) {
+              // Create the notification object
+              //var notification = window.webkitNotifications.createNotification(
+              //  image, title, message
+              //);
+              // Display the notification
+              //notification.show();
+              console.log("[NOTIFACTION] Sending notification now...");
+              var notification = new Notification(title, { body: message });
+              if (timeout > 0) {
+                // Hide the notification after the timeout
+                setTimeout(function(){
+                  notification.close()
+                }, timeout);
+              }
+            }
+          } else {
+            console.log("Don't have permission to display notification");
+          }
+        });
+      };
+
+      function getNotifyPermissions(callback) {
+        // check for notification compatibility
+        if(!window.Notification) {
+          // if browser version is unsupported, be silent
+          return callback(false);
+        }
+        // log current permission level
+        console.log(Notification.permission);
+        // if the user has not been asked to grant or deny notifications from this domain
+        if(Notification.permission === 'default') {
+          Notification.requestPermission(function() {
+            // callback this function once a permission level has been set
+            return callback(true);
+          });
+        }
+        // if the user has granted permission for this domain to send notifications
+        else if(Notification.permission === 'granted') {
+          return callback(true);
+        }
+        // if the user does not want notifications to come from this domain
+        else if(Notification.permission === 'denied') {
+          return callback(false);
+        }
       };
     </script>
   </body>

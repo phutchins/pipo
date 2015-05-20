@@ -91,20 +91,23 @@ ioMain.on('connection', function(socket) {
   socket.on('privmsg', function(data) {
     var toUser = data.toUser;
     var toUserSocketId = userMembership[toUser.toLowerCase()].socketId;
-    var fromUser = socketMembership[socket.id].userName;
-    var id = data.id;
-    var message = data.message;
-    data = {
-      toUser: toUser,
-      fromUser: fromUser,
-      message: message
+    if (typeof socketMembership[socket.id] !== 'undefined') {
+      var fromUser = socketMembership[socket.id].userName;
+      var id = data.id;
+      var message = data.message;
+      data = {
+        toUser: toUser,
+        fromUser: fromUser,
+        message: message
+      };
+      socket.broadcast.to(toUserSocketId).emit('privmsg', data);
+      sentData = {
+        id: id,
+        error: null
+      };
+    } else {
+      console.log("[PRIVMSG] [ERROR] Could not find users socket in socketMembership");
     };
-    socket.broadcast.to(toUserSocketId).emit('privmsg', data);
-    sentData = {
-      id: id,
-      error: null
-    };
-    //socket.broadcast.to(socket.id).emit('privmsg status', sentData);
   });
 
   socket.on('server command', function(data) {
@@ -371,10 +374,6 @@ function findClientsSocketByRoomId(roomId) {
 // becomes
 //var clients = findClientsSocket('room', '/chat') ;
 
-//routes.keys.on('pubkey updated', function(data) {
-//  console.log("[EVENT] pubkey has been updated");
-//});
-
 function generateMasterKeyPair(callback) {
   generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
     if (err) {
@@ -390,22 +389,6 @@ function generateMasterKeyPair(callback) {
         callback(null, newMasterKeyPair);
       });
     };
-  });
-};
-
-function newGenerateMasterKeyPair(callback) {
-  generateKeyPair(2048, 'master keypair', 'pipo').then(function(err, newMasterKeyPair) {
-    // Should not be saving the keypair here eventually
-    new KeyPair({
-      type: 'master',
-      pubKey: newMasterKeyPair.pubKey,
-      privKey: newMasterKeyPair.privKey,
-    }).save( function(err, masterKeyPair, count) {
-      console.log("Created and saved new master keyPair");
-      callback(null, newMasterKeyPair);
-    });
-  }).catch(function(err) {
-    callback(err, null);
   });
 };
 

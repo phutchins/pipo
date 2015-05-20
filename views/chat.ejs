@@ -11,20 +11,19 @@
         <div id="left-menu-profile">
         </div>
         <div id="left-menu-scroll">
-          <div id="room-list-container">
+          <div class="room-list-container">
             <h5 class="room-list-header">Rooms</h5>
             <ul id="room-list">
               <li class="room-list-item">#general</li>
             </ul>
           </div>
-          <div id="user-list-container">
+          <div class="user-list-container">
             <h5 class="user-list-header">Users</h5>
             <div id="user-list">
             </div>
           </div>
         </div>
         <div id="menu-actions">
-          <a class="button-create-room" href="#createroom">Create a room</a>
         </div>
       </div>
     </div>
@@ -327,12 +326,12 @@
                 },
                 statusCode: {
                   404: function() {
-                    console.log("Got 404 when finding pubKey for "+userName);
-                    return callback("Error finding public key for "+userName);
+                    localMsg({ type: "ERROR", message: "Could not find this "+toUser+" that you're talking about..." });
+                    return console.log("Could not find public key for "+toUser);
                   },
                   200: function(data, textStatus, xhr) {
                     var toUserPubKey = data.pubKey;
-                    console.log("Got public key for "+userName);
+                    console.log("Got public key for "+toUser);
                     encryptMessage(toUserPubKey, preparedMessage, function(err, pgpMessage) {
                       if (err) {
                         return console.log(err);

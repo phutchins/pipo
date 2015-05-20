@@ -11,16 +11,17 @@ module.exports = function(app) {
     User.findOne({ userName: userName }, function(err, user) {
       console.log("["+timestamp+"] [API] [DEBUG] Found user");
       if (user === null) {
-        console.log("["+timestamp+"] pubKey not found");
+        console.log("["+timestamp+"] pubKey for "+userName+"  not found");
         //res.status(404).send("pubKey not found");
         // Might should return 404 here
-        res.json({ pubKey: '' });
+        //res.json({ pubKey: '' });
+        res.status(404).send();
       } else if (typeof user.pubKey != 'undefined') {
         console.log("["+timestamp+"] KeyPair found...");
         res.json({ pubKey: user.pubKey });
       } else {
-        console.log("["+timestamp+"] User "+userName+" does not seem to have a pubKey");
-        res.status(404).send();
+        console.log("["+timestamp+"] Error while looking for pubkey for  "+userName);
+        res.status(500).send();
       }
     });
   });

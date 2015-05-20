@@ -97,6 +97,15 @@ body, html { padding: 0; margin: 0; }
 #user-list {
   list-style-type: none;
   font-size: 18px;
+  margin-left: 28px;
+}
+
+.room-list-container {
+  margin-bottom: 20px;
+}
+
+.user-list-container {
+  margin-bottom: 20px;
 }
 
 #room-list {
@@ -126,7 +135,7 @@ body, html { padding: 0; margin: 0; }
   width: 248px;
 }
 
-h5 .room-list-header {
+.room-list-header {
   -webkit-user-select: none;
   box-sizing: border-box;
   clear: both;
@@ -153,7 +162,7 @@ h5 .room-list-header {
   width: 248px;
 }
 
-h5 .user-list-header {
+.user-list-header {
   -webkit-user-select: none;
   box-sizing: border-box;
   clear: both;
@@ -180,7 +189,7 @@ h5 .user-list-header {
   width: 248px;
 }
 
-ul .room-list-item {
+.room-list-item {
   -webkit-box-align: center;
   -webkit-box-flex: 1;
   -webkit-user-select: none;

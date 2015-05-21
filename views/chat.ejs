@@ -467,6 +467,12 @@
         $messages[0].scrollTop = $messages[0].scrollHeight;
       });
 
+      socket.on('join', function(data) {
+        var channel = data.channel;
+        var joinUser = data.joinUser;
+        sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
+      });
+
       socket.on('privmsg', function(data) {
         var fromUser = data.fromUser;
         var toUser = data.toUser;
@@ -497,8 +503,9 @@
             var messageLine = "["+fromUser+"] "+message;
             localMsg({ type: null, message: messageLine });
             messages[0].scrollTop = messages[0].scrollHeight;
-            var mentionRegex = /@<%= userName %>/;
-            var regexResult = message.match(mentionRegex);
+            var regexResult = new RegExp('@<%= userName %>', 'i').exec(message);
+            //var mentionRegex = /@<%= userName %>/;
+            //var regexResult = message.match(mentionRegex);
             if (regexResult !== null) {
               sendNotification(null, fromUser+' mentioned you...', $(message).text(), 3000);
             }
@@ -508,9 +515,11 @@
 
       socket.on('userlist update', function(data) {
         var userList = data.userList;
+        var joinUser = data.joinUser;
         console.log("[USERLIST UPDATE] Got userlist update of "+userList.toString());
         updateUserList({ userList: userList }, function(err) {
           if (err) return console.log("Error updating user list: "+err);
+          sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
           console.log("UserList update successful...");
         });
       });

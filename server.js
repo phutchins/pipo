@@ -149,7 +149,9 @@ ioMain.on('connection', function(socket) {
           console.log("["+timestamp+"] [JOIN] Error getting channel users: "+err);
         } else {
           var userListData = {
-            userList: channelUsersArray
+            userList: channelUsersArray,
+            joinUser: userName,
+            channel: channel
           }
     var timestamp = new Date().toString();
           console.log("["+timestamp+"] Sending userlist update!");

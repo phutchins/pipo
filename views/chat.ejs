@@ -133,6 +133,7 @@
                 updateMasterKey(function(err) {
                   if (err) { return console.log("Error: "+err); };
                   pleaseWaitOff();
+                  $('#message-input').focus();
                 });
               };
             });

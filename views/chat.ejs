@@ -9,6 +9,27 @@
       </ul>
       <div id="menu">
         <div id="left-menu-profile">
+          <div id="menu-header-profile">
+
+<div class="ui teal buttons">
+  <div class="ui button">Options</div>
+  <div class="ui floating dropdown icon button">
+    <i class="chevron down icon"></i>
+    <div id="options-menu-dropdown" class="menu">
+      <div class="ui icon search input">
+        <i class="search icon"></i>
+        <input type="text" name="search" placeholder="Search messages...">
+      </div>
+      <div class="item"><i class="edit icon"></i> Generate new client key pair</div>
+      <div class="item"><i class="delete icon"></i> Select existing key pair</div>
+      <div class="item"><i class="hide icon"></i> Backup client key pair</div>
+      <div id="regenerate-keypair-button" class="item"><i class="hide icon"></i> Regenerate client key pair</div>
+    </div>
+  </div>
+</div>
+
+
+          </div>
         </div>
         <div id="left-menu-scroll">
           <div class="room-list-container">
@@ -67,6 +88,7 @@
       var socket = io(host+'/main');
       var currentChannel = "general";
       var clientKeyPairPassphrase = "superawesomepasswordhere";
+      var amountOfSpaceNeeded = 5000000;
       var keyPair = ({
         pubKey: null,
         privKey: null
@@ -84,35 +106,244 @@
       function start() {
         //if (isHidden()) notify('test', 'test notification here', '123123');
         openpgp.initWorker('/js/openpgp.worker.js');
+
+        // This should use localMsg
         var statusType = "STATUS";
         var statusMessage = "Please wait while your keys are prepared...";
         $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
-        socket.emit('init', { userName: userName });
-        generateClientKeyPair(2048, "<%= userName %>", clientKeyPairPassphrase, function(err, generatedKeyPair) {
+
+        initStorage(function(err, fs) {
+          console.log("in initStorage callback");
+          if (err) { return console.log("[START][STORAGE] Error during init storage: "+err); };
+          loadClientKeyPair(fs, function(err) {
+            if (err) { return console.log("[START][LOAD CLIENT KEY] Client Keys loaded from local storage"); };
+            updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
+              console.log("Remote keyPair check done.");
+              if (err) {
+                console.log("Error when checking for remote public key: "+err);
+                callback(err, null);
+              } else {
+                console.log("[START] Sending init to server...");
+                socket.emit('init', { userName: userName });
+                console.log("[START] Joining channel #general");
+                socket.emit('join', { userName: userName, channel: "general" } );
+                console.log("Update remote pub key done...");
+              };
+            });
+          });
+        });
+      };
+
+      function generateClientKeyPair(callback) {
+        generateKeyPair(2048, "<%= userName %>", clientKeyPairPassphrase, function(err, generatedKeyPair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
           } else {
             console.log("Generated client key pair.");
             var statusType = "STATUS";
             var statusMessage = "Client keys generated.";
+            console.log("Client Pub Key: "+generatedKeyPair.pubKey);
             $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             keyPair = generatedKeyPair;
-              var statusType = "STATUS";
-              var statusMessage = "Waiting for MASTER key from server...";
-              $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            var statusType = "STATUS";
+            var statusMessage = "Waiting for MASTER key from server...";
+            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
               if (err) {
-                return console.log("Error when checking for remote public key: "+err);
+                console.log("Error when checking for remote public key: "+err);
+                callback(err, null);
               } else {
+                console.log("Update remote pub key done...");
               // Get master key if we don't have it locally
-                console.log("[START] Joining channel #general");
-                socket.emit('join', { userName: userName, channel: "general" } );
+                //socket.emit('join', { userName: userName, channel: "general" } );
+                callback(null, generatedKeyPair);
               };
             });
           }
         });
       };
+
+      function loadClientKeyPair(fs, callback) {
+        console.log('Opened file system: ' + fs.name);
+        fs.root.getFile('clientkey.aes', {create: false, exclusive: true}, function(fileEntry) {
+          fileEntry.file(function(file) {
+             var reader = new FileReader();
+             reader.onloadend = function(e) {
+              keyPair.privKey = this.result;
+
+              fs.root.getFile('clientkey.pub', {create: false, exclusive: true}, function(fileEntry) {
+                fileEntry.file(function(file) {
+                   var reader = new FileReader();
+                   reader.onloadend = function(e) {
+                    keyPair.pubKey = this.result;
+                    return callback(null);
+                   };
+                   reader.readAsText(file);
+                }, loadClientKeyPairErrorHandler);
+              }, loadClientKeyPairErrorHandler);
+
+             };
+             reader.readAsText(file);
+          }, loadClientKeyPairErrorHandler);
+        }, loadClientKeyPairErrorHandler);
+        return callback("Reached loadClientKeyPair callback bad...");
+        function loadClientKeyPairErrorHandler(e) {
+          var msg = '';
+          console.log("[LOAD CLIENT KEY PAIR ERROR HANDLER] e.name: "+e.name+" e.message: "+e.message);
+          console.log("[LCKPEH] FileError.NOT_FOUND_ERR: "+FileError.NOT_FOUND_ERR);
+          switch (e.name) {
+            case FileError.QUOTA_EXCEEDED_ERR:
+              msg = 'QUOTA_EXCEEDED_ERR';
+              break;
+            case "NotFoundError":
+              console.log("Client keys not found in storage. Generating new keypair.");
+              msg = 'NOT_FOUND_ERR';
+              generateClientKeyPair(function(err, keyPair) {
+                saveClientKeyPair(fs, keyPair, function(err) {
+                  if (err) { console.log("Error generating client key pair: "+err); }
+                  console.log("Saved client key pair locally");
+                });
+              });
+              break;
+            case FileError.SECURITY_ERR:
+              msg = 'SECURITY_ERR';
+              break;
+            case FileError.INVALID_MODIFICATION_ERR:
+              msg = 'INVALID_MODIFICATION_ERR';
+              break;
+            case FileError.INVALID_STATE_ERR:
+              msg = 'INVALID_STATE_ERR';
+              break;
+            default:
+              msg = 'Unknown Error';
+              break;
+          };
+          console.log('Error: ' + msg);
+        };
+      };
+
+      function removeClientKeyPair(fs, callback) {
+        fs.root.getFile('clientkey.aes', {create: false}, function(fileEntry) {
+          fileEntry.remove(function() {
+            console.log('File successufully removed.');
+            fs.root.getFile('clientkey.pub', {create: false}, function(fileEntry) {
+              fileEntry.remove(function() {
+                console.log('File successufully removed.');
+                callback(null);
+              }, errorHandler);
+            }, errorHandler);
+          }, errorHandler);
+        }, errorHandler);
+        function errorHandler(err) {
+          var msg = '';
+          switch(err.name) {
+            case "BAD":
+              console.log("Bad");
+              return callback(err.message);
+            default:
+              message = 'Unknown Error: '+err.name;
+              return callback(err.message);
+          };
+          console.log("Error: "+message);
+        };
+      };
+
+      function regenerateClientKeyPair(callback) {
+        initStorage(function(err, fs) {
+          if (err) { return callback(err); };
+          removeClientKeyPair(fs, function() {
+            // Generate new key pair
+            generateClientKeyPair(function(err, keyPair) {
+              saveClientKeyPair(fs, keyPair, function(err) {
+                if(err) { return console.log("Error regenerating client key pair: "+err); };
+                callback(null);
+              });
+            });
+          });
+        });
+      };
+
+      function saveClientKeyPair(fs, keyPair, callback) {
+        var privKey = keyPair.privKey;
+        var pubKey = keyPair.pubKey;
+        fs.root.getFile('clientkey.aes', {create: true}, function(fileEntry) {
+          // Create a FileWriter object for our FileEntry (log.txt).
+          fileEntry.createWriter(function(fileWriter) {
+            fileWriter.onwriteend = function(e) {
+              console.log('Client secret key write completed.');
+              fs.root.getFile('clientkey.pub', {create: true}, function(fileEntry) {
+                // Create a FileWriter object for our FileEntry (log.txt).
+                fileEntry.createWriter(function(fileWriter) {
+                  fileWriter.onwriteend = function(e) {
+                    console.log('Client public key write completed.');
+                    return callback(null);
+                  };
+                  fileWriter.onerror = function(e) {
+                    console.log('Write failed: ' + e.toString());
+                  };
+                  // Create a new Blob and write it to log.txt.
+                  var blob = new Blob([pubKey], {type: 'text/plain'});
+                  fileWriter.write(blob);
+                }, errorHandler);
+              }, errorHandler);
+            };
+            fileWriter.onerror = function(e) {
+              console.log('Write failed: ' + e.toString());
+            };
+            // Create a new Blob and write it to log.txt.
+            var blob = new Blob([privKey], {type: 'text/plain'});
+            fileWriter.write(blob);
+          }, errorHandler);
+        }, errorHandler);
+        function errorHandler(err) {
+          var msg = '';
+          switch(err.name) {
+            case "BAD":
+              console.log("Bad");
+            default:
+              message = 'Unknown Error: '+err.name;
+          };
+          console.log("Error: "+message);
+        };
+      }
+
+
+      function initStorage(callback) {
+        //Taking care of the browser-specific prefix
+        window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
+        window.requestFileSystem(window.PERSISTENT, 1024*1024,onInitFs, function(err) {
+          console.log("Error initStorage: "+err);
+        });
+        function onInitFs(fs) {
+          console.log("[INIT STORAGE] Initializing storage...");
+          // First check how much we can use in the Persistent storage.
+          fs = fs;
+          navigator.webkitPersistentStorage.queryUsageAndQuota(
+            function (usage, quota) {
+              var availableSpace = quota - usage;
+              console.log("availableSpace: "+availableSpace);
+              if (availableSpace >= amountOfSpaceNeeded) {
+                console.log("Have as much space as we need!");
+                return callback(null, fs);
+              }
+              var requestingQuota = amountOfSpaceNeeded + usage;
+              navigator.webkitPersistentStorage.requestQuota(
+                  requestingQuota,
+                  function (grantedQuota) {
+                    console.log("Didn't have enough space so requested more. Got: "+grantedQuota);
+                    return callback(null, fs)
+                  },
+                  onError);
+            }, onError
+          );
+          function onError(err) {
+            console.log("Got error during init storage: "+err);
+            callback(err);
+          }
+        };
+      };
+
 
       function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
         var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
@@ -180,11 +411,14 @@
               console.log("[DEBUG] (updateRemotePubKey) data: "+data);
               var remotePubKey = data.pubKey;
               console.log("Key exists on remote");
+              console.log("Remote Pub Key: "+data.pubKey);
               if (keyPair.pubKey == remotePubKey) {
                 console.log("Key on remote matches local");
                 return callback(null);
               } else {
                 console.log("Key on remote does not match");
+                console.log("local pubKey: "+keyPair.pubKey);
+                console.log("remote pubKey: "+remotePubKey);
                 updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
                   if (err) {
                     console.log("Error updating pubKey on remote");
@@ -336,6 +570,18 @@
         console.log("Parsed message: "+container.html());
         callback(null, container.html());
       }
+      $('.dropdown')
+        .dropdown({
+          transition: 'drop'
+        })
+      ;
+
+      $('#regenerate-keypair-button').on('click', function() {
+        console.log("Regenerating client keypair");
+        regenerateClientKeyPair(function(err) {
+          console.log("Client keypair regeneration done...");
+        });
+      });
 
       $('form').submit(function(){
         var input = $('#message-input').val();
@@ -443,6 +689,8 @@
             //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
             if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
               console.log("(new master key) Trying to decrypt master key...");
+              console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
+              console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
               decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
                 console.log("(new master key) Caching master private key decrypted");
                 masterKeyPair.privKey = key;
@@ -516,6 +764,7 @@
       socket.on('userlist update', function(data) {
         var userList = data.userList;
         var joinUser = data.joinUser;
+        var channel = data.channel;
         console.log("[USERLIST UPDATE] Got userlist update of "+userList.toString());
         updateUserList({ userList: userList }, function(err) {
           if (err) return console.log("Error updating user list: "+err);
@@ -529,13 +778,13 @@
         callback(id);
       };
 
-      function generateClientKeyPair(numBits, userId, passphrase, callback) {
+      function generateKeyPair(numBits, userId, passphrase, callback) {
         var options = {
           numBits: numBits,
           userId: userId,
           passphrase: passphrase
         }
-        console.log("Generating client keypair, please wait...");
+        console.log("Generating keypair, please wait...");
         window.openpgp.generateKeyPair(options).then(function(keyPair) {
           var privKey = keyPair.privateKeyArmored;
           var pubKey = keyPair.publicKeyArmored;

@@ -108,15 +108,17 @@
         openpgp.initWorker('/js/openpgp.worker.js');
 
         // This should use localMsg
-        var statusType = "STATUS";
-        var statusMessage = "Please wait while your keys are prepared...";
-        $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+        //var statusType = "STATUS";
+        //var statusMessage = "Please wait while your keys are prepared...";
+        //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+        localMsg({ type: "STATUS", message: "Please wait while your keys are prepared..." });
 
         initStorage(function(err, fs) {
           console.log("in initStorage callback");
           if (err) { return console.log("[START][STORAGE] Error during init storage: "+err); };
           loadClientKeyPair(fs, function(err) {
             if (err) { return console.log("[START][LOAD CLIENT KEY] Client Keys loaded from local storage"); };
+            localMsg({ type: "STATUS", message: "Loaded client keys from local storage" });
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
               if (err) {
@@ -128,6 +130,10 @@
                 console.log("[START] Joining channel #general");
                 socket.emit('join', { userName: userName, channel: "general" } );
                 console.log("Update remote pub key done...");
+                updateMasterKey(function(err) {
+                  if (err) { return console.log("Error: "+err); };
+                  pleaseWaitOff();
+                });
               };
             });
           });
@@ -140,14 +146,15 @@
             console.log("Error generating client keypair: "+err);
           } else {
             console.log("Generated client key pair.");
-            var statusType = "STATUS";
-            var statusMessage = "Client keys generated.";
-            console.log("Client Pub Key: "+generatedKeyPair.pubKey);
-            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            //var statusType = "STATUS";
+            //var statusMessage = "Client keys generated.";
+            //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            localMsg({ type: "STATUS", message: "Client keys generated" });
             keyPair = generatedKeyPair;
-            var statusType = "STATUS";
-            var statusMessage = "Waiting for MASTER key from server...";
-            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            //var statusType = "STATUS";
+            //var statusMessage = "Waiting for MASTER key from server...";
+            //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
+            localMsg({ type: "STATUS", message: "Waiting for MASTER key from server..." });
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
               if (err) {
@@ -541,6 +548,7 @@
         var type = data.type;
         var message = data.message;
         var id = data.id;
+        var align = data.align || "left";
         if (type !== null && id !== null) {
           $('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
         } else if (type !== null) {
@@ -548,6 +556,8 @@
         } else {
           $('#messages').append($('<li>').html(message));
         }
+        var $messageInput = $('#message-input');
+        $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
       };
 
       function updateUserList(data, callback) {
@@ -628,8 +638,6 @@
                           localMsg({ id: id, type: userName+" -> "+toUser, message: preparedMessage });
                           console.log("username: "+userName);
                           socket.emit('privmsg', { id: id, toUser: toUser, message: pgpMessage } );
-                          var $messageInput = $('#message-input');
-                          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
                           $('#message-input').val('');
                           return console.log("Private message sent...");
                         });
@@ -674,6 +682,50 @@
         return false;
       });
 
+      function pleaseWaitOff() {
+        $('#message-input').attr('placeHolder', 'Type your message here...');
+        $('#send-button').prop('disabled', false);
+        $('#loading-icon').remove();
+      };
+
+      function pleaseWait() {
+        $('#message-input').attr('placeHolder', 'Type your message here...');
+        $('#send-button').prop('disabled', false);
+        $('#loading-icon').remove();
+      };
+
+      function updateMasterKey(callback) {
+        getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+          if (err) {
+            console.log("Error getting master key pair: "+err);
+            localMsg({ type: "ERROR", message: "Error getting master key pair" });
+            callback("Error getting master key pair");
+          } else {
+            localMsg({ type: null, message: "Updated master key pair" });
+            console.log("Got master keypair, ready to encrypt/decrypt");
+            encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
+            encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+            console.log("Ensuring that client keypair exists");
+            //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
+            if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+              console.log("(new master key) Trying to decrypt master key...");
+              //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
+              //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
+              decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+                console.log("(new master key) Caching master private key decrypted");
+                masterKeyPair.privKey = key;
+                masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+                pleaseWaitOff();
+                callback(null);
+              });
+            } else {
+              console.log("Private key does not yet exist so cannot decrypt master key");
+              callback("Private key does not exist");
+            };
+          };
+        });
+      };
+
       socket.on('new master key', function(data) {
         console.log("Getting master keyPair for "+userName);
         getMasterKeyPair(userName, function(err, encMasterKeyPair) {
@@ -689,15 +741,13 @@
             //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
             if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
               console.log("(new master key) Trying to decrypt master key...");
-              console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
-              console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
+              //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
+              //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
               decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
                 console.log("(new master key) Caching master private key decrypted");
                 masterKeyPair.privKey = key;
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
-                $('#message-input').attr('placeHolder', 'Type your message here...');
-                $('#send-button').prop('disabled', false);
-                $('#loading-icon').remove();
+                pleaseWaitOff();
               });
             } else {
               console.log("Private key does not yet exist so cannot decrypt master key");
@@ -768,8 +818,10 @@
         console.log("[USERLIST UPDATE] Got userlist update of "+userList.toString());
         updateUserList({ userList: userList }, function(err) {
           if (err) return console.log("Error updating user list: "+err);
-          sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
-          console.log("UserList update successful...");
+          if (typeof joinUser !== 'undefined') {
+            sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
+            console.log("UserList update successful...");
+          };
         });
       });
 

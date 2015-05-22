@@ -167,18 +167,22 @@ ioMain.on('connection', function(socket) {
     console.log("["+timestamp+"] [JOIN] Generating new master key pair.");
 
     // something between here ...
-    generateMasterKeyPair(function(err, masterKeyPair) {
-      var timestamp = new Date().toString();
-      console.log("["+timestamp+"] [JOIN][DEBUG] about to update master keypair");
-      updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
-        var timestamp = new Date().toString();
-        if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
-        var timestamp = new Date().toString();
-        console.log("["+timestamp+"] [JOIN] Encrypted master key for all users!");
-      });
-      var timestamp = new Date().toString();
-      console.log("["+timestamp+"] [JOIN] After updateMasterKeyPairForAllUsers...");
-    });
+    //if (keyPair.pubKey == remotePubKey) {
+      console.log("User '"+userName+"' client public key up to date");
+    //} else {
+      //generateMasterKeyPair(function(err, masterKeyPair) {
+      //  var timestamp = new Date().toString();
+      //  console.log("["+timestamp+"] [JOIN][DEBUG] about to update master keypair");
+      //  updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
+      //    var timestamp = new Date().toString();
+      //    if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
+      //    var timestamp = new Date().toString();
+      //    console.log("["+timestamp+"] [JOIN] Encrypted master key for all users!");
+      //  });
+      //  var timestamp = new Date().toString();
+      //  console.log("["+timestamp+"] [JOIN] After updateMasterKeyPairForAllUsers...");
+      //});
+    //};
     // ... and here is blocking everything
     var timestamp = new Date().toString();
     console.log("["+timestamp+"] [JOIN][DEBUG] before addUserIfNotExist");

@@ -88,6 +88,10 @@ ioMain.on('connection', function(socket) {
     console.log("[MSG] Server emitted chat message to users");
   });
 
+  socket.on('regen master key', function() {
+    regenerateMasterKeyPair();
+  });
+
   socket.on('privmsg', function(data) {
     var toUser = data.toUser;
     var toUserSocketId = userMembership[toUser.toLowerCase()].socketId;
@@ -188,23 +192,23 @@ ioMain.on('connection', function(socket) {
     console.log("["+timestamp+"] [JOIN][DEBUG] before addUserIfNotExist");
 
     addUserIfNotExist(userName, function(err) {
-    var timestamp = new Date().toString();
+      var timestamp = new Date().toString();
       if (err) { return console.log("["+timestamp+"] Error checking user: "+err); };
-    var timestamp = new Date().toString();
+      var timestamp = new Date().toString();
       console.log("["+timestamp+"] [JOIN] User check complete");
       User.findOne({ userName: userName }, function(err, user, count) {
         if (user.encryptedMasterPrivKey) {
-    var timestamp = new Date().toString();
+        var timestamp = new Date().toString();
           console.log("["+timestamp+"] [JOIN] User has master key, emitting ready to client");
           //io.emit('new master key');
         } else {
-    var timestamp = new Date().toString();
+          var timestamp = new Date().toString();
           console.log("["+timestamp+"] [JOIN] User does not have master key, regenerating for all users");
           generateMasterKeyPair(function(err, masterKeyPair) {
             updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
-    var timestamp = new Date().toString();
+              var timestamp = new Date().toString();
               if (err) { console.log("["+timestamp+"] [JOIN] Error encrypting master key for all users: "+err); };
-    var timestamp = new Date().toString();
+              var timestamp = new Date().toString();
               console.log("["+timestamp+"] [JOIN] Encrypted master key for all users!");
             });
           });
@@ -339,6 +343,16 @@ function start() {
         console.log("[START] Using existing master keyPair version: "+masterKeyPair.version);
         //io.emit('new master key', masterKeyPair);
       };
+    });
+  });
+};
+
+function regenerateMasterKeyPair() {
+  generateMasterKeyPair(function(err, masterKeyPair) {
+    console.log("[START] New master keyPair generated...");
+    updateMasterKeyPairForAllUsers(masterKeyPair, function(err) {
+      if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
+      console.log("[START] Encrypted master key for all users!");
     });
   });
 };
@@ -524,6 +538,7 @@ function updateMasterKeyPairForUser(user, masterKeyPair, callback) {
     var pubKey = openpgp.key.readArmored(user.pubKey).keys[0];
     var masterPrivKey = openpgp.key.readArmored(masterKeyPair.privKey).keys[0];
     masterPrivKey.decrypt('pipo');
+    console.log("Encrypting master key to "+user.userName+" with public key: "+pubKey);
     openpgp.encryptMessage(pubKey, masterKeyPair.privKey).then(function(encKey) {
       user.encryptedMasterPrivKey = encKey;
       user.masterPubKey = masterKeyPair.pubKey;

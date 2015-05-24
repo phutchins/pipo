@@ -10,25 +10,21 @@
       <div id="menu">
         <div id="left-menu-profile">
           <div id="menu-header-profile">
-
-<div class="ui teal buttons">
-  <div class="ui button">Options</div>
-  <div class="ui floating dropdown icon button">
-    <i class="chevron down icon"></i>
-    <div id="options-menu-dropdown" class="menu">
-      <div class="ui icon search input">
-        <i class="search icon"></i>
-        <input type="text" name="search" placeholder="Search messages...">
-      </div>
-      <div class="item"><i class="edit icon"></i> Generate new client key pair</div>
-      <div class="item"><i class="delete icon"></i> Select existing key pair</div>
-      <div class="item"><i class="hide icon"></i> Backup client key pair</div>
-      <div id="regenerate-keypair-button" class="item"><i class="hide icon"></i> Regenerate client key pair</div>
-    </div>
-  </div>
-</div>
-
-
+            <div class="ui teal buttons">
+              <div class="ui button">Options</div>
+              <div class="ui floating dropdown icon button">
+                <i class="chevron down icon"></i>
+                <div id="options-menu-dropdown" class="menu">
+                  <div class="ui icon search input">
+                    <i class="search icon"></i>
+                    <input type="text" name="search" placeholder="Search messages...">
+                  </div>
+                  <div id="generate-keypair-button" class="item"><i class="spy icon"></i> Generate new client key pair</div>
+                  <div id="select-keypair-button" class="item"><i class="folder open icon"></i> Select existing key pair</div>
+                  <div id="export-keypair-button" class="item"><i class="download icon"></i> Export client key pair</div>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
         <div id="left-menu-scroll">
@@ -48,6 +44,7 @@
         </div>
       </div>
     </div>
+
     <div class="input-container" id="input-container">
       <form>
         <div id="message-input-container" class="ui left fluid action icon input loading">
@@ -57,6 +54,79 @@
         </div>
       </form>
     </div>
+
+    <div class="ui form basic modal password-prompt-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Export Client KeyPair
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Please enter a strong password...</p>
+        </div>
+        <div class="ui input">
+            <input name="password" type="password" placeholder="password"></input>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button password-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui form basic modal key-creds-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Enter your key information
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Username:</p>
+        </div>
+        <div class="ui input">
+            <input name="username" type="username" placeholder="User Name"></input>
+        </div>
+                  <div class="description">
+          <p>Full Name:</p>
+        </div>
+        <div class="ui input">
+            <input name="fullname" type="fullname" placeholder="Full Name"></input>
+        </div>
+                  <div class="description">
+          <p>Email:</p>
+        </div>
+        <div class="ui input">
+            <input name="email" type="email" placeholder="Email"></input>
+        </div>
+        <div class="description">
+          <p>Please enter a strong password:</p>
+        </div>
+        <div class="ui input">
+            <input name="password" type="password" placeholder="password"></input>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button key-creds-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
+      </div>
+    </div>
+
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
@@ -87,7 +157,8 @@
       var host = window.location.host;
       var socket = io(host+'/main');
       var currentChannel = "general";
-      var clientKeyPairPassphrase = "superawesomepasswordhere";
+      var clientKeyPassword = null;
+      var masterKeyPassword = 'pipo';
       var amountOfSpaceNeeded = 5000000;
       var keyPair = ({
         pubKey: null,
@@ -112,49 +183,51 @@
         //var statusMessage = "Please wait while your keys are prepared...";
         //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
         localMsg({ type: "STATUS", message: "Please wait while your keys are prepared..." });
-
         initStorage(function(err, fs) {
           console.log("in initStorage callback");
           if (err) { return console.log("[START][STORAGE] Error during init storage: "+err); };
-          loadClientKeyPair(fs, function(err) {
-            if (err) { return console.log("[START][LOAD CLIENT KEY] Client Keys loaded from local storage"); };
+          console.log("[START] Starting with username '"+userName+"'");
+          loadClientKeyPair(fs, userName, function(err) {
+            if (err) { return console.log("[START][LOAD CLIENT KEY] Error loading client key from local storage"); };
             localMsg({ type: "STATUS", message: "Loaded client keys from local storage" });
-            updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
-              console.log("Remote keyPair check done.");
-              if (err) {
-                console.log("Error when checking for remote public key: "+err);
-                callback(err, null);
-              } else {
-                console.log("[START] Sending init to server...");
-                socket.emit('init', { userName: userName });
-                console.log("[START] Joining channel #general");
-                socket.emit('join', { userName: userName, channel: "general" } );
-                console.log("Update remote pub key done...");
-                updateMasterKey(function(err) {
-                  if (err) { return console.log("Error: "+err); };
-                  pleaseWaitOff();
-                  $('#message-input').focus();
-                });
-              };
+            promptForPassword(function(err, password) {
+              clientKeyPassword = password;
+              updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
+                console.log("Remote keyPair check done.");
+                if (err) {
+                  console.log("Error when checking for remote public key: "+err);
+                  callback(err, null);
+                } else {
+                  console.log("[START] Sending init to server...");
+                  socket.emit('init', { userName: userName });
+                  console.log("[START] Joining channel #general");
+                  socket.emit('join', { userName: userName, channel: "general" } );
+                  console.log("Update remote pub key done...");
+                  updateMasterKey(function(err) {
+                    if (err) { return console.log("Error: "+err); };
+                    pleaseWaitOff();
+                    $('#message-input').focus();
+                  });
+                };
+              });
             });
           });
         });
       };
 
-      function generateClientKeyPair(callback) {
-        generateKeyPair(2048, "<%= userName %>", clientKeyPairPassphrase, function(err, generatedKeyPair) {
+      function generateClientKeyPair(data, callback) {
+        var password = data.password;
+        var userName = data.userName;
+        var email = data.email;
+        var fullName = data.fullName;
+        console.log("[DEBUG] Generating client key pair with - password: "+password+" userName: "+userName+" email: "+email+" fullName: "+fullName);
+        generateKeyPair(2048, userName, password, function(err, generatedKeyPair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
           } else {
             console.log("Generated client key pair.");
-            //var statusType = "STATUS";
-            //var statusMessage = "Client keys generated.";
-            //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             localMsg({ type: "STATUS", message: "Client keys generated" });
             keyPair = generatedKeyPair;
-            //var statusType = "STATUS";
-            //var statusMessage = "Waiting for MASTER key from server...";
-            //$('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
             localMsg({ type: "STATUS", message: "Waiting for MASTER key from server..." });
             updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
               console.log("Remote keyPair check done.");
@@ -165,6 +238,7 @@
                 console.log("Update remote pub key done...");
               // Get master key if we don't have it locally
                 //socket.emit('join', { userName: userName, channel: "general" } );
+                socket.emit('regen master key');
                 callback(null, generatedKeyPair);
               };
             });
@@ -172,15 +246,15 @@
         });
       };
 
-      function loadClientKeyPair(fs, callback) {
+      function loadClientKeyPair(fs, userName, callback) {
         console.log('Opened file system: ' + fs.name);
-        fs.root.getFile('clientkey.aes', {create: false, exclusive: true}, function(fileEntry) {
+        fs.root.getFile(userName+'_clientkey.aes', {create: false, exclusive: true}, function(fileEntry) {
           fileEntry.file(function(file) {
              var reader = new FileReader();
              reader.onloadend = function(e) {
               keyPair.privKey = this.result;
 
-              fs.root.getFile('clientkey.pub', {create: false, exclusive: true}, function(fileEntry) {
+              fs.root.getFile(userName+'_clientkey.pub', {create: false, exclusive: true}, function(fileEntry) {
                 fileEntry.file(function(file) {
                    var reader = new FileReader();
                    reader.onloadend = function(e) {
@@ -207,10 +281,21 @@
             case "NotFoundError":
               console.log("Client keys not found in storage. Generating new keypair.");
               msg = 'NOT_FOUND_ERR';
-              generateClientKeyPair(function(err, keyPair) {
-                saveClientKeyPair(fs, keyPair, function(err) {
-                  if (err) { console.log("Error generating client key pair: "+err); }
-                  console.log("Saved client key pair locally");
+              promptForKeyCredentials(function(err, data) {
+                console.log("Data: "+data);
+                var userName = data.userName;
+                var fullName = data.fullName;
+                var email = data.email;
+                var password = data.password;
+                debugger;
+                console.log("Got data: userName: "+userName+" fullName: "+fullName+" email: "+email+" password: "+password);
+                clientKeyPassword = password;
+                generateClientKeyPair(data, function(err, keyPair) {
+                  saveClientKeyPair(fs, keyPair, userName, function(err) {
+                    if (err) { console.log("Error generating client key pair: "+err); }
+                    console.log("Saved client key pair locally");
+                    callback(null);
+                  });
                 });
               });
               break;
@@ -262,25 +347,31 @@
           if (err) { return callback(err); };
           removeClientKeyPair(fs, function() {
             // Generate new key pair
-            generateClientKeyPair(function(err, keyPair) {
-              saveClientKeyPair(fs, keyPair, function(err) {
-                if(err) { return console.log("Error regenerating client key pair: "+err); };
-                callback(null);
+            promptForKeyCredentials(function(err, data) {
+              var password = data.password;
+              var userName = data.userName;
+              var email = data.email;
+              var fullName = data.fullName;
+              generateClientKeyPair(data, function(err, keyPair) {
+                saveClientKeyPair(fs, keyPair, userName, function(err) {
+                  if(err) { return console.log("Error regenerating client key pair: "+err); };
+                  callback(null);
+                });
               });
             });
           });
         });
       };
 
-      function saveClientKeyPair(fs, keyPair, callback) {
+      function saveClientKeyPair(fs, keyPair, userName, callback) {
         var privKey = keyPair.privKey;
         var pubKey = keyPair.pubKey;
-        fs.root.getFile('clientkey.aes', {create: true}, function(fileEntry) {
+        fs.root.getFile(userName+'clientkey.aes', {create: true}, function(fileEntry) {
           // Create a FileWriter object for our FileEntry (log.txt).
           fileEntry.createWriter(function(fileWriter) {
             fileWriter.onwriteend = function(e) {
               console.log('Client secret key write completed.');
-              fs.root.getFile('clientkey.pub', {create: true}, function(fileEntry) {
+              fs.root.getFile(userName+'_clientkey.pub', {create: true}, function(fileEntry) {
                 // Create a FileWriter object for our FileEntry (log.txt).
                 fileEntry.createWriter(function(fileWriter) {
                   fileWriter.onwriteend = function(e) {
@@ -356,9 +447,14 @@
       function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
         var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
         var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
-        clientPrivKey.decrypt(clientKeyPairPassphrase);
+        clientPrivKey.decrypt(clientKeyPassword);
+        debugger;
         //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privKey: "+clientPrivKey+" encMasterPrivateKey: "+encMasterPrivateKey);
         console.log("[DEBUG] about to start decrypting master key");
+        console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
+        console.log("[DEBUG] decrypting master private key and client public key is: "+keyPair.pubKey);
+        console.log("[DEBUG] decrypting master private key and client private key is: "+keyPair.privKey);
+
         openpgp.decryptMessage(clientPrivKey, encMasterPrivateKey).then(function(decryptedKey) {
           console.log("[DEBUG] in decryptMessage callback");
           //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
@@ -587,12 +683,65 @@
         })
       ;
 
-      $('#regenerate-keypair-button').on('click', function() {
+      $('#generate-keypair-button').on('click', function() {
         console.log("Regenerating client keypair");
         regenerateClientKeyPair(function(err) {
           console.log("Client keypair regeneration done...");
         });
       });
+
+      $('#select-keypair-button').on('click', function() {
+        console.log("Loading keypair from file...");
+        promptUserSelectFile("Please select private key", function(err, data) {
+          var privKeyFile = data.selectedFile;
+          promptUserSelectFile("Please select public key", function(err, data) {
+            var pubKeyFile = data.selectedFile;
+            loadKeyPairFromFile({ pubKey: pubKeyFile, privKey: privKeyFile }, function(err) {
+              if (err) {
+                alertUser("Error loading key pair", err);
+              } else {
+                console.log("Done loading keypair from file...");
+                // push new public key to server
+                // wait for encrypted master key
+              };
+            });
+          });
+        });
+      });
+
+      $('#export-keypair-button').on('click', function() {
+        console.log("Exporting keypair to file");
+
+      });
+
+
+      function promptForPassword(callback) {
+        console.log("Showing password prompt modal");
+        $('.basic.modal.password-prompt-modal').modal('show');
+        $('.password-submit-button').click(function(err) {
+          console.log("Got click on password submit button");
+          var form = $(this);
+          var password = $(".password-prompt-modal input[name='password']").val();
+          callback(null, password);
+          return false;
+        });
+      };
+
+      function promptForKeyCredentials(callback) {
+        console.log("Showing key creds modal");
+        $('.basic.modal.key-creds-modal').modal('show');
+        $('.key-creds-submit-button').click(function(err) {
+          console.log("Got click for key creds submit button");
+          var data = ({
+            userName: $(".key-creds-modal input[name='username']").val(),
+            fullName: $(".key-creds-modal input[name='fullname']").val(),
+            email: $(".key-creds-modal input[name='email']").val(),
+            password: $(".key-creds-modal input[name='password']").val()
+          });
+          debugger;
+          return callback(null, data);
+        });
+      };
 
       $('form').submit(function(){
         var input = $('#message-input').val();
@@ -712,6 +861,7 @@
               console.log("(new master key) Trying to decrypt master key...");
               //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
               //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
+              debugger;
               decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
                 console.log("(new master key) Caching master private key decrypted");
                 masterKeyPair.privKey = key;
@@ -777,7 +927,7 @@
         var toUser = data.toUser;
         var pgpMessage = data.message;
         var id = data.id;
-        decryptMessage(keyPair.privKey, clientKeyPairPassphrase, pgpMessage, function(err, message) {
+        decryptMessage(keyPair.privKey, clientKeyPassword, pgpMessage, function(err, message) {
           localMsg({ id: id, type: fromUser+" -> "+toUser, message: message });
           var $messageInput = $('#message-input');
           $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
@@ -790,7 +940,8 @@
         var fromUser = data.userName;
         var pgpMessage = data.pgpMessage;
         //console.log("Got message, attempting to decrypt");
-        decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(err, message) {
+        decryptMessage(masterKeyPair.privKey, masterKeyPassword, pgpMessage, function(err, message) {
+          console.log("Decrypting master private key with password '"+masterKeyPassword+"'");
           //console.log("inside decrypt message callback");
           if (err) {
             console.log("ERROR Decrypting message: "+err);
@@ -962,5 +1113,7 @@
         }
       };
     </script>
+
+
   </body>
 </html>

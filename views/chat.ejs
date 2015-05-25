@@ -36,629 +36,133 @@
         </div>
       </form>
     </div>
+    <div class="ui small modal initial">
+      <div class="header">Generate or Authenticate</div>
+      <div class="content">No localStorage credentials were found, would you like to generate new credentials or authenticate using existing ones?</div>
+      <div class="actions">
+        <div class="ui button approve green generate" data-value="generate">Generate</div>
+        <div class="ui button approve blue authenticate" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+    <div class="ui small modal create">
+      <div class="header">Create</div>
+      <div class="content">Select a username and a passphrase to encrypt your keys</div>
+      <form class="ui form" style="padding: 20px;">
+        <div class="field">
+          <label for="username">Name</label>
+          <input type="text" class="username" id="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" class="password" id="password">
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" class="password" id="confirmPassword">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green go" data-value="go">Go</div>
+      </div>
+    </div>
+    <div class="ui small modal generate">
+      <div class="header">Generate</div>
+      <div class="content center">
+        <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
+      </div>
+    </div>
+    <div class="ui small modal authenticate">
+      <div class="header">Authenticate</div>
+      <div class="content">Please select your credentials</div>
+      <div class="actions">
+        <div class="ui button approve green" data-value="generate">Generate</div>
+        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
 
-    <script src="/js/openpgp.js"></script>
-    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
-    <script src="/js/semantic.js"></script>
+    <script src="/js/lib/openpgp.js"></script>
+    <script src="/js/lib/kbpgp.js"></script>
+    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.12.2/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
-    <script src="js/marked.js"></script>
+    <script src="/js/lib/highlight.min.js"></script>
 
-<script src="https://yandex.st/highlightjs/8.0/highlight.min.js"></script>
-<script>hljs.initHighlightingOnLoad();</script>
+    <script src="/js/socketClient.js"></script>
+    <script src="/js/encryptionManager.js"></script>
+    <script src="/js/chat.js"></script>
+    <script src="/js/marked.js"></script>
 
     <script>
-      marked.setOptions({
-        renderer: new marked.Renderer(),
-        gfm: true,
-        tables: true,
-        breaks: true,
-        pedantic: false,
-        sanatize: true,
-        smartLists: true,
-        smartypants: false,
-        highlight: function (code) {
-          return hljs.highlightAuto(code).value;
-        }
-      });
-      var host = window.location.host;
-      var socket = io(host+'/main');
-      var currentChannel = "general";
-      var clientKeyPairPassphrase = "superawesomepasswordhere";
-      var keyPair = ({
-        pubKey: null,
-        privKey: null
-      });
-      var encryptedMasterKeyPair = ({
-        pubKey: null,
-        privKey: null
-      });
-      var masterKeyPair = ({
-        pubKey: null,
-        privKey: null
-      });
-      var userName = "<%= userName %>";
-      start();
-      function start() {
-        //if (isHidden()) notify('test', 'test notification here', '123123');
-        openpgp.initWorker('/js/openpgp.worker.js');
-        var statusType = "STATUS";
-        var statusMessage = "Please wait while your keys are prepared...";
-        $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
-        socket.emit('init', { userName: userName });
-        generateClientKeyPair(2048, "<%= userName %>", clientKeyPairPassphrase, function(err, generatedKeyPair) {
+      hljs.initHighlightingOnLoad();
+      openpgp.initWorker('/js/lib/openpgp.worker.js');
+      window.socketClient = new SocketClient();
+
+      initialize();
+
+      function initialize() {
+        window.username = localStorage.getItem("username");
+        window.encryptionManager.loadClientKeyPair(function(err, loaded) {
           if (err) {
-            console.log("Error generating client keypair: "+err);
-          } else {
-            console.log("Generated client key pair.");
-            var statusType = "STATUS";
-            var statusMessage = "Client keys generated.";
-            $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
-            keyPair = generatedKeyPair;
-              var statusType = "STATUS";
-              var statusMessage = "Waiting for MASTER key from server...";
-              $('#messages').append($('<li>').text("["+statusType+"] "+statusMessage));
-            updateRemotePubKey("<%= userName %>", keyPair.pubKey, function(err) {
-              console.log("Remote keyPair check done.");
-              if (err) {
-                return console.log("Error when checking for remote public key: "+err);
-              } else {
-              // Get master key if we don't have it locally
-                console.log("[START] Joining channel #general");
-                socket.emit('join', { userName: userName, channel: "general" } );
-              };
-            });
+            //Show error somewhere
           }
+          if (!loaded) {
+            return promptForCredentials();
+          }
+          return window.socketClient.authenticate();
         });
-      };
+      }
 
-      function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
-        var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
-        var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
-        clientPrivKey.decrypt(clientKeyPairPassphrase);
-        //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privKey: "+clientPrivKey+" encMasterPrivateKey: "+encMasterPrivateKey);
-        console.log("[DEBUG] about to start decrypting master key");
-        openpgp.decryptMessage(clientPrivKey, encMasterPrivateKey).then(function(decryptedKey) {
-          console.log("[DEBUG] in decryptMessage callback");
-          //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
-          callback(null, decryptedKey);
-        }).catch(function(err) {
-          console.log("[DEBUG] error decrypting message: "+err);
-          if (err) { callback(err, null); };
-        });
-      };
+      function promptForCredentials() {
+        $(".ui.modal.initial")
+          .modal('setting', 'closable', false)
+          .modal("show");
 
-      function getMasterKeyPair(userName, callback) {
-        var timestamp = new Date().toString();
-        console.log("["+timestamp+"] Getting master keyPair for "+userName);
-        $.ajax({
-          type: "GET",
-          url: "/key/masterKeyPair",
-          dataType: "json",
-          data: {
-            userName: userName
-          },
-          statusCode: {
-            404: function(err) {
-              console.log("["+timestamp+"] [MASTER KEY PAIR] (404) Error getting master keypair: "+err);
-              return callback(err, null);
+        $('.ui.modal.create')
+          .modal("attach events", ".ui.modal.initial .button.generate")
+          .modal('setting', 'closable', false)
+          .modal('setting', 'debug', true)
+          .modal("setting", {
+            onShow: function() {
+              console.log("Showing create");
             },
-            200: function(data) {
-              console.log("["+timestamp+"] [MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
-              return callback(null, data);
-            }
-          }
-        });
-      };
+            onApprove: function() {
+              //TODO: Check for username collision
+              username = $('#username').val();
 
-      function updateRemotePubKey(userName, pubKey, callback) {
-        console.log("Updating remote public key");
-        $.ajax({
-          type: "GET",
-          url: "/key/pubkey",
-          dataType: "json",
-          data: {
-            userName: userName
-          },
-          statusCode: {
-            404: function(err) {
-              console.log("No key found on remote");
-              updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
-                console.log("1 Updating public key on remote");
+              if (username) {
+                console.log('has username, go');
+                $('.ui.modal.generate').modal('show');
+                return true;
+              }
+              console.log("no username, do nothing");
+              return false;
+            }
+          });
+
+        $('.ui.modal.generate')
+          .modal('setting', 'closable', false)
+          .modal("setting", {
+            onShow: function() {
+              var self = this;
+              generateClientKeyPair(2048, username, "temporaryPassphrase", function(err, generatedKeypair) {
                 if (err) {
-                  console.log("Error updating pubKey on remote");
-                  return callback(err);
+                  console.log("Error generating client keypair: "+err);
                 } else {
-                  console.log("Updated remote pubKey");
-                    return callback(null);
+                  console.log("Generated client key pair.");
+                  localStorage.setItem('username', username);
+                  localStorage.setItem('keyPair', JSON.stringify(keyPair));
+                  $('.ui.modal.generate').modal('hide');
+                  initialize();
                 }
               });
-            },
-            200: function(data) {
-              console.log("[DEBUG] (updateRemotePubKey) data: "+data);
-              var remotePubKey = data.pubKey;
-              console.log("Key exists on remote");
-              if (keyPair.pubKey == remotePubKey) {
-                console.log("Key on remote matches local");
-                return callback(null);
-              } else {
-                console.log("Key on remote does not match");
-                updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
-                  if (err) {
-                    console.log("Error updating pubKey on remote");
-                    return callback(err);
-                  } else {
-                    console.log("Updated remote pubKey");
-                    return callback(null);
-                  }
-                });
-              }
             }
-          }
-        });
-      };
-
-      function updatePubKeyOnRemote(userName, pubKey, callback) {
-        console.log("2 Updating public key on remote");
-        $.ajax({
-          type: "POST",
-          url: "/key/pubkey",
-          dataType: "json",
-          data: {
-            userName: userName,
-            pubKey: pubKey
-          },
-          success: function(data, textStatus, xhr) {
-          },
-          statusCode: {
-            404: function() {
-              console.log("Got 404 when updating public key on remote");
-              return callback("Error updating public key on remote");
-            },
-            200: function(data, textStatus, xhr) {
-              console.log("Updated remote pubKey successfully");
-              return callback(null);
-            }
-          }
-        });
-      };
-
-      $('textarea').keydown(function (event) {
-        if (event.keyCode == 13 && event.shiftKey) {
-          var content = this.value;
-          var caret = getCaret(this);
-          this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length);
-          event.stopPropagation();
-          console.log("got shift+enter");
-          var $messageInput = $('#message-input');
-          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-          return false;
-        } else if(event.keyCode == 13) {
-          console.log("got enter");
-          $('form').submit();
-          return false;
-        }
-      });
-
-      $('#mainContainer a').attr('target','_blank');
-
-      function isHidden() {
-        var hidden = "hidden";
-        // Standards:
-        if (hidden in document)
-          document.addEventListener("visibilitychange", onchange);
-        else if ((hidden = "mozHidden") in document)
-          document.addEventListener("mozvisibilitychange", onchange);
-        else if ((hidden = "webkitHidden") in document)
-          document.addEventListener("webkitvisibilitychange", onchange);
-        else if ((hidden = "msHidden") in document)
-          document.addEventListener("msvisibilitychange", onchange);
-        // IE 9 and lower:
-        else if ("onfocusin" in document)
-          document.onfocusin = document.onfocusout = onchange;
-        // All others:
-        else
-          window.onpageshow = window.onpagehide
-          = window.onfocus = window.onblur = onchange;
-
-        function onchange (evt) {
-          var v = "visible", h = "hidden",
-              evtMap = {
-                focus:v, focusin:v, pageshow:v, blur:h, focusout:h, pagehide:h
-              };
-
-          evt = evt || window.event;
-          if (evt.type in evtMap)
-            document.body.className = evtMap[evt.type];
-          else
-            document.body.className = this[hidden] ? "hidden" : "visible";
-        }
-
-        // set the initial state (but only if browser supports the Page Visibility API)
-        if( document[hidden] !== undefined )
-          onchange({type: document[hidden] ? "blur" : "focus"});
-        if (hidden == "hidden")
-          return true;
-        else
-          return false;
-      };
-
-      function getCaret(el) {
-        if (el.selectionStart) {
-          return el.selectionStart;
-        } else if (document.selection) {
-          el.focus();
-          var r = document.selection.createRange();
-          if (r == null) {
-            return 0;
-          }
-          var re = el.createTextRange(),
-          rc = re.duplicate();
-          re.moveToBookmark(r.getBookmark());
-          rc.setEndPoint('EndToStart', re);
-          return rc.text.length;
-        }
-        return 0;
-      }
-
-      function localMsg(data) {
-        var type = data.type;
-        var message = data.message;
-        var id = data.id;
-        if (type !== null && id !== null) {
-          $('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
-        } else if (type !== null) {
-          $('#messages').append($('<li>').html("["+type+"] "+message));
-        } else {
-          $('#messages').append($('<li>').html(message));
-        }
-      };
-
-      function updateUserList(data, callback) {
-        var userList = data.userList;
-        var userListHtml = "";
-        userList.forEach(function(userName) {
-          userListHtml += "<li>"+userName+"</li>\n";
-        });
-        $('#user-list').html(userListHtml);
-        callback(null);
-      };
-
-      function prepareMessage(message, callback) {
-        var parsedMessage = marked(message);
-        var container = $('<div>').html(parsedMessage);
-        console.log("Unparsead message: "+container.html());
-        // Check the hostname to make sure that it's not a local link...
-        container.find('a').attr('target','_blank');
-        container.find('code').addClass('hljs');
-        console.log("Parsed message: "+container.html());
-        callback(null, container.html());
-      }
-
-      $('form').submit(function(){
-        var input = $('#message-input').val();
-        var userName = "<%= userName %>";
-        var commandRegex = /^\/(.*)$/
-        var regexResult = input.match(commandRegex);
-        if (input === "") {
-          console.log("Empty input");
-        } else if (regexResult !== null) {
-          // Catch commands here and encrypt data to users as needed
-          var command = regexResult[1];
-          var splitCommand = command.split(" ");
-
-          // Locally parsed commands
-          if (splitCommand[0] == "msg") {
-            var toUser = splitCommand[1];
-            var fromUser = userName;
-            var length = command.length;
-            var message = command.split(" ").slice(2, command.length).join(" ");
-            // Make sure that to user exists and is signed on
-            prepareMessage(message, function(err, preparedMessage) {
-              $.ajax({
-                type: "GET",
-                url: "/key/pubkey",
-                dataType: "json",
-                data: {
-                  userName: toUser
-                },
-                success: function(data, textStatus, xhr) {
-                },
-                statusCode: {
-                  404: function() {
-                    localMsg({ type: "ERROR", message: "Could not find this "+toUser+" that you're talking about..." });
-                    return console.log("Could not find public key for "+toUser);
-                  },
-                  200: function(data, textStatus, xhr) {
-                    var toUserPubKey = data.pubKey;
-                    console.log("Got public key for "+toUser);
-                    encryptMessage(toUserPubKey, preparedMessage, function(err, pgpMessage) {
-                      if (err) {
-                        return console.log(err);
-                      } else {
-                        var messageId = getNewMessageId(function(id) {
-                          localMsg({ id: id, type: userName+" -> "+toUser, message: preparedMessage });
-                          console.log("username: "+userName);
-                          socket.emit('privmsg', { id: id, toUser: toUser, message: pgpMessage } );
-                          var $messageInput = $('#message-input');
-                          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-                          $('#message-input').val('');
-                          return console.log("Private message sent...");
-                        });
-                      };
-                    });
-                  }
-                }
-              });
-            });
-          } else {
-            // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
-            socket.emit('server command', { command: regexResult[1], currentChannel: currentChannel });
-            console.log("Sending command '"+regexResult[1]+"' to server");
-            $('#message-input').val('');
-          };
-        } else if (masterKeyPair.pubKey !== null) {
-          // Normal message to the current channel
-          var pubKey = masterKeyPair.pubKey;
-          var userName = "<%= userName %>";
-          var message = input;
-          console.log("attempting to encrypt message");
-
-          prepareMessage(message, function(err, preparedMessage) {
-          //console.log("[DEBUG] pubKey (masterKeyPair.pubKey): "+pubKey);
-            encryptMessage(pubKey, preparedMessage, function(err, pgpMessage) {
-              if (err) {
-                console.log("Error Encrypting Message: "+err);
-              } else {
-                console.log("Message encrypted successfully");
-                // Need to not send the username here and derive it from the socket on the server
-                socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
-                console.log("Message emitted to socket.io");
-                $('#message-input').val('');
-              }
-            });
           });
-        } else {
-          console.log("masterKeyPair does not exist yet, must get it!");
-          var userName = "<%= userName %>";
-          console.log("username is: "+userName);
-        }
-        return false;
-      });
-
-      socket.on('new master key', function(data) {
-        console.log("Getting master keyPair for "+userName);
-        getMasterKeyPair(userName, function(err, encMasterKeyPair) {
-          if (err) {
-            console.log("Error getting master key pair: "+err);
-            localMsg({ type: "ERROR", message: "Error getting master key pair" });
-          } else {
-            localMsg({ type: null, message: "Updated master key pair" });
-            console.log("Got master keypair, ready to encrypt/decrypt");
-            encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
-            encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
-            console.log("Ensuring that client keypair exists");
-            //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
-            if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
-              console.log("(new master key) Trying to decrypt master key...");
-              decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
-                console.log("(new master key) Caching master private key decrypted");
-                masterKeyPair.privKey = key;
-                masterKeyPair.pubKey = encMasterKeyPair.pubKey;
-                $('#message-input').attr('placeHolder', 'Type your message here...');
-                $('#send-button').prop('disabled', false);
-                $('#loading-icon').remove();
-              });
-            } else {
-              console.log("Private key does not yet exist so cannot decrypt master key");
-            };
-          };
-        });
-      });
-
-      socket.on('chat status', function(data) {
-        console.log("Got chat status...");
-        var statusType = data.statusType;
-        var statusMessage = data.statusMessage;
-        localMsg({ type: statusType, message: statusMessage });
-        var $messages = $('#messages');
-        $messages[0].scrollTop = $messages[0].scrollHeight;
-      });
-
-      socket.on('join', function(data) {
-        var channel = data.channel;
-        var joinUser = data.joinUser;
-        sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
-      });
-
-      socket.on('privmsg', function(data) {
-        var fromUser = data.fromUser;
-        var toUser = data.toUser;
-        var pgpMessage = data.message;
-        var id = data.id;
-        decryptMessage(keyPair.privKey, clientKeyPairPassphrase, pgpMessage, function(err, message) {
-          localMsg({ id: id, type: fromUser+" -> "+toUser, message: message });
-          var $messageInput = $('#message-input');
-          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-          sendNotification(null, 'Private Message from '+fromUser, $(message).text(), 3000);
-        });
-      });
-
-      socket.on('chat message', function(data){
-        console.log("Just got chat message!");
-        var fromUser = data.userName;
-        var pgpMessage = data.pgpMessage;
-        //console.log("Got message, attempting to decrypt");
-        decryptMessage(masterKeyPair.privKey, "pipo", pgpMessage, function(err, message) {
-          //console.log("inside decrypt message callback");
-          if (err) {
-            console.log("ERROR Decrypting message: "+err);
-          } else {
-            //console.log("Message decrypted! - '"+message+"'");
-            //var sanatizedMessage = sanatize(message);
-            console.log("raw message is: "+message);
-            var messages = $('#messages');
-            var messageLine = "["+fromUser+"] "+message;
-            localMsg({ type: null, message: messageLine });
-            messages[0].scrollTop = messages[0].scrollHeight;
-            var regexResult = new RegExp('@<%= userName %>', 'i').exec(message);
-            //var mentionRegex = /@<%= userName %>/;
-            //var regexResult = message.match(mentionRegex);
-            if (regexResult !== null) {
-              sendNotification(null, fromUser+' mentioned you...', $(message).text(), 3000);
-            }
-          }
-        });
-      });
-
-      socket.on('userlist update', function(data) {
-        var userList = data.userList;
-        var joinUser = data.joinUser;
-        console.log("[USERLIST UPDATE] Got userlist update of "+userList.toString());
-        updateUserList({ userList: userList }, function(err) {
-          if (err) return console.log("Error updating user list: "+err);
-          sendNotification(null, 'PiPo', joinUser+' has joined channel #'+channel, 3000);
-          console.log("UserList update successful...");
-        });
-      });
-
-      function getNewMessageId(callback) {
-        var id = new Date().getTime();
-        callback(id);
-      };
-
-      function generateClientKeyPair(numBits, userId, passphrase, callback) {
-        var options = {
-          numBits: numBits,
-          userId: userId,
-          passphrase: passphrase
-        }
-        console.log("Generating client keypair, please wait...");
-        window.openpgp.generateKeyPair(options).then(function(keyPair) {
-          var privKey = keyPair.privateKeyArmored;
-          var pubKey = keyPair.publicKeyArmored;
-          keyPair = {
-            privKey: privKey,
-            pubKey: pubKey
-          }
-          return callback(null, keyPair);
-        }).catch(function(err) {
-          return callback(err, null);
-        });
-      };
-
-      function encryptMessage(key, message, callback) {
-        var masterPubKey = openpgp.key.readArmored(key);
-        openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
-          callback(null, pgpMessage);
-        }).catch(function(error) {
-          return callback(error, null);
-        });
-      };
-
-      function decryptMessage(key, passphrase, pgpMessage, callback) {
-        var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
-        if (typeof masterPrivateKey !== 'undefined') {
-          masterPrivateKey.decrypt(passphrase);
-          pgpMessage = openpgp.message.readArmored(pgpMessage);
-          openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
-            console.log("Decrypted message!");
-            callback(null, plaintext);
-          }).catch(function(err) {
-            console.log("Error decrypting message");
-            return callback(err, null);
-          });
-        } else {
-          console.log("master private key is undefined!");
-          return callback("master private key is undefined", null);
-        }
       }
-
-      var rAmp = /&/g,
-        rLt = /</g,
-        rGt = />/g,
-        rApos =/\'/g,
-        rQuot = /\"/g,
-        hChars =/[&<>\"\']/;
-
-      function coerceToString(val) {
-        return String((val === null || val === undefined) ? '' : val);
-      }
-
-      function sanatize(str) {
-        str = coerceToString(str);
-
-        return hChars.test(str)
-          ? str
-            .replace(rAmp,'&amp;')
-            .replace(rLt,'&lt;')
-            .replace(rGt,'&gt;')
-            .replace(rApos,'&#39;')
-            .replace(rQuot, '&quot;')
-          : str;
-      };
-
-      // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
-      function sendNotification(image, title, message, timeout, showOnFocus) {
-        getNotifyPermissions(function(permission) {
-          if (permission) {
-            console.log("[NOTIFICATION] Attempting to display notification");
-            // Default values for optional params
-            timeout = (typeof timeout !== 'undefined') ? timeout : 0;
-            showOnFocus = (typeof showOnFocus !== 'undefined') ? showOnFocus : false;
-            // Check if the browser window is focused
-            var isWindowFocused = document.querySelector(":focus") === null ? false : true;
-            // Check if we should send the notification based on the showOnFocus parameter
-            var shouldNotify = !isWindowFocused || isWindowFocused && showOnFocus;
-            console.log("[NOTIFICATION] shouldNotify is "+shouldNotify);
-            if (shouldNotify) {
-              // Create the notification object
-              //var notification = window.webkitNotifications.createNotification(
-              //  image, title, message
-              //);
-              // Display the notification
-              //notification.show();
-              console.log("[NOTIFACTION] Sending notification now...");
-              var notification = new Notification(title, { body: message });
-              if (timeout > 0) {
-                // Hide the notification after the timeout
-                setTimeout(function(){
-                  notification.close()
-                }, timeout);
-              }
-            }
-          } else {
-            console.log("Don't have permission to display notification");
-          }
-        });
-      };
-
-      function getNotifyPermissions(callback) {
-        // check for notification compatibility
-        if(!window.Notification) {
-          // if browser version is unsupported, be silent
-          return callback(false);
-        }
-        // log current permission level
-        console.log(Notification.permission);
-        // if the user has not been asked to grant or deny notifications from this domain
-        if(Notification.permission === 'default') {
-          Notification.requestPermission(function() {
-            // callback this function once a permission level has been set
-            return callback(true);
-          });
-        }
-        // if the user has granted permission for this domain to send notifications
-        else if(Notification.permission === 'granted') {
-          return callback(true);
-        }
-        // if the user does not want notifications to come from this domain
-        else if(Notification.permission === 'denied') {
-          return callback(false);
-        }
-      };
     </script>
+
+
   </body>
 </html>

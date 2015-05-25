@@ -6,12 +6,12 @@ var Keys = require('events').EventEmitter;
 module.exports = function(app) {
   app.get('/key/pubkey', function(req, res) {
     var timestamp = new Date().toString();
-    var userName = req.param('userName');
-    console.log("["+timestamp+"] [API] [GET] [/key/pubkey] Getting pubkey for user "+userName);
-    User.findOne({ userName: userName }, function(err, user) {
+    var username = req.param('username');
+    console.log("["+timestamp+"] [API] [GET] [/key/pubkey] Getting pubkey for user "+username);
+    User.findOne({ username: username }, function(err, user) {
       console.log("["+timestamp+"] [API] [DEBUG] Found user");
       if (user === null) {
-        console.log("["+timestamp+"] pubKey for "+userName+"  not found");
+        console.log("["+timestamp+"] pubKey for "+username+"  not found");
         //res.status(404).send("pubKey not found");
         // Might should return 404 here
         //res.json({ pubKey: '' });
@@ -20,7 +20,7 @@ module.exports = function(app) {
         console.log("["+timestamp+"] KeyPair found...");
         res.json({ pubKey: user.pubKey });
       } else {
-        console.log("["+timestamp+"] Error while looking for pubkey for  "+userName);
+        console.log("["+timestamp+"] Error while looking for pubkey for  "+username);
         res.status(500).send();
       }
     });
@@ -28,15 +28,15 @@ module.exports = function(app) {
   app.post('/key/pubkey', function(req, res) {
     // Accept users public key
     var timestamp = new Date().toString();
-    var userName = req.param('userName');
+    var username = req.param('username');
     var pubKey = req.param('pubKey');
     if (pubKey !== null && typeof pubKey !== 'undefined') {
-      console.log("["+timestamp+"] Saving public key from user "+userName);
-      User.findOne({ userName: userName }, function(err, user, count) {
+      console.log("["+timestamp+"] Saving public key from user "+username);
+      User.findOne({ username: username }, function(err, user, count) {
         if (user === null) {
           console.log("["+timestamp+"] [DEBUG] (/key/pubkey) User not found");
           new User({
-            userName: userName,
+            username: username,
             pubKey: pubKey
           }).save(function(err, user) {
             if (err) {
@@ -49,11 +49,11 @@ module.exports = function(app) {
           user.pubKey = pubKey;
           user.save(function(err, user, count) {
             if (err) {
-              console.log("Error saving pubkey from "+userName+": "+err);
+              console.log("Error saving pubkey from "+username+": "+err);
               return res.status(500).send();
             } else {
-              console.log("["+timestamp+"] Saved pubkey from "+userName);
-              //module.exports.emit('pubkey updated', {data: { userName: userName }} );
+              console.log("["+timestamp+"] Saved pubkey from "+username);
+              //module.exports.emit('pubkey updated', {data: { username: username }} );
               res.status(200).send();
             };
           });
@@ -68,8 +68,8 @@ module.exports = function(app) {
   app.get('/key/masterKeyPair', function(req, res) {
     // Retrieve msater key encrypted to user that is requesting it if it exists
     var User = require('../models/user.js');
-    var userName = req.param('userName');
-    User.findOne({ userName: userName }, function(err, user) {
+    var username = req.param('username');
+    User.findOne({ username: username }, function(err, user) {
       if (err) {
         return res.status(500).send();
       } else {
@@ -81,7 +81,7 @@ module.exports = function(app) {
           var masterPubKey = user.masterPubKey;
           res.json({ pubKey: masterPubKey, privKey: encryptedMasterPrivKey });
         } else {
-          console.log("Didn't find masterKey encrypted to "+userName);
+          console.log("Didn't find masterKey encrypted to "+username);
           res.status(404).send();
         };
       }

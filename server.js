@@ -29,10 +29,6 @@ var User = require('./models/user');
 
 //Globals
 var SocketServer = require('./socketServer');
-var allClients = [];
-var channelMembership = {};
-var userMembership = {};
-var socketMembership = {};
 
 //Application
 var app = express();
@@ -85,36 +81,6 @@ var ioMain = io.of('/socket');
 ioMain.on('connection',function (socket) {
   new SocketServer(ioMain).onSocket(socket);
 });
-
-
-function findClientsSocket(roomId, namespace) {
-    var res = [];
-    var ns = io.of(namespace ||"/");    // the default namespace is "/"
-    if (ns) {
-        for (var id in ns.connected) {
-            if(roomId) {
-                var index = ns.connected[id].rooms.indexOf(roomId) ;
-                if(index !== -1) {
-                    res.push(ns.connected[id]);
-                }
-            } else {
-                res.push(ns.connected[id]);
-            }
-        }
-    }
-    return res;
-}
-
-function findClientsSocketByRoomId(roomId) {
-  var res = [];
-  var room = io.sockets.adapter.rooms[roomId];
-  if (room) {
-    for (var id in room) {
-      res.push(io.sockets.adapter.nsp.connected[id]);
-    };
-  };
-  return res;
-};
 
 generateOrLoadKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
   console.log(err, !!newMasterKeyPair);

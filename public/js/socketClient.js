@@ -3,12 +3,42 @@ function SocketClient() {
   var host = window.location.host;
   this.socket = window.io(host + '/socket');
 
+  window.username = localStorage.getItem("username");
+
+  this.socket.on('connect', function() {
+    self.init();
+  });
+
+  this.socket.on('connect_error', function(err) {
+    console.log('connection error', err);
+    if (self.listeners) {
+      ChatManager.disableChat();
+    }
+  });
+}
+
+SocketClient.prototype.init = function() {
+  var self = this;
+  window.encryptionManager.loadClientKeyPair(function (err, loaded) {
+    if (err) {
+      //Show error somewhere
+    }
+    if (!loaded) {
+      return ChatManager.promptForCredentials();
+    }
+    if (!self.listeners) {
+      self.addListeners();
+    }
+    return self.authenticate();
+  });
+}
+
+SocketClient.prototype.addListeners = function() {
+  var self = this;
+  self.listeners = true;
   this.socket.on('authenticated', function(data) {
     self.socket.emit('join', { username: window.username, channel: "general" } );
-    $('#message-input').attr('placeHolder', 'Type your message here...');
-    $('#send-button').prop('disabled', false);
-    $('#loading-icon').remove();
-    window.enableChat();
+    ChatManager.enableChat();
   });
 
   this.socket.on('errorMessage', function(data) {
@@ -25,7 +55,7 @@ function SocketClient() {
       if (err) {
         console.log(err);
       }
-      window.handleMessage(message, data.user);
+      ChatManager.handleMessage(message, data.user);
     });
   });
 
@@ -56,22 +86,22 @@ function SocketClient() {
     });
 
     if (data.joinUser && window.username !== data.joinUser) {
-      window.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
+      ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
     else {
-      window.sendNotification(null, 'PiPo', 'You have joined channel #' + data.channel, 3000);
+      //window.sendNotification(null, 'PiPo', 'You have joined channel #' + data.channel, 3000);
     }
 
   });
-}
+};
 
 SocketClient.prototype.authenticate = function() {
-  this.socket.emit('init', {username: window.username, publicKey: window.encryptionManager.keyPair.publicKey});
+  this.socket.emit('authenticate', {username: window.username, publicKey: window.encryptionManager.keyPair.publicKey});
 };
 
 SocketClient.prototype.sendMessage = function(channel, message) {
   var self = this;
-  window.prepareMessage(message, function(err, preparedMessage) {
+  ChatManager.prepareMessage(message, function(err, preparedMessage) {
     window.encryptionManager.encryptRoomMessage(channel, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
@@ -84,3 +114,5 @@ SocketClient.prototype.sendMessage = function(channel, message) {
     });
   });
 };
+
+window.socketClient = new SocketClient();

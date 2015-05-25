@@ -89,6 +89,8 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.12.2/semantic.js"></script>
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/lib/highlight.min.js"></script>
+    <script src="/js/lib/moment.min.js"></script>
+    <script src="/js/lib/livestamp.min.js"></script>
 
     <script src="/js/socketClient.js"></script>
     <script src="/js/encryptionManager.js"></script>
@@ -98,69 +100,6 @@
     <script>
       hljs.initHighlightingOnLoad();
       openpgp.initWorker('/js/lib/openpgp.worker.js');
-      window.socketClient = new SocketClient();
-
-      initialize();
-
-      function initialize() {
-        window.username = localStorage.getItem("username");
-        window.encryptionManager.loadClientKeyPair(function(err, loaded) {
-          if (err) {
-            //Show error somewhere
-          }
-          if (!loaded) {
-            return promptForCredentials();
-          }
-          return window.socketClient.authenticate();
-        });
-      }
-
-      function promptForCredentials() {
-        $(".ui.modal.initial")
-          .modal('setting', 'closable', false)
-          .modal("show");
-
-        $('.ui.modal.create')
-          .modal("attach events", ".ui.modal.initial .button.generate")
-          .modal('setting', 'closable', false)
-          .modal('setting', 'debug', true)
-          .modal("setting", {
-            onShow: function() {
-              console.log("Showing create");
-            },
-            onApprove: function() {
-              //TODO: Check for username collision
-              username = $('#username').val();
-
-              if (username) {
-                console.log('has username, go');
-                $('.ui.modal.generate').modal('show');
-                return true;
-              }
-              console.log("no username, do nothing");
-              return false;
-            }
-          });
-
-        $('.ui.modal.generate')
-          .modal('setting', 'closable', false)
-          .modal("setting", {
-            onShow: function() {
-              var self = this;
-              generateClientKeyPair(2048, username, "temporaryPassphrase", function(err, generatedKeypair) {
-                if (err) {
-                  console.log("Error generating client keypair: "+err);
-                } else {
-                  console.log("Generated client key pair.");
-                  localStorage.setItem('username', username);
-                  localStorage.setItem('keyPair', JSON.stringify(keyPair));
-                  $('.ui.modal.generate').modal('hide');
-                  initialize();
-                }
-              });
-            }
-          });
-      }
     </script>
 
 

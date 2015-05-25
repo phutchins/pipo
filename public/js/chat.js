@@ -1,9 +1,11 @@
 var userMap = {};
 var roomUsers = {};
 
+var ChatManager = {};
+
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
-function sendNotification(image, title, message, timeout, showOnFocus) {
-  getNotifyPermissions(function(permission) {
+ChatManager.sendNotification = function sendNotification(image, title, message, timeout, showOnFocus) {
+  this.getNotifyPermissions(function(permission) {
     if (permission) {
       console.log("[NOTIFICATION] Attempting to display notification");
       // Default values for optional params
@@ -15,7 +17,7 @@ function sendNotification(image, title, message, timeout, showOnFocus) {
       var shouldNotify = !isWindowFocused || isWindowFocused && showOnFocus;
       console.log("[NOTIFICATION] shouldNotify is "+shouldNotify);
       if (shouldNotify) {
-        console.log("[NOTIFACTION] Sending notification now...");
+        console.log("[NOTIFCATION] Sending notification now...");
         var notification = new Notification(title, { body: message });
         if (timeout > 0) {
           // Hide the notification after the timeout
@@ -28,9 +30,9 @@ function sendNotification(image, title, message, timeout, showOnFocus) {
       console.log("Don't have permission to display notification");
     }
   });
-}
+};
 
-function getNotifyPermissions(callback) {
+ChatManager.getNotifyPermissions = function getNotifyPermissions(callback) {
   // check for notification compatibility
   if(!window.Notification) {
     // if browser version is unsupported, be silent
@@ -53,16 +55,24 @@ function getNotifyPermissions(callback) {
   else if(Notification.permission === 'denied') {
     return callback(false);
   }
-}
+};
 
-function enableChat() {
+ChatManager.enableChat = function enableChat() {
+  var self = this;
+  //Make input usable
+  $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
+  $('#send-button').prop('disabled', false);
+  $('#loading-icon').hide();
+
   $('textarea').keydown(function (event) {
-    var self = this;
+    var element = this;
     if (event.keyCode === 13 && event.shiftKey) {
-      var content = self.value;
-      var caret = getCaret(this);
-      self.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
+      var content = element.value;
+      var caret = self.getCaret(this);
+
+      element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
       event.stopPropagation();
+
       console.log("got shift+enter");
       var $messageInput = $('#message-input');
       $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
@@ -74,9 +84,16 @@ function enableChat() {
       return false;
     }
   });
-}
+};
 
-function getCaret(el) {
+ChatManager.disableChat = function disableChat() {
+  $('textarea').off("keydown", "**");
+  $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
+  $('#send-button').prop('disabled', true);
+  $('#loading-icon').show();
+};
+
+ChatManager.getCaret = function getCaret(el) {
   if (el.selectionStart) {
     return el.selectionStart;
   } else if (document.selection) {
@@ -92,38 +109,36 @@ function getCaret(el) {
     return rc.text.length;
   }
   return 0;
-}
+};
 
-function prepareMessage(message, callback) {
+ChatManager.prepareMessage = function prepareMessage(message, callback) {
   var parsedMessage = window.marked(message);
   var container = $('<div>').html(parsedMessage);
-  //console.log("Unparsead message: "+container.html());
+
   // Check the hostname to make sure that it's not a local link...
   container.find('a').attr('target','_blank');
   container.find('code').addClass('hljs');
-  //console.log("Parsed message: "+container.html());
-  callback(null, container.html());
-}
 
-function handleMessage(message, fromUser) {
-  //console.log("raw message is: "+message);
+  callback(null, container.html());
+};
+
+ChatManager.handleMessage = function handleMessage(message, fromUser) {
   var messages = $('#messages');
   var messageLine = "["+fromUser+"] "+message;
-  localMsg({ type: null, message: messageLine });
-  messages[0].scrollTop = messages[0].scrollHeight;
-  //var regexResult = new RegExp('@<%= userName %>', 'i').exec(message);
-  //var mentionRegex = /@<%= userName %>/;
-  //var regexResult = message.match(mentionRegex);
-  //if (regexResult !== null) {
-  //  sendNotification(null, fromUser+' mentioned you...', $(message).text(), 3000);
-  //}
-}
 
-function localMsg(data) {
+  this.localMsg({ type: null, message: messageLine });
+  messages[0].scrollTop = messages[0].scrollHeight;
+};
+
+ChatManager.localMsg = function localMsg(data) {
   var type = data.type;
   var message = data.message;
   var id = data.id;
-  message += ' <span style="float:right;">' + new Date().toISOString() + '</span>';
+
+  //Add timestamp
+  var time = new Date().toISOString();
+  message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
+
   if (type !== null && id !== null) {
     $('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
   } else if (type !== null) {
@@ -131,4 +146,52 @@ function localMsg(data) {
   } else {
     $('#messages').append($('<li>').html(message));
   }
-}
+};
+
+ChatManager.promptForCredentials = function promptForCredentials() {
+  var self = this;
+
+  $(".ui.modal.initial")
+    .modal('setting', 'closable', false)
+    .modal("show");
+
+  $('.ui.modal.create')
+    .modal("attach events", ".ui.modal.initial .button.generate")
+    .modal('setting', 'closable', false)
+    .modal('setting', 'debug', true)
+    .modal("setting", {
+      onShow: function() {
+        console.log("Showing create");
+      },
+      onApprove: function() {
+        //TODO: Check for username collision
+        username = $('#username').val();
+
+        if (username) {
+          console.log('has username, go');
+          $('.ui.modal.generate').modal('show');
+          return true;
+        }
+        console.log("no username, do nothing");
+        return false;
+      }
+    });
+
+  $('.ui.modal.generate')
+    .modal('setting', 'closable', false)
+    .modal("setting", {
+      onShow: function() {
+        window.encryptionManager.generateClientKeyPair(2048, username, "temporaryPassphrase", function(err, generatedKeypair) {
+          if (err) {
+            console.log("Error generating client keypair: "+err);
+          } else {
+            console.log("Generated client key pair.");
+            localStorage.setItem('username', username);
+            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+            $('.ui.modal.generate').modal('hide');
+            socketClient.init();
+          }
+        });
+      }
+    });
+};

@@ -24,12 +24,12 @@ EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPa
 
   console.log("Generating client keypair, please wait...");
 
-  window.openpgp.generateKeyPair(options).then(function(keyPair) {
+  window.openpgp.generateKeyPair(options).then(function(keys) {
     self.keyPair = {
-      privateKey: keyPair.privateKeyArmored,
-      publicKey: keyPair.publicKeyArmored
+      privateKey: keys.privateKeyArmored,
+      publicKey: keys.publicKeyArmored
     };
-    return callback(null, keyPair);
+    return callback(null, self.keyPair);
   }).catch(function(err) {
     return callback(err, null);
   });

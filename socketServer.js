@@ -22,7 +22,7 @@ SocketServer.prototype.onSocket = function(socket) {
 
   console.log("[CONNECTION] Socket connected to main");
 
-  socket.on('init', self.init.bind(self));
+  socket.on('authenticate', self.authenticate.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
 
   socket.on('join', self.joinChannel.bind(self));
@@ -37,9 +37,9 @@ SocketServer.prototype.onSocket = function(socket) {
 /**
  * New socket connected to server
  */
-SocketServer.prototype.init = function init(data) {
+SocketServer.prototype.authenticate = function init(data) {
   var self = this;
-  console.log("[INIT] Socket initialization data");
+  console.log("[AUTH] Socket authentication data");
   User.authenticateOrCreate(data, function(err, user) {
     if (err) {
       console.log('Authentication error', err);
@@ -62,7 +62,7 @@ SocketServer.prototype.init = function init(data) {
     }
     else {
       console.log("[INIT] Problem initializing connection, no error, but no user");
-      return self.socket.broadcast.to(self.socket._id).emit('errorMessage', {message: "An unknown error has occurred"});
+      return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
   });
 };
@@ -75,7 +75,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
   if (!self.socket.user) {
     console.log("[MSG] Ignoring message from unauthenticated user");
-    return self.socket.broadcast.to(self.socket._id).emit('errorMessage', {message: 401});
+    return self.socket.emit('errorMessage', {message: 401});
   }
 
   console.log("[MSG] Server got chat message from " + self.socket.user.username);
@@ -99,13 +99,13 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var self = this;
   if (!self.socket.user) {
     console.log("[MSG] Ignoring message from unauthenticated user");
-    return self.socket.broadcast.to(self.socket._id).emit('errorMessage', {message: 401});
+    return self.socket.emit('errorMessage', {message: 401});
   }
 
   var targetUsername = data.toUser;
   if (!userMembership[targetUsername]) {
     console.log("[MSG] Ignoring private message to offline user");
-    return self.socket.broadcast.to(self.socket._id).emit('errorMessage', {message: "User is not online"});
+    return self.socket.emit('errorMessage', {message: "User is not online"});
   }
   var toUserSocketId = userMembership[targetUsername].socketId;
   var fromUser = self.socket.user.username;
@@ -151,7 +151,7 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
 
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
-    return self.socket.broadcast.to(self.socket._id).emit('errorMessage', {message: 401});
+    return self.socket.emit('errorMessage', {message: 401});
   }
 
   var username = self.socket.user.username;

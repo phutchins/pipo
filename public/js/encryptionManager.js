@@ -71,16 +71,26 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
 
     //Unlock key with passphrase if locked
     if (keyManager.is_pgp_locked()) {
-      keyManager.unlock_pgp({
-        passphrase: "temporaryPassphrase"
-      }, function (err) {
-        if (err) {
-          console.log("Error unlocking key", err);
-          return callback(err);
-        }
-        self.keyRing.add_key_manager(keyManager);
-        return callback(null, true);
-      });
+      var tries = 3;
+      function promptAndDecrypt() {
+        ChatManager.promptForPassphrase(function(passphrase) {
+          keyManager.unlock_pgp({
+            passphrase: passphrase
+          }, function (err) {
+            if (err) {
+              if (tries) {
+                tries--;
+                return promptAndDecrypt();
+              }
+              console.log("Error unlocking key", err);
+              return callback(err);
+            }
+            self.keyRing.add_key_manager(keyManager);
+            return callback(null, true);
+          });
+        });
+      }
+      promptAndDecrypt();
     }
     else {
       self.keyRing.add_key_manager(keyManager);

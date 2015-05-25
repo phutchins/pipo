@@ -160,38 +160,163 @@ ChatManager.promptForCredentials = function promptForCredentials() {
     .modal('setting', 'closable', false)
     .modal('setting', 'debug', true)
     .modal("setting", {
-      onShow: function() {
-        console.log("Showing create");
-      },
       onApprove: function() {
-        //TODO: Check for username collision
-        username = $('#username').val();
+        $('.ui.form.create').submit();
+      }
+    });
+  $('.ui.form.create').form('setting', {
+    onSuccess: function() {
+      var errorDisplay = $('.create #createError');
+      var username = $('.create.form #username').val();
+      var password = $('.create.form #password').val();
+      var confirmPassword = $('.create #confirmPassword').val();
 
-        if (username) {
-          console.log('has username, go');
-          $('.ui.modal.generate').modal('show');
-          return true;
+      if (!username) {
+        if (errorDisplay.text().toLowerCase().indexOf('username') !== -1) {
+          return false;
         }
-        console.log("no username, do nothing");
+        if (errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Password is required");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Username is required");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
         return false;
       }
-    });
-
-  $('.ui.modal.generate')
-    .modal('setting', 'closable', false)
-    .modal("setting", {
-      onShow: function() {
-        window.encryptionManager.generateClientKeyPair(2048, username, "temporaryPassphrase", function(err, generatedKeypair) {
-          if (err) {
-            console.log("Error generating client keypair: "+err);
-          } else {
-            console.log("Generated client key pair.");
-            localStorage.setItem('username', username);
-            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
-            $('.ui.modal.generate').modal('hide');
-            socketClient.init();
-          }
-        });
+      else if(!password) {
+        if (errorDisplay.text().toLowerCase().indexOf('password is required') !== -1) {
+          return false;
+        }
+        if(errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Password is required");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Password is required");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
       }
-    });
+      else if (password !== confirmPassword) {
+        if (errorDisplay.text().toLowerCase().indexOf('passwords do not match') !== -1) {
+          return false;
+        }
+        if(errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Passwords do not match");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Passwords do not match");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
+      }
+
+      //TODO: Check for username collision
+
+      $('.ui.modal.generate').modal('show');
+      window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
+        if (err) {
+          console.log("Error generating client keypair: "+err);
+        } else {
+          console.log("Generated client key pair.");
+          window.username = username;
+          localStorage.setItem('username', username);
+          localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+          $('.ui.modal.generate').modal('hide');
+          socketClient.init();
+        }
+      });
+      return false;
+    }
+  });
+
+  $('.ui.modal.generate').modal('setting', 'closable', false);
+};
+
+ChatManager.promptForPassphrase = function(callback) {
+  $('.ui.modal.unlock')
+    .modal('setting', 'closable', false)
+    .modal('setting', {
+      onApprove: function() {
+        $('.ui.form.unlock').submit();
+      }
+    })
+    .modal('show');
+
+  $('.ui.form.unlock').form('setting', {
+    onSuccess: function() {
+      var errorDisplay = $('.unlock #createError');
+      var password = $('.unlock #password').val();
+      if (!password) {
+        if (errorDisplay.text().toLowerCase().indexOf('password is required') !== -1) {
+          return false;
+        }
+        if (errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function () {
+              errorDisplay.text("Password is required");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Password is required");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
+      }
+      else {
+        $('.ui.modal.unlock').modal('hide');
+        callback(password);
+        return false;
+      }
+    }
+  });
 };

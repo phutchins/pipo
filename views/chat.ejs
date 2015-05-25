@@ -46,8 +46,9 @@
     </div>
     <div class="ui small modal create">
       <div class="header">Create</div>
-      <div class="content">Select a username and a passphrase to encrypt your keys</div>
-      <form class="ui form" style="padding: 20px;">
+      <form class="ui form content create">
+        <div class="field">Select a username and a passphrase to encrypt your keys</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
         <div class="field">
           <label for="username">Name</label>
           <input type="text" class="username" id="username">
@@ -71,6 +72,20 @@
         <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
       </div>
     </div>
+    <div class="ui small modal unlock">
+      <div class="header">Unlock Credentials</div>
+      <form class="ui form content unlock">
+        <div class="field">Enter the passphrase you selected to decrypt your keys</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" class="password" id="password">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
+      </div>
+    </div>
     <div class="ui small modal authenticate">
       <div class="header">Authenticate</div>
       <div class="content">Please select your credentials</div>
@@ -92,9 +107,9 @@
     <script src="/js/lib/moment.min.js"></script>
     <script src="/js/lib/livestamp.min.js"></script>
 
+    <script src="/js/chat.js"></script>
     <script src="/js/socketClient.js"></script>
     <script src="/js/encryptionManager.js"></script>
-    <script src="/js/chat.js"></script>
     <script src="/js/marked.js"></script>
 
     <script>

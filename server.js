@@ -327,7 +327,7 @@ function disconnectUser(socketId, callback) {
             console.log("[DISCONNECT USER] Error getting channel users: "+err);
           });
           // Should only send this to the channels the user has parted from
-          var statusMessage = userName+" has left the channel";
+          var statusMessage = user.userName+" has left the channel";
           var statusData = {
             statusType: "PART",
             statusMessage: statusMessage
@@ -362,7 +362,7 @@ function sendUserListUpdate(channel, callback) {
 function removeUserFromAllChannels(socketId, callback) {
   var userName = "";
   // TODO: fix me!
-  findUserBySocketId(socketId, function(user) {
+  findUserBySocketId(socketId, function(err, user) {
     if (err) {
       callback(err, null);
     } else {

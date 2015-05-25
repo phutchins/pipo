@@ -3,6 +3,13 @@ var roomUsers = {};
 
 var ChatManager = {};
 
+$('#main-input-form').form('setting', {
+  onSuccess: function () {
+    ChatManager.sendMessage();
+    return false;
+  }
+});
+
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
 ChatManager.sendNotification = function sendNotification(image, title, message, timeout, showOnFocus) {
   this.getNotifyPermissions(function(permission) {
@@ -59,6 +66,13 @@ ChatManager.getNotifyPermissions = function getNotifyPermissions(callback) {
 
 ChatManager.enableChat = function enableChat() {
   var self = this;
+
+  if (self.enabled) {
+    return;
+  }
+
+  self.enabled = true;
+
   //Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
   $('#send-button').prop('disabled', false);
@@ -66,6 +80,8 @@ ChatManager.enableChat = function enableChat() {
 
   $('textarea').keydown(function (event) {
     var element = this;
+
+    //Prevent shift+enter from sending
     if (event.keyCode === 13 && event.shiftKey) {
       var content = element.value;
       var caret = self.getCaret(this);
@@ -73,20 +89,19 @@ ChatManager.enableChat = function enableChat() {
       element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
       event.stopPropagation();
 
-      console.log("got shift+enter");
       var $messageInput = $('#message-input');
       $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
       return false;
     }
     else if (event.keyCode === 13) {
-      //console.log("got enter");
-      window.socketClient.sendMessage('general', $('#message-input').val());
+      $('#main-input-form').submit();
       return false;
     }
   });
 };
 
 ChatManager.disableChat = function disableChat() {
+  self.enabled = false;
   $('textarea').off("keydown", "**");
   $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
   $('#send-button').prop('disabled', true);
@@ -130,6 +145,14 @@ ChatManager.handleMessage = function handleMessage(message, fromUser) {
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
+ChatManager.handlePrivateMessage = function handleMessage(message, fromUser, toUser) {
+  var messages = $('#messages');
+  var messageLine = "[" + fromUser + " > " + toUser + "] " + message;
+
+  this.localMsg({ type: null, message: messageLine });
+  messages[0].scrollTop = messages[0].scrollHeight;
+};
+
 ChatManager.localMsg = function localMsg(data) {
   var type = data.type;
   var message = data.message;
@@ -146,6 +169,44 @@ ChatManager.localMsg = function localMsg(data) {
   } else {
     $('#messages').append($('<li>').html(message));
   }
+};
+
+ChatManager.sendMessage = function sendMessage() {
+  var input = $('#message-input').val();
+  var commandRegex = /^\/(.*)$/;
+  var regexResult = input.match(commandRegex);
+
+  if (input === "") {
+    return false;
+  }
+  else if (regexResult !== null) {
+    // Catch commands here and encrypt data to users as needed
+    var command = regexResult[1];
+    var splitCommand = command.split(" ");
+
+    // Locally parsed commands
+    if (splitCommand[0] === "msg") {
+      var message = command.split(" ").slice(2).join(" ");
+      ChatManager.sendPrivateMessage(splitCommand[1], message);
+    }
+    else {
+      // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
+      socket.emit('server command', {command: regexResult[1], currentChannel: currentChannel});
+      console.log("Sending command '" + regexResult[1] + "' to server");
+      $('#message-input').val('');
+    }
+  }
+  else {
+    window.socketClient.sendMessage('general', input);
+  }
+};
+
+ChatManager.sendPrivateMessage = function sendPrivateMessage(username, message) {
+  if (!userMap[username]) {
+    console.log("user does not exist");
+    return false;
+  }
+  socketClient.sendPrivateMessage(username, message);
 };
 
 ChatManager.promptForCredentials = function promptForCredentials() {

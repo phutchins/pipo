@@ -51,6 +51,8 @@ SocketServer.prototype.authenticate = function init(data) {
         publicKey: user.publicKey
       };
 
+      self.namespace.userMap[user.username] = self.socket.id;
+
       self.socket.user = user;
       console.log("[INIT] Init'd user " + user.username);
       self.socket.emit('authenticated', {message: 'ok'});
@@ -101,19 +103,22 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     console.log("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
+  console.log('data', data)
 
+  var fromUser = self.socket.user.username;
   var targetUsername = data.toUser;
-  if (!userMembership[targetUsername]) {
+  var targetSocket = self.namespace.userMap[targetUsername];
+
+  if (!targetSocket) {
     console.log("[MSG] Ignoring private message to offline user");
     return self.socket.emit('errorMessage', {message: "User is not online"});
   }
-  var toUserSocketId = userMembership[targetUsername].socketId;
-  var fromUser = self.socket.user.username;
 
-  self.socket.broadcast.to(toUserSocketId).emit('privmsg', {
-    toUser: toUser,
-    fromUser: fromUser,
-    message: data.message
+  self.socket.broadcast.to(targetSocket).emit('privateMessage', {
+    from: self.socket.user.username,
+    to: targetUsername,
+    message: data.pgpMessage,
+    signature: data.signature
   });
 };
 

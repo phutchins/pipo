@@ -5,6 +5,7 @@ function EncryptionManager() {
   });
 
   this.keyRing = new window.kbpgp.keyring.KeyRing();
+  this.credentialsLoaded = false;
 }
 
 /**
@@ -41,6 +42,9 @@ EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPa
  */
 EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callback) {
   var self = this;
+  if (self.credentialsLoaded) {
+    return callback(null, true);
+  }
   var keyPairData = localStorage.getItem('keyPair');
   if (keyPairData) {
     try {
@@ -86,6 +90,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
               return callback(err);
             }
             self.keyRing.add_key_manager(keyManager);
+            self.credentialsLoaded = true;
             return callback(null, true);
           });
         });
@@ -114,6 +119,13 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
   window.kbpgp.box({
     msg: message,
     encrypt_for: keys
+  }, callback);
+};
+
+EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
+  window.kbpgp.box({
+    msg: message,
+    encrypt_for: window.userMap[username].keyInstance
   }, callback);
 };
 

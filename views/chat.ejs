@@ -28,7 +28,7 @@
       </div>
     </div>
     <div class="input-container" id="input-container">
-      <form>
+      <form id="main-input-form">
         <div id="message-input-container" class="ui left fluid action icon input loading">
           <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
           <i id="loading-icon" class="search icon"></i>
@@ -106,11 +106,11 @@
     <script src="/js/lib/highlight.min.js"></script>
     <script src="/js/lib/moment.min.js"></script>
     <script src="/js/lib/livestamp.min.js"></script>
+    <script src="/js/lib/marked.js"></script>
 
-    <script src="/js/chat.js"></script>
+    <script src="/js/chatManager.js"></script>
     <script src="/js/socketClient.js"></script>
     <script src="/js/encryptionManager.js"></script>
-    <script src="/js/marked.js"></script>
 
     <script>
       hljs.initHighlightingOnLoad();

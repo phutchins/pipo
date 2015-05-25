@@ -31,7 +31,7 @@ SocketClient.prototype.init = function() {
     }
     return self.authenticate();
   });
-}
+};
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
@@ -56,6 +56,16 @@ SocketClient.prototype.addListeners = function() {
         console.log(err);
       }
       ChatManager.handleMessage(message, data.user);
+    });
+  });
+
+  this.socket.on('privateMessage', function(data) {
+    console.log('privateMessage', data);
+    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+      if (err) {
+        console.log(err);
+      }
+      ChatManager.handlePrivateMessage(message, data.from, data.to);
     });
   });
 
@@ -107,8 +117,25 @@ SocketClient.prototype.sendMessage = function(channel, message) {
         console.log("Error Encrypting Message: " + err);
       }
       else {
-        // Need to not send the username here and derive it from the socket on the server
         self.socket.emit('roomMessage', {pgpMessage: pgpMessage});
+        $('#message-input').val('');
+      }
+    });
+  });
+};
+
+SocketClient.prototype.sendPrivateMessage = function(username, message) {
+  var self = this;
+  ChatManager.prepareMessage(message, function(err, preparedMessage) {
+    window.encryptionManager.encryptPrivateMessage(username, preparedMessage, function(err, pgpMessage) {
+      if (err) {
+        console.log("Error Encrypting Message: " + err);
+      }
+      else {
+        //Write private message locally to chat
+        ChatManager.handlePrivateMessage(message, window.username, username);
+
+        self.socket.emit('privateMessage', {toUser: username, pgpMessage: pgpMessage});
         $('#message-input').val('');
       }
     });

@@ -77,9 +77,10 @@ module.exports = function(app) {
         // If user not found, add user
         // If user does not have encryptedMasterPrivKey, generate new one for everyone
         if (typeof user !== 'undefined' && user !== null) {
-          var encryptedMasterPrivKey = user.encryptedMasterPrivKey;
-          var masterPubKey = user.masterPubKey;
-          res.json({ pubKey: masterPubKey, privKey: encryptedMasterPrivKey });
+          var encPrivKey = user.masterKey.encPrivKey;
+          var pubKey = user.masterKey.pubKey;
+          var keyId = user.masterKey.id;
+          res.json({ pubKey: pubKey, privKey: encPrivKey, keyId: keyId });
         } else {
           console.log("Didn't find masterKey encrypted to "+userName);
           res.status(404).send();

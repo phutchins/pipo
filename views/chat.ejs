@@ -58,11 +58,11 @@
     <div class="ui form basic modal password-prompt-modal">
       <i class="close icon"></i>
       <div class="header">
-        Export Client KeyPair
+        Decrypt Master Key
       </div>
       <div class="ui">
         <div class="description">
-          <p>Please enter a strong password...</p>
+          <p>Please enter your client key password...</p>
         </div>
         <div class="ui input">
             <input name="password" type="password" placeholder="password"></input>
@@ -188,7 +188,7 @@
           if (err) { return console.log("[START][STORAGE] Error during init storage: "+err); };
           console.log("[START] Starting with username '"+userName+"'");
           loadClientKeyPair(fs, userName, function(err) {
-            if (err) { return console.log("[START][LOAD CLIENT KEY] Error loading client key from local storage"); };
+            if (err) { return console.log("[START][LOAD CLIENT KEY] Error loading client key from local storage: "+err); };
             localMsg({ type: "STATUS", message: "Loaded client keys from local storage" });
             promptForPassword(function(err, password) {
               clientKeyPassword = password;
@@ -205,6 +205,7 @@
                   console.log("Update remote pub key done...");
                   updateMasterKey(function(err) {
                     if (err) { return console.log("Error: "+err); };
+                    console.log("Turning pleaseWait off");
                     pleaseWaitOff();
                     $('#message-input').focus();
                   });
@@ -248,12 +249,14 @@
 
       function loadClientKeyPair(fs, userName, callback) {
         console.log('Opened file system: ' + fs.name);
+        console.log('Attempting to open file: '+userName+'_clientkey.aes');
         fs.root.getFile(userName+'_clientkey.aes', {create: false, exclusive: true}, function(fileEntry) {
           fileEntry.file(function(file) {
              var reader = new FileReader();
              reader.onloadend = function(e) {
               keyPair.privKey = this.result;
 
+              console.log('Attempting to open file: '+userName+'_clientkey.pub');
               fs.root.getFile(userName+'_clientkey.pub', {create: false, exclusive: true}, function(fileEntry) {
                 fileEntry.file(function(file) {
                    var reader = new FileReader();
@@ -269,6 +272,7 @@
              reader.readAsText(file);
           }, loadClientKeyPairErrorHandler);
         }, loadClientKeyPairErrorHandler);
+        // TODO: this is getting called, is that ok?
         return callback("Reached loadClientKeyPair callback bad...");
         function loadClientKeyPairErrorHandler(e) {
           var msg = '';
@@ -287,7 +291,6 @@
                 var fullName = data.fullName;
                 var email = data.email;
                 var password = data.password;
-                debugger;
                 console.log("Got data: userName: "+userName+" fullName: "+fullName+" email: "+email+" password: "+password);
                 clientKeyPassword = password;
                 generateClientKeyPair(data, function(err, keyPair) {
@@ -366,7 +369,7 @@
       function saveClientKeyPair(fs, keyPair, userName, callback) {
         var privKey = keyPair.privKey;
         var pubKey = keyPair.pubKey;
-        fs.root.getFile(userName+'clientkey.aes', {create: true}, function(fileEntry) {
+        fs.root.getFile(userName+'_clientkey.aes', {create: true}, function(fileEntry) {
           // Create a FileWriter object for our FileEntry (log.txt).
           fileEntry.createWriter(function(fileWriter) {
             fileWriter.onwriteend = function(e) {
@@ -448,12 +451,11 @@
         var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
         var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
         clientPrivKey.decrypt(clientKeyPassword);
-        debugger;
         //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privKey: "+clientPrivKey+" encMasterPrivateKey: "+encMasterPrivateKey);
         console.log("[DEBUG] about to start decrypting master key");
-        console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
-        console.log("[DEBUG] decrypting master private key and client public key is: "+keyPair.pubKey);
-        console.log("[DEBUG] decrypting master private key and client private key is: "+keyPair.privKey);
+        //console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
+        //console.log("[DEBUG] decrypting master private key and client public key is: "+keyPair.pubKey);
+        //console.log("[DEBUG] decrypting master private key and client private key is: "+keyPair.privKey);
 
         openpgp.decryptMessage(clientPrivKey, encMasterPrivateKey).then(function(decryptedKey) {
           console.log("[DEBUG] in decryptMessage callback");
@@ -512,17 +514,17 @@
               });
             },
             200: function(data) {
-              console.log("[DEBUG] (updateRemotePubKey) data: "+data);
+              //console.log("[DEBUG] (updateRemotePubKey) data: "+data);
               var remotePubKey = data.pubKey;
               console.log("Key exists on remote");
-              console.log("Remote Pub Key: "+data.pubKey);
+              //console.log("Remote Pub Key: "+data.pubKey);
               if (keyPair.pubKey == remotePubKey) {
                 console.log("Key on remote matches local");
                 return callback(null);
               } else {
                 console.log("Key on remote does not match");
-                console.log("local pubKey: "+keyPair.pubKey);
-                console.log("remote pubKey: "+remotePubKey);
+                //console.log("local pubKey: "+keyPair.pubKey);
+                //console.log("remote pubKey: "+remotePubKey);
                 updatePubKeyOnRemote(userName, keyPair.pubKey, function(err) {
                   if (err) {
                     console.log("Error updating pubKey on remote");
@@ -738,7 +740,6 @@
             email: $(".key-creds-modal input[name='email']").val(),
             password: $(".key-creds-modal input[name='password']").val()
           });
-          debugger;
           return callback(null, data);
         });
       };
@@ -849,8 +850,9 @@
           if (err) {
             console.log("Error getting master key pair: "+err);
             localMsg({ type: "ERROR", message: "Error getting master key pair" });
-            callback("Error getting master key pair");
+            return callback("Error getting master key pair");
           } else {
+            pleaseWait();
             localMsg({ type: null, message: "Updated master key pair" });
             console.log("Got master keypair, ready to encrypt/decrypt");
             encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
@@ -858,27 +860,25 @@
             console.log("Ensuring that client keypair exists");
             //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
             if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
-              console.log("(new master key) Trying to decrypt master key...");
+              console.log("[new master key] Client KeyPair exists. Trying to decrypt master key...");
               //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
               //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
-              debugger;
               decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
                 console.log("(new master key) Caching master private key decrypted");
                 masterKeyPair.privKey = key;
                 masterKeyPair.pubKey = encMasterKeyPair.pubKey;
-                pleaseWaitOff();
-                callback(null);
+                return callback(null);
               });
             } else {
               console.log("Private key does not yet exist so cannot decrypt master key");
-              callback("Private key does not exist");
+              return callback("Private key does not exist");
             };
           };
         });
       };
 
       socket.on('new master key', function(data) {
-        console.log("Getting master keyPair for "+userName);
+        console.log("[SOCKET] 'new master key'");
         getMasterKeyPair(userName, function(err, encMasterKeyPair) {
           if (err) {
             console.log("Error getting master key pair: "+err);

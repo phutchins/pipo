@@ -4,6 +4,7 @@ function EncryptionManager() {
     privateKey: null
   });
 
+  this.keyManager = null;
   this.keyRing = new window.kbpgp.keyring.KeyRing();
   this.credentialsLoaded = false;
 }
@@ -76,8 +77,10 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     //Unlock key with passphrase if locked
     if (keyManager.is_pgp_locked()) {
       var tries = 3;
+      promptAndDecrypt();
+
       function promptAndDecrypt() {
-        ChatManager.promptForPassphrase(function(passphrase) {
+        ChatManager.promptForPassphrase(function (passphrase) {
           keyManager.unlock_pgp({
             passphrase: passphrase
           }, function (err) {
@@ -89,13 +92,15 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
               console.log("Error unlocking key", err);
               return callback(err);
             }
+
+            self.keyManager = keyManager;
             self.keyRing.add_key_manager(keyManager);
             self.credentialsLoaded = true;
+
             return callback(null, true);
           });
         });
       }
-      promptAndDecrypt();
     }
     else {
       self.keyRing.add_key_manager(keyManager);
@@ -112,20 +117,32 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
  * @param callback
  */
 EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(room, message, callback) {
+  var self = this;
+
+  //Build array of all users' keyManagers
   var keys = window.roomUsers[room].map(function(username) {
     return window.userMap[username].keyInstance;
+  }).filter(function(key) {
+    return !!key;
   });
 
+  //Add our own key to the mix so that we can read the message as well
+  keys.push(self.keyManager);
+
+  //Encrypt the message
   window.kbpgp.box({
     msg: message,
-    encrypt_for: keys
+    encrypt_for: keys,
+    sign_with: self.keyManager
   }, callback);
 };
 
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
+  var self = this;
   window.kbpgp.box({
     msg: message,
-    encrypt_for: window.userMap[username].keyInstance
+    encrypt_for: window.userMap[username].keyInstance,
+    sign_with: self.keyManager
   }, callback);
 };
 

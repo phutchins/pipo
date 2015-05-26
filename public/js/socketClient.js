@@ -85,22 +85,32 @@ SocketClient.prototype.addListeners = function() {
           pubkey: user.publicKey
         };
 
-        //Build pgp key instance
-        window.kbpgp.KeyManager.import_from_armored_pgp({
-          armored: user.publicKey
-        }, function(err, keyInstance) {
-          window.userMap[user.username].keyInstance = keyInstance;
-        });
+        //Don't build pubkey for ourselves
+        if (user.username != window.username) {
+
+          //Build pgp key instance
+          window.kbpgp.KeyManager.import_from_armored_pgp({
+            armored: user.publicKey
+          }, function (err, keyInstance) {
+            if (err) {
+              console.log("Error importing user key", err);
+            }
+            console.log("imported key", user.username);
+            window.userMap[user.username].keyInstance = keyInstance;
+            encryptionManager.keyRing.add_key_manager(keyInstance);
+          });
+
+        }
 
       }
     });
 
+    //Don't notify us about ourselves
     if (data.joinUser && window.username !== data.joinUser) {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
-    else {
-      //window.sendNotification(null, 'PiPo', 'You have joined channel #' + data.channel, 3000);
-    }
+
+    ChatManager.updateUserList();
 
   });
 };

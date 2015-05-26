@@ -153,6 +153,14 @@ ChatManager.handlePrivateMessage = function handleMessage(message, fromUser, toU
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
+ChatManager.updateUserList = function updateUserList() {
+  var userListHtml = "";
+  Object.keys(userMap).forEach(function(userName) {
+    userListHtml += "<li>"+userName+"</li>\n";
+  });
+  $('#user-list').html(userListHtml);
+};
+
 ChatManager.localMsg = function localMsg(data) {
   var type = data.type;
   var message = data.message;

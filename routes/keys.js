@@ -8,19 +8,17 @@ module.exports = function(app) {
     var timestamp = new Date().toString();
     var userName = req.param('userName');
     console.log("["+timestamp+"] [API] [GET] [/key/pubkey] Getting pubkey for user "+userName);
-    User.findOne({ userName: userName }, function(err, user) {
-      console.log("["+timestamp+"] [API] [DEBUG] Found user");
-      if (user === null) {
+    User.findOne({ userNameLowerCase: userName.toLowerCase() }, function(err, user) {
+      if (err) return console.log("[ERROR] Error getting user: "+err);
+      console.log("["+timestamp+"] [API] [DEBUG] user is: "+user);
+      if (user == null) {
         console.log("["+timestamp+"] pubKey for "+userName+"  not found");
-        //res.status(404).send("pubKey not found");
-        // Might should return 404 here
-        //res.json({ pubKey: '' });
         res.status(404).send();
       } else if (typeof user.pubKey != 'undefined') {
         console.log("["+timestamp+"] KeyPair found...");
         res.json({ pubKey: user.pubKey });
       } else {
-        console.log("["+timestamp+"] Error while looking for pubkey for  "+userName);
+        console.log("["+timestamp+"] Error while looking for pubkey for "+userName);
         res.status(500).send();
       }
     });
@@ -53,6 +51,7 @@ module.exports = function(app) {
               return res.status(500).send();
             } else {
               console.log("["+timestamp+"] Saved pubkey from "+userName);
+              // TODO: run regenerateMasterKeyPair();
               //module.exports.emit('pubkey updated', {data: { userName: userName }} );
               res.status(200).send();
             };
@@ -77,9 +76,10 @@ module.exports = function(app) {
         // If user not found, add user
         // If user does not have encryptedMasterPrivKey, generate new one for everyone
         if (typeof user !== 'undefined' && user !== null) {
-          var encryptedMasterPrivKey = user.encryptedMasterPrivKey;
-          var masterPubKey = user.masterPubKey;
-          res.json({ pubKey: masterPubKey, privKey: encryptedMasterPrivKey });
+          var encPrivKey = user.masterKey.encPrivKey;
+          var pubKey = user.masterKey.pubKey;
+          var keyId = user.masterKey.id;
+          res.json({ pubKey: pubKey, privKey: encPrivKey, keyId: keyId });
         } else {
           console.log("Didn't find masterKey encrypted to "+userName);
           res.status(404).send();

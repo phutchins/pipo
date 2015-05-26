@@ -569,7 +569,7 @@ function getChannelUsersArray(channel, callback) {
       channel._userList.forEach(function(user) {
         channelUsersArray.push(user.userName);
       });
-      console.log("[GETCHANNELUSERSARRAY] Channel users list arra is: "+channelUsersArray.toString());
+      console.log("[GETCHANNELUSERSARRAY] Channel users list array is: "+channelUsersArray.toString());
       return callback(null, channelUsersArray);
     };
   });

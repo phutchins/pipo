@@ -172,7 +172,7 @@
         pubKey: null,
         privKey: null
       });
-      var userName = "<%= userName %>";
+      var userName = '<%= userName %>';
       start();
       function start() {
         //if (isHidden()) notify('test', 'test notification here', '123123');
@@ -285,20 +285,34 @@
             case "NotFoundError":
               console.log("Client keys not found in storage. Generating new keypair.");
               msg = 'NOT_FOUND_ERR';
+              // TODO: Should allow user to choose to load their own key, or generate one
+
+              // TODO: Prompt for username
+
+              // TODO: If user has userdata and no client key, prompt to load own key or generate new one
+
+              // TODO: If no user data present on server, prompt for key credentials (should probably call user data) then prompt to load or gen key
               promptForKeyCredentials(function(err, data) {
                 console.log("Data: "+data);
                 var userName = data.userName;
                 var fullName = data.fullName;
                 var email = data.email;
                 var password = data.password;
-                console.log("Got data: userName: "+userName+" fullName: "+fullName+" email: "+email+" password: "+password);
+                //console.log("Got data: userName: "+userName+" fullName: "+fullName+" email: "+email+" password: "+password);
+                // TODO: This should probably be cached in the clientKey object
                 clientKeyPassword = password;
-                generateClientKeyPair(data, function(err, keyPair) {
-                  saveClientKeyPair(fs, keyPair, userName, function(err) {
-                    if (err) { console.log("Error generating client key pair: "+err); }
-                    console.log("Saved client key pair locally");
-                    callback(null);
-                  });
+                updateUserData(data, function(err) {
+                  if (err) {
+                    console.log("Error updating user data on server");
+                  } else {
+                    generateClientKeyPair(data, function(err, keyPair) {
+                      saveClientKeyPair(fs, keyPair, userName, function(err) {
+                        if (err) { console.log("Error generating client key pair: "+err); }
+                        console.log("Saved client key pair locally");
+                        callback(null);
+                      });
+                    });
+                  };
                 });
               });
               break;
@@ -317,6 +331,16 @@
           };
           console.log('Error: ' + msg);
         };
+      };
+
+      function updateUserData(data, callback) {
+        var userName = data.userName;
+        var fullName = data.fullName;
+        var email = data.email;
+        var password = data.password;
+
+        // TODO: do AJAX call to POST /user/data and push user data
+        callback(null);
       };
 
       function removeClientKeyPair(fs, callback) {
@@ -720,12 +744,24 @@
       function promptForPassword(callback) {
         console.log("Showing password prompt modal");
         $('.basic.modal.password-prompt-modal').modal('show');
-        $('.password-submit-button').click(function(err) {
+        $('.password-submit-button').click(function(e) {
           console.log("Got click on password submit button");
           var form = $(this);
           var password = $(".password-prompt-modal input[name='password']").val();
           callback(null, password);
           return false;
+        });
+        $(document).keypress(function(e) {
+          if (e.which == 13) {
+            console.log("Got enter key");
+            var form = $(this);
+            var password = $(".password-prompt-modal input[name='password']").val();
+            // hide modul & clear password prompt
+            $(".password-prompt-modal input[name='password']").val('');
+            $('.basic.modal.password-prompt-modal').modal('hide');
+            callback(null, password);
+            return false;
+          };
         });
       };
 

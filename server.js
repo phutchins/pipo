@@ -73,10 +73,19 @@ ioMain.on('connection', function(socket) {
   console.log("[CONNECTION] User connected!");
 
   socket.on('init', function(data) {
+    console.log("[INIT] Init.");
     userName = data.userName;
     User.findOneAndUpdate({ userName: userName }, { $push: { socketIds: socket.id }}, { upsert: true }, function(err, user) {
       if (err) {
         console.log("[INIT] Error finding user: "+err);
+      } else if  (user == null) {
+        new User({
+          userName: userName,
+          usrNameLowerCase: userName.toLowerCase()
+        }).save(function(err, user) {
+          if (err) return console.log("Error adding new user: "+err);
+          return console.log("Added new user with username '"+userName+"'");
+        });
       } else {
         console.log("[INIT] Got user "+user.userName+" with socketId "+user.socketIds.toString());
       }
@@ -116,7 +125,7 @@ ioMain.on('connection', function(socket) {
             fromUser: fromUser,
             message: message
           };
-          toUserSocketIds.each(function(socketId) {
+          toUserSocketIds.forEach(function(toUserSocketId) {
             socket.broadcast.to(toUserSocketId).emit('privmsg', data);
             sentData = {
               id: id,

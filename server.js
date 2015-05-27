@@ -1,15 +1,15 @@
 //Native node
-var fs = require('fs');
+var http = require('http');
 var https = require('https');
+var fs = require('fs');
 var path = require('path');
 
-//modules
-var socketIO = require('socket.io');
+//Modules
 var express = require('express');
-var bodyParser = require('body-parser');
-var favicon = require('serve-favicon');
+var socketIO = require('socket.io');
 var openpgp = require('openpgp');
 var mongoose = require('mongoose');
+var bodyParser = require('body-parser');
 var morgan = require('morgan');
 var async = require('async');
 var marked = require('marked');
@@ -17,22 +17,26 @@ var events = require('events');
 var winston = require('winston');
 var pgp = require('kbpgp');
 
-//configuration
-var configMD = require('./config/markdown');
-var configDB = require('./config/database');
-var logger = require('./config/logger');
+//Configuration
+var configMD = require('./config/markdown.js');
+var configDB = require('./config/database.js');
+var logger = require('./config/logger.js');
+var confighttp = require('./config/http');
 var configHttps = require('./config/https');
 
 //Models
 var KeyPair = require('./models/keypair');
 var User = require('./models/user');
+var Channel = require('./models/channel');
+var KeyId = require('./models/keyid');
 
 //Globals
-var SocketServer = require('./socketServer');
+var SocketServer = require('./socketServer')
 
 //Application
 var app = express();
-var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+var server = http.Server(app);
+var https_server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
 var io = socketIO(server);
 
 //Express
@@ -40,18 +44,18 @@ app.set('view engine', 'ejs');
 //app.set('view cache', true);
 app.set('x-powered-by', false);
 
+
 //Middleware
-app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
+app.use(morgan('dev'));
 
 //Static assets
-app.use(express.static(path.join(__dirname, 'public')));
+app.use(express['static'](path.join(__dirname, 'public')));
 
 //Logger
 app.use(morgan('dev'));
 
-// Database
 var connectWithRetry = function() {
   return mongoose.connect(configDB.url, function(err) {
     if (err) {
@@ -70,57 +74,40 @@ fs.readdirSync(routePath).forEach(function(file) {
   routeName = file.split('.')[0]
   console.log("[SERVER] Loading route: "+routeName);
   routes[routeName] = require(route)(app);
-});
+})
 
 io.on('connection', function(socket) {
   console.log("[CONNECTION] Got connection to default socket");
 });
 
-var ioMain = io.of('/socket');
+var ioMain = io.of('/main');
 
-ioMain.on('connection',function (socket) {
+ioMain.on('connection', function(socket) {
   new SocketServer(ioMain).onSocket(socket);
 });
 
-generateOrLoadKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
-  console.log(err, !!newMasterKeyPair);
-});
+// Startup routine
+start();
 
-function generateOrLoadKeyPair(numBits, userId, passphrase, callback) {
-  var keypair;
-
-  try {
-    keypair = JSON.parse(fs.readFileSync(__dirname + "/config/pgpKeys.json"));
-    return callback(null, keypair);
-  }
-  catch (e) {
-    console.log("Error reading keys, generating new ones instead", e);
-    var options = {
-      numBits: numBits,
-      userId: userId,
-      passphrase: passphrase
-    };
-    var timestamp = Date().toString();
-    console.log("[" + timestamp + "] [GENERATE KEY PAIR] generating keypair now...");
-    openpgp.generateKeyPair(options).then(function (keyPair) {
-      var timestamp = Date().toString();
-      console.log("[" + timestamp + "] [GENERATE KEY PAIR] in generateKeyPair then");
-      keyPair = {
-        privKey: keyPair.privateKeyArmored,
-        pubKey: keyPair.publicKeyArmored
-      };
-      fs.writeFileSync(__dirname + "/config/pgpKeys.json", JSON.stringify(keyPair));
-      return callback(null, keyPair);
-    }).catch(function (err) {
-      console.log("Error generating key pair: " + err);
-      return callback(err, null);
-    });
-  }
-}
-
-function showKeys(privkey, pubkey) {
-  console.log("PGP PrivKey: "+privkey+" pubkey: "+pubkey);
-}
+function start() {
+  keyPair.checkMasterKeyPairForAllUsers(function(err, response) {
+    console.log("Checking master key pair for all users");
+    if (err) { console.log("[START] Error checking master key for all users: "+err); };
+    if (response == 'update') {
+      console.log("Users keypair needs updating so generating new master key pair");
+      generateMasterKeyPair(function(err, masterKeyPair, id) {
+        console.log("[START] New master keyPair generated with id '"+id+"'");
+        updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
+          if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
+          console.log("[START] Encrypted master key for all users!");
+        });
+      });
+    } else if (response == 'ok') {
+      console.log("All users master key matches current version");
+      //io.emit('new master key', masterKeyPair);
+    }
+  });
+};
 
 /**
  * Handle server errors
@@ -157,4 +144,5 @@ server.on('listening', function listening() {
   console.log('[SERVER] Listening on ' + bind);
 });
 
-server.listen(configHttps.port);
+//server.listen(configHttps.port);
+server.listen(configHttp.port);

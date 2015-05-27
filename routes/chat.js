@@ -3,17 +3,17 @@
 module.exports = function(app, pipo) {
 
   app.get('/', function(req, res) {
-    var username = 'default';
+    var userName = 'default';
     res.render('chat.ejs', {
-      username : username,
+      userName : userName,
       //pubkey : pubkey.replace(/(\r\n|\n|\r)/gm,"\\n"),
     });
   });
 
-  app.get('/:username', function(req, res) {
-    var username = req.param('username');
+  app.get('/:userName', function(req, res) {
+    var userName = req.param('userName');
     res.render('chat.ejs', {
-      username : username,
+      userName : userName,
       //pubkey : pubkey.replace(/(\r\n|\n|\r)/gm,"\\n"),
     });
   })

@@ -69,6 +69,36 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
+  this.socket.on('new master key', function(data) {
+    console.log("[SOCKET] 'new master key'");
+    getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+      if (err) {
+        console.log("Error getting master key pair: "+err);
+        localMsg({ type: "ERROR", message: "Error getting master key pair" });
+      } else {
+        localMsg({ type: null, message: "Updated master key pair" });
+        console.log("Got master keypair, ready to encrypt/decrypt");
+        encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
+        encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+        console.log("Ensuring that client keypair exists");
+        //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
+        if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+          console.log("(new master key) Trying to decrypt master key...");
+          //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
+          //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
+          decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+            console.log("(new master key) Caching master private key decrypted");
+            masterKeyPair.privKey = key;
+            masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+            pleaseWaitOff();
+          });
+        } else {
+          console.log("Private key does not yet exist so cannot decrypt master key");
+        };
+      };
+    });
+  });
+
   this.socket.on('userlist update', function(data) {
     window.roomUsers[data.channel] = [];
 
@@ -113,6 +143,16 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.updateUserList();
 
   });
+
+  this.socket.on('chatStatus', function(data) {
+    console.log("Got chat status...");
+    var statusType = data.statusType;
+    var statusMessage = data.statusMessage;
+    localMsg({ type: statusType, message: statusMessage });
+    var $messages = $('#messages');
+    $messages[0].scrollTop = $messages[0].scrollHeight;
+  });
+
 };
 
 SocketClient.prototype.authenticate = function() {
@@ -121,16 +161,14 @@ SocketClient.prototype.authenticate = function() {
 
 SocketClient.prototype.sendMessage = function(channel, message) {
   var self = this;
-  ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptRoomMessage(channel, preparedMessage, function(err, pgpMessage) {
-      if (err) {
-        console.log("Error Encrypting Message: " + err);
-      }
-      else {
-        self.socket.emit('roomMessage', {pgpMessage: pgpMessage});
-        $('#message-input').val('');
-      }
-    });
+  window.encryptionManager.encryptRoomMessage(channel, message, function(err, pgpMessage) {
+    if (err) {
+      console.log("Error Encrypting Message: " + err);
+    }
+    else {
+      self.socket.emit('roomMessage', {pgpMessage: pgpMessage});
+      $('#message-input').val('');
+    }
   });
 };
 
@@ -149,6 +187,38 @@ SocketClient.prototype.sendPrivateMessage = function(username, message) {
         $('#message-input').val('');
       }
     });
+  });
+};
+
+SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {
+  getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+    if (err) {
+      console.log("Error getting master key pair: "+err);
+      localMsg({ type: "ERROR", message: "Error getting master key pair" });
+      return callback("Error getting master key pair");
+    } else {
+      pleaseWait();
+      localMsg({ type: null, message: "Updated master key pair" });
+      console.log("Got master keypair, ready to encrypt/decrypt");
+      encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
+      encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+      console.log("Ensuring that client keypair exists");
+      //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
+      if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+        console.log("[new master key] Client KeyPair exists. Trying to decrypt master key for '"+userName+"'...");
+        //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
+        //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
+        decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+          console.log("(new master key) Caching master private key decrypted");
+          masterKeyPair.privKey = key;
+          masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+          return callback(null);
+        });
+      } else {
+        console.log("Private key does not yet exist so cannot decrypt master key");
+        return callback("Private key does not exist");
+      };
+    };
   });
 };
 

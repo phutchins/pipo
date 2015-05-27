@@ -9,6 +9,23 @@
       </ul>
       <div id="menu">
         <div id="left-menu-profile">
+          <div id="menu-header-profile">
+            <div class="ui teal buttons">
+              <div class="ui button">Options</div>
+              <div class="ui floating dropdown icon button">
+                <i class="chevron down icon"></i>
+                <div id="options-menu-dropdown" class="menu">
+                  <div class="ui icon search input">
+                    <i class="search icon"></i>
+                    <input type="text" name="search" placeholder="Search messages...">
+                  </div>
+                  <div id="generate-keypair-button" class="item"><i class="spy icon"></i> Generate new client key pair</div>
+                  <div id="select-keypair-button" class="item"><i class="folder open icon"></i> Select existing key pair</div>
+                  <div id="export-keypair-button" class="item"><i class="download icon"></i> Export client key pair</div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
         <div id="left-menu-scroll">
           <div class="room-list-container">
@@ -27,8 +44,9 @@
         </div>
       </div>
     </div>
+
     <div class="input-container" id="input-container">
-      <form id="main-input-form">
+      <form>
         <div id="message-input-container" class="ui left fluid action icon input loading">
           <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
           <i id="loading-icon" class="search icon"></i>
@@ -36,77 +54,121 @@
         </div>
       </form>
     </div>
-    <div class="ui small modal initial">
-      <div class="header">Generate or Authenticate</div>
-      <div class="content">No localStorage credentials were found, would you like to generate new credentials or authenticate using existing ones?</div>
-      <div class="actions">
-        <div class="ui button approve green generate" data-value="generate">Generate</div>
-        <div class="ui button approve blue authenticate" data-value="authenticate">Authenticate</div>
+
+    <div class="ui form basic modal password-prompt-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Decrypt Master Key
       </div>
-    </div>
-    <div class="ui small modal create">
-      <div class="header">Create</div>
-      <form class="ui form content create">
-        <div class="field">Select a username and a passphrase to encrypt your keys</div>
-        <div class="field" style="display: none; color: red" id="createError"></div>
-        <div class="field">
-          <label for="username">Name</label>
-          <input type="text" class="username" id="username">
+      <div class="ui">
+        <div class="description">
+          <p>Please enter your client key password...</p>
         </div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="password" class="password" id="password">
+        <div class="ui input">
+            <input name="password" type="password" placeholder="password"></input>
         </div>
-        <div class="field">
-          <label for="confirmPassword">Confirm Password</label>
-          <input type="password" class="password" id="confirmPassword">
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button password-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
         </div>
-      </form>
-      <div class="actions">
-        <div class="ui button approve green go" data-value="go">Go</div>
       </div>
     </div>
-    <div class="ui small modal generate">
-      <div class="header">Generate</div>
-      <div class="content center">
-        <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
+
+    <div class="ui form basic modal key-creds-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Enter your key information
       </div>
-    </div>
-    <div class="ui small modal unlock">
-      <div class="header">Unlock Credentials</div>
-      <form class="ui form content unlock">
-        <div class="field">Enter the passphrase you selected to decrypt your keys</div>
-        <div class="field" style="display: none; color: red" id="createError"></div>
-        <div class="field">
-          <label for="password">Password</label>
-          <input type="password" class="password" id="password">
+      <div class="ui">
+        <div class="description">
+          <p>Username:</p>
         </div>
-      </form>
+        <div class="ui input">
+            <input name="username" type="username" placeholder="User Name"></input>
+        </div>
+                  <div class="description">
+          <p>Full Name:</p>
+        </div>
+        <div class="ui input">
+            <input name="fullname" type="fullname" placeholder="Full Name"></input>
+        </div>
+                  <div class="description">
+          <p>Email:</p>
+        </div>
+        <div class="ui input">
+            <input name="email" type="email" placeholder="Email"></input>
+        </div>
+        <div class="description">
+          <p>Please enter a strong password:</p>
+        </div>
+      </div>
       <div class="actions">
-        <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button key-creds-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
       </div>
     </div>
-    <div class="ui small modal authenticate">
-      <div class="header">Authenticate</div>
-      <div class="content">Please select your credentials</div>
+
+    <div class="ui form basic modal import-keypair-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Import Client Key Pair
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Please locate your keys...</p>
+        </div>
+        <div class="ui">
+          <a href="#" id="select-pubkey">Public Key: </a><input type="file" id="pubkey-file-input"></input>
+        </div>
+        <div class="ui">
+          <a href="#" id="select-privkey">Private Key: </a><input type="file" id="privkey-file-input"></input>
+        </div>
+      </div>
       <div class="actions">
-        <div class="ui button approve green" data-value="generate">Generate</div>
-        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button import-keypair-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
       </div>
     </div>
+
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
 
-    <script src="/js/lib/openpgp.js"></script>
+    <script src="/js/openpgp.js"></script>
     <script src="/js/lib/kbpgp.js"></script>
-    <script src="https://code.jquery.com/jquery-1.11.1.js"></script>
+    <!-- These should definitely be cached locally -->
+    <script src="http://code.jquery.com/jquery-1.11.1.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/semantic-ui/1.12.2/semantic.js"></script>
+
     <script src="/socket.io/socket.io.js"></script>
     <script src="/js/lib/highlight.min.js"></script>
     <script src="/js/lib/moment.min.js"></script>
     <script src="/js/lib/livestamp.min.js"></script>
-    <script src="/js/lib/marked.js"></script>
+    <script src="/js/marked.js"></script>
 
     <script src="/js/chatManager.js"></script>
     <script src="/js/socketClient.js"></script>
@@ -114,9 +176,7 @@
 
     <script>
       hljs.initHighlightingOnLoad();
-      openpgp.initWorker('/js/lib/openpgp.worker.js');
+      openpgp.initWorker('/js/openpgp.worker.js');
     </script>
-
-
   </body>
 </html>

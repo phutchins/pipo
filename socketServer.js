@@ -32,6 +32,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
 
   socket.on('serverCommand', self.onServerCommand.bind(self));
+
 };
 
 /**
@@ -40,7 +41,7 @@ SocketServer.prototype.onSocket = function(socket) {
 SocketServer.prototype.authenticate = function init(data) {
   var self = this;
   console.log("[AUTH] Socket authentication data");
-  User.authenticateOrCreate(data, function(err, user) {
+  User.(data, function(err, user) {
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
@@ -214,6 +215,75 @@ SocketServer.prototype.getUserList = function(room, callback) {
   });
 
   callback(null, members);
+};
+
+
+//TODO: Are these still needed?
+SocketServer.prototype.sendUserListUpdate = function sendUserListUpdate(channel, callback) {
+  if (channel != null) {
+    getChannelUsersArray(channel, function(err, channelUsersArray) {
+      if (err) {
+        callback(err);
+      } else {
+        var userListData = {
+          userList: channelUsersArray
+        }
+        ioMain.emit("userlist update", userListData);
+        callback(null);
+      };
+    });
+  } else {
+    // update all channels
+  };
+};
+
+SocketServer.prototype.removeUserFromAllChannels = function removeUserFromAllChannels(socketId, callback) {
+  var userName = "";
+  // TODO: fix me!
+  findUserBySocketId(socketId, function(err, user) {
+    if (err) {
+      callback(err, null);
+    } else {
+      Channel.update({}, { $pull: { _userList: user.id } }, function(err, channel, count) {
+        if (err) {
+          callback(err, null);
+        } else {
+          console.log("Removed "+user.userName+" from "+count+" channels");
+          callback(null, userName);
+        };
+      });
+    };
+  });
+};
+
+//TODO: Decide to use this method or use the socket namespaces
+SocketServer.prototype.findClientsSocket = function findClientsSocket(roomId, namespace) {
+    var res = [];
+    var ns = io.of(namespace ||"/");    // the default namespace is "/"
+    if (ns) {
+        for (var id in ns.connected) {
+            if(roomId) {
+                var index = ns.connected[id].rooms.indexOf(roomId) ;
+                if(index !== -1) {
+                    res.push(ns.connected[id]);
+                }
+            } else {
+                res.push(ns.connected[id]);
+            }
+        }
+    }
+    return res;
+}
+
+SocketServer.prototype.findClientsSocketByRoomId = function findClientsSocketByRoomId(roomId) {
+  var res = [];
+  var room = io.sockets.adapter.rooms[roomId];
+  if (room) {
+    for (var id in room) {
+      res.push(io.sockets.adapter.nsp.connected[id]);
+    };
+  };
+  return res;
 };
 
 module.exports = SocketServer;

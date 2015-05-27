@@ -3,12 +3,123 @@ var roomUsers = {};
 
 var ChatManager = {};
 
+var host = window.location.host;
+var socket = io(host+'/main');
+var currentChannel = "general";
+var clientKeyPassword = null;
+var masterKeyPassword = 'pipo';
+var amountOfSpaceNeeded = 5000000;
+var keyPair = ({
+  pubKey: null,
+  privKey: null
+});
+var encryptedMasterKeyPair = ({
+  pubKey: null,
+  privKey: null
+});
+var masterKeyPair = ({
+  pubKey: null,
+  privKey: null
+});
+var userName = null;
+
+marked.setOptions({
+  renderer: new marked.Renderer(),
+  gfm: true,
+  tables: true,
+  breaks: true,
+  pedantic: false,
+  sanatize: true,
+  smartLists: true,
+  smartypants: false,
+  highlight: function (code) {
+    return hljs.highlightAuto(code).value;
+  }
+});
+
 $('#main-input-form').form('setting', {
   onSuccess: function () {
     ChatManager.sendMessage();
     return false;
   }
 });
+
+//TODO: This should probably replace the one above
+$('textarea').keydown(function (event) {
+  if (event.keyCode == 13 && event.shiftKey) {
+    var content = this.value;
+    var caret = ChatManager.getCaret(this);
+    this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length);
+    event.stopPropagation();
+    console.log("got shift+enter");
+    var $messageInput = $('#message-input');
+    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+    return false;
+  } else if(event.keyCode == 13) {
+    console.log("got enter");
+    $('form').submit();
+    return false;
+  }
+});
+
+$('.dropdown')
+  .dropdown({
+    transition: 'drop'
+  })
+;
+
+$('#generate-keypair-button').on('click', function() {
+  console.log("Regenerating client keypair");
+  regenerateClientKeyPair(function(err) {
+    console.log("Client keypair regeneration done...");
+  });
+});
+
+$('#select-keypair-button').on('click', function() {
+  console.log("Loading keypair from file...");
+  promptForImportKeyPair(function(err, data) {
+    var privKey = data.privKey;
+    var pubKey = data.pubKey;
+    updateRemotePubKey(userName, pubKey, function(err) {
+      if (err) { return console.log("Error updating remote public key") };
+      promptForPassword(function(err) {
+        loadClientKeyPairFromFile({ pubKey: pubKey, privKey: privKey }, function(err) {
+          if (err) {
+           alertUser("Error loading key pair", err);
+          } else {
+            console.log("Done loading keypair from file...");
+            // push new public key to server
+            // wait for encrypted master key
+          };
+        });
+      });
+    });
+  });
+});
+
+$('#export-keypair-button').on('click', function() {
+  console.log("Exporting keypair to file");
+});
+
+// Assists in splitting line in the case of shift+enter
+ChatManager.getCaret = function getCaret(el) {
+  if (el.selectionStart) {
+    return el.selectionStart;
+  } else if (document.selection) {
+    el.focus();
+    var r = document.selection.createRange();
+    if (r == null) {
+      return 0;
+    };
+    var re = el.createTextRange(),
+    rc = re.duplicate();
+    re.moveToBookmark(r.getBookmark());
+    rc.setEndPoint('EndToStart', re);
+    return rc.text.length;
+  };
+  return 0;
+};
+
 
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
 ChatManager.sendNotification = function sendNotification(image, title, message, timeout, showOnFocus) {
@@ -205,7 +316,9 @@ ChatManager.sendMessage = function sendMessage() {
     }
   }
   else {
-    window.socketClient.sendMessage('general', input);
+    ChatManager.prepareMessage(input, function(err, preparedInput) {
+      window.socketClient.sendMessage('general', preparedInput);
+    })
   }
 };
 
@@ -388,4 +501,50 @@ ChatManager.promptForPassphrase = function(callback) {
       }
     }
   });
+};
+
+ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
+  console.log("Prompting user to import existing keypair");
+  $('.basic.modal.import-keypair-modal').modal('show');
+  //$('.basic.modal.import-keypair-modal #pubkey-file-input').css('opacity', '0');
+  //$('.basic.modal.import-keypair-modal #privkey-file-input').css('opacity', '0');
+  $('.import-keypair-modal #select-pubkey').click(function(e) {
+    e.preventDefault();
+    $('#pubkey-file-input').trigger('click');
+  });
+  $('.import-keypair-modal #select-privkey').click(function(e) {
+    e.preventDefault();
+    $('#privkey-file-input').trigger('click');
+  });
+  $('.import-keypair-submit-button').click(function(e) {
+    var pubKeyFile = document.getElementById('pubkey-file-input').files[0];
+    var pubKeyContents = null;
+    var privKeyFile = document.getElementById('privkey-file-input').files[0];
+    var privKeyContents = null;
+    if (pubKeyFile && privKeyFile) {
+      var reader = new FileReader();
+      reader.readAsText(pubKeyFile);
+      reader.onload = function(e) {
+        pubKeyContents = e.target.result;
+        reader.readAsText(privKeyFile);
+        reader.onload = function(e) {
+          privKeyContents = e.target.result;
+          var data = ({
+            pubKey: pubKeyContents,
+            privKey: privKeyContents,
+          });
+          console.log("Read key files with contents: pubKey: "+pubKeyContents+" privKey: "+privKeyContents);
+          callback(null, data);
+        };
+      };
+    } else {
+      err = "Error importing key pair from file";
+      callback(err, null);
+    };
+  });
+
+  function getNewMessageId(callback) {
+    var id = new Date().getTime();
+    callback(id);
+  };
 };

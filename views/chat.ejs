@@ -219,7 +219,7 @@
             console.log("[START] Starting with username '"+userName+"'");
             loadClientKeyPair(fs, function(err) {
               console.log("[START] Sending init to server...");
-              socket.emit('init', { userName: userName });
+              socket.emit('authenticate', { userName: userName });
               if (err) { return console.log("[START][LOAD CLIENT KEY] Error loading client key from local storage: "+err); };
               localMsg({ type: "STATUS", message: "Loaded client keys from local storage" });
               promptForPassword(function(err, password) {
@@ -979,7 +979,7 @@
               } else {
                 console.log("Message encrypted successfully");
                 // Need to not send the username here and derive it from the socket on the server
-                socket.emit('chat message', { userName: userName, pgpMessage: pgpMessage } );
+                socket.emit('roomMessage', { userName: userName, pgpMessage: pgpMessage } );
                 console.log("Message emitted to socket.io");
                 $('#message-input').val('');
               }
@@ -1094,7 +1094,7 @@
         });
       });
 
-      socket.on('chat message', function(data){
+      socket.on('roomMessage', function(data){
         console.log("Just got chat message!");
         var fromUser = data.userName;
         var pgpMessage = data.pgpMessage;

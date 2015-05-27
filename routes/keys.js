@@ -25,6 +25,7 @@ module.exports = function(app) {
   });
   app.post('/key/pubkey', function(req, res) {
     // Accept users public key
+    //TODO: Check to see if any master key needs to be regenerated
     var timestamp = new Date().toString();
     var userName = req.param('userName');
     var pubKey = req.param('pubKey');

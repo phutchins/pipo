@@ -1,50 +1,62 @@
-var express = require('express');
-var app = express();
-var app = require('express')();
-var http = require('http').Server(app);
-var io = require('socket.io')(http);
+//Native node
+var http = require('http');
+var https = require('https');
+var fs = require('fs');
 var path = require('path');
+
+//Modules
+var express = require('express');
+var socketIO = require('socket.io');
 var openpgp = require('openpgp');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser');
-var fs = require('fs');
 var morgan = require('morgan');
 var async = require('async');
 var marked = require('marked');
 var events = require('events');
 var winston = require('winston');
+var pgp = require('kbpgp');
 
+//Configuration
 var configMD = require('./config/markdown.js');
 var configDB = require('./config/database.js');
 var logger = require('./config/logger.js');
+var configHttps = require('./config/https');
 
-var KeyPair = require('./models/keypair.js');
-var User = require('./models/user.js');
-var Channel = require('./models/channel.js');
-var KeyId = require('./models/keyid.js');
-var allClients = [];
-var userMembership = {};
-var socketMembership = {};
+//Models
+var KeyPair = require('./models/keypair');
+var User = require('./models/user');
+var Channel = require('./models/channel');
+var KeyId = require('./models/keyid');
 
+//Globals
+var SocketServer = require('./socketServer')
+
+//Application
+var app = express();
+var server = http.Server(app);
+var https_server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+var io = socketIO(server);
+
+//Express
 app.set('view engine', 'ejs');
-app.use(express['static'](path.join(__dirname, 'public')));
+//app.set('view cache', true);
+app.set('x-powered-by', false);
+
+
+//Middleware
 app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({
-  extended: true
-}));
+app.use(bodyParser.urlencoded({extended: true}));
 app.use(morgan('dev'));
 
-// Database
-var db = mongoose.connection;
-db.on('error', console.error);
-db.once('open', function() {
-  // Load any schemas/models here?
-})
+//Static assets
+app.use(express['static'](path.join(__dirname, 'public')));
 
-var mongoUrl = configDB.url;
+//Logger
+app.use(morgan('dev'));
 
 var connectWithRetry = function() {
-  return mongoose.connect(mongoUrl, function(err) {
+  return mongoose.connect(configDB.url, function(err) {
     if (err) {
       console.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
       setTimeout(connectWithRetry, 5000);
@@ -70,41 +82,14 @@ io.on('connection', function(socket) {
 var ioMain = io.of('/main');
 
 ioMain.on('connection', function(socket) {
-  console.log("[CONNECTION] User connected!");
+  new SocketServer(ioMain).onSocket(socket);
+});
 
-  socket.on('init', function(data) {
-    console.log("[INIT] Init.");
-    userName = data.userName;
-    User.findOneAndUpdate({ userName: userName }, { $push: { socketIds: socket.id }}, { upsert: true }, function(err, user) {
-      if (err) {
-        console.log("[INIT] Error finding user: "+err);
-      } else if  (user == null) {
-        new User({
-          userName: userName,
-          usrNameLowerCase: userName.toLowerCase()
-        }).save(function(err, user) {
-          if (err) return console.log("Error adding new user: "+err);
-          return console.log("Added new user with username '"+userName+"'");
-        });
-      } else {
-        console.log("[INIT] Got user "+user.userName+" with socketId "+user.socketIds.toString());
-      }
-    });
-    console.log("[INIT] Init'd user "+userName);
-  });
 
-  socket.on('chat message', function(data) {
-    var userName = data.userName;
-    var pgpMessage = data.pgpMessage;
-    console.log("[MSG] Server got chat message from "+userName);
-    ioMain.emit('chat message', data);
-    console.log("[MSG] Server emitted chat message to users");
-  });
 
-  socket.on('regen master key', function() {
-    console.log("Got socket 'regen master key'");
-    regenerateMasterKeyPair();
-  });
+
+
+
 
   socket.on('privmsg', function(data) {
     var toUser = data.toUser;
@@ -715,6 +700,6 @@ function showKeys(privkey, pubkey) {
   console.log("PGP PrivKey: "+privkey+" pubkey: "+pubkey);
 }
 
-http.listen(3030, function() {
+server.listen(3030, function() {
   console.log('[SERVER] listening on *:3030');
 });

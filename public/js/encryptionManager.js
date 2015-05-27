@@ -137,6 +137,19 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
   }, callback);
 };
 
+/**
+ * Encrypts messages to the master key if we are using
+ * master key room message encryption
+ */
+EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(key, message, callback) {
+  var masterPubKey = openpgp.key.readArmored(key);
+  openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
+    callback(null, pgpMessage);
+  }).catch(function(error) {
+    return callback(error, null);
+  });
+};
+
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
   var self = this;
   window.kbpgp.box({
@@ -151,6 +164,7 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
  * @param encryptedMessage
  * @param callback
  */
+ //TODO: Should name this appropriately for client key decryption
 EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMessage, callback) {
   window.kbpgp.unbox({
     keyfetch: this.keyRing,
@@ -158,10 +172,29 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMe
   }, callback);
 };
 
+//TODO: Should name this appropriately for master key decryption
+EncryptionManager.prototype.decryptRoomMessage = function decryptRoomMessage(key, passphrase, pgpMessage, callback) {
+  var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
+  if (typeof masterPrivateKey !== 'undefined') {
+    masterPrivateKey.decrypt(passphrase);
+    pgpMessage = openpgp.message.readArmored(pgpMessage);
+    openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
+      console.log("Decrypted message!");
+      callback(null, plaintext);
+    }).catch(function(err) {
+      console.log("Error decrypting message");
+      return callback(err, null);
+    });
+  } else {
+    console.log("master private key is undefined!");
+    return callback("master private key is undefined", null);
+  }
+}
+
 
 //TODO: Determine if these are needed
 
-function removeClientKeyPair(fs, callback) {
+EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(fs, callback) {
   fs.root.getFile('clientkey.aes', {create: false}, function(fileEntry) {
     fileEntry.remove(function() {
       console.log('File successufully removed.');
@@ -187,7 +220,7 @@ function removeClientKeyPair(fs, callback) {
   };
 };
 
-function regenerateClientKeyPair(callback) {
+EncryptionManager.prototype.regenerateClientKeyPair = function regenerateClientKeyPair(callback) {
   initStorage(function(err, fs) {
     if (err) { return callback(err); };
     removeClientKeyPair(fs, function() {
@@ -208,7 +241,7 @@ function regenerateClientKeyPair(callback) {
   });
 };
 
-function saveClientKeyPair(fs, keyPair, userName, callback) {
+EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(fs, keyPair, userName, callback) {
   var privKey = keyPair.privKey;
   var pubKey = keyPair.pubKey;
   fs.root.getFile(userName+'_clientkey.aes', {create: true}, function(fileEntry) {
@@ -252,7 +285,7 @@ function saveClientKeyPair(fs, keyPair, userName, callback) {
   };
 }
 
-function initStorage(callback) {
+EncryptionManager.prototype.initStorage = function initStorage(callback) {
   //Taking care of the browser-specific prefix
   window.requestFileSystem  = window.requestFileSystem || window.webkitRequestFileSystem;
   window.requestFileSystem(window.PERSISTENT, 1024*1024,onInitFs, function(err) {
@@ -288,7 +321,7 @@ function initStorage(callback) {
 };
 
 
-function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
+EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback) {
   var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
   var clientPrivKey = openpgp.key.readArmored(privKey).keys[0];
   clientPrivKey.decrypt(clientKeyPassword);
@@ -308,7 +341,7 @@ function decryptMasterKey(userName, privKey, encryptedMasterPrivateKey, callback
   });
 };
 
-function getMasterKeyPair(userName, callback) {
+EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userName, callback) {
   var timestamp = new Date().toString();
   console.log("["+timestamp+"] Getting master keyPair for "+userName);
   $.ajax({
@@ -331,7 +364,7 @@ function getMasterKeyPair(userName, callback) {
   });
 };
 
-function updateRemotePubKey(userName, pubKey, callback) {
+EncryptionManager.prototype.updateRemotePubKey = function updateRemotePubKey(userName, pubKey, callback) {
   console.log("Updating remote public key");
   $.ajax({
     type: "GET",
@@ -381,7 +414,8 @@ function updateRemotePubKey(userName, pubKey, callback) {
   });
 };
 
-function updatePubKeyOnRemote(userName, pubKey, callback) {
+//TODO: Yes... I know this is a duplicate. Will deal with it later.
+EncryptionManager.prototype.updatePubKeyOnRemote = function updatePubKeyOnRemote(userName, pubKey, callback) {
   console.log("2 Updating public key on remote");
   $.ajax({
     type: "POST",

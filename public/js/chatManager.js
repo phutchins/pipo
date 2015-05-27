@@ -503,7 +503,7 @@ ChatManager.promptForPassphrase = function(callback) {
   });
 };
 
-function promptForImportKeyPair(callback) {
+ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
   console.log("Prompting user to import existing keypair");
   $('.basic.modal.import-keypair-modal').modal('show');
   //$('.basic.modal.import-keypair-modal #pubkey-file-input').css('opacity', '0');
@@ -542,4 +542,9 @@ function promptForImportKeyPair(callback) {
       callback(err, null);
     };
   });
+
+  function getNewMessageId(callback) {
+    var id = new Date().getTime();
+    callback(id);
+  };
 };

@@ -143,6 +143,16 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.updateUserList();
 
   });
+
+  this.socket.on('chatStatus', function(data) {
+    console.log("Got chat status...");
+    var statusType = data.statusType;
+    var statusMessage = data.statusMessage;
+    localMsg({ type: statusType, message: statusMessage });
+    var $messages = $('#messages');
+    $messages[0].scrollTop = $messages[0].scrollHeight;
+  });
+
 };
 
 SocketClient.prototype.authenticate = function() {

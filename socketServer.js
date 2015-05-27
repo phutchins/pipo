@@ -41,7 +41,7 @@ SocketServer.prototype.onSocket = function(socket) {
 SocketServer.prototype.authenticate = function init(data) {
   var self = this;
   console.log("[AUTH] Socket authentication data");
-  User.(data, function(err, user) {
+  User.authenticateOrCreate(data, function(err, user) {
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});

@@ -16,7 +16,7 @@ keyIdSchema.statics.getMasterKeyId = function getMasterKeyId(callback) {
     } else if (typeof keyId == 'undefined' || keyId == null) {
       this.create(function(err, keyId) {
         keyId = self.keyId.id;
-      }
+      });
     } else {
       console.log("keyId is: "+keyId);
       return callback(null, keyId.id);

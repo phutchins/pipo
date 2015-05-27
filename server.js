@@ -21,7 +21,7 @@ var pgp = require('kbpgp');
 var configMD = require('./config/markdown.js');
 var configDB = require('./config/database.js');
 var logger = require('./config/logger.js');
-var confighttp = require('./config/http');
+var configHttp = require('./config/http');
 var configHttps = require('./config/https');
 
 //Models
@@ -90,7 +90,7 @@ ioMain.on('connection', function(socket) {
 start();
 
 function start() {
-  keyPair.checkMasterKeyPairForAllUsers(function(err, response) {
+  KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
     console.log("Checking master key pair for all users");
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
     if (response == 'update') {

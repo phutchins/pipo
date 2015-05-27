@@ -1,4 +1,6 @@
 var mongoose = require('mongoose');
+var KeyId = require('./keyid');
+var User = require('./user');
 var Schema = mongoose.Schema;
 
 var keyPairSchema = new Schema({
@@ -66,7 +68,7 @@ keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyP
 }
 
 keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPairForAllUsers(callback) {
-  getMasterKeyId(function(err, currentKeyId) {
+  KeyId.getMasterKeyId(function(err, currentKeyId) {
     if (err) {
       return callback(err, null);
     } else {

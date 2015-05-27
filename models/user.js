@@ -64,6 +64,71 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
   });
 };
 
+
+// TODO: Decide if these are needed still
+userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, callback) {
+  var User = require('./models/user.js');
+  User.findOne({ userName: userName }, function(err, user) {
+    if (err) { return callback(err); };
+    if (typeof user === 'undefined' || user === null) {
+      console.log("No user found in DB with username "+userName);
+      new User({
+        userName: userName,
+      }).save( function(err, user, count) {
+        if (err) { return console.log("Error adding user to DB: "+err); }
+        console.log("Added user '"+userName+"' to DB");
+        return callback(null);
+      });
+    } else {
+      //console.log("User exists");
+      return callback(null);
+    }
+  });
+};
+
+userSchema.statics.findBySocketId = function findUserBySocketId(socketId, callback) {
+  User.findOne({ socketIds: socketId }, function(err, user) {
+    if (err) {
+      return callback(err);
+    } else if (user == null) {
+      return callback("No user found with this socketId");
+    } else {
+      return callback(null, user);
+    };
+  });
+};
+
+
+userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
+  findUserBySocketId(socketId, function(err, user) {
+    if (err) {
+      callback(err);
+    } else {
+      var userName = user.userName;
+      removeUserFromAllChannels(socketId, function(err, userName) {
+        if (err) {
+          return console.log("[DISCONNECT USER] Error removing user "+userName+" from all channels");
+          callback(err);
+        } else {
+          sendUserListUpdate("general", function(err) {
+            console.log("[DISCONNECT USER] Error getting channel users: "+err);
+          });
+          // Should only send this to the channels the user has parted from
+          var statusMessage = user.userName+" has left the channel";
+          var statusData = {
+            statusType: "PART",
+            statusMessage: statusMessage
+          }
+          ioMain.emit('chat status', statusData);
+          console.log("[DISCONNECT] User "+userName+" disconnected...");
+          callback(null);
+        }
+      });
+    };
+  });
+};
+
+
 userSchema.methods.generateHash = function(pubKey) {
   return bcrypt.hashSync(pubKey, bcrypt.genSaltSync(8), null);
 };

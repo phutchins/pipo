@@ -8,6 +8,7 @@ function SocketClient() {
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
     self.init();
+    //self.initMasterKey();
   });
 
   this.socket.on('connect_error', function(err) {

@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 var openpgp = require('openpgp');
 var KeyId = require('./keyid');
 var User = require('./user');
+var async = require('async');
 var Schema = mongoose.Schema;
 
 var keyPairSchema = new Schema({
@@ -14,10 +15,11 @@ var keyPairSchema = new Schema({
 });
 
 keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair() {
+  var self = this;
   console.log("Running regenerateMasterKeyPair");
   generateMasterKeyPair(function(err, masterKeyPair, id) {
     console.log("[START] New master keyPair generated...");
-    updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
+    self.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
       if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
       console.log("[START] Encrypted master key for all users!");
     });
@@ -47,20 +49,21 @@ keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(cal
 };
 
 keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyPairForAllUsers(masterKeyPair, keyId, callback) {
+  var self = this;
   var timestamp = new Date().toString();
   console.log("["+timestamp+"] [UPDATE] starting updateMasterKeyPairForAllUsers");
   User.find({}, function(err, users, count) {
     var timestamp = new Date().toString();
     console.log("["+timestamp+"] [UPDATE] found users");
     async.each(users, function(user, asyncCallback) {
-      updateMasterKeyPairForUser(user, masterKeyPair, keyId, function(err) {
+      self.updateMasterKeyPairForUser(user, masterKeyPair, keyId, function(err) {
         if (err) { return asyncCallback(err); }
         //console.log("Update master key process for "+user.userName+" done...");
         asyncCallback(err);
       });
     }, function(err) {
         if (err) {
-          console.log("Error generating key pair for all users");
+          console.log("[KEYPAIR] Error generating key pair for all users");
           callback(err);
         } else {
           console.log("Generated encrypted master key for all users");

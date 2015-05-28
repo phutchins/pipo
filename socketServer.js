@@ -43,7 +43,7 @@ SocketServer.prototype.start = function start() {
       console.log("Users keypair needs updating so generating new master key pair");
       KeyPair.generateMasterKeyPair(function(err, masterKeyPair, id) {
         console.log("[START] New master keyPair generated with id '"+id+"'");
-        updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
+        KeyPair.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
           if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
           console.log("[START] Encrypted master key for all users!");
         });

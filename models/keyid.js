@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var async = require('async');
 var Schema = mongoose.Schema;
 
 var keyIdSchema = new Schema({
@@ -38,7 +39,8 @@ keyIdSchema.statics.create = function createMasterKeyId(callback) {
 };
 
 keyIdSchema.statics.increment = function incrementMasterKeyId(callback) {
-  KeyId.findOne({ type: 'master' }, function(err, keyId, count) {
+  var self = this;
+  this.findOne({ type: 'master' }, function(err, keyId, count) {
     if (typeof keyId == 'undefined') {
       return callback("Cannot find master key ID while trying to increment", null);
     } else {

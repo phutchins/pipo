@@ -104,7 +104,7 @@ module.exports = function(app) {
       }
       return callback(keyPair);
     }).catch(function(error) {
-      console.log("Error generating key pair: "+error);
+      console.log("[ROUTE KEYS] Error generating key pair: "+error);
     });
   }
 

@@ -1,4 +1,5 @@
 var User = require('./models/user');
+var KeyPair = require('./models/keypair');
 
 /**
  * Handles all socket traffic
@@ -40,7 +41,7 @@ SocketServer.prototype.start = function start() {
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
     if (response == 'update') {
       console.log("Users keypair needs updating so generating new master key pair");
-      generateMasterKeyPair(function(err, masterKeyPair, id) {
+      KeyPair.generateMasterKeyPair(function(err, masterKeyPair, id) {
         console.log("[START] New master keyPair generated with id '"+id+"'");
         updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
           if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };

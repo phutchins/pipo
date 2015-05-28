@@ -19,9 +19,10 @@ var winston = require('winston');
 var pgp = require('kbpgp');
 
 //Configuration
-var configMD = require('./config/markdown.js');
-var configDB = require('./config/database.js');
-var logger = require('./config/logger.js');
+var configPipo = require('./config/pipo');
+var configMD = require('./config/markdown');
+var configDB = require('./config/database');
+var logger = require('./config/logger');
 var configHttp = require('./config/http');
 var configHttps = require('./config/https');
 
@@ -79,7 +80,6 @@ fs.readdirSync(routePath).forEach(function(file) {
 
 io.on('connection',function (socket) {
   console.log("Connection to io");
-  new SocketServer(ioMain).onSocket(socket);
 });
 
 var ioMain = io.of('/socket');
@@ -93,23 +93,20 @@ ioMain.on('connection', function(socket) {
 start();
 
 function start() {
-  KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
-    console.log("Checking master key pair for all users");
-    if (err) { console.log("[START] Error checking master key for all users: "+err); };
-    if (response == 'update') {
-      console.log("Users keypair needs updating so generating new master key pair");
-      generateMasterKeyPair(function(err, masterKeyPair, id) {
-        console.log("[START] New master keyPair generated with id '"+id+"'");
-        updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
-          if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
-          console.log("[START] Encrypted master key for all users!");
-        });
-      });
-    } else if (response == 'ok') {
-      console.log("All users master key matches current version");
-      //io.emit('new master key', masterKeyPair);
-    }
-  });
+  switch (configPipo.encryptionStrategy) {
+    // Use master shared key encryption (faster but slightly less secure possibly)
+    case 'masterKey':
+      console.log("[START] Starting in MASTER KEY mode");
+      new SocketServer(ioMain).start();
+      break;
+      // Use multi client key encryption (slower but a tad more secure)
+    case 'clientKey':
+      console.log("[START] Starting in CLIENT KEY mode");
+      break;
+    default:
+      console.log("Default not set up yet");
+      break;
+  };
 };
 
 /**

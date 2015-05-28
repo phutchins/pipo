@@ -1,4 +1,5 @@
 var mongoose = require('mongoose');
+var openpgp = require('openpgp');
 var KeyId = require('./keyid');
 var User = require('./user');
 var Schema = mongoose.Schema;
@@ -24,8 +25,9 @@ keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair
 };
 
 keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(callback) {
+  var self = this;
   console.log("Generating master key pair start");
-  generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
+  self.generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
     console.log("Generated master key pair!");
     if (err) {
       callback(err, null, null);
@@ -114,6 +116,7 @@ keyPairSchema.statics.updateMasterKeyPairForUser = function updateMasterKeyPairF
 }
 
 keyPairSchema.statics.generateKeyPair = function generateKeyPair(numBits, userId, passphrase, callback) {
+  var self = this;
   var options = {
     numBits: numBits,
     userId: userId,

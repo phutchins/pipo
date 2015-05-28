@@ -162,7 +162,7 @@ SocketClient.prototype.addListeners = function() {
 };
 
 SocketClient.prototype.authenticate = function() {
-  console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
+  console.log("[AUTH] Authenticating with server with username: '"+window.username+"' and pubKey: "+window.encryptionManager.keyPair.publicKey);
   this.socket.emit('authenticate', {username: window.username, publicKey: window.encryptionManager.keyPair.publicKey});
 };
 

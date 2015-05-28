@@ -33,10 +33,12 @@ keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(cal
       callback(err, null, null);
     } else {
       // Should not be saving the keypair here eventually
-      incrementMasterKeyId(function(err, keyId) {
+      KeyId.increment(function(err, keyId) {
         if (err) {
+          console.log("Error incrememnting keyId: "+err);
           return callback(err, null, null);
         } else {
+          console.log("Incrememnted keyId to '"+keyId+"'");
           return callback(null, newMasterKeyPair, keyId);
         };
       });

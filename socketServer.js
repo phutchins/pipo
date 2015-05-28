@@ -37,7 +37,7 @@ SocketServer.prototype.onSocket = function(socket) {
 
 SocketServer.prototype.start = function start() {
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
-    console.log("Checking master key pair for all users");
+    console.log("Checked master key pair for all users. Response is '"+response+"'");
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
     if (response == 'update') {
       console.log("Users keypair needs updating so generating new master key pair");
@@ -75,11 +75,11 @@ SocketServer.prototype.authenticate = function init(data) {
       self.namespace.userMap[user.username] = self.socket.id;
 
       self.socket.user = user;
-      console.log("[INIT] Init'd user " + user.username);
+      console.log("[INIT] Init'd user " + user.userName);
       self.socket.emit('authenticated', {message: 'ok'});
 
       return self.namespace.emit('user connect', {
-        username: user.username,
+        username: user.userName,
         publicKey: user.publicKey
       });
     }

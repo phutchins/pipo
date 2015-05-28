@@ -154,6 +154,65 @@
       </div>
     </div>
 
+    <div class="ui small modal initial">
+      <div class="header">Generate or Authenticate</div>
+      <div class="content">No localStorage credentials were found, would you like to generate new credentials or authenticate using existing ones?</div>
+      <div class="actions">
+        <div class="ui button approve green generate" data-value="generate">Generate</div>
+        <div class="ui button approve blue authenticate" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+    <div class="ui small modal create">
+      <div class="header">Create</div>
+      <form class="ui form content create">
+        <div class="field">Select a username and a passphrase to encrypt your keys</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="username">Name</label>
+          <input type="text" class="username" id="username">
+        </div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" class="password" id="password">
+        </div>
+        <div class="field">
+          <label for="confirmPassword">Confirm Password</label>
+          <input type="password" class="password" id="confirmPassword">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green go" data-value="go">Go</div>
+      </div>
+    </div>
+    <div class="ui small modal generate">
+      <div class="header">Generate</div>
+      <div class="content center">
+        <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
+      </div>
+    </div>
+    <div class="ui small modal unlock">
+      <div class="header">Unlock Credentials</div>
+      <form class="ui form content unlock">
+        <div class="field">Enter the passphrase you selected to decrypt your keys</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" class="password" id="password">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
+      </div>
+    </div>
+    <div class="ui small modal authenticate">
+      <div class="header">Authenticate</div>
+      <div class="content">Please select your credentials</div>
+      <div class="actions">
+        <div class="ui button approve green" data-value="generate">Generate</div>
+        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">

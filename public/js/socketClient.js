@@ -27,11 +27,13 @@ SocketClient.prototype.init = function() {
       //Show error somewhere
     }
     if (!loaded) {
+      console.log("[INIT] Prompting for credentials");
       return ChatManager.promptForCredentials();
     }
     if (!self.listeners) {
       self.addListeners();
     }
+    console.log("[INIT] Authenticating");
     return self.authenticate();
   });
 };
@@ -122,6 +124,7 @@ SocketClient.prototype.addListeners = function() {
         if (user.username != window.username) {
 
           //Build pgp key instance
+          console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
           window.kbpgp.KeyManager.import_from_armored_pgp({
             armored: user.publicKey
           }, function (err, keyInstance) {
@@ -159,6 +162,7 @@ SocketClient.prototype.addListeners = function() {
 };
 
 SocketClient.prototype.authenticate = function() {
+  console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
   this.socket.emit('authenticate', {username: window.username, publicKey: window.encryptionManager.keyPair.publicKey});
 };
 

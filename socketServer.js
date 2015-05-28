@@ -34,6 +34,26 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('serverCommand', self.onServerCommand.bind(self));
 };
 
+SocketServer.prototype.start = function start() {
+  KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
+    console.log("Checking master key pair for all users");
+    if (err) { console.log("[START] Error checking master key for all users: "+err); };
+    if (response == 'update') {
+      console.log("Users keypair needs updating so generating new master key pair");
+      generateMasterKeyPair(function(err, masterKeyPair, id) {
+        console.log("[START] New master keyPair generated with id '"+id+"'");
+        updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
+          if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
+          console.log("[START] Encrypted master key for all users!");
+        });
+      });
+    } else if (response == 'ok') {
+      console.log("All users master key matches current version");
+      //io.emit('new master key', masterKeyPair);
+    }
+  });
+};
+
 /**
  * New socket connected to server
  */

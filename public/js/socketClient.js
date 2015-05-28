@@ -6,6 +6,7 @@ function SocketClient() {
   window.username = localStorage.getItem("username");
 
   this.socket.on('connect', function() {
+    console.log("Connected to socket.io server");
     self.init();
   });
 
@@ -19,7 +20,9 @@ function SocketClient() {
 
 SocketClient.prototype.init = function() {
   var self = this;
+  console.log("[INIT] Loading client keypair...");
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
+    console.log("[INIT] Loaded client keypair!");
     if (err) {
       //Show error somewhere
     }

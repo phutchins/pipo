@@ -32,7 +32,6 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
 
   socket.on('serverCommand', self.onServerCommand.bind(self));
-
 };
 
 /**

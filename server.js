@@ -8,6 +8,7 @@ var path = require('path');
 var express = require('express');
 var socketIO = require('socket.io');
 var openpgp = require('openpgp');
+var favicon = require('serve-favicon');
 var mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
@@ -36,7 +37,7 @@ var SocketServer = require('./socketServer')
 //Application
 var app = express();
 var server = http.Server(app);
-var https_server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+//var https_server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
 var io = socketIO(server);
 
 //Express
@@ -46,9 +47,9 @@ app.set('x-powered-by', false);
 
 
 //Middleware
+app.use(favicon(__dirname + '/public/img/favicon.ico'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
-app.use(morgan('dev'));
 
 //Static assets
 app.use(express['static'](path.join(__dirname, 'public')));
@@ -76,13 +77,15 @@ fs.readdirSync(routePath).forEach(function(file) {
   routes[routeName] = require(route)(app);
 })
 
-io.on('connection', function(socket) {
-  console.log("[CONNECTION] Got connection to default socket");
+io.on('connection',function (socket) {
+  console.log("Connection to io");
+  new SocketServer(ioMain).onSocket(socket);
 });
 
-var ioMain = io.of('/main');
+var ioMain = io.of('/socket');
 
 ioMain.on('connection', function(socket) {
+  console.log("Connection to ioMain");
   new SocketServer(ioMain).onSocket(socket);
 });
 

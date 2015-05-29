@@ -4,6 +4,15 @@ function EncryptionManager() {
     privateKey: null
   });
 
+  this.masterKeyPair = ({
+    keyId: null,
+    publicKey: null,
+    privateKey: null
+  });
+
+  // Should update this setting from the server using getConfig and configUpToDate
+  this.encryptionScheme = 'masterKey';
+
   this.keyManager = null;
   this.keyRing = new window.kbpgp.keyring.KeyRing();
   this.credentialsLoaded = false;
@@ -130,11 +139,20 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
   keys.push(self.keyManager);
 
   //Encrypt the message
-  window.kbpgp.box({
-    msg: message,
-    encrypt_for: keys,
-    sign_with: self.keyManager
-  }, callback);
+  if (Config.encryptionScheme == 'masterKey') {
+    var masterPubKey = openpgp.key.readArmored(key);
+    openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
+      callback(null, pgpMessage);
+    }).catch(function(error) {
+      return callback(error, null);
+    });
+  } else {
+    window.kbpgp.box({
+      msg: message,
+      encrypt_for: keys,
+      sign_with: self.keyManager
+    }, callback);
+  };
 };
 
 /**
@@ -142,12 +160,6 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
  * master key room message encryption
  */
 EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(key, message, callback) {
-  var masterPubKey = openpgp.key.readArmored(key);
-  openpgp.encryptMessage(masterPubKey.keys, message).then(function(pgpMessage) {
-    callback(null, pgpMessage);
-  }).catch(function(error) {
-    return callback(error, null);
-  });
 };
 
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {

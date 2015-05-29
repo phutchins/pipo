@@ -51,11 +51,14 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     }
     if (!user) {
       console.log("[USER AUTHENTICATEORCREATE] User '"+data.username+"' not found so creating");
+      console.log("[DEBUG] User did not exist so creating user");
       return self.create(data, callback);
     }
     if (user) {
       console.log("[USER] Found user '"+data.username+"'");
-      if (user.publicKey === data.publicKey) {
+      console.log("[USER] user.publicKey: "+user.publicKey);
+      console.log("[USER] data.publicKey: "+data.publicKey);
+      if (user.publicKey == data.publicKey) {
         console.log("[USER] User '"+data.username+"' has a public key that matches username");
         //TODO: Check signature
         return callback(null, user);

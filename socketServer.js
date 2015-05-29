@@ -24,6 +24,7 @@ SocketServer.prototype.onSocket = function(socket) {
   console.log("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
+  socket.on('maserKeySync', self.masterKeySync.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
 
   socket.on('join', self.joinChannel.bind(self));
@@ -36,6 +37,7 @@ SocketServer.prototype.onSocket = function(socket) {
 };
 
 SocketServer.prototype.start = function start() {
+  var self = this;
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
     console.log("Checked master key pair for all users. Response is '"+response+"'");
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
@@ -88,6 +90,14 @@ SocketServer.prototype.authenticate = function init(data) {
       return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
   });
+};
+
+/**
+ * Check and sync master key for user
+ */
+SocketServer.prototype.masterKeySync = function masterKeySync(data) {
+  var currentKeyId = data.currentKeyId;
+
 };
 
 /**
@@ -182,7 +192,22 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
 
   var username = self.socket.user.username;
   var channel = data.channel;
-  self.socket.join(channel);
+  // Ensure that user has the most recent master key for this channel if in masterKey mode
+  if (config.encryptionScheme == 'masterKey') {
+    var usersMasterKeyId = data.masterKeyId;
+    KeyId.getMasterKeyId(function(err, currentKeyId) {
+      if (usersMasterKeyId !== currentKeyId) {
+        self.socket.emit('newMasterKey', { keyId: currentKeyId });
+        self.socket.join(channel);
+      } else {
+        console.log("[JOIN CHANNEL] Clients master key is up to date");
+        self.socket.join(channel);
+      };
+    });
+  } else {
+    // Using client key encryption scheme
+    self.socket.join(channel);
+  };
 
   self.getUserList(channel, function(err, users) {
     //self.socket.emit('userlist', {

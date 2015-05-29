@@ -44,7 +44,14 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
     self.socket.emit('join', { username: window.username, channel: "general" } );
-    ChatManager.enableChat();
+    if (window.encryptionManager.encryptionScheme == 'masterKey') {
+      // Make sure we have the most recent verison of our master keys for all
+      self.socket.emit('masterKeySync', { currentKeyId: window.encryptionManager.masterKeyPair.id });
+    } else {
+      // Use cilent keys and enable chat now
+      // Should enable chat for specific rooms
+      ChatManager.enableChat();
+    };
   });
 
   this.socket.on('errorMessage', function(data) {

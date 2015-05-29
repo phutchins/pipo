@@ -90,9 +90,9 @@ ioMain.on('connection', function(socket) {
 });
 
 // Startup routine
-start();
+initServer();
 
-function start() {
+function initServer() {
   switch (configPipo.encryptionStrategy) {
     // Use master shared key encryption (faster but slightly less secure possibly)
     case 'masterKey':

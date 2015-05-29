@@ -19,6 +19,7 @@ keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair
   console.log("Running regenerateMasterKeyPair");
   generateMasterKeyPair(function(err, masterKeyPair, id) {
     console.log("[START] New master keyPair generated...");
+    //TODO: Loop through all channels and update master key pair for each
     self.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
       if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
       console.log("[START] Encrypted master key for all users!");
@@ -48,10 +49,12 @@ keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(cal
   });
 };
 
+// This shold include the room for which to update the master key
 keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyPairForAllUsers(masterKeyPair, keyId, callback) {
   var self = this;
   var timestamp = new Date().toString();
   console.log("["+timestamp+"] [UPDATE] starting updateMasterKeyPairForAllUsers");
+  // check the DB to make sure the user has access to the room
   User.find({}, function(err, users, count) {
     var timestamp = new Date().toString();
     console.log("["+timestamp+"] [UPDATE] found users");
@@ -62,14 +65,7 @@ keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyP
         asyncCallback(err);
       });
     }, function(err) {
-        if (err) {
-          console.log("[KEYPAIR] Error generating key pair for all users");
-          callback(err);
-        } else {
-          console.log("Generated encrypted master key for all users");
-          ioMain.emit('new master key', masterKeyPair);
-          callback(err);
-        };
+      callback(err);
     });
   });
 }
@@ -82,6 +78,7 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
       var response = '';
       User.find({}, function(err, users, count) {
         users.forEach( function(user) {
+          console.log("[DEBUG] checkMasterKeyPairForAllUsers - user is: "+user);
           if (user.masterKey.encPrivKey && user.masterKey.id == currentKeyId) {
             response = 'ok';
           } else {
@@ -96,9 +93,9 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
 };
 
 keyPairSchema.statics.updateMasterKeyPairForUser = function updateMasterKeyPairForUser(user, masterKeyPair, keyId, callback) {
-  //console.log("Updating master keyPair for "+user.userName);
-  //console.log("[DEBUG] (updateMasterKeyPairForUser) user.pubKey: "+user.pubKey);
-  //console.log("[DEBUG] (updateMasterKeyPairForUser) masterKeyPair.privKey: "+masterKeyPair.privKey);
+  console.log("Updating master keyPair for "+user.userName);
+  console.log("[DEBUG] (updateMasterKeyPairForUser) user.pubKey: "+user.pubKey);
+  console.log("[DEBUG] (updateMasterKeyPairForUser) masterKeyPair.privKey: "+masterKeyPair.privKey);
   if (user.pubKey) {
     var pubKey = openpgp.key.readArmored(user.pubKey).keys[0];
     var masterPrivKey = openpgp.key.readArmored(masterKeyPair.privKey).keys[0];

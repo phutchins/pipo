@@ -204,19 +204,21 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
   var self = this;
 
   //Encrypt the message
-  switch(config.encryptionScheme) {
-    case 'masterKey':
-      this.encryptMasterKeyMessage(room, message, function(err, pgpMessage) {
-        callback(err, pgpMessage);
-      });
-    case 'clientKey':
-      this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-        callback(err, pgpmessage);
-      });
-    default:
-      this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-        callback(err, pgpmessage);
-      });
+  if (this.encryptionScheme == "masterKey") {
+    console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
+    this.encryptMasterKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpMessage);
+    });
+  } else if (this.encryptionScheme == "clientKey") {
+    console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
+    this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpmessage);
+    });
+  } else {
+    console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
+    this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpmessage);
+    });
   }
 };
 
@@ -225,7 +227,7 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
  * master key room message encryption
  */
 EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(room, message, callback) {
-    var masterPublicKey = openpgp.key.readArmored(key);
+    var masterPublicKey = openpgp.key.readArmored(this.masterKeyPair.publicKey);
     openpgp.encryptMessage(masterPublicKey.keys, message).then(function(pgpMessage) {
       callback(null, pgpMessage);
     }).catch(function(error) {
@@ -275,10 +277,10 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMe
 //TODO: Should name this appropriately for master key decryption
 EncryptionManager.prototype.decryptMasterKeyMessage = function decryptMasterKeyMessage(pgpMessage, callback) {
   // TODO: Should get masterPrivateKey from window.kbpgp.unbox like above
-  var masterPrivateKey = this.masterKey.masterKey;
+  var masterPrivateKey = this.masterKeyPair.privateKey;
   masterPrivateKey = openpgp.key.readArmored(masterPrivateKey).keys[0];
   if (typeof masterPrivateKey !== 'undefined') {
-    masterPrivateKey.decrypt(this.masterKey.password);
+    masterPrivateKey.decrypt(this.masterKeyPair.password);
     pgpMessage = openpgp.message.readArmored(pgpMessage);
     openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
       console.log("Decrypted message!");

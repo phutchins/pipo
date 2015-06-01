@@ -45,7 +45,7 @@ marked.setOptions({
 //});
 
 //TODO: This should probably replace the one above
-$('#message-input-form').keydown(function (event) {
+$('#message-input').keydown(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
     var caret = ChatManager.getCaret(this);
@@ -57,7 +57,7 @@ $('#message-input-form').keydown(function (event) {
     return false;
   } else if(event.keyCode == 13) {
     console.log("got enter");
-    $('form').submit();
+    ChatManager.sendMessage();
     return false;
   }
 });

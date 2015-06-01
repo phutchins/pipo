@@ -5,6 +5,7 @@ function EncryptionManager() {
   });
 
   this.masterKeyPair = ({
+    password: 'pipo',
     keyId: null,
     publicKey: null,
     privateKey: null,
@@ -202,38 +203,51 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
 EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(room, message, callback) {
   var self = this;
 
-  //Build array of all users' keyManagers
-  var keys = window.roomUsers[room].map(function(username) {
-    return window.userMap[username].keyInstance;
-  }).filter(function(key) {
-    return !!key;
-  });
-
-  //Add our own key to the mix so that we can read the message as well
-  keys.push(self.keyManager);
-
   //Encrypt the message
-  if (Config.encryptionScheme == 'masterKey') {
-    var masterPublicKey = openpgp.key.readArmored(key);
-    openpgp.encryptMessage(masterPublicKey.keys, message).then(function(pgpMessage) {
-      callback(null, pgpMessage);
-    }).catch(function(error) {
-      return callback(error, null);
-    });
-  } else {
-    window.kbpgp.box({
-      msg: message,
-      encrypt_for: keys,
-      sign_with: self.keyManager
-    }, callback);
-  };
+  switch(config.encryptionScheme) {
+    case 'masterKey':
+      this.encryptMasterKeyMessage(room, message, function(err, pgpMessage) {
+        callback(err, pgpMessage);
+      });
+    case 'clientKey':
+      this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+        callback(err, pgpmessage);
+      });
+    default:
+      this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+        callback(err, pgpmessage);
+      });
+  }
 };
 
 /**
  * Encrypts messages to the master key if we are using
  * master key room message encryption
  */
-EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(key, message, callback) {
+EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(room, message, callback) {
+    var masterPublicKey = openpgp.key.readArmored(key);
+    openpgp.encryptMessage(masterPublicKey.keys, message).then(function(pgpMessage) {
+      callback(null, pgpMessage);
+    }).catch(function(error) {
+      return callback(error, null);
+    });
+};
+
+EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {
+  //Build array of all users' keyManagers
+  var keys = window.roomUsers[room].map(function(username) {
+    return window.userMap[username].keyInstance;
+  }).filter(function(key) {
+    return !!key;
+  });
+  //Add our own key to the mix so that we can read the message as well
+  keys.push(self.keyManager);
+
+  window.kbpgp.box({
+    msg: message,
+    encrypt_for: keys,
+    sign_with: self.keyManager
+  }, callback);
 };
 
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
@@ -259,10 +273,12 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMe
 };
 
 //TODO: Should name this appropriately for master key decryption
-EncryptionManager.prototype.decryptRoomMessage = function decryptRoomMessage(key, passphrase, pgpMessage, callback) {
-  var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
+EncryptionManager.prototype.decryptMasterKeyMessage = function decryptMasterKeyMessage(pgpMessage, callback) {
+  // TODO: Should get masterPrivateKey from window.kbpgp.unbox like above
+  var masterPrivateKey = this.masterKey.masterKey;
+  masterPrivateKey = openpgp.key.readArmored(masterPrivateKey).keys[0];
   if (typeof masterPrivateKey !== 'undefined') {
-    masterPrivateKey.decrypt(passphrase);
+    masterPrivateKey.decrypt(this.masterKey.password);
     pgpMessage = openpgp.message.readArmored(pgpMessage);
     openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
       console.log("Decrypted message!");
@@ -276,116 +292,6 @@ EncryptionManager.prototype.decryptRoomMessage = function decryptRoomMessage(key
     return callback("master private key is undefined", null);
   }
 }
-
-
-//TODO: Determine if these are needed
-
-EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(fs, callback) {
-  fs.root.getFile('clientkey.aes', {create: false}, function(fileEntry) {
-    fileEntry.remove(function() {
-      console.log('File successufully removed.');
-      fs.root.getFile('clientkey.pub', {create: false}, function(fileEntry) {
-        fileEntry.remove(function() {
-          console.log('File successufully removed.');
-          callback(null);
-        }, errorHandler);
-      }, errorHandler);
-    }, errorHandler);
-  }, errorHandler);
-  function errorHandler(err) {
-    var msg = '';
-    switch(err.name) {
-      case "BAD":
-        console.log("Bad");
-        return callback(err.message);
-      default:
-        message = 'Unknown Error: '+err.name;
-
-
-/**
- * Encrypts a message to all keys in the room
- * @param room
- * @param message
- * @param callback
- */
-EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(room, message, callback) {
-  var self = this;
-
-  //Build array of all users' keyManagers
-  var keys = window.roomUsers[room].map(function(username) {
-    return window.userMap[username].keyInstance;
-  }).filter(function(key) {
-    return !!key;
-  });
-
-  //Add our own key to the mix so that we can read the message as well
-  keys.push(self.keyManager);
-
-  //Encrypt the message
-  if (Config.encryptionScheme == 'masterKey') {
-    var masterPublicKey = openpgp.key.readArmored(key);
-    openpgp.encryptMessage(masterPublicKey.keys, message).then(function(pgpMessage) {
-      callback(null, pgpMessage);
-    }).catch(function(error) {
-      return callback(error, null);
-    });
-  } else {
-    window.kbpgp.box({
-      msg: message,
-      encrypt_for: keys,
-      sign_with: self.keyManager
-    }, callback);
-  };
-};
-
-/**
- * Encrypts messages to the master key if we are using
- * master key room message encryption
- */
-EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(key, message, callback) {
-};
-
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
-  var self = this;
-  window.kbpgp.box({
-    msg: message,
-    encrypt_for: window.userMap[username].keyInstance,
-    sign_with: self.keyManager
-  }, callback);
-};
-
-/**
- * Decrypts an incoming message with our key
- * @param encryptedMessage
- * @param callback
- */
- //TODO: Should name this appropriately for client key decryption
-EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMessage, callback) {
-  window.kbpgp.unbox({
-    keyfetch: this.keyRing,
-    armored: encryptedMessage
-  }, callback);
-};
-
-//TODO: Should name this appropriately for master key decryption
-EncryptionManager.prototype.decryptRoomMessage = function decryptRoomMessage(key, passphrase, pgpMessage, callback) {
-  var masterPrivateKey = openpgp.key.readArmored(key).keys[0];
-  if (typeof masterPrivateKey !== 'undefined') {
-    masterPrivateKey.decrypt(passphrase);
-    pgpMessage = openpgp.message.readArmored(pgpMessage);
-    openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
-      console.log("Decrypted message!");
-      callback(null, plaintext);
-    }).catch(function(err) {
-      console.log("Error decrypting message");
-      return callback(err, null);
-    });
-  } else {
-    console.log("master private key is undefined!");
-    return callback("master private key is undefined", null);
-  }
-}
-
 
 //TODO: Determine if these are needed
 
@@ -519,7 +425,8 @@ EncryptionManager.prototype.initStorage = function initStorage(callback) {
 EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(userName, privateKey, encryptedMasterPrivateKey, callback) {
   var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
   var clientPrivateKey = openpgp.key.readArmored(privateKey).keys[0];
-  clientPrivateKey.decrypt(clientKeyPassword);
+  //TODO: Fix me! Need to prompt user for password here
+  clientPrivateKey.decrypt('philip');
   //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privateKey: "+clientPrivateKey+" encMasterPrivateKey: "+encMasterPrivateKey);
   console.log("[DEBUG] about to start decrypting master key");
   //console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
@@ -553,7 +460,7 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
       },
       200: function(data) {
         console.log("["+timestamp+"] [MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
-        console.log("[GET MASTER KEY PAIR] data.keyId: "+data.keyId+" data.publicKey: "+data.publicKey+" data.encryptedPrivateKey: "+data.encryptedPrivateKey);
+        //console.log("[GET MASTER KEY PAIR] data.keyId: "+data.keyId+" data.publicKey: "+data.publicKey+" data.encryptedPrivateKey: "+data.encryptedPrivateKey);
         return callback(null, data);
       }
     }

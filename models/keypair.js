@@ -78,7 +78,7 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
       var response = 'ok';
       User.find({}, function(err, users, count) {
         users.forEach( function(user) {
-          console.log("[DEBUG] checkMasterKeyPairForAllUsers - user is: "+user);
+          //console.log("[DEBUG] checkMasterKeyPairForAllUsers - user is: "+user);
           if (user.masterKey.encryptedPrivateKey && user.masterKey.id == currentKeyId) {
           } else if (user.publicKey == null) {
             console.log("[KEYPAIR] checkMasterKeyPairForAllUsers - user.publicKey is null");
@@ -110,7 +110,7 @@ keyPairSchema.statics.updateMasterKeyPairForUser = function updateMasterKeyPairF
         user.save( function( err, user ) {
           //if (err) { return callback("Error saving encrypted master key for user "+user.userName) };
           console.log("Saved encrypted master key for user "+user.userName);
-          console.log("[DEBUG] (updateMaseterKeyPairForUser) user.masterKey.encryptedMasterKey: "+user.masterKey.encryptedMasterKey);
+          //console.log("[DEBUG] (updateMaseterKeyPairForUser) user.masterKey.encryptedMasterKey: "+user.masterKey.encryptedMasterKey);
           callback(null);
         });
       });

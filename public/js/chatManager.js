@@ -37,15 +37,15 @@ marked.setOptions({
   }
 });
 
-$('#main-input-form').form('setting', {
-  onSuccess: function () {
-    ChatManager.sendMessage();
-    return false;
-  }
-});
+//$('#main-input-form').form('setting', {
+//  onSuccess: function () {
+//    ChatManager.sendMessage();
+//    return false;
+//  }
+//});
 
 //TODO: This should probably replace the one above
-$('textarea').keydown(function (event) {
+$('#message-input-form').keydown(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
     var caret = ChatManager.getCaret(this);

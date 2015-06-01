@@ -84,6 +84,7 @@ SocketClient.prototype.addListeners = function() {
     self.socket.emit('join', { userName: window.userName, channel: "general", masterKeyId: window.masterKeyId } );
     if (window.encryptionManager.encryptionScheme == 'masterKey') {
       // Make sure we have the most recent verison of our master keys for all
+      console.log("[AUTHENTICATED] In Master Key mode - currentKeyId: "+window.encryptionManager.masterKeyPair.id);
       self.socket.emit('masterKeySync', { currentKeyId: window.encryptionManager.masterKeyPair.id });
     } else {
       // Use cilent keys and enable chat now
@@ -102,12 +103,22 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomMessage', function(data) {
     //console.log('roomMessage', data);
-    window.encryptionManager.decryptMessage(data.message, function(err, message) {
-      if (err) {
-        console.log(err);
-      }
-      ChatManager.handleMessage(message, data.user);
-    });
+    switch (window.encryptionManager.encryptionScheme) {
+      case 'masterKey':
+        window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
+          if (err) {
+            console.log(err);
+          }
+          ChatManager.handleMessage(message, data.user);
+        });
+      case 'clientKey':
+        window.encryptionManager.decryptMessage(data.message, function(err, message) {
+          if (err) {
+            console.log(err);
+          }
+          ChatManager.handleMessage(message, data.user);
+        });
+    };
   });
 
   this.socket.on('privateMessage', function(data) {
@@ -128,8 +139,8 @@ SocketClient.prototype.addListeners = function() {
         ChatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
       } else {
         console.log("Got master keypair, ready to encrypt/decrypt");
-        console.log("Encrypted master key is: "+encMasterKeyPair.privateKey);
-        console.log("Public master key is: "+encMasterKeyPair.publicKey);
+        //console.log("Encrypted master key is: "+encMasterKeyPair.privateKey);
+        //console.log("Public master key is: "+encMasterKeyPair.publicKey);
         window.encryptionManager.masterKeyPair.publicKey = encMasterKeyPair.publicKey;
         window.encryptionManager.masterKeyPair.encryptedPrivateKey = encMasterKeyPair.privateKey;
         console.log("Ensuring that client keypair exists");

@@ -142,12 +142,12 @@ SocketServer.prototype.onMessage = function onMessage(data) {
     return self.socket.emit('errorMessage', {message: 401});
   }
 
-  console.log("[MSG] Server got chat message from " + self.socket.user.username);
+  console.log("[MSG] Server got chat message from " + self.socket.user.userName);
 
   //TODO: Log messages
   //TODO: Room specific messages
   self.namespace.emit('roomMessage', {
-    user: self.socket.user.username,
+    user: self.socket.user.userName,
     message: data.pgpMessage,
     signature: data.signature
   });
@@ -167,7 +167,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
   console.log('data', data)
 
-  var fromUser = self.socket.user.username;
+  var fromUser = self.socket.user.userName;
   var targetUsername = data.toUser;
   var targetSocket = self.namespace.userMap[targetUsername];
 
@@ -177,7 +177,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   self.socket.broadcast.to(targetSocket).emit('privateMessage', {
-    from: self.socket.user.username,
+    from: self.socket.user.userName,
     to: targetUsername,
     message: data.pgpMessage,
     signature: data.signature
@@ -222,7 +222,7 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
     return self.socket.emit('errorMessage', {message: 401});
   }
 
-  var username = self.socket.user.username;
+  var username = self.socket.user.userName;
   var channel = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
@@ -278,8 +278,8 @@ SocketServer.prototype.disconnect = function disconnect() {
 
   delete self.namespace.socketMap[self.socket.id];
 
-  if (self.socket.user && self.socket.user.username) {
-    delete self.namespace.userMap[self.socket.user.username];
+  if (self.socket.user && self.socket.user.userName) {
+    delete self.namespace.userMap[self.socket.user.userName];
   }
 };
 

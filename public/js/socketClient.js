@@ -102,22 +102,20 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    //console.log('roomMessage', data);
-    switch (window.encryptionManager.encryptionScheme) {
-      case 'masterKey':
-        window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
-          if (err) {
-            console.log(err);
-          }
-          ChatManager.handleMessage(message, data.user);
-        });
-      case 'clientKey':
-        window.encryptionManager.decryptMessage(data.message, function(err, message) {
-          if (err) {
-            console.log(err);
-          }
-          ChatManager.handleMessage(message, data.user);
-        });
+    if (window.encryptionManager.encryptionScheme == 'masterKey') {
+      window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
+        if (err) {
+          console.log(err);
+        }
+        ChatManager.handleMessage(message, data.user);
+      });
+    } else if (window.encryptionManager.encryptionScheme == 'clientKey') {
+      window.encryptionManager.decryptMessage(data.message, function(err, message) {
+        if (err) {
+          console.log(err);
+        }
+        ChatManager.handleMessage(message, data.user);
+      });
     };
   });
 

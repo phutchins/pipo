@@ -7,20 +7,22 @@ var userSchema = new Schema({
   userNameLowerCase: { type: String },
   fullName: { type: String },
   email: { type: String },
-  pubKey: { type: String },
+  publicKey: { type: String },
   socketIds: [{ type: String }],
   masterKey: {
     id: { type: Number },
-    pubKey: { type: String },
-    encPrivKey: { type: String }
+    publicKey: { type: String },
+    privateKey: { type: String },
+    encryptedPrivateKey: { type: String }
   }
 });
 
 userSchema.statics.create = function createUser(userData, callback) {
+  console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase());
   new this({
-    userName: userData.username,
+    userName: userData.userName,
     //TODO: Is there a better way to find users case insensitive?
-    userNameLower: userData.username.toLowerCase(),
+    userNameLowerCase: userData.userName.toLowerCase(),
     publicKey: userData.publicKey
   }).save(callback);
 };
@@ -31,12 +33,13 @@ userSchema.statics.create = function createUser(userData, callback) {
  * @param callback
  */
 userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) {
+  console.log("[USER] authenticateOrCreate");
   var self = this;
   if (typeof data != 'object' || !Object.keys(data).length) {
     return callback(new Error("No user data included in request"));
   }
-  if (!data.username) {
-    return callback(new Error("username is required"));
+  if (!data.userName) {
+    return callback(new Error("userName is required"));
   }
   if (!data.publicKey) {
     return callback(new Error("publicKey is required"));
@@ -45,26 +48,28 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
-  this.findOne({userName: data.username}).exec(function(err, user) {
+  this.findOne({userName: data.userName}).exec(function(err, user) {
     if (err) {
       return callback(err);
     }
     if (!user) {
-      console.log("[USER AUTHENTICATEORCREATE] User '"+data.username+"' not found so creating");
-      console.log("[DEBUG] User did not exist so creating user");
+      console.log("[USER AUTHENTICATEORCREATE] User '"+data.userName+"' not found so creating");
+      console.log("[DEBUG] User did not exist so creating user with data: "+ data);
+      data.userNameLowerCase = data.userName.toLowerCase();
       return self.create(data, callback);
     }
     if (user) {
-      console.log("[USER] Found user '"+data.username+"'");
-      console.log("[USER] user.publicKey: "+user.publicKey);
-      console.log("[USER] data.publicKey: "+data.publicKey);
-      if (user.publicKey == data.publicKey) {
-        console.log("[USER] User '"+data.username+"' has a public key that matches username");
+      console.log("[USER] Found user '"+data.userName+"'");
+      //console.log("[USER] user.publicKey: "+user.publicKey);
+      // TODO: Need to change all references to publicKey
+      //console.log("[USER] data.publicKey: "+data.publicKey);
+      if ( user.publicKey == data.publicKey ) {
+        console.log("[USER] User '"+data.userName+"' has a public key that matches userName");
         //TODO: Check signature
         return callback(null, user);
       }
       else {
-        return callback(new Error("username and publicKey mismatch"));
+        return callback(new Error("userName and publicKey mismatch"));
       }
     }
   });
@@ -77,7 +82,7 @@ userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, cal
   User.findOne({ userName: userName }, function(err, user) {
     if (err) { return callback(err); };
     if (typeof user === 'undefined' || user === null) {
-      console.log("No user found in DB with username "+userName);
+      console.log("No user found in DB with userName "+userName);
       new User({
         userName: userName,
       }).save( function(err, user, count) {
@@ -135,12 +140,12 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
 };
 
 
-userSchema.methods.generateHash = function(pubKey) {
-  return bcrypt.hashSync(pubKey, bcrypt.genSaltSync(8), null);
+userSchema.methods.generateHash = function(publicKey) {
+  return bcrypt.hashSync(publicKey, bcrypt.genSaltSync(8), null);
 };
 
-userSchema.methods.checkPubKey = function(pubKey) {
-  return bcrypt.CompareSync(pubKey, this.local.pubKey);
+userSchema.methods.checkPublicKey = function(publicKey) {
+  return bcrypt.CompareSync(publicKey, this.local.publicKey);
 };
 
 module.exports = mongoose.model('User', userSchema);

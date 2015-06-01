@@ -84,24 +84,31 @@ io.on('connection',function (socket) {
 
 var ioMain = io.of('/socket');
 
-ioMain.on('connection', function(socket) {
-  console.log("Connection to ioMain");
-  new SocketServer(ioMain).onSocket(socket);
-});
 
 // Startup routine
 initServer();
 
 function initServer() {
+  var socketServer = null;
   switch (configPipo.encryptionStrategy) {
     // Use master shared key encryption (faster but slightly less secure possibly)
     case 'masterKey':
       console.log("[START] Starting in MASTER KEY mode");
-      new SocketServer(ioMain).start();
+      ioMain.on('connection', function(socket) {
+        console.log("Connection to ioMain");
+        socketServer = new SocketServer(ioMain);
+        socketServer.onSocket(socket);
+        //socketServer.start();
+      });
+      //new SocketServer(ioMain).start();
       break;
       // Use multi client key encryption (slower but a tad more secure)
     case 'clientKey':
       console.log("[START] Starting in CLIENT KEY mode");
+      ioMain.on('connection', function(socket) {
+        console.log("Connection to ioMain");
+        socketServer = new SocketServer(ioMain).onSocket(socket);
+      });
       break;
     default:
       console.log("Default not set up yet");

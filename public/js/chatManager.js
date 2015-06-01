@@ -10,16 +10,16 @@ var clientKeyPassword = null;
 var masterKeyPassword = 'pipo';
 var amountOfSpaceNeeded = 5000000;
 var keyPair = ({
-  pubKey: null,
-  privKey: null
+  publicKey: null,
+  privateKey: null
 });
 var encryptedMasterKeyPair = ({
-  pubKey: null,
-  privKey: null
+  publicKey: null,
+  privateKey: null
 });
 var masterKeyPair = ({
-  pubKey: null,
-  privKey: null
+  publicKey: null,
+  privateKey: null
 });
 var userName = null;
 
@@ -78,12 +78,12 @@ $('#generate-keypair-button').on('click', function() {
 $('#select-keypair-button').on('click', function() {
   console.log("Loading keypair from file...");
   promptForImportKeyPair(function(err, data) {
-    var privKey = data.privKey;
-    var pubKey = data.pubKey;
-    updateRemotePubKey(userName, pubKey, function(err) {
+    var privateKey = data.privateKey;
+    var publicKey = data.publicKey;
+    updateRemotePublicKey(userName, publicKey, function(err) {
       if (err) { return console.log("Error updating remote public key") };
       promptForPassword(function(err) {
-        loadClientKeyPairFromFile({ pubKey: pubKey, privKey: privKey }, function(err) {
+        loadClientKeyPairFromFile({ publicKey: publicKey, privateKey: privateKey }, function(err) {
           if (err) {
            alertUser("Error loading key pair", err);
           } else {
@@ -440,8 +440,8 @@ ChatManager.promptForCredentials = function promptForCredentials() {
           console.log("Error generating client keypair: "+err);
         } else {
           console.log("Generated client key pair.");
-          window.username = username;
-          localStorage.setItem('username', username);
+          window.userName = userName;
+          localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           $('.ui.modal.generate').modal('hide');
           socketClient.init();
@@ -506,34 +506,34 @@ ChatManager.promptForPassphrase = function(callback) {
 ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
   console.log("Prompting user to import existing keypair");
   $('.basic.modal.import-keypair-modal').modal('show');
-  //$('.basic.modal.import-keypair-modal #pubkey-file-input').css('opacity', '0');
-  //$('.basic.modal.import-keypair-modal #privkey-file-input').css('opacity', '0');
-  $('.import-keypair-modal #select-pubkey').click(function(e) {
+  //$('.basic.modal.import-keypair-modal #publickey-file-input').css('opacity', '0');
+  //$('.basic.modal.import-keypair-modal #privatekey-file-input').css('opacity', '0');
+  $('.import-keypair-modal #select-publickey').click(function(e) {
     e.preventDefault();
-    $('#pubkey-file-input').trigger('click');
+    $('#publickey-file-input').trigger('click');
   });
-  $('.import-keypair-modal #select-privkey').click(function(e) {
+  $('.import-keypair-modal #select-privatekey').click(function(e) {
     e.preventDefault();
-    $('#privkey-file-input').trigger('click');
+    $('#privatekey-file-input').trigger('click');
   });
   $('.import-keypair-submit-button').click(function(e) {
-    var pubKeyFile = document.getElementById('pubkey-file-input').files[0];
-    var pubKeyContents = null;
-    var privKeyFile = document.getElementById('privkey-file-input').files[0];
-    var privKeyContents = null;
-    if (pubKeyFile && privKeyFile) {
+    var publicKeyFile = document.getElementById('publickey-file-input').files[0];
+    var publicKeyContents = null;
+    var privateKeyFile = document.getElementById('privatekey-file-input').files[0];
+    var privateKeyContents = null;
+    if (publicKeyFile && privateKeyFile) {
       var reader = new FileReader();
-      reader.readAsText(pubKeyFile);
+      reader.readAsText(publicKeyFile);
       reader.onload = function(e) {
-        pubKeyContents = e.target.result;
-        reader.readAsText(privKeyFile);
+        publicKeyContents = e.target.result;
+        reader.readAsText(privateKeyFile);
         reader.onload = function(e) {
-          privKeyContents = e.target.result;
+          privateKeyContents = e.target.result;
           var data = ({
-            pubKey: pubKeyContents,
-            privKey: privKeyContents,
+            publicKey: publicKeyContents,
+            privateKey: privateKeyContents,
           });
-          console.log("Read key files with contents: pubKey: "+pubKeyContents+" privKey: "+privKeyContents);
+          console.log("Read key files with contents: publicKey: "+publicKeyContents+" privateKey: "+privateKeyContents);
           callback(null, data);
         };
       };

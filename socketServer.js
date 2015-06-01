@@ -1,5 +1,10 @@
 var User = require('./models/user');
+var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
+
+var config = ({
+  encryptionScheme: 'masterKey'
+});
 
 /**
  * Handles all socket traffic
@@ -24,7 +29,8 @@ SocketServer.prototype.onSocket = function(socket) {
   console.log("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
-  socket.on('maserKeySync', self.masterKeySync.bind(self));
+
+  socket.on('updateClientKey', self.updateClientKey.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
 
   socket.on('join', self.joinChannel.bind(self));
@@ -34,27 +40,45 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
 
   socket.on('serverCommand', self.onServerCommand.bind(self));
+
+  /**
+   * ADMIN COMMANDS
+   */
+  // TODO Put this behind admin control when new client keys are approved
+  socket.on('maserKeySync', self.masterKeySync.bind(self));
+
 };
 
-SocketServer.prototype.start = function start() {
+SocketServer.prototype.updateMasterKeyPair = function updateMasterKeyPair(callback) {
   var self = this;
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
     console.log("Checked master key pair for all users. Response is '"+response+"'");
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
     if (response == 'update') {
       console.log("Users keypair needs updating so generating new master key pair");
-      KeyPair.generateMasterKeyPair(function(err, masterKeyPair, id) {
+      KeyPair.regenerateMasterKeyPair(function(err, masterKeyPair, id) {
         console.log("[START] New master keyPair generated with id '"+id+"'");
         KeyPair.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
-          if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
+          if (err) {
+            console.log("[START] Error encrypting master key for all users: "+err);
+            return callback(err);
+          };
           console.log("[START] Encrypted master key for all users!");
+          self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
+          callback(null);
         });
       });
     } else if (response == 'ok') {
       console.log("All users master key matches current version");
-      //io.emit('new master key', masterKeyPair);
+      self.namespace.emit('newMasterKey');
+      callback(null);
     }
   });
+};
+
+SocketServer.prototype.start = function start() {
+  var self = this;
+  this.updateMasterKeyPair();
 };
 
 /**
@@ -62,7 +86,7 @@ SocketServer.prototype.start = function start() {
  */
 SocketServer.prototype.authenticate = function init(data) {
   var self = this;
-  console.log("[AUTH] Socket authentication data");
+  console.log("[AUTHENTICATE] Authenticating user '"+data.userName+"'");
   User.authenticateOrCreate(data, function(err, user) {
     if (err) {
       console.log('Authentication error', err);
@@ -70,18 +94,21 @@ SocketServer.prototype.authenticate = function init(data) {
     }
     if (user) {
       self.namespace.socketMap[self.socket.id] = {
-        username: user.username,
+        userName: user.userName,
         publicKey: user.publicKey
       };
 
-      self.namespace.userMap[user.username] = self.socket.id;
+      self.namespace.userMap[user.userName] = self.socket.id;
 
       self.socket.user = user;
       console.log("[INIT] Init'd user " + user.userName);
+      // TODO: This doesn't seem to get to the client
       self.socket.emit('authenticated', {message: 'ok'});
 
+      console.log("[INIT] Emitting user connect");
+      //return self.namespace.emit('user connect', {
       return self.namespace.emit('user connect', {
-        username: user.userName,
+        userName: user.userName,
         publicKey: user.publicKey
       });
     }
@@ -97,6 +124,10 @@ SocketServer.prototype.authenticate = function init(data) {
  */
 SocketServer.prototype.masterKeySync = function masterKeySync(data) {
   var currentKeyId = data.currentKeyId;
+
+};
+
+SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 
 };
 
@@ -184,6 +215,7 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
  */
 SocketServer.prototype.joinChannel = function joinChannel(data) {
   var self = this;
+  console.log("User '"+data.userName+"' joining channel");
 
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
@@ -194,11 +226,17 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
   var channel = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
+    console.log("[JOIN CHANNEL] encryptionScheme: masterKey - checking masterKey - masterKeyId: "+data.masterKeyId);
     var usersMasterKeyId = data.masterKeyId;
     KeyId.getMasterKeyId(function(err, currentKeyId) {
+      console.log("[JOIN CHANNEL] currentKeyId: "+currentKeyId);
+      // TODO: User gets updated master key here but we still may need to trigger generating a new one for the user if it has not been generated for them yet. This might be when users are added to the membership of a channel, or when a user updates their public key and then that key is approved by an admin
       if (usersMasterKeyId !== currentKeyId) {
-        self.socket.emit('newMasterKey', { keyId: currentKeyId });
-        self.socket.join(channel);
+        self.updateMasterKeyPair(function(err) {
+          console.log("[JOIN CHANNEL] Clients master key is not up to date, emitting 'newMasterKey'");
+          self.socket.emit('newMasterKey', { keyId: currentKeyId });
+          self.socket.join(channel);
+        });
       } else {
         console.log("[JOIN CHANNEL] Clients master key is up to date");
         self.socket.join(channel);
@@ -248,8 +286,10 @@ SocketServer.prototype.disconnect = function disconnect() {
 SocketServer.prototype.getUserList = function(room, callback) {
   var self = this;
   var members = this.namespace.adapter.rooms[room];
+  console.log("[SOCKETSERVER] Room: "+room);
 
   //Get all sockets in this room
+  //TODO: This fails when server restarted with users connected
   members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
     return members[sid];
   });

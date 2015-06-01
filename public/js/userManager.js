@@ -1,6 +1,7 @@
 function UserManager() {
   this.user = ({
     userName: null,
+    userNameLowerCase: null,
     fullName: null,
     email: null,
   });
@@ -13,6 +14,7 @@ function UserManager() {
  */
 UserManager.prototype.getUserData = function getUserData(data, callback) {
   var userName = data.userName;
+  var userNameLowerCase = data.userNameLowerCase;
   var fullName = data.fullName;
   var email = data.email;
 
@@ -25,6 +27,7 @@ UserManager.prototype.getUserData = function getUserData(data, callback) {
  */
 UserManager.prototype.getUserData = function getUserData(data, callback) {
   var userName = data.userName;
+  var userNameLowerCase = data.userNameLowerCase;
   var fullName = data.fullName;
   var email = data.email;
 

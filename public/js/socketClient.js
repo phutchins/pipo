@@ -3,7 +3,7 @@ function SocketClient() {
   var host = window.location.host;
   this.socket = window.io(host + '/socket');
 
-  window.username = localStorage.getItem("username");
+  window.userName = localStorage.getItem("userName");
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
@@ -34,8 +34,44 @@ SocketClient.prototype.init = function() {
     if (!self.listeners) {
       self.addListeners();
     }
+    if (!self.maseterLoaded) {
+      console.log("[INIT] Loading master credentials");
+      //TODO: finish this...
+      window.encryptionManager.loadMasterKeyPair(function(err) {
+        if (err) { return console.log("[INIT] ERROR loading master key pair") };
+        console.log("[INIT] Loaded master credentials");
+      });
+    }
     console.log("[INIT] Authenticating");
-    return self.authenticate();
+    //TODO: Here we should confirm that the client publickey that we have matches the one on the server
+    // We can then prompt the user to either load the keypair with the ID thats on the server ...
+    // ... or upload the current client publickey to the server which would require re-auth by an admin
+    window.encryptionManager.verifyRemotePublicKey(window.userName, window.encryptionManager.keyPair.publicKey, function(err, result) {
+      if (err) {
+        return console.log("[INIT] Error updating remote public key: "+err);
+        //Show error
+      }
+      if (result == 'match') {
+        console.log("[INIT] Your public key matches what is on the server");
+        return self.authenticate();
+      } else if (result == 'nomatch') {
+        // Prompt to update remote key
+        window.encryptionManager.updatePublicKeyOnRemote(window.userName, window.encryptionManager.keyPair.publicKey, function(err) {
+          if (err) {
+            return console.log("[INIT] ERROR updating public key on server: "+err);
+          };
+          return self.authenticate();
+        });
+      } else if (result == 'nokey') {
+        // Prompt to update remote key
+        window.encryptionManager.updatePublicKeyOnRemote(window.userName, window.encryptionManager.keyPair.publicKey, function(err) {
+          if (err) {
+            return console.log("[INIT] ERROR updating public key on server: "+err);
+          };
+          return self.authenticate();
+        });
+      };
+    });
   });
 };
 
@@ -43,7 +79,9 @@ SocketClient.prototype.addListeners = function() {
   var self = this;
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
-    self.socket.emit('join', { username: window.username, channel: "general" } );
+    // TODO: check data.message here and if not 'ok' warn user and give options
+    console.log("[AUTHENTICATED] Authenticated successfully");
+    self.socket.emit('join', { userName: window.userName, channel: "general", masterKeyId: window.masterKeyId } );
     if (window.encryptionManager.encryptionScheme == 'masterKey') {
       // Make sure we have the most recent verison of our master keys for all
       self.socket.emit('masterKeySync', { currentKeyId: window.encryptionManager.masterKeyPair.id });
@@ -59,7 +97,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('user connect', function(data) {
-    //console.log('user connect', data);
+    console.log('user connect', data);
   });
 
   this.socket.on('roomMessage', function(data) {
@@ -82,28 +120,32 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
-  this.socket.on('new master key', function(data) {
+  this.socket.on('newMasterKey', function(data) {
     console.log("[SOCKET] 'new master key'");
-    getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+    window.encryptionManager.getMasterKeyPair(userName, function(err, encMasterKeyPair) {
       if (err) {
         console.log("Error getting master key pair: "+err);
-        localMsg({ type: "ERROR", message: "Error getting master key pair" });
+        ChatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
       } else {
-        localMsg({ type: null, message: "Updated master key pair" });
         console.log("Got master keypair, ready to encrypt/decrypt");
-        encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
-        encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+        console.log("Encrypted master key is: "+encMasterKeyPair.privateKey);
+        console.log("Public master key is: "+encMasterKeyPair.publicKey);
+        window.encryptionManager.masterKeyPair.publicKey = encMasterKeyPair.publicKey;
+        window.encryptionManager.masterKeyPair.encryptedPrivateKey = encMasterKeyPair.privateKey;
         console.log("Ensuring that client keypair exists");
-        //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
-        if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+        //console.log("keyPair.privateKey at new master key is: "+keyPair.privateKey);
+        if (typeof encryptionManager.keyPair.privateKey !== 'undefined' && encryptionManager.keyPair.privateKey !== null) {
           console.log("(new master key) Trying to decrypt master key...");
-          //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
-          //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
-          decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+          console.log("[NEW MASTER KEY] window.userName: "+window.userName);
+          console.log("[NEW MASTER KEY] window.encryptionManager.keyPair.privateKey: "+window.encryptionManager.keyPair.privateKey);
+          console.log("[NEW MASTER KEY] window.encryptionManager.masterKeyPair.encryptedPrivateKey: "+window.encryptionManager.masterKeyPair.encryptedPrivateKey);
+          encryptionManager.decryptMasterKey(window.userName, window.encryptionManager.keyPair.privateKey, window.encryptionManager.masterKeyPair.encryptedPrivateKey, function(err, key) {
             console.log("(new master key) Caching master private key decrypted");
-            masterKeyPair.privKey = key;
-            masterKeyPair.pubKey = encMasterKeyPair.pubKey;
-            pleaseWaitOff();
+            window.encryptionManager.masterKeyPair.privateKey = key;
+            encryptionManager.loadMasterKeyPair(function(err) {
+              ChatManager.localMsg({ type: null, message: "Updated master key pair" });
+              ChatManager.enableChat();
+            });
           });
         } else {
           console.log("Private key does not yet exist so cannot decrypt master key");
@@ -113,23 +155,24 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('userlist update', function(data) {
+    console.log("Got userlist update!");
     window.roomUsers[data.channel] = [];
 
     data.userList.forEach(function(user) {
       if (user) {
         if (window.userMap[user.userName]) {
-          if (window.userMap[user.userName].pubkey === user.publicKey) {
+          if (window.userMap[user.userName].publicKey === user.publicKey) {
             return;
           }
         }
 
-        window.roomUsers[data.channel].push(user.username);
-        window.userMap[user.username] = {
-          pubkey: user.publicKey
+        window.roomUsers[data.channel].push(user.userName);
+        window.userMap[user.userName] = {
+          publicKey: user.publicKey
         };
 
-        //Don't build pubkey for ourselves
-        if (user.username != window.username) {
+        //Don't build publicKey for ourselves
+        if (user.userName != window.userName) {
 
           //Build pgp key instance
           console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
@@ -139,8 +182,8 @@ SocketClient.prototype.addListeners = function() {
             if (err) {
               console.log("Error importing user key", err);
             }
-            console.log("imported key", user.username);
-            window.userMap[user.username].keyInstance = keyInstance;
+            console.log("imported key", user.userName);
+            window.userMap[user.userName].keyInstance = keyInstance;
             encryptionManager.keyRing.add_key_manager(keyInstance);
           });
 
@@ -150,7 +193,7 @@ SocketClient.prototype.addListeners = function() {
     });
 
     //Don't notify us about ourselves
-    if (data.joinUser && window.username !== data.joinUser) {
+    if (data.joinUser && window.userName !== data.joinUser) {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
 
@@ -162,7 +205,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("Got chat status...");
     var statusType = data.statusType;
     var statusMessage = data.statusMessage;
-    localMsg({ type: statusType, message: statusMessage });
+    ChatManager.localMsg({ type: statusType, message: statusMessage });
     var $messages = $('#messages');
     $messages[0].scrollTop = $messages[0].scrollHeight;
   });
@@ -170,8 +213,8 @@ SocketClient.prototype.addListeners = function() {
 };
 
 SocketClient.prototype.authenticate = function() {
-  console.log("[AUTH] Authenticating with server with username: '"+window.username+"' and pubKey: "+window.encryptionManager.keyPair.publicKey);
-  this.socket.emit('authenticate', {username: window.username, publicKey: window.encryptionManager.keyPair.publicKey});
+  console.log("[AUTH] Authenticating with server with userName: '"+window.userName+"'");
+  this.socket.emit('authenticate', {userName: window.userName, publicKey: window.encryptionManager.keyPair.publicKey});
 };
 
 SocketClient.prototype.sendMessage = function(channel, message) {
@@ -187,18 +230,18 @@ SocketClient.prototype.sendMessage = function(channel, message) {
   });
 };
 
-SocketClient.prototype.sendPrivateMessage = function(username, message) {
+SocketClient.prototype.sendPrivateMessage = function(userName, message) {
   var self = this;
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage(username, preparedMessage, function(err, pgpMessage) {
+    window.encryptionManager.encryptPrivateMessage(userName, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
       else {
         //Write private message locally to chat
-        ChatManager.handlePrivateMessage(message, window.username, username);
+        ChatManager.handlePrivateMessage(message, window.userName, userName);
 
-        self.socket.emit('privateMessage', {toUser: username, pgpMessage: pgpMessage});
+        self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage});
         $('#message-input').val('');
       }
     });
@@ -206,27 +249,27 @@ SocketClient.prototype.sendPrivateMessage = function(username, message) {
 };
 
 SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {
-  getMasterKeyPair(userName, function(err, encMasterKeyPair) {
+  window.encryptionManager.getMasterKeyPair(userName, function(err, encryptedMasterKeyPair) {
     if (err) {
       console.log("Error getting master key pair: "+err);
-      localMsg({ type: "ERROR", message: "Error getting master key pair" });
+      ChatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
       return callback("Error getting master key pair");
     } else {
       pleaseWait();
-      localMsg({ type: null, message: "Updated master key pair" });
+      ChatManager.localMsg({ type: null, message: "Updated master key pair" });
       console.log("Got master keypair, ready to encrypt/decrypt");
-      encryptedMasterKeyPair.pubKey = encMasterKeyPair.pubKey;
-      encryptedMasterKeyPair.privKey = encMasterKeyPair.privKey;
+      encryptedMasterKeyPair.publicKey = encMasterKeyPair.publicKey;
+      encryptedMasterKeyPair.privateKey = encMasterKeyPair.privateKey;
       console.log("Ensuring that client keypair exists");
-      //console.log("keyPair.privKey at new master key is: "+keyPair.privKey);
-      if (typeof keyPair.privKey !== 'undefined' && keyPair.privKey !== null) {
+      //console.log("keyPair.privateKey at new master key is: "+keyPair.privateKey);
+      if (typeof keyPair.privateKey !== 'undefined' && keyPair.privateKey !== null) {
         console.log("[new master key] Client KeyPair exists. Trying to decrypt master key for '"+userName+"'...");
-        //console.log("encryptedMasterKeyPair.privKey: "+encryptedMasterKeyPair.privKey);
-        //console.log("encryptedMasterKeyPair.pubKey: "+encryptedMasterKeyPair.pubKey);
-        decryptMasterKey(userName, keyPair.privKey, encryptedMasterKeyPair.privKey, function(err, key) {
+        console.log("encryptedMasterKeyPair.privateKey: "+encryptedMasterKeyPair.privateKey);
+        console.log("encryptedMasterKeyPair.publicKey: "+encryptedMasterKeyPair.publicKey);
+        decryptMasterKey(userName, keyPair.privateKey, encryptedMasterKeyPair.privateKey, function(err, key) {
           console.log("(new master key) Caching master private key decrypted");
-          masterKeyPair.privKey = key;
-          masterKeyPair.pubKey = encMasterKeyPair.pubKey;
+          masterKeyPair.privateKey = key;
+          masterKeyPair.publicKey = encMasterKeyPair.publicKey;
           return callback(null);
         });
       } else {

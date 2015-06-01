@@ -77,11 +77,13 @@ SocketClient.prototype.init = function() {
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
+  var channel = 'general';
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
     // TODO: check data.message here and if not 'ok' warn user and give options
     console.log("[AUTHENTICATED] Authenticated successfully");
-    self.socket.emit('join', { userName: window.userName, channel: "general", masterKeyId: window.masterKeyId } );
+    console.log("[AUTHENTICATED] Joining channel #"+channel+" as "+window.userName+" with master keyId "+window.masterKeyId);
+    self.socket.emit('join', { userName: window.userName, channel: channel, masterKeyId: window.masterKeyId } );
     if (window.encryptionManager.encryptionScheme == 'masterKey') {
       // Make sure we have the most recent verison of our master keys for all
       console.log("[AUTHENTICATED] In Master Key mode - currentKeyId: "+window.encryptionManager.masterKeyPair.id);
@@ -206,6 +208,7 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
 
+    console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.updateUserList();
 
   });

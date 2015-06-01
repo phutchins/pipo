@@ -56,7 +56,6 @@ $('#message-input').keydown(function (event) {
     $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     return false;
   } else if(event.keyCode == 13) {
-    console.log("got enter");
     ChatManager.sendMessage();
     return false;
   }
@@ -82,7 +81,7 @@ $('#select-keypair-button').on('click', function() {
     var publicKey = data.publicKey;
     updateRemotePublicKey(userName, publicKey, function(err) {
       if (err) { return console.log("Error updating remote public key") };
-      promptForPassword(function(err) {
+      promptForPassphrase(function(err) {
         loadClientKeyPairFromFile({ publicKey: publicKey, privateKey: privateKey }, function(err) {
           if (err) {
            alertUser("Error loading key pair", err);
@@ -349,7 +348,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
   $('.ui.form.create').form('setting', {
     onSuccess: function() {
       var errorDisplay = $('.create #createError');
-      var username = $('.create.form #username').val();
+      var userName = $('.create.form #username').val();
       var password = $('.create.form #password').val();
       var confirmPassword = $('.create #confirmPassword').val();
 
@@ -435,12 +434,13 @@ ChatManager.promptForCredentials = function promptForCredentials() {
       //TODO: Check for username collision
 
       $('.ui.modal.generate').modal('show');
-      window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
+      window.encryptionManager.generateClientKeyPair(2048, userName, password, function(err, generatedKeypair) {
         if (err) {
           console.log("Error generating client keypair: "+err);
         } else {
           console.log("Generated client key pair.");
           window.userName = userName;
+          console.log("[CHAT MANAGER] [Prompt for credentials] userName: "+userName+" window.userName: "+window.userName);
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           $('.ui.modal.generate').modal('hide');

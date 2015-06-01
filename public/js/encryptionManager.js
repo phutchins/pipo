@@ -58,6 +58,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
   if (self.credentialsLoaded) {
     return callback(null, true);
   }
+  console.log("[LOAD CLIENT KEY PAIR] Loading client key pair from local storage");
   var keyPairData = localStorage.getItem('keyPair');
   if (keyPairData) {
     try {
@@ -428,20 +429,23 @@ EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(userNam
   var encMasterPrivateKey = openpgp.message.readArmored(encryptedMasterPrivateKey);
   var clientPrivateKey = openpgp.key.readArmored(privateKey).keys[0];
   //TODO: Fix me! Need to prompt user for password here
-  clientPrivateKey.decrypt('philip');
-  //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privateKey: "+clientPrivateKey+" encMasterPrivateKey: "+encMasterPrivateKey);
-  console.log("[DEBUG] about to start decrypting master key");
-  //console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
-  //console.log("[DEBUG] decrypting master private key and client public key is: "+keyPair.publicKey);
-  //console.log("[DEBUG] decrypting master private key and client private key is: "+keyPair.privateKey);
+  // Should change this to use the keyring so that we only have to decrypt client private key once
+  ChatManager.promptForPassphrase(function(password) {
+    clientPrivateKey.decrypt(password);
+    //console.log("[DEBUG] (decryptMasterKey) values - userName: "+userName+" privateKey: "+clientPrivateKey+" encMasterPrivateKey: "+encMasterPrivateKey);
+    console.log("[DEBUG] about to start decrypting master key");
+    //console.log("[DEBUG] encryptedMasterPrivateKey is: "+encryptedMasterPrivateKey);
+    //console.log("[DEBUG] decrypting master private key and client public key is: "+keyPair.publicKey);
+    //console.log("[DEBUG] decrypting master private key and client private key is: "+keyPair.privateKey);
 
-  openpgp.decryptMessage(clientPrivateKey, encMasterPrivateKey).then(function(decryptedKey) {
-    console.log("[DEBUG] in decryptMessage callback");
-    //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
-    callback(null, decryptedKey);
-  }).catch(function(err) {
-    console.log("[DEBUG] error decrypting message: "+err);
-    if (err) { callback(err, null); };
+    openpgp.decryptMessage(clientPrivateKey, encMasterPrivateKey).then(function(decryptedKey) {
+      console.log("[DEBUG] in decryptMessage callback");
+      //console.log("decrypted key in decryptMaster Key is: "+decryptedKey);
+      callback(null, decryptedKey);
+    }).catch(function(err) {
+      console.log("[DEBUG] error decrypting message: "+err);
+      if (err) { callback(err, null); };
+    });
   });
 };
 

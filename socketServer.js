@@ -63,14 +63,14 @@ SocketServer.prototype.updateMasterKeyPair = function updateMasterKeyPair(callba
             console.log("[START] Error encrypting master key for all users: "+err);
             return callback(err);
           };
-          console.log("[START] Encrypted master key for all users!");
+          console.log("[*2*] [START] Encrypted master key for all users!");
           self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
           callback(null);
         });
       });
     } else if (response == 'ok') {
       console.log("All users master key matches current version");
-      self.namespace.emit('newMasterKey');
+      //self.namespace.emit('newMasterKey');
       callback(null);
     }
   });
@@ -215,14 +215,14 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
  */
 SocketServer.prototype.joinChannel = function joinChannel(data) {
   var self = this;
-  console.log("User '"+data.userName+"' joining channel");
+  console.log("User '"+data.userName+"' joining channel #"+data.channel);
 
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
-  var username = self.socket.user.userName;
+  var userName = self.socket.user.userName;
   var channel = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
@@ -233,29 +233,35 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
       // TODO: User gets updated master key here but we still may need to trigger generating a new one for the user if it has not been generated for them yet. This might be when users are added to the membership of a channel, or when a user updates their public key and then that key is approved by an admin
       if (usersMasterKeyId !== currentKeyId) {
         self.updateMasterKeyPair(function(err) {
-          console.log("[JOIN CHANNEL] Clients master key is not up to date, emitting 'newMasterKey'");
+          console.log("[*3*] [JOIN CHANNEL] Clients master key is not up to date, emitting 'newMasterKey'");
           self.socket.emit('newMasterKey', { keyId: currentKeyId });
           self.socket.join(channel);
+          self.updateUserList(channel);
         });
       } else {
         console.log("[JOIN CHANNEL] Clients master key is up to date");
         self.socket.join(channel);
+        self.updateUserList(channel);
       };
     });
   } else {
     // Using client key encryption scheme
     self.socket.join(channel);
+    self.updateUserList(channel);
   };
+};
 
+/**
+ * Update userlist for a channel
+ */
+SocketServer.prototype.updateUserList = function updateUserList(channel) {
+  var self = this;
+  var userName = self.socket.user.userName;
   self.getUserList(channel, function(err, users) {
-    //self.socket.emit('userlist', {
-    //  userList: users
-    //});
-
     self.namespace.to(channel).emit("userlist update", {
-      userList: users,
-      joinUser: username,
-      channel: channel
+      joinUser: userName,
+      channel: channel,
+      userList: users
     });
   });
 };
@@ -276,6 +282,10 @@ SocketServer.prototype.disconnect = function disconnect() {
 
   console.log("[DISCONNECT] socket.id: " + self.socket.id);
 
+  console.log("[DISCONNECT] looping rooms...");
+  self.socket.rooms.forEach( function(room) {
+    console.log("[LEAVE CHANNEL] Room: "+room);
+  });
   delete self.namespace.socketMap[self.socket.id];
 
   if (self.socket.user && self.socket.user.userName) {
@@ -285,19 +295,24 @@ SocketServer.prototype.disconnect = function disconnect() {
 
 SocketServer.prototype.getUserList = function(room, callback) {
   var self = this;
-  var members = this.namespace.adapter.rooms[room];
+  var members = [];
   console.log("[SOCKETSERVER] Room: "+room);
 
   //Get all sockets in this room
   //TODO: This fails when server restarted with users connected
-  members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
-    return members[sid];
-  });
+  if (typeof this.namespace.adapter.rooms[room] !== 'undefined') {
+    var members = this.namespace.adapter.rooms[room];
+    members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
+      return members[sid];
+    });
 
-  //Map sockets to users
-  members = members.map(function(sid) {
-    return self.namespace.socketMap[sid];
-  });
+    //Map sockets to users
+    members = members.map(function(sid) {
+      return self.namespace.socketMap[sid];
+    });
+  } else {
+    console.log("[GET USER LIST] User list is empty");
+  };
 
   callback(null, members);
 };

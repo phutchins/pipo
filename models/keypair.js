@@ -14,15 +14,19 @@ var keyPairSchema = new Schema({
   version: { type: Number, default: 0 }
 });
 
-keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair() {
+keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair(callback) {
   var self = this;
   console.log("Running regenerateMasterKeyPair");
   self.generateMasterKeyPair(function(err, masterKeyPair, id) {
     console.log("[START] New master keyPair generated...");
     //TODO: Loop through all channels and update master key pair for each
     self.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
-      if (err) { return console.log("[START] Error encrypting master key for all users: "+err); };
+      if (err) {
+        console.log("[START] Error encrypting master key for all users: "+err);
+        return callback(err, null, null);
+      };
       console.log("[START] Encrypted master key for all users!");
+      callback(null, masterKeyPair, id);
     });
   });
 };
@@ -80,6 +84,7 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
         users.forEach( function(user) {
           //console.log("[DEBUG] checkMasterKeyPairForAllUsers - user is: "+user);
           if (user.masterKey.encryptedPrivateKey && user.masterKey.id == currentKeyId) {
+            console.log("[KEYPAIR] (checkMasterKeyPairForAllUsers) Users Key ID: "+user.masterKey.id+" Current Key ID: "+currentKeyId);
           } else if (user.publicKey == null) {
             console.log("[KEYPAIR] checkMasterKeyPairForAllUsers - user.publicKey is null");
           } else {

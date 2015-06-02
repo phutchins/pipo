@@ -34,7 +34,7 @@ keyPairSchema.statics.regenerateMasterKeyPair = function regenerateMasterKeyPair
 keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(callback) {
   var self = this;
   console.log("Generating master key pair start");
-  self.generateKeyPair(2048, 'master keypair', 'pipo', function(err, newMasterKeyPair) {
+  self.generateKeyPair(2048, 'masterKeyPair', '', function(err, newMasterKeyPair) {
     console.log("Generated master key pair!");
     if (err) {
       callback(err, null, null);

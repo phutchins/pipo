@@ -34,14 +34,20 @@ SocketClient.prototype.init = function() {
     if (!self.listeners) {
       self.addListeners();
     }
-    if (!self.maseterLoaded) {
+    if (!self.maseterLoaded && config.encryptionScheme == 'masterKey') {
       console.log("[INIT] Loading master credentials");
       //TODO: finish this...
       window.encryptionManager.loadMasterKeyPair(function(err) {
         if (err) { return console.log("[INIT] ERROR loading master key pair") };
-        console.log("[INIT] Loaded master credentials");
+        window.encryptionManager.decryptKeys(function(err) {
+          console.log("[INIT] Done decrypting master and client credentials");
+        });
       });
-    }
+    } else {
+      window.encryptionManager.decryptKeys(function(err) {
+        console.log("[INIT] Done decrypting client credentials");
+      });
+    };
     console.log("[INIT] Authenticating");
     //TODO: Here we should confirm that the client publickey that we have matches the one on the server
     // We can then prompt the user to either load the keypair with the ID thats on the server ...

@@ -79,9 +79,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     publicKey: keyPairData.publicKey
   };
 
-  decryptKeys(function(err) {
-    console.log("[LOAD CLIENT KEYPAIR] Done loading client keypair");
-  });
+  callback(null);
 };
 
 /**
@@ -112,21 +110,10 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
     publicKey: masterKeyPairData.publicKey
   };
 
-  //Load key into keyRing
-  window.kbpgp.KeyManager.import_from_armored_pgp({
-    armored: self.masterKeyPair.privateKey
-  }, function(err, masterKeyManager) {
-    if (err) {
-      console.log("Error loading key", err);
-      return callback(err);
-    }
-    self.decryptKeys(function(err) {
-      callback(err, true);
-    });
-  });
+  callback(null);
 };
 
-EncryptionManager.prototype.dexryptKeys = function decryptKeys(callback) {
+EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
   //Unlock key with passphrase if locked
   if (keyManager.is_pgp_locked()) {
     var tries = 3;
@@ -166,7 +153,7 @@ EncryptionManager.prototype.dexryptKeys = function decryptKeys(callback) {
 
     function decryptMaster() {
       masterKeyManager.unlock_pgp({
-        passphrase: 'pipo'
+        passphrase: ''
       }, function (err) {
         if (err) {
           console.log("Error unlocking key", err);
@@ -183,6 +170,7 @@ EncryptionManager.prototype.dexryptKeys = function decryptKeys(callback) {
   }
   else {
     self.keyRing.add_key_manager(masterKeyManager);
+    console.log("[DECRYPT KEYS] Added passwordless masterKey to keyring");
     return callback(null);
   }
 };

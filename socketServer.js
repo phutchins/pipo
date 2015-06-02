@@ -258,6 +258,7 @@ SocketServer.prototype.updateUserList = function updateUserList(channel) {
   var self = this;
   var userName = self.socket.user.userName;
   self.getUserList(channel, function(err, users) {
+    // TODO: This should handle joins and parts
     self.namespace.to(channel).emit("userlist update", {
       joinUser: userName,
       channel: channel,
@@ -282,11 +283,11 @@ SocketServer.prototype.disconnect = function disconnect() {
 
   console.log("[DISCONNECT] socket.id: " + self.socket.id);
 
-  console.log("[DISCONNECT] looping rooms...");
-  self.socket.rooms.forEach( function(room) {
-    console.log("[LEAVE CHANNEL] Room: "+room);
-  });
-  delete self.namespace.socketMap[self.socket.id];
+  //self.namespace.socketMap[self.socket.id].rooms.forEach( function(room) {
+  //  console.log("[LEAVE CHANNEL] Room: "+room);
+  //});
+  this.socket.leave('general');
+  self.updateUserList('general');
 
   if (self.socket.user && self.socket.user.userName) {
     delete self.namespace.userMap[self.socket.user.userName];

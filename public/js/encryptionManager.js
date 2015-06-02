@@ -79,47 +79,8 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     publicKey: keyPairData.publicKey
   };
 
-  //Load key into keyRing
-  window.kbpgp.KeyManager.import_from_armored_pgp({
-    armored: self.keyPair.privateKey
-  }, function(err, keyManager) {
-    if (err) {
-      console.log("Error loading key", err);
-      return callback(err);
-    }
-
-    //Unlock key with passphrase if locked
-    if (keyManager.is_pgp_locked()) {
-      var tries = 3;
-      promptAndDecrypt();
-
-      function promptAndDecrypt() {
-        ChatManager.promptForPassphrase(function (passphrase) {
-          keyManager.unlock_pgp({
-            passphrase: passphrase
-          }, function (err) {
-            if (err) {
-              if (tries) {
-                tries--;
-                return promptAndDecrypt();
-              }
-              console.log("Error unlocking key", err);
-              return callback(err);
-            }
-
-            self.keyManager = keyManager;
-            self.keyRing.add_key_manager(keyManager);
-            self.credentialsLoaded = true;
-
-            return callback(null, true);
-          });
-        });
-      }
-    }
-    else {
-      self.keyRing.add_key_manager(keyManager);
-      return callback(null, true);
-    }
+  decryptKeys(function(err) {
+    console.log("[LOAD CLIENT KEYPAIR] Done loading client keypair");
   });
 };
 
@@ -154,45 +115,76 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
   //Load key into keyRing
   window.kbpgp.KeyManager.import_from_armored_pgp({
     armored: self.masterKeyPair.privateKey
-  }, function(err, keyManager) {
+  }, function(err, masterKeyManager) {
     if (err) {
       console.log("Error loading key", err);
       return callback(err);
     }
-
-    //Unlock key with passphrase if locked
-    if (keyManager.is_pgp_locked()) {
-      var tries = 3;
-      promptAndDecrypt();
-
-      function promptAndDecrypt() {
-        ChatManager.promptForPassphrase(function (passphrase) {
-          keyManager.unlock_pgp({
-            passphrase: passphrase
-          }, function (err) {
-            if (err) {
-              if (tries) {
-                tries--;
-                return promptAndDecrypt();
-              }
-              console.log("Error unlocking key", err);
-              return callback(err);
-            }
-
-            self.keyManager = keyManager;
-            self.keyRing.add_key_manager(keyManager);
-            self.credentialsLoaded = true;
-
-            return callback(null, true);
-          });
-        });
-      }
-    }
-    else {
-      self.keyRing.add_key_manager(keyManager);
-      return callback(null, true);
-    }
+    self.decryptKeys(function(err) {
+      callback(err, true);
+    });
   });
+};
+
+EncryptionManager.prototype.dexryptKeys = function decryptKeys(callback) {
+  //Unlock key with passphrase if locked
+  if (keyManager.is_pgp_locked()) {
+    var tries = 3;
+    promptAndDecrypt();
+
+    function promptAndDecrypt() {
+      ChatManager.promptForPassphrase(function (passphrase) {
+        keyManager.unlock_pgp({
+          passphrase: passphrase
+        }, function (err) {
+          if (err) {
+            if (tries) {
+              tries--;
+              return promptAndDecrypt();
+            }
+            console.log("Error unlocking key", err);
+            return callback(err);
+          }
+
+          self.keyManager = keyManager;
+          self.keyRing.add_key_manager(keyManager);
+          self.credentialsLoaded = true;
+
+          return callback(null);
+        });
+      });
+    }
+  }
+  else {
+    self.keyRing.add_key_manager(masterKeyManager);
+    return callback(null);
+  }
+  //Unlock key with passphrase if locked
+  if (masterKeyManager.is_pgp_locked()) {
+    var tries = 3;
+    decryptMaster();
+
+    function decryptMaster() {
+      masterKeyManager.unlock_pgp({
+        passphrase: 'pipo'
+      }, function (err) {
+        if (err) {
+          console.log("Error unlocking key", err);
+          return callback(err);
+        }
+
+        self.masterKeyManager = masterKeyManager;
+        self.keyRing.add_key_manager(masterKeyManager);
+        self.credentialsLoaded = true;
+
+        return callback(null);
+      });
+    }
+  }
+  else {
+    self.keyRing.add_key_manager(masterKeyManager);
+    return callback(null);
+  }
 };
 
 

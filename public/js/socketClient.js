@@ -4,6 +4,7 @@ function SocketClient() {
   this.socket = window.io(host + '/socket');
 
   window.userName = localStorage.getItem("userName");
+  window.autoJoinRooms = ['general'];
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
@@ -23,31 +24,18 @@ SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
-    console.log("[INIT] Loaded client keypair!");
     if (err) {
       //Show error somewhere
     }
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
       return ChatManager.promptForCredentials();
+    } else {
+      console.log("[INIT] Client credentials loaded");
     }
     if (!self.listeners) {
       self.addListeners();
     }
-    if (!self.maseterLoaded && config.encryptionScheme == 'masterKey') {
-      console.log("[INIT] Loading master credentials");
-      //TODO: finish this...
-      window.encryptionManager.loadMasterKeyPair(function(err) {
-        if (err) { return console.log("[INIT] ERROR loading master key pair") };
-        window.encryptionManager.decryptKeys(function(err) {
-          console.log("[INIT] Done decrypting master and client credentials");
-        });
-      });
-    } else {
-      window.encryptionManager.decryptKeys(function(err) {
-        console.log("[INIT] Done decrypting client credentials");
-      });
-    };
     console.log("[INIT] Authenticating");
     //TODO: Here we should confirm that the client publickey that we have matches the one on the server
     // We can then prompt the user to either load the keypair with the ID thats on the server ...
@@ -81,6 +69,35 @@ SocketClient.prototype.init = function() {
   });
 };
 
+SocketClient.prototype.joinRoom = function(room, callback) {
+  console.log("[AUTHENTICATED] Joining channel #"+room+" as "+window.userName+" with master keyId "+window.masterKeyId);
+  self.socket.emit('join', { userName: window.userName, channel: room, masterKeyId: window.masterKeyId } );
+  if (window.encryptionManager.encryptionScheme == 'masterKey') {
+    // Make sure we have the most recent verison of our master keys for all
+    console.log("[AUTHENTICATED] In Master Key mode - currentKeyId: "+window.encryptionManager.masterKeyPair.id);
+    self.socket.emit('masterKeySync', { currentKeyId: window.encryptionManager.masterKeyPair.id });
+  } else {
+  }
+
+  if (window.encryptionManager.encryptionScheme == 'masterKey') {
+    console.log("[INIT] Loading master credentials");
+    //TODO: finish this...
+    window.encryptionManager.loadMasterKeyPair(function(err, loaded) {
+      // Should return if we have masterKeyPair, if not do something here to get it and then run init again
+      if (err) { return console.log("[INIT] ERROR loading master key pair") };
+      window.encryptionManager.decryptKeys(function(err) {
+        console.log("[INIT] Done decrypting master and client credentials");
+      });
+    });
+  } else {
+    window.encryptionManager.decryptKeys(function(err) {
+      console.log("[INIT] Done decrypting client credentials");
+    });
+  };
+
+  callback(null);
+};
+
 SocketClient.prototype.addListeners = function() {
   var self = this;
   var channel = 'general';
@@ -88,18 +105,17 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('authenticated', function(data) {
     // TODO: check data.message here and if not 'ok' warn user and give options
     console.log("[AUTHENTICATED] Authenticated successfully");
-    console.log("[AUTHENTICATED] Joining channel #"+channel+" as "+window.userName+" with master keyId "+window.masterKeyId);
-    self.socket.emit('join', { userName: window.userName, channel: channel, masterKeyId: window.masterKeyId } );
-    if (window.encryptionManager.encryptionScheme == 'masterKey') {
-      // Make sure we have the most recent verison of our master keys for all
-      console.log("[AUTHENTICATED] In Master Key mode - currentKeyId: "+window.encryptionManager.masterKeyPair.id);
-      self.socket.emit('masterKeySync', { currentKeyId: window.encryptionManager.masterKeyPair.id });
-    } else {
-      // Use cilent keys and enable chat now
-      // Should enable chat for specific rooms
-      ChatManager.enableChat();
-    };
+
+    // Use cilent keys and enable chat now
+    // Should enable chat for specific rooms
+    autoJoinRooms.forEach(function(room) {
+      self.joinRoom(room, function(err) {
+        ChatManager.enableChat(room);
+      });
+    });
   });
+
+
 
   this.socket.on('errorMessage', function(data) {
     console.log('errorMessage', data);
@@ -159,7 +175,10 @@ SocketClient.prototype.addListeners = function() {
           encryptionManager.decryptMasterKey(window.userName, window.encryptionManager.keyPair.privateKey, window.encryptionManager.masterKeyPair.encryptedPrivateKey, function(err, key) {
             console.log("(new master key) Caching master private key decrypted");
             window.encryptionManager.masterKeyPair.privateKey = key;
-            encryptionManager.loadMasterKeyPair(function(err) {
+            encryptionManager.loadMasterKeyPair(function(err, loaded) {
+              if (!loaded) {
+                return console.log("Error loading keypair from local storage");
+              };
               ChatManager.localMsg({ type: null, message: "Updated master key pair" });
               ChatManager.enableChat();
             });

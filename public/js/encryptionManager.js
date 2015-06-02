@@ -16,10 +16,12 @@ function EncryptionManager() {
   this.encryptionScheme = 'masterKey';
 
   this.keyManager = null;
-  this.keyRing = new window.kbpgp.keyring.KeyRing();
   this.masterKeyManager = null;
-  this.credentialsLoaded = false;
+  this.keyRing = new window.kbpgp.keyring.KeyRing();
+  this.clientCredentialsLoaded = false;
   this.masterCredentialsLoaded = false;
+  this.clientCredentailsDecrypted = false;
+  this.masterCredentailsDecrypted = false;
 }
 
 /**
@@ -56,12 +58,14 @@ EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPa
  */
 EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callback) {
   var self = this;
-  if (self.credentialsLoaded) {
+  if (self.clientCredentialsLoaded) {
     return callback(null, true);
   }
   console.log("[LOAD CLIENT KEY PAIR] Loading client key pair from local storage");
   var keyPairData = localStorage.getItem('keyPair');
+  console.log("[LOAD CLIENT KEY PAIR] Loaded keyPairData from localStorage:",keyPairData);
   if (keyPairData) {
+    console.log("[LOAD CLIENT KEY PAIR] Loaded client key pair from local storage!");
     try {
       keyPairData = JSON.parse(keyPairData);
     }
@@ -71,6 +75,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     }
   }
   else {
+    console.log("[LOAD CLIENT KEY PAIR] Unable to load client key pair from localStorage");
     return callback(null, false);
   }
 
@@ -79,7 +84,9 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     publicKey: keyPairData.publicKey
   };
 
-  callback(null);
+  self.clientCredentialsLoaded = true;
+
+  callback(null, true);
 };
 
 /**
@@ -110,18 +117,20 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
     publicKey: masterKeyPairData.publicKey
   };
 
+  self.masterCredentialsLoaded = true;
+
   callback(null);
 };
 
 EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
   //Unlock key with passphrase if locked
-  if (keyManager.is_pgp_locked()) {
+  if (self.keyManager.is_pgp_locked()) {
     var tries = 3;
     promptAndDecrypt();
 
     function promptAndDecrypt() {
       ChatManager.promptForPassphrase(function (passphrase) {
-        keyManager.unlock_pgp({
+        self.keyManager.unlock_pgp({
           passphrase: passphrase
         }, function (err) {
           if (err) {
@@ -133,9 +142,10 @@ EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
             return callback(err);
           }
 
-          self.keyManager = keyManager;
+          //self.keyManager = keyManager;
           self.keyRing.add_key_manager(keyManager);
-          self.credentialsLoaded = true;
+
+          self.clientCredentialsDecrypted = true;
 
           return callback(null);
         });
@@ -143,16 +153,16 @@ EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
     }
   }
   else {
-    self.keyRing.add_key_manager(masterKeyManager);
+    self.keyRing.add_key_manager(keyManager);
     return callback(null);
   }
   //Unlock key with passphrase if locked
-  if (masterKeyManager.is_pgp_locked()) {
+  if (self.encryptionScheme == 'masterKey' && self.masterKeyManager.is_pgp_locked()) {
     var tries = 3;
     decryptMaster();
 
     function decryptMaster() {
-      masterKeyManager.unlock_pgp({
+      self.masterKeyManager.unlock_pgp({
         passphrase: ''
       }, function (err) {
         if (err) {
@@ -160,9 +170,10 @@ EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
           return callback(err);
         }
 
-        self.masterKeyManager = masterKeyManager;
-        self.keyRing.add_key_manager(masterKeyManager);
-        self.credentialsLoaded = true;
+        //self.masterKeyManager = masterKeyManager;
+        self.keyRing.add_key_manager(self.masterKeyManager);
+
+        self.masterCredentialsDecrypted = true;
 
         return callback(null);
       });
@@ -489,6 +500,33 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
       200: function(data) {
         console.log("["+timestamp+"] [MASTER KEY PAIR] (200) Encrypted masterKeyPair retrieved and cached");
         //console.log("[GET MASTER KEY PAIR] data.keyId: "+data.keyId+" data.publicKey: "+data.publicKey+" data.encryptedPrivateKey: "+data.encryptedPrivateKey);
+        //TODO: add the keys to a keyManager here and save them to self
+
+        kbpgp.KeyManager.import_from_armored_pgp({
+          armored: data.publicKey
+        }, function(err, masterKeyPair) {
+          if (!err) {
+            masterKeyPair.merge_pgp_private({
+              armored: data.privateKey
+            }, function(err) {
+              if (!err) {
+                if (masterKeyPair.is_pgp_locked()) {
+                  masterKeyPair.unlock_pgp({
+                    passphrase: ''
+                  }, function(err) {
+                    if (!err) {
+                      console.log("Loaded private key with passphrase");
+                    }
+                  });
+                } else {
+                  console.log("Loaded private key w/o passphrase");
+                }
+              }
+              localStorage.setItem('masterKeyPair', JSON.stringify(data));
+              self.masterKeyManager = masterKeyPair;
+            });
+          }
+        });
         return callback(null, data);
       }
     }
@@ -497,7 +535,7 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
 
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
 EncryptionManager.prototype.verifyRemotePublicKey = function updateRemotePublicKey(userName, publicKey, callback) {
-  console.log("Verifying remote public key");
+  console.log("Verifying remote public key for user '"+userName+"'");
   $.ajax({
     type: "GET",
     url: "/key/publickey",

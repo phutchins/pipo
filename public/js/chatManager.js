@@ -174,7 +174,7 @@ ChatManager.getNotifyPermissions = function getNotifyPermissions(callback) {
   }
 };
 
-ChatManager.enableChat = function enableChat() {
+ChatManager.enableChat = function enableChat(room) {
   var self = this;
 
   if (self.enabled) {
@@ -443,6 +443,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
           console.log("[CHAT MANAGER] [Prompt for credentials] userName: "+userName+" window.userName: "+window.userName);
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+          console.log("Setting localStorage keyPair to: "+generatedKeypair);
           $('.ui.modal.generate').modal('hide');
           socketClient.init();
         }

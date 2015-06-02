@@ -25,6 +25,7 @@ function SocketServer(namespace) {
 SocketServer.prototype.onSocket = function(socket) {
   var self = this;
   this.socket = socket;
+  this.init();
 
   console.log("[CONNECTION] Socket connected to main");
 
@@ -45,46 +46,29 @@ SocketServer.prototype.onSocket = function(socket) {
    * ADMIN COMMANDS
    */
   // TODO Put this behind admin control when new client keys are approved
-  socket.on('maserKeySync', self.masterKeySync.bind(self));
+  // socket.on('maserKeySync', self.masterKeySync.bind(self));
 
 };
 
-SocketServer.prototype.updateMasterKeyPair = function updateMasterKeyPair(callback) {
+SocketServer.prototype.init = function init() {
   var self = this;
-  KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
-    console.log("Checked master key pair for all users. Response is '"+response+"'");
-    if (err) { console.log("[START] Error checking master key for all users: "+err); };
-    if (response == 'update') {
-      console.log("Users keypair needs updating so generating new master key pair");
-      KeyPair.regenerateMasterKeyPair(function(err, masterKeyPair, id) {
-        console.log("[START] New master keyPair generated with id '"+id+"'");
-        KeyPair.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
-          if (err) {
-            console.log("[START] Error encrypting master key for all users: "+err);
-            return callback(err);
-          };
-          console.log("[*2*] [START] Encrypted master key for all users!");
-          self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
-          callback(null);
-        });
-      });
-    } else if (response == 'ok') {
-      console.log("All users master key matches current version");
-      //self.namespace.emit('newMasterKey');
-      callback(null);
-    }
-  });
-};
-
-SocketServer.prototype.start = function start() {
-  var self = this;
-  this.updateMasterKeyPair();
+  if (config.encryptionScheme == 'masterKey') {
+    // Do master key things
+    this.initMasterKeyPair(function(err) {
+      if (err) {
+        return console.log("[INIT] Error updating master key pair: "+err);
+      }
+      console.log("[INIT] Finsihed updating master key pair");
+    });
+  } else {
+    // Do client key things
+  }
 };
 
 /**
  * New socket connected to server
  */
-SocketServer.prototype.authenticate = function init(data) {
+SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
   console.log("[AUTHENTICATE] Authenticating user '"+data.userName+"'");
   User.authenticateOrCreate(data, function(err, user) {
@@ -119,12 +103,40 @@ SocketServer.prototype.authenticate = function init(data) {
   });
 };
 
+SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) {
+  var self = this;
+  KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
+    console.log("Checked master key pair for all users. Response is '"+response+"'");
+    if (err) { console.log("[START] Error checking master key for all users: "+err); };
+    if (response == 'update') {
+      console.log("Users keypair needs updating so generating new master key pair");
+      KeyPair.regenerateMasterKeyPair(function(err, masterKeyPair, id) {
+        console.log("[START] New master keyPair generated with id '"+id+"'");
+        KeyPair.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
+          if (err) {
+            console.log("[START] Error encrypting master key for all users: "+err);
+            return callback(err);
+          };
+          console.log("[*2*] [START] Encrypted master key for all users!");
+          self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
+          callback(null);
+        });
+      });
+    } else if (response == 'ok') {
+      console.log("All users master key matches current version");
+      //self.namespace.emit('newMasterKey');
+      callback(null);
+    }
+  });
+};
+
 /**
  * Check and sync master key for user
  */
-SocketServer.prototype.masterKeySync = function masterKeySync(data) {
-  var currentKeyId = data.currentKeyId;
-
+SocketServer.prototype.getMasterKeyPairForUser = function getMasterKeyPairForUser(userName, channel, callback) {
+  User.getMasterKeyPair(userName, channel, function(masterKeyPair) {
+    return callback(null, masterKeyPair);
+  });
 };
 
 SocketServer.prototype.updateClientKey = function updateClientKey(data) {
@@ -232,11 +244,14 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
       console.log("[JOIN CHANNEL] currentKeyId: "+currentKeyId);
       // TODO: User gets updated master key here but we still may need to trigger generating a new one for the user if it has not been generated for them yet. This might be when users are added to the membership of a channel, or when a user updates their public key and then that key is approved by an admin
       if (usersMasterKeyId !== currentKeyId) {
-        self.updateMasterKeyPair(function(err) {
-          console.log("[*3*] [JOIN CHANNEL] Clients master key is not up to date, emitting 'newMasterKey'");
-          self.socket.emit('newMasterKey', { keyId: currentKeyId });
-          self.socket.join(channel);
-          self.updateUserList(channel);
+        self.initMasterKeyPair(function(err) {
+          console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
+          User.getMasterKeyPair(userName, channel, function(err, masterKeyPair) {
+            self.socket.emit('joinComplete', { room: channel, masterKeyPair: masterKeyPair });
+            //self.socket.emit('newMasterKey', { keyId: currentKeyId });
+            self.socket.join(channel);
+            self.updateUserList(channel);
+          });
         });
       } else {
         console.log("[JOIN CHANNEL] Clients master key is up to date");
@@ -247,6 +262,7 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
   } else {
     // Using client key encryption scheme
     self.socket.join(channel);
+    self.socket.emit('joinComplete', { room: channel });
     self.updateUserList(channel);
   };
 };
@@ -287,7 +303,7 @@ SocketServer.prototype.disconnect = function disconnect() {
   //  console.log("[LEAVE CHANNEL] Room: "+room);
   //});
   this.socket.leave('general');
-  self.updateUserList('general');
+  //self.updateUserList('general');
 
   if (self.socket.user && self.socket.user.userName) {
     delete self.namespace.userMap[self.socket.user.userName];

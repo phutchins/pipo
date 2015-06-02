@@ -8,7 +8,7 @@ module.exports = function(app) {
     var timestamp = new Date().toString();
     var userName = req.param('userName');
     console.log("["+timestamp+"] [API] [GET] [/key/publickey] Getting publickey for user "+userName);
-    User.findOne({ userNameLowerCase: userName.toLowerCase() }, function(err, user) {
+    User.findOne({ userName: userName }, function(err, user) {
       if (err) return console.log("[ERROR] Error getting user: "+err);
       if (user == null) {
         console.log("["+timestamp+"] publicKey for "+userName+"  not found");

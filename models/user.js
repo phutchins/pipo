@@ -10,6 +10,8 @@ var userSchema = new Schema({
   publicKey: { type: String },
   socketIds: [{ type: String }],
   masterKey: {
+    // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
+    // latestId: { type: String },
     id: { type: Number },
     publicKey: { type: String },
     privateKey: { type: String },
@@ -93,6 +95,19 @@ userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, cal
     } else {
       //console.log("User exists");
       return callback(null);
+    }
+  });
+};
+
+userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, channel, callback) {
+  User.findOne({ userName: userName }, function(err, user) {
+    if (err) {
+      return callback(err);
+    } else if (user == null) {
+      return callback("No user found with this userName");
+    } else {
+      // TODO: Master keys need to be stored per channel in user
+      return callback(null, user.masterKey);
     }
   });
 };

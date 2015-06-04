@@ -174,7 +174,7 @@ ChatManager.getNotifyPermissions = function getNotifyPermissions(callback) {
   }
 };
 
-ChatManager.enableChat = function enableChat(room) {
+ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   var self = this;
 
   if (self.enabled) {

@@ -26,6 +26,7 @@ SocketClient.prototype.init = function() {
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere
+      return console.log("[INIT] Error loading client key pair: "+err);
     }
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
@@ -116,9 +117,8 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('joinComplete', function(data) {
-    var self = this;
     console.log("[SOCKET] joinComplete");
-    self.joinComplete(data.room);
+    self.joinComplete(data);
   });
 
   this.socket.on('errorMessage', function(data) {
@@ -159,38 +159,18 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('newMasterKey', function(data) {
     console.log("[SOCKET] 'new master key'");
-    window.encryptionManager.getMasterKeyPair(userName, function(err, encMasterKeyPair) {
-      if (err) {
-        console.log("Error getting master key pair: "+err);
-        ChatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
-      } else {
-        console.log("Got master keypair, ready to encrypt/decrypt");
-        //console.log("Encrypted master key is: "+encMasterKeyPair.privateKey);
-        //console.log("Public master key is: "+encMasterKeyPair.publicKey);
-        window.encryptionManager.masterKeyPair.publicKey = encMasterKeyPair.publicKey;
-        window.encryptionManager.masterKeyPair.encryptedPrivateKey = encMasterKeyPair.privateKey;
-        console.log("Ensuring that client keypair exists");
-        //console.log("keyPair.privateKey at new master key is: "+keyPair.privateKey);
-        if (typeof encryptionManager.keyPair.privateKey !== 'undefined' && encryptionManager.keyPair.privateKey !== null) {
-          console.log("(new master key) Trying to decrypt master key...");
-          console.log("[NEW MASTER KEY] window.userName: "+window.userName);
-          console.log("[NEW MASTER KEY] window.encryptionManager.keyPair.privateKey: "+window.encryptionManager.keyPair.privateKey);
-          console.log("[NEW MASTER KEY] window.encryptionManager.masterKeyPair.encryptedPrivateKey: "+window.encryptionManager.masterKeyPair.encryptedPrivateKey);
-          encryptionManager.decryptMasterKey(window.userName, window.encryptionManager.keyPair.privateKey, window.encryptionManager.masterKeyPair.encryptedPrivateKey, function(err, key) {
-            console.log("(new master key) Caching master private key decrypted");
-            window.encryptionManager.masterKeyPair.privateKey = key;
-            encryptionManager.loadMasterKeyPair(function(err, loaded) {
-              if (!loaded) {
-                return console.log("Error loading keypair from local storage");
-              };
-              ChatManager.localMsg({ type: null, message: "Updated master key pair" });
-              ChatManager.enableChat();
-            });
-          });
-        } else {
-          console.log("Private key does not yet exist so cannot decrypt master key");
+    var masterKeyPair = data.masterKeyPair;
+    var room = data.room;
+    // TODO: This should just pass the new masterKeyPair to updateMasterKeyPair or something
+    encryptionManager.decryptMasterKey(function(err, key) {
+      window.encryptionManager.masterKeyPair.privateKey = key;
+      encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
+        if (!loaded) {
+          return console.log("Error loading keypair from local storage");
         };
-      };
+        ChatManager.localMsg({ type: null, message: "Updated master key pair" });
+        ChatManager.enableChat();
+      });
     });
   });
 
@@ -273,21 +253,25 @@ SocketClient.prototype.sendMessage = function(channel, message) {
 
 SocketClient.prototype.joinComplete = function(data) {
   var room = data.room;
-  var masterKeyPair = data.masterKeyPair;
-  console.log("[SOCKET] (joinComplete) masterKeyPair: "+masterKeyPair);
-  if (masterKeyPair !== null) {
+  var encryptionScheme = data.encryptionScheme;
+  console.log("[SOCKET] (joinComplete) encryptionScheme: "+encryptionScheme);
+  if (encryptionScheme == 'masterKey') {
+    var masterKeyPair = data.masterKeyPair;
+    //console.log("[SOCKET] (joinComplete) masterKeyPair: "+JSON.stringify(masterKeyPair));
     var masterKeyId = masterKeyPair.id;
     var masterPublicKey = masterKeyPair.publicKey;
     var encryptedMasterKey = masterKeyPair.privateKey;
-    window.encryptionManager.loadMasterKeyPair(room, masterKeyId, masterPublicKey, encryptedMaseterKey, function(err, loaded) {
+    console.log("[SOCKET] (joinComplete) Loading master key pair...");
+    window.encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
-      window.encryptionManager.decryptMasterKey(room, function(err) {
+      if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
+      //window.encryptionManager.decryptMasterKey(room, function(err) {
         console.log("[INIT] Done decrypting master and client credentials");
-        ChatManager.enableChat(room);
-      });
+        ChatManager.enableChat(room, encryptionScheme);
+      //});
     });
   } else {
-    ChatManager.enableChat(room);
+    ChatManager.enableChat(room, encryptionScheme);
   }
 };
 

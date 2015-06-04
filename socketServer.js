@@ -103,6 +103,14 @@ SocketServer.prototype.authenticate = function authenticate(data) {
   });
 };
 
+/*
+ * Check all users to make sure they have an up to date masterKeyPair
+ * encrypted to them
+ *
+ * TODO:
+ * Add membership check before encrypting key to user
+ */
+
 SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) {
   var self = this;
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
@@ -142,6 +150,8 @@ SocketServer.prototype.getMasterKeyPairForUser = function getMasterKeyPairForUse
 SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 
 };
+
+
 
 /**
  * Message broadcast from client
@@ -238,32 +248,36 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   var room = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
-    console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey - masterKeyId: "+data.masterKeyId);
-    var usersMasterKeyId = data.masterKeyId;
+    console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
     KeyId.getMasterKeyId(function(err, currentKeyId) {
-      console.log("[JOIN ROOM] currentKeyId: "+currentKeyId);
-      // TODO: User gets updated master key here but we still may need to trigger generating a new one for the user if it has not been generated for them yet. This might be when users are added to the membership of a channel, or when a user updates their public key and then that key is approved by an admin
-      if (usersMasterKeyId !== currentKeyId) {
-        self.initMasterKeyPair(function(err) {
-          console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
-          User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
-            console.log("[JOIN ROOM] Got masterKeyPair, emitting joinComplete to user "+userName);
-            self.socket.emit('joinComplete', { room: room, masterKeyPair: masterKeyPair });
-            //self.socket.emit('newMasterKey', { keyId: currentKeyId });
-            self.socket.join(room);
-            self.updateUserList(room);
+      User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
+        if (masterKeyPair.id !== currentKeyId) {
+          // If the users key id is not up to date with what we have encrypted to them
+          // TODO: AND they should have a key encrypted to them for this room
+          // then create and encrypt a new master key for this room
+          self.initMasterKeyPair(function(err) {
+            console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
+            User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
+              console.log("[JOIN ROOM] Got masterKeyPair, emitting joinComplete to user "+userName);
+              console.log("[JOIN ROOM] masterKeyPair.id: "+newMasterKeyPair.id);
+              self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
+              //self.socket.emit('newMasterKey', { keyId: currentKeyId });
+              self.socket.join(room);
+              self.updateUserList(room);
+            });
           });
-        });
-      } else {
-        console.log("[JOIN ROOM] Clients master key is up to date");
-        self.socket.join(room);
-        self.updateUserList(room);
-      };
+        } else {
+          console.log("[JOIN ROOM] Clients master key is up to date");
+          self.socket.join(room);
+          self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
+          self.updateUserList(room);
+        };
+      });
     });
   } else {
     // Using client key encryption scheme
     self.socket.join(room);
-    self.socket.emit('joinComplete', { room: room });
+    self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
     self.updateUserList(room);
   };
 };

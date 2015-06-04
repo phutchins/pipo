@@ -9,7 +9,7 @@ var userSchema = new Schema({
   email: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
-  masterKey: {
+  masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
     // latestId: { type: String },
     id: { type: Number },
@@ -99,15 +99,17 @@ userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, cal
   });
 };
 
-userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, channel, callback) {
+userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, room, callback) {
   this.findOne({ userName: userName }, function(err, user) {
     if (err) {
       return callback(err);
     } else if (user == null) {
       return callback("No user found with this userName");
     } else {
-      // TODO: Master keys need to be stored per channel in user
-      return callback(null, user.masterKey);
+      // TODO: Master keys need to be stored per room in user
+      //console.log("Returning masterKeyPair: "+JSON.stringify(user.masterKeyPair));
+      console.log("[USER] (getMasterKeyPair) Returning masterKeyPair.id: "+user.masterKeyPair.id);
+      return callback(null, user.masterKeyPair);
     }
   });
 };

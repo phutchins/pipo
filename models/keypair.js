@@ -86,12 +86,12 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
       User.find({}, function(err, users, count) {
         users.forEach( function(user) {
           //console.log("[DEBUG] checkMasterKeyPairForAllUsers - user is: "+user);
-          if (user.masterKey.encryptedPrivateKey && user.masterKey.id == currentKeyId) {
-            console.log("[KEYPAIR] (checkMasterKeyPairForAllUsers) Users Key ID: "+user.masterKey.id+" Current Key ID: "+currentKeyId);
+          if (user.masterKeyPair.encryptedPrivateKey && user.masterKeyPair.id == currentKeyId) {
+            console.log("[KEYPAIR] (checkMasterKeyPairForAllUsers) Users Key ID: "+user.masterKeyPair.id+" Current Key ID: "+currentKeyId);
           } else if (user.publicKey == null) {
             console.log("[KEYPAIR] checkMasterKeyPairForAllUsers - user.publicKey is null");
           } else {
-            console.log("User '"+user.userName+"' has key id "+user.masterKey.id+" and current keyId is "+currentKeyId);
+            console.log("User '"+user.userName+"' has key id "+user.masterKeyPair.id+" and current keyId is "+currentKeyId);
             response = 'update';
           };
         });
@@ -112,9 +112,9 @@ keyPairSchema.statics.updateMasterKeyPairForUser = function updateMasterKeyPairF
     //console.log("Encrypting master key with id "+keyId+" to "+user.userName);
     openpgp.encryptMessage(publicKey, masterKeyPair.privateKey).then(function(encKey) {
       User.findOne({ userName: user.userName }, function(err, user, count) {
-        user.masterKey.encryptedPrivateKey = encKey;
-        user.masterKey.publicKey = masterKeyPair.publicKey;
-        user.masterKey.id = keyId;
+        user.masterKeyPair.encryptedPrivateKey = encKey;
+        user.masterKeyPair.publicKey = masterKeyPair.publicKey;
+        user.masterKeyPair.id = keyId;
         user.save( function( err, user ) {
           //if (err) { return callback("Error saving encrypted master key for user "+user.userName) };
           //console.log("Saved encrypted master key for user "+user.userName);

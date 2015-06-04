@@ -117,12 +117,14 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(room,
   var masterPublicKey = masterKeyPair.publicKey;
   var encryptedMasterPrivateKey = masterKeyPair.encryptedPrivateKey;
 
-  console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) masterKeyId: "+masterKeyId+" masterPublicKey: "+masterPublicKey+" encryptedMasterPrivateKey: "+encryptedMasterPrivateKey);
+  //console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) masterKeyId: "+masterKeyId+" masterPublicKey: "+masterPublicKey+" encryptedMasterPrivateKey: "+encryptedMasterPrivateKey);
   var masterKeyPairData = localStorage.getItem('masterKeyPair');
 
   if (masterKeyPair) {
     // MasterKey mode
+    console.log("[ENCRYPTION MANAGER] masterKeyPair found! client keyManager unlocked: "+self.keyManager.is_pgp_locked().toString());
     self.decryptMasterKey(encryptedMasterPrivateKey, function(err, masterPrivateKey) {
+      console.log("[ENCRYPTION MANAGER] masterKeyPair decrypted");
       // We should always have masterKeyPairData as it comes from joinComplete() and newMasterKey()
       if (masterKeyPairData) {
         // If we have already loaded credentials and the id matches the key we received return loaded (true)
@@ -519,7 +521,8 @@ EncryptionManager.prototype.initStorage = function initStorage(callback) {
 
 EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(encryptedMasterPrivateKey, callback) {
   var self = this;
-  console.log("[DECRYPT MASTER KEY] encryptedMasterPrivateKey: "+encryptedMasterPrivateKey);
+  //console.log("[DECRYPT MASTER KEY] encryptedMasterPrivateKey: "+encryptedMasterPrivateKey);
+  console.log("[DECRYPT MASTER KEY] Start...");
   kbpgp.unbox({keyfetch: self.keyRing, armored: encryptedMasterPrivateKey}, function(err, literals) {
     if (err != null) {
       return console.log("Problem: " + err);

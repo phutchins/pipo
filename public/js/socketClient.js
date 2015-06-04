@@ -195,7 +195,7 @@ SocketClient.prototype.addListeners = function() {
         if (user.userName != window.userName) {
 
           //Build pgp key instance
-          console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
+          //console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
           window.kbpgp.KeyManager.import_from_armored_pgp({
             armored: user.publicKey
           }, function (err, keyInstance) {
@@ -271,6 +271,7 @@ SocketClient.prototype.joinComplete = function(data) {
       //});
     });
   } else {
+    console.log("[INIT] Enabling chat in clientKey mode");
     ChatManager.enableChat(room, encryptionScheme);
   }
 };

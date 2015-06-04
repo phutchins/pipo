@@ -333,12 +333,11 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
  * master key room message encryption
  */
 EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(room, message, callback) {
-    var masterPublicKey = openpgp.key.readArmored(this.masterKeyPair.publicKey);
-    openpgp.encryptMessage(masterPublicKey.keys, message).then(function(pgpMessage) {
-      callback(null, pgpMessage);
-    }).catch(function(error) {
-      return callback(error, null);
-    });
+  window.kbpgp.box({
+    msg: message,
+    encrypt_for: self.masterKeyManager,
+    sign_with: self.keyManager,
+  }, callback);
 };
 
 EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {

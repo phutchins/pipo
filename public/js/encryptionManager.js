@@ -158,7 +158,7 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(room,
           localStorage.setItem('masterKeyPair', JSON.stringify(masterKeyPair));
           // Decrypt master key and add to keyRing
           console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Decrypting master key");
-          window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey }, function(err, keyManager) {
+          window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
             self.masterKeyManager = keyManager;
             window.encryptionManager.unlockMasterKey(room, function(err) {
               self.masterCredentialsLoaded = true;
@@ -333,6 +333,7 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
  * master key room message encryption
  */
 EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyMessage(room, message, callback) {
+  var self = this;
   window.kbpgp.box({
     msg: message,
     encrypt_for: self.masterKeyManager,
@@ -381,24 +382,11 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMe
 
 //TODO: Should name this appropriately for master key decryption
 EncryptionManager.prototype.decryptMasterKeyMessage = function decryptMasterKeyMessage(pgpMessage, callback) {
-  // TODO: Should get masterPrivateKey from window.kbpgp.unbox like above
-  var masterPrivateKey = this.masterKeyPair.privateKey;
-  masterPrivateKey = openpgp.key.readArmored(masterPrivateKey).keys[0];
-  if (typeof masterPrivateKey !== 'undefined') {
-    masterPrivateKey.decrypt(this.masterKeyPair.password);
-    pgpMessage = openpgp.message.readArmored(pgpMessage);
-    openpgp.decryptMessage(masterPrivateKey, pgpMessage).then(function(plaintext) {
-      console.log("Decrypted message!");
-      callback(null, plaintext);
-    }).catch(function(err) {
-      console.log("Error decrypting message");
-      return callback(err, null);
-    });
-  } else {
-    console.log("master private key is undefined!");
-    return callback("master private key is undefined", null);
-  }
-}
+  window.kbpgp.unbox({
+    keyfetch: this.keyRing,
+    armored: pgpMessage
+  }, callback);
+};
 
 //TODO: Determine if these are needed
 

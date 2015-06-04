@@ -93,7 +93,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
  * Attemtps to load stored PGP key from localStorage and initalize all internal variables
  * @param callback(err, loaded)
  */
-EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callback) {
+EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(room, masterKeyId, masterPublicKey, encryptedMasterKey, callback) {
   var self = this;
   if (self.masterCredentialsLoaded) {
     return callback(null, true);
@@ -109,6 +109,7 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
     }
   }
   else {
+    localStorage.setItem('encryptedMasterKey', encryptedMasterKey);
     return callback(null, false);
   }
 
@@ -122,7 +123,7 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(callb
   callback(null);
 };
 
-EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
+EncryptionManager.prototype.decryptClientKey = function decryptClientKey(callback) {
   //Unlock key with passphrase if locked
   if (self.keyManager.is_pgp_locked()) {
     var tries = 3;
@@ -156,6 +157,9 @@ EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
     self.keyRing.add_key_manager(keyManager);
     return callback(null);
   }
+};
+
+EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(callback) {
   //Unlock key with passphrase if locked
   if (self.encryptionScheme == 'masterKey' && self.masterKeyManager.is_pgp_locked()) {
     var tries = 3;
@@ -184,7 +188,7 @@ EncryptionManager.prototype.decryptKeys = function decryptKeys(callback) {
     console.log("[DECRYPT KEYS] Added passwordless masterKey to keyring");
     return callback(null);
   }
-};
+}
 
 
 /**

@@ -34,7 +34,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('updateClientKey', self.updateClientKey.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
 
-  socket.on('join', self.joinChannel.bind(self));
+  socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.leaveChannel.bind(self));
 
   socket.on('roomMessage', self.onMessage.bind(self));
@@ -225,9 +225,9 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 /**
  * Client join channel
  */
-SocketServer.prototype.joinChannel = function joinChannel(data) {
+SocketServer.prototype.joinRoom = function joinRoom(data) {
   var self = this;
-  console.log("User '"+data.userName+"' joining channel #"+data.channel);
+  console.log("[JOIN ROOM] User '"+data.userName+"' joining room #"+data.channel);
 
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
@@ -235,35 +235,36 @@ SocketServer.prototype.joinChannel = function joinChannel(data) {
   }
 
   var userName = self.socket.user.userName;
-  var channel = data.channel;
+  var room = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
-    console.log("[JOIN CHANNEL] encryptionScheme: masterKey - checking masterKey - masterKeyId: "+data.masterKeyId);
+    console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey - masterKeyId: "+data.masterKeyId);
     var usersMasterKeyId = data.masterKeyId;
     KeyId.getMasterKeyId(function(err, currentKeyId) {
-      console.log("[JOIN CHANNEL] currentKeyId: "+currentKeyId);
+      console.log("[JOIN ROOM] currentKeyId: "+currentKeyId);
       // TODO: User gets updated master key here but we still may need to trigger generating a new one for the user if it has not been generated for them yet. This might be when users are added to the membership of a channel, or when a user updates their public key and then that key is approved by an admin
       if (usersMasterKeyId !== currentKeyId) {
         self.initMasterKeyPair(function(err) {
           console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
-          User.getMasterKeyPair(userName, channel, function(err, masterKeyPair) {
-            self.socket.emit('joinComplete', { room: channel, masterKeyPair: masterKeyPair });
+          User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
+            console.log("[JOIN ROOM] Got masterKeyPair, emitting joinComplete to user "+userName);
+            self.socket.emit('joinComplete', { room: room, masterKeyPair: masterKeyPair });
             //self.socket.emit('newMasterKey', { keyId: currentKeyId });
-            self.socket.join(channel);
-            self.updateUserList(channel);
+            self.socket.join(room);
+            self.updateUserList(room);
           });
         });
       } else {
-        console.log("[JOIN CHANNEL] Clients master key is up to date");
-        self.socket.join(channel);
-        self.updateUserList(channel);
+        console.log("[JOIN ROOM] Clients master key is up to date");
+        self.socket.join(room);
+        self.updateUserList(room);
       };
     });
   } else {
     // Using client key encryption scheme
-    self.socket.join(channel);
-    self.socket.emit('joinComplete', { room: channel });
-    self.updateUserList(channel);
+    self.socket.join(room);
+    self.socket.emit('joinComplete', { room: room });
+    self.updateUserList(room);
   };
 };
 

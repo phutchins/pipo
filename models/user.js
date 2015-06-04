@@ -81,7 +81,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
 // TODO: Decide if these are needed still
 userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, callback) {
   var User = require('./models/user.js');
-  User.findOne({ userName: userName }, function(err, user) {
+  this.findOne({ userName: userName }, function(err, user) {
     if (err) { return callback(err); };
     if (typeof user === 'undefined' || user === null) {
       console.log("No user found in DB with userName "+userName);
@@ -100,7 +100,7 @@ userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, cal
 };
 
 userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, channel, callback) {
-  User.findOne({ userName: userName }, function(err, user) {
+  this.findOne({ userName: userName }, function(err, user) {
     if (err) {
       return callback(err);
     } else if (user == null) {
@@ -113,7 +113,7 @@ userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, channe
 };
 
 userSchema.statics.findBySocketId = function findUserBySocketId(socketId, callback) {
-  User.findOne({ socketIds: socketId }, function(err, user) {
+  this.findOne({ socketIds: socketId }, function(err, user) {
     if (err) {
       return callback(err);
     } else if (user == null) {

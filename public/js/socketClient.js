@@ -262,6 +262,7 @@ SocketClient.prototype.joinComplete = function(data) {
     var masterPublicKey = masterKeyPair.publicKey;
     var encryptedMasterKey = masterKeyPair.privateKey;
     console.log("[SOCKET] (joinComplete) Loading master key pair...");
+    // TODO: Need to make sure clientKeyManager is decrypted here
     window.encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };

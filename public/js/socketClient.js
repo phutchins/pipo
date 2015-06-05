@@ -4,7 +4,6 @@ function SocketClient() {
   this.socket = window.io(host + '/socket');
 
   window.userName = localStorage.getItem("userName");
-  window.autoJoinRooms = ['general'];
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
@@ -41,31 +40,23 @@ SocketClient.prototype.init = function() {
     //TODO: Here we should confirm that the client publickey that we have matches the one on the server
     // We can then prompt the user to either load the keypair with the ID thats on the server ...
     // ... or upload the current client publickey to the server which would require re-auth by an admin
-    window.encryptionManager.verifyRemotePublicKey(window.userName, window.encryptionManager.keyPair.publicKey, function(err, result) {
-      if (err) {
-        return console.log("[INIT] Error updating remote public key: "+err);
-        //Show error
-      }
-      if (result == 'match') {
+    window.encryptionManager.verifyRemotePublicKey(window.userName, window.encryptionManager.keyPair.publicKey, function(err, upToDate) {
+      if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
+      if (upToDate) {
         console.log("[INIT] Your public key matches what is on the server");
         return self.authenticate();
-      } else if (result == 'nomatch') {
+      } else {
         // Prompt to update remote key
-        window.encryptionManager.updatePublicKeyOnRemote(window.userName, window.encryptionManager.keyPair.publicKey, function(err) {
-          if (err) {
-            return console.log("[INIT] ERROR updating public key on server: "+err);
-          };
-          return self.authenticate();
+        console.log("[INIT] Remote public key is not up to date so updating!");
+        window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+          if (err) { return console.log("[INIT] Error getting client public key from keyManager") };
+          console.log("[INIT] Updating remote public key with publicKey: "+publicKey);
+          window.encryptionManager.updatePublicKeyOnRemote(window.userName, publicKey, function(err) {
+            if (err) { return console.log("[INIT] ERROR updating public key on server: "+err) };
+            return self.authenticate();
+          });
         });
-      } else if (result == 'nokey') {
-        // Prompt to update remote key
-        window.encryptionManager.updatePublicKeyOnRemote(window.userName, window.encryptionManager.keyPair.publicKey, function(err) {
-          if (err) {
-            return console.log("[INIT] ERROR updating public key on server: "+err);
-          };
-          return self.authenticate();
-        });
-      };
+      }
     });
   });
 };
@@ -101,13 +92,12 @@ SocketClient.prototype.joinRoom = function(room, callback) {
 SocketClient.prototype.addListeners = function() {
   var self = this;
   var channel = 'general';
+  var autoJoinRooms = ['general'];
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
-    // TODO: check data.message here and if not 'ok' warn user and give options
+    if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
     console.log("[AUTHENTICATED] Authenticated successfully");
-
-    // Use cilent keys and enable chat now
-    // Should enable chat for specific rooms
+    // Use cilent keys and enable chat for each room user is currently in
     autoJoinRooms.forEach(function(room) {
       console.log("[SOCKET] (authenticated) Joining room "+room);
       self.joinRoom(room, function(err) {
@@ -158,19 +148,14 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('newMasterKey', function(data) {
+    var self = this;
     console.log("[SOCKET] 'new master key'");
-    var masterKeyPair = data.masterKeyPair;
     var room = data.room;
+    var keyId = data.keyId;
     // TODO: This should just pass the new masterKeyPair to updateMasterKeyPair or something
-    encryptionManager.decryptMasterKey(function(err, key) {
-      window.encryptionManager.masterKeyPair.privateKey = key;
-      encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
-        if (!loaded) {
-          return console.log("Error loading keypair from local storage");
-        };
-        ChatManager.localMsg({ type: null, message: "Updated master key pair" });
-        ChatManager.enableChat();
-      });
+    ChatManager.disableChat();
+    self.joinRoom(room, function(err) {
+      ChatManager.localMsg({ type: null, message: "Master key being updated. Please wait..." });
     });
   });
 
@@ -266,10 +251,8 @@ SocketClient.prototype.joinComplete = function(data) {
     window.encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
-      //window.encryptionManager.decryptMasterKey(room, function(err) {
-        console.log("[INIT] Done decrypting master and client credentials");
-        ChatManager.enableChat(room, encryptionScheme);
-      //});
+      console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
+      ChatManager.enableChat(room, encryptionScheme);
     });
   } else {
     console.log("[INIT] Enabling chat in clientKey mode");

@@ -86,11 +86,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
       self.socket.user = user;
       console.log("[INIT] Init'd user " + user.userName);
-      // TODO: This doesn't seem to get to the client
       self.socket.emit('authenticated', {message: 'ok'});
 
       console.log("[INIT] Emitting user connect");
-      //return self.namespace.emit('user connect', {
       return self.namespace.emit('user connect', {
         userName: user.userName,
         publicKey: user.publicKey
@@ -125,8 +123,8 @@ SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) 
             console.log("[START] Error encrypting master key for all users: "+err);
             return callback(err);
           };
-          console.log("[*2*] [START] Encrypted master key for all users!");
-          self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
+          console.log("[SOCKET SERVER] (initMasterKeyPair) Encrypted master key for all users!");
+          //self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
           callback(null);
         });
       });
@@ -258,10 +256,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           self.initMasterKeyPair(function(err) {
             console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
             User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
-              console.log("[JOIN ROOM] Got masterKeyPair, emitting joinComplete to user "+userName);
-              console.log("[JOIN ROOM] masterKeyPair.id: "+newMasterKeyPair.id);
+              console.log("[JOIN ROOM] Got masterKeyPair id "+newMasterKeyPair.id+", emitting joinComplete to user "+userName);
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
-              //self.socket.emit('newMasterKey', { keyId: currentKeyId });
+              self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
               self.updateUserList(room);
             });

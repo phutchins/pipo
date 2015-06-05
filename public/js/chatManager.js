@@ -438,12 +438,12 @@ ChatManager.promptForCredentials = function promptForCredentials() {
         if (err) {
           console.log("Error generating client keypair: "+err);
         } else {
-          console.log("Generated client key pair.");
+          console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
           window.userName = userName;
-          console.log("[CHAT MANAGER] [Prompt for credentials] userName: "+userName+" window.userName: "+window.userName);
+          //console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
-          console.log("Setting localStorage keyPair to: "+generatedKeypair);
+          console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
           $('.ui.modal.generate').modal('hide');
           socketClient.init();
         }

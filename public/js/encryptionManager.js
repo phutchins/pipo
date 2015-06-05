@@ -70,11 +70,6 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
     console.log("[LOAD CLIENT KEY PAIR] Loaded client key pair from local storage!");
     try {
       keyPairData = JSON.parse(keyPairData);
-      // TODO: Remove this?
-      //self.keyPair = {
-      //  privateKey: keyPairData.privateKey,
-      //  publicKey: keyPairData.publicKey
-      //};
     }
     catch(err) {
       console.log("Error parsing keyPair data from localStorage", e);
@@ -86,25 +81,32 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
   };
 
   //Load decrypted key into keyRing
-  window.kbpgp.KeyManager.import_from_armored_pgp({
-    armored: keyPairData.privateKey
+  kbpgp.KeyManager.import_from_armored_pgp({
+    armored: keyPairData.publicKey
   }, function(err, keyManager) {
     if (err) {
       console.log("Error loading key", err);
       return callback(err);
-    }
-    self.keyManager = keyManager;
-
-    self.decryptClientKey(function(err) {
-      if (err) {
-        console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair: +err");
-        return callback(err, null);
-      }
-      console.log("[ENCRYIPTION MANAGER] (loadClientKeyPair) Decrypted client key!");
-      self.clientCredentialsLoaded = true;
-      return callback(null, true);
-    });
-
+    } else {
+      keyManager.merge_pgp_private({
+        armored: keyPairData.privateKey
+      }, function(err) {
+        if (!err) {
+        self.keyManager = keyManager;
+          if (keyManager.is_pgp_locked()) {
+            self.unlockClientKey(function(err) {
+              if (err) {
+                console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair: +err");
+                return callback(err, null);
+              }
+              console.log("[ENCRYIPTION MANAGER] (loadClientKeyPair) Decrypted client key!");
+              self.clientCredentialsLoaded = true;
+              return callback(null, true);
+            });
+          };
+        };
+      });
+    };
   });
 };
 
@@ -114,81 +116,25 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
  */
 EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(room, masterKeyPair, callback) {
   var self = this;
-  var masterKeyId = masterKeyPair.id;
-  var masterPublicKey = masterKeyPair.publicKey;
-  var encryptedMasterPrivateKey = masterKeyPair.encryptedPrivateKey;
-
-  //console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) masterKeyId: "+masterKeyId+" masterPublicKey: "+masterPublicKey+" encryptedMasterPrivateKey: "+encryptedMasterPrivateKey);
-  var masterKeyPairData = localStorage.getItem('masterKeyPair');
-
   if (masterKeyPair) {
     // MasterKey mode
     console.log("[ENCRYPTION MANAGER] masterKeyPair found! client keyManager locked: "+self.keyManager.is_pgp_locked().toString());
     if (self.keyManager.is_pgp_locked()) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Client keyManager is locked! :(") };
-    if (!encryptedMasterPrivateKey) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) No master key provided to loadMasterKeyPair! encryptedMasterPrivateKey is NULL") };
-    if (masterKeyPairData) {
-      console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) We have masterKeyPairData, masterKeyPair.id: "+masterKeyPair.id);
-      try {
-        masterKeyPairData = JSON.parse(masterKeyPairData);
-      }
-      catch(e) {
-        console.log("Error parsing masterKeyPair data from localStorage", e);
-        return callback(e);
-      }
-      // If we have already loaded credentials and the id matches the key we received return loaded (true)
-      if (masterKeyPairData.id == masterKeyPair.id) {
-        console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Cached master key pair id matches current...");
-        self.decryptMasterKey(encryptedMasterPrivateKey, function(err, masterPrivateKey) {
+    if (!masterKeyPair.encryptedPrivateKey) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) No master key provided to loadMasterKeyPair! encryptedMasterPrivateKey is NULL") };
+    // Decrypt master key and add to keyRing
+    console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Decrypting master key");
+    self.decryptMasterKey(masterKeyPair.encryptedPrivateKey, function(err, masterPrivateKey) {
+      window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
+        self.masterKeyManager = keyManager;
+        // Unlock and add masterKeyManager to keyRing
+        window.encryptionManager.unlockMasterKey(room, function(err) {
           if (err) { return callback(err, false) };
-          window.encryptionManager.getKeyManager({ publicKey: masterKeyPairData.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
-            if (err) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) ERROR getting key manager: "+err) };
-            self.masterKeyManager = keyManager;
-            console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Assigned masterKeyManager to self...");
-            window.encryptionManager.unlockMasterKey(room, function(err) {
-              if (err) { return callback(err, false) };
-              console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) derypted master key pair...");
-              self.masterCredentialsLoaded = true;
-              return callback(err, true);
-            });
-          });
-        });
-      }
-      else {
-        console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Our masterKey id did not match current. Saving new keypair to localStorage...");
-        localStorage.setItem('masterKeyPair', JSON.stringify(masterKeyPair));
-        // Decrypt master key and add to keyRing
-        console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Decrypting master key");
-        self.decryptMasterKey(encryptedMasterPrivateKey, function(err, masterPrivateKey) {
-          window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
-            self.masterKeyManager = keyManager;
-            // Unlock and add masterKeyManager to keyRing
-            window.encryptionManager.unlockMasterKey(room, function(err) {
-              if (err) { return callback(err, false) };
-              self.masterCredentialsLoaded = true;
-              console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Unlock master key pair complete!");
-              return callback(err, true);
-            });
-          });
-        });
-      }
-    } else {
-      // We didn't find the masterKey for this channel in localStorage so we should save the keyPair provided
-      console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) No masterKey saved in local storage so using provided keys");
-      localStorage.setItem('masterKeyPair', JSON.stringify(masterKeyPair));
-      // Unlock master key and add to keyRing
-      self.decryptMasterKey(encryptedMasterPrivateKey, function(err, masterPrivateKey) {
-        window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
-          if (err) { return callback(err, false) };
-          self.masterKeyManager = keyManager;
-          window.encryptionManager.unlockMasterKey(room, function(err) {
-            if (err) { return callback(err, false) };
-            console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Unlocked masterKey and added to keyRing");
-            self.masterCredentialsLoaded = true;
-            return callback(err, true);
-          });
+          self.masterCredentialsLoaded = true;
+          console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Unlock master key pair complete!");
+          return callback(err, true);
         });
       });
-    }
+    });
   } else {
     // ClientKey mode
     console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) CLIENT KEY MODE!");
@@ -203,7 +149,7 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
   var publicKey = data.publicKey;
   var passphrase = data.passphrase;
 
-  //console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation with privateKey: "+privateKey+" publicKey: "+publicKey+" passphrase: "+passphrase);
+  console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation with privateKey: "+privateKey+" publicKey: "+publicKey+" passphrase: "+passphrase);
   console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation");
   kbpgp.KeyManager.import_from_armored_pgp({
     armored: publicKey
@@ -217,10 +163,12 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
             keyManager.unlock_pgp({
               passphrase: passphrase
             }, function(err) {
-              if (!err) {
+              if (err) { return callback(err) };
+              keyManager.sign({}, function(err) {
+                if (err) { return callback(err) };
                 console.log("Loaded private key with passphrase");
-              }
-              return callback(err, keyManager);
+                return callback(err, keyManager);
+              });
             });
           } else {
             console.log("Loaded private key w/o passphrase");
@@ -236,7 +184,7 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
   });
 }
 
-EncryptionManager.prototype.decryptClientKey = function decryptClientKey(callback) {
+EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback) {
   var self = this;
   //Unlock key with passphrase if locked
   if (self.keyManager.is_pgp_locked()) {
@@ -244,7 +192,7 @@ EncryptionManager.prototype.decryptClientKey = function decryptClientKey(callbac
     promptAndDecrypt();
 
     function promptAndDecrypt() {
-      console.log("[ENCRYPTION MANAGER] (decryptClientKey) Prompting for password to decrypt client key...");
+      console.log("[ENCRYPTION MANAGER] (unlockClientKey) Prompting for password to decrypt client key...");
       ChatManager.promptForPassphrase(function (passphrase) {
         self.keyManager.unlock_pgp({
           passphrase: passphrase
@@ -257,7 +205,7 @@ EncryptionManager.prototype.decryptClientKey = function decryptClientKey(callbac
             console.log("Error unlocking key", err);
             return callback(err);
           }
-          console.log("[ENCRYPTION MANAGER] (decryptClientKey) Successfully decrypted client key");
+          console.log("[ENCRYPTION MANAGER] (unlockClientKey) Successfully decrypted client key");
           //self.keyManager = keyManager;
           self.keyRing.add_key_manager(self.keyManager);
 

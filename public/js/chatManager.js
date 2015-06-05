@@ -178,6 +178,7 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   var self = this;
 
   if (self.enabled) {
+    console.log("[enableChat] Trying to enable chat when it is already enabled");
     return;
   }
 
@@ -210,7 +211,8 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   });
 };
 
-ChatManager.disableChat = function disableChat() {
+ChatManager.disableChat = function disableChat(room) {
+  var self = this;
   self.enabled = false;
   $('textarea').off("keydown", "**");
   $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);

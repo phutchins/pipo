@@ -111,6 +111,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
 SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) {
   var self = this;
+  // Run through each room and do this...
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
     console.log("Checked master key pair for all users. Response is '"+response+"'");
     if (err) { console.log("[START] Error checking master key for all users: "+err); };
@@ -124,7 +125,7 @@ SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) 
             return callback(err);
           };
           console.log("[SOCKET SERVER] (initMasterKeyPair) Encrypted master key for all users!");
-          //self.namespace.emit('newMasterKey', { masterKeyPair: masterKeyPair } );
+          self.namespace.emit('newMasterKey', { room: "general" } );
           callback(null);
         });
       });
@@ -202,6 +203,20 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     message: data.pgpMessage,
     signature: data.signature
   });
+};
+
+/*
+ * Send masterKeyPair to user
+ */
+SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(userName, room, masterKeyPair) {
+  var self = this;
+  var targetSocket = self.namespace.userMap[userName];
+  if (targetSocket) {
+    self.socket.broadcast.to(targetSocket).emit('newMasterKey', {
+      room: room,
+      masterKeyPair: masterKeyPair
+    });
+  };
 };
 
 SocketServer.prototype.onServerCommand = function onServerCommand(data) {

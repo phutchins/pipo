@@ -57,7 +57,7 @@ keyPairSchema.statics.generateMasterKeyPair = function generateMasterKeyPair(cal
 };
 
 // This shold include the room for which to update the master key
-keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyPairForAllUsers(masterKeyPair, keyId, callback) {
+keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyPairForAllUsers(masterKeyPair, id, callback) {
   var self = this;
   var timestamp = new Date().toString();
   console.log("["+timestamp+"] [UPDATE] starting updateMasterKeyPairForAllUsers");
@@ -66,7 +66,7 @@ keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyP
     var timestamp = new Date().toString();
     console.log("["+timestamp+"] [UPDATE] found users");
     async.each(users, function(user, asyncCallback) {
-      self.updateMasterKeyPairForUser(user, masterKeyPair, keyId, function(err) {
+      self.updateMasterKeyPairForUser(user, masterKeyPair, id, function(err) {
         if (err) { return asyncCallback(err); }
         //console.log("Update master key process for "+user.userName+" done...");
         asyncCallback(err);

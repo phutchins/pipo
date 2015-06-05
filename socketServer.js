@@ -1,10 +1,11 @@
 var User = require('./models/user');
 var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
+var config = require('./config/pipo');
 
-var config = ({
-  encryptionScheme: 'masterKey'
-});
+//var config = ({
+//  encryptionScheme: 'clientKey'
+//});
 
 /**
  * Handles all socket traffic

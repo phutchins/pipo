@@ -13,7 +13,7 @@ function EncryptionManager() {
   //});
 
   // Should update this setting from the server using getConfig and configUpToDate
-  this.encryptionScheme = 'masterKey';
+  this.encryptionScheme = 'clientKey';
 
   this.keyManager = null;
   this.masterKeyManager = null;
@@ -273,13 +273,14 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(roo
     });
   } else if (this.encryptionScheme == "clientKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
+    console.log("[DEBUG] message to encrypt: "+message);
     this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-      callback(err, pgpmessage);
+      callback(err, pgpMessage);
     });
   } else {
     console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
     this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-      callback(err, pgpmessage);
+      callback(err, pgpMessage);
     });
   }
 };
@@ -298,13 +299,15 @@ EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyM
 };
 
 EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {
+  var self = this;
   //Build array of all users' keyManagers
-  var keys = window.roomUsers[room].map(function(username) {
-    return window.userMap[username].keyInstance;
+  var keys = window.roomUsers[room].map(function(userName) {
+    return window.userMap[userName].keyInstance;
   }).filter(function(key) {
     return !!key;
   });
   //Add our own key to the mix so that we can read the message as well
+  //TODO: Should have a meyManager for each room
   keys.push(self.keyManager);
 
   window.kbpgp.box({

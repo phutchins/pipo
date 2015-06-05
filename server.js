@@ -58,6 +58,14 @@ app.use(express['static'](path.join(__dirname, 'public')));
 //Logger
 app.use(morgan('dev'));
 
+//L33t asci
+console.log('  __________.____________           ');
+console.log('  \\______   \\__\\______   \\____  ');
+console.log('   |     ___/  ||     ___/  _ \\    ');
+console.log('   |    |   |  ||    |  (  <_> )'    );
+console.log('   |____|   |__||____|   \\____/    ');
+console.log('');
+
 var connectWithRetry = function() {
   return mongoose.connect(configDB.url, function(err) {
     if (err) {

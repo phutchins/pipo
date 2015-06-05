@@ -1,4 +1,4 @@
 module.exports = {
-  encryptionStrategy: "masterKey",
+  encryptionStrategy: "clientKey",
   encryptionType: "aes256"
 }

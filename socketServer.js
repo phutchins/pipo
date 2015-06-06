@@ -302,8 +302,6 @@ SocketServer.prototype.updateUserList = function updateUserList(room) {
   var self = this;
   console.log("[SOCKET SERVER] (updateUserList) Update user list called from socket server ******************");
   self.getUserList(room, function(err, members) {
-    // TODO: This should handle joins and parts
-    console.log("[SOCKET SERVER] (updateUserList) Emitting 'userlist update' for room #"+room+" with members: "+JSON.stringify(members));
     self.namespace.to(room).emit("userlist update", {
       room: room,
       userList: members
@@ -360,7 +358,7 @@ SocketServer.prototype.disconnect = function disconnect() {
     console.log("[SOCKET SERVER] (disconnect) userName: "+userName);
     delete self.namespace.userMap[self.socket.user.userName];
   }
-  //self.updateUserList('general');
+  self.updateUserList('general');
 };
 
 

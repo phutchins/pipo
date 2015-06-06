@@ -265,9 +265,12 @@ ChatManager.handlePrivateMessage = function handleMessage(message, fromUser, toU
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
-ChatManager.updateUserList = function updateUserList() {
+ChatManager.updateUserList = function updateUserList(data) {
+  var room = data.room;
+  var members = data.members;
   var userListHtml = "";
-  Object.keys(userMap).forEach(function(userName) {
+  console.log("[CHAT MANAGER] (updateUserList) members: "+JSON.stringify(members));
+  members.forEach(function(userName) {
     userListHtml += "<li>"+userName+"</li>\n";
   });
   $('#user-list').html(userListHtml);

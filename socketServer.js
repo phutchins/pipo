@@ -272,6 +272,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
+              console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
               self.updateUserList(room);
             });
           });
@@ -279,6 +280,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           //console.log("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
+          console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
           self.updateUserList(room);
         };
       });
@@ -288,6 +290,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     self.socket.join(room);
     console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
     self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
+    console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
     self.updateUserList(room);
   };
 };
@@ -295,17 +298,44 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 /**
  * Update userlist for a channel
  */
-SocketServer.prototype.updateUserList = function updateUserList(channel) {
+SocketServer.prototype.updateUserList = function updateUserList(room) {
   var self = this;
-  var userName = self.socket.user.userName;
-  self.getUserList(channel, function(err, users) {
+  console.log("[SOCKET SERVER] (updateUserList) Update user list called from socket server ******************");
+  self.getUserList(room, function(err, members) {
     // TODO: This should handle joins and parts
-    self.namespace.to(channel).emit("userlist update", {
-      joinUser: userName,
-      channel: channel,
-      userList: users
+    console.log("[SOCKET SERVER] (updateUserList) Emitting 'userlist update' for room #"+room+" with members: "+JSON.stringify(members));
+    self.namespace.to(room).emit("userlist update", {
+      room: room,
+      userList: members
     });
   });
+};
+
+SocketServer.prototype.getUserList = function(room, callback) {
+  var self = this;
+  var members = [];
+  console.log("[SOCKETSERVER] Room: "+room);
+
+  //Get all sockets in this room
+  //TODO: This fails when server restarted with users connected
+  console.log("[DEBUG] Rooms: "+JSON.stringify(this.namespace.adapter.rooms));
+  if (typeof this.namespace.adapter.rooms[room] !== 'undefined') {
+    var members = this.namespace.adapter.rooms[room];
+    members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
+      return members[sid];
+    });
+    //console.log("[DEBUG] Member sockets: "+JSON.stringify(members));
+
+    //Map sockets to users
+    members = members.map(function(sid) {
+      return self.namespace.socketMap[sid];
+    });
+    //console.log("[DEBUG] Member names: "+JSON.stringify(members));
+  } else {
+    console.log("[GET USER LIST] User list is empty");
+  };
+
+  callback(null, members);
 };
 
 /**
@@ -323,40 +353,14 @@ SocketServer.prototype.disconnect = function disconnect() {
   }
 
   console.log("[DISCONNECT] socket.id: " + self.socket.id);
-
-  //self.namespace.socketMap[self.socket.id].rooms.forEach( function(room) {
-  //  console.log("[LEAVE CHANNEL] Room: "+room);
-  //});
-  this.socket.leave('general');
-  //self.updateUserList('general');
+  self.socket.leaveAll();
 
   if (self.socket.user && self.socket.user.userName) {
+    var userName = self.socket.user.userName;
+    console.log("[SOCKET SERVER] (disconnect) userName: "+userName);
     delete self.namespace.userMap[self.socket.user.userName];
   }
-};
-
-SocketServer.prototype.getUserList = function(room, callback) {
-  var self = this;
-  var members = [];
-  console.log("[SOCKETSERVER] Room: "+room);
-
-  //Get all sockets in this room
-  //TODO: This fails when server restarted with users connected
-  if (typeof this.namespace.adapter.rooms[room] !== 'undefined') {
-    var members = this.namespace.adapter.rooms[room];
-    members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
-      return members[sid];
-    });
-
-    //Map sockets to users
-    members = members.map(function(sid) {
-      return self.namespace.socketMap[sid];
-    });
-  } else {
-    console.log("[GET USER LIST] User list is empty");
-  };
-
-  callback(null, members);
+  //self.updateUserList('general');
 };
 
 
@@ -370,7 +374,7 @@ SocketServer.prototype.sendUserListUpdate = function sendUserListUpdate(channel,
         var userListData = {
           userList: channelUsersArray
         }
-        ioMain.emit("userlist update", userListData);
+        //ioMain.emit("userlist update", userListData);
         callback(null);
       };
     });

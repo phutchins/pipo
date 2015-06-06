@@ -149,18 +149,28 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('userlist update', function(data) {
-    console.log("Got userlist update!");
-    window.roomUsers[data.channel] = [];
+    console.log("Got userlist update for room #"+data.room);
+    //console.log("data.userList is: "+JSON.stringify(data.userList));
+    window.roomUsers[data.room] = [];
+    var currentMembers = [];
+    console.log("Emptied window.roomUsers["+data.room+"]");
+    console.log("Data sent to 'userlist update' is: "+JSON.stringify(data));
 
     data.userList.forEach(function(user) {
       if (user) {
+        console.log("[SOCKET CLIENT] (userlist update) Looping users, user is: "+JSON.stringify(user));
         if (window.userMap[user.userName]) {
           if (window.userMap[user.userName].publicKey === user.publicKey) {
             return;
           }
         }
 
-        window.roomUsers[data.channel].push(user.userName);
+        // TODO: This should be retrieved from memberlist update or something similar
+        // as the member list is the permanent list of members that have access to the room
+        // while the userlist is the list of users currently signed in
+        window.roomUsers[data.room].push(user.userName);
+        currentMembers[data.room].push(user.userName);
+        console.log("[SOCKET CLIENT] (userlist update) adding user '"+user.userName+"' to roomUsers["+data.room+"]");
         window.userMap[user.userName] = {
           publicKey: user.publicKey
         };
@@ -185,16 +195,16 @@ SocketClient.prototype.addListeners = function() {
 
       }
     });
+    console.log("[SOCKET CLIENT] (userlist update) window.roomUsers[data.room]: "+window.roomUsers[data.room]);
+    console.log("[SOCKET CLIENT] (userlist update) roomUsers[data.room]: "+roomUsers[data.room]);
 
     //Don't notify us about ourselves
     if (data.joinUser && window.userName !== data.joinUser) {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
-
     console.log("[USERLIST UPDATE] Updating userlist");
-    ChatManager.updateUserList();
-
-  });
+    ChatManager.updateUserList({ room: data.room, members: window.roomUsers[data.room] });
+});
 
   this.socket.on('chatStatus', function(data) {
     console.log("Got chat status...");

@@ -3,10 +3,6 @@ var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var config = require('./config/pipo');
 
-//var config = ({
-//  encryptionScheme: 'clientKey'
-//});
-
 /**
  * Handles all socket traffic
  * @param namespace
@@ -170,8 +166,8 @@ SocketServer.prototype.onMessage = function onMessage(data) {
   //TODO: Room specific messages
   self.namespace.emit('roomMessage', {
     user: self.socket.user.userName,
-    message: data.pgpMessage,
-    signature: data.signature
+    room: data.room,
+    message: data.pgpMessage
   });
 
   console.log("[MSG] Server emitted chat message to users");
@@ -262,7 +258,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   var room = data.channel;
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
-    console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
+    //console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
     KeyId.getMasterKeyId(function(err, currentKeyId) {
       User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
@@ -270,9 +266,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           // TODO: AND they should have a key encrypted to them for this room
           // then create and encrypt a new master key for this room
           self.initMasterKeyPair(function(err) {
-            console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
+            //console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
             User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
-              console.log("[JOIN ROOM] Got masterKeyPair id "+newMasterKeyPair.id+", emitting joinComplete to user "+userName);
+              //console.log("[JOIN ROOM] Got masterKeyPair id "+newMasterKeyPair.id+", emitting joinComplete to user "+userName);
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
@@ -280,7 +276,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
             });
           });
         } else {
-          console.log("[JOIN ROOM] Clients master key is up to date");
+          //console.log("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
           self.updateUserList(room);
@@ -290,6 +286,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   } else {
     // Using client key encryption scheme
     self.socket.join(room);
+    console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
     self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
     self.updateUserList(room);
   };

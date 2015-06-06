@@ -13,7 +13,7 @@ function EncryptionManager() {
   //});
 
   // Should update this setting from the server using getConfig and configUpToDate
-  this.encryptionScheme = 'clientKey';
+  this.encryptionScheme = {};
 
   this.keyManager = null;
   this.masterKeyManager = null;
@@ -226,7 +226,7 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
   //Unlock key with passphrase if locked
   var self = this;
   console.log("(unlockMasterKey) self.masterKeyManager.is_gpg_locked(): "+self.masterKeyManager.is_pgp_locked());
-  if (self.encryptionScheme == 'masterKey' && self.masterKeyManager.is_pgp_locked()) {
+  if (self.encryptionScheme[room] == 'masterKey' && self.masterKeyManager.is_pgp_locked()) {
     var tries = 3;
     decryptMaster();
 
@@ -262,25 +262,27 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
  * @param message
  * @param callback
  */
-EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(room, message, callback) {
+EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(data, callback) {
+  var room = data.room;
+  var message = data.message;
   var self = this;
 
   //Encrypt the message
-  if (this.encryptionScheme == "masterKey") {
+  if (self.encryptionScheme[room] == "masterKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
-    this.encryptMasterKeyMessage(room, message, function(err, pgpMessage) {
-      callback(err, pgpMessage);
+    self.encryptMasterKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpMessage );
     });
-  } else if (this.encryptionScheme == "clientKey") {
+  } else if (self.encryptionScheme[room] == "clientKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
-    console.log("[DEBUG] message to encrypt: "+message);
-    this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-      callback(err, pgpMessage);
+    console.log("[DEBUG] Encrypting message: "+message+" for room: "+room);
+    self.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpMessage );
     });
   } else {
     console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
-    this.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
-      callback(err, pgpMessage);
+    self.encryptClientKeyMessage(room, message, function(err, pgpMessage) {
+      callback(err, pgpMessage );
     });
   }
 };
@@ -333,6 +335,7 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
  */
  //TODO: Should name this appropriately for client key decryption
 EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMessage, callback) {
+  console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message");
   window.kbpgp.unbox({
     keyfetch: this.keyRing,
     armored: encryptedMessage

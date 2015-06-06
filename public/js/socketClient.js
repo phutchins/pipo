@@ -110,18 +110,20 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    if (window.encryptionManager.encryptionScheme == 'masterKey') {
+    console.log("[SOCKET] (roomMessage) Got room message in mode: "+window.encryptionManager.encryptionScheme[data.room]);
+    if (window.encryptionManager.encryptionScheme[data.room] == 'masterKey') {
       window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
         if (err) {
           console.log(err);
         }
         ChatManager.handleMessage(message, data.user);
       });
-    } else if (window.encryptionManager.encryptionScheme == 'clientKey') {
+    } else if (window.encryptionManager.encryptionScheme[data.room] == 'clientKey') {
       window.encryptionManager.decryptMessage(data.message, function(err, message) {
         if (err) {
           console.log(err);
         }
+        console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
         ChatManager.handleMessage(message, data.user);
       });
     };
@@ -216,14 +218,14 @@ SocketClient.prototype.authenticate = function() {
   });
 };
 
-SocketClient.prototype.sendMessage = function(channel, message) {
+SocketClient.prototype.sendMessage = function(room, message) {
   var self = this;
-  window.encryptionManager.encryptRoomMessage(channel, message, function(err, pgpMessage) {
+  window.encryptionManager.encryptRoomMessage({ room: room, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
     else {
-      self.socket.emit('roomMessage', {pgpMessage: pgpMessage});
+      self.socket.emit('roomMessage', {room: room, pgpMessage: pgpMessage});
       $('#message-input').val('');
     }
   });
@@ -231,9 +233,11 @@ SocketClient.prototype.sendMessage = function(channel, message) {
 
 SocketClient.prototype.joinComplete = function(data) {
   var room = data.room;
-  var encryptionScheme = data.encryptionScheme;
-  console.log("[SOCKET] (joinComplete) encryptionScheme: "+encryptionScheme);
-  if (encryptionScheme == 'masterKey') {
+  var self = this;
+  console.log("[SOCKET] (joinCOmplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
+  window.encryptionManager.encryptionScheme[room] = data.encryptionScheme;
+  console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
+  if (data.encryptionScheme == 'masterKey') {
     var masterKeyPair = data.masterKeyPair;
     console.log("[SOCKET] (joinComplete) Loading master key pair...");
     // TODO: Need to make sure clientKeyManager is decrypted here
@@ -241,11 +245,11 @@ SocketClient.prototype.joinComplete = function(data) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
       console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
-      ChatManager.enableChat(room, encryptionScheme);
+      ChatManager.enableChat(room, data.encryptionScheme);
     });
   } else {
     console.log("[INIT] Enabling chat in clientKey mode");
-    ChatManager.enableChat(room, encryptionScheme);
+    ChatManager.enableChat(room, data.encryptionScheme);
   }
 };
 

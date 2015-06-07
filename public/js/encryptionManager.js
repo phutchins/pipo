@@ -303,11 +303,12 @@ EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyM
 EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {
   var self = this;
   //Build array of all users' keyManagers
-  var keys = window.roomUsers[room].map(function(userName) {
+  var keys = Object.keys(window.roomUsers[room]).map(function(userName) {
     return window.userMap[userName].keyInstance;
   }).filter(function(key) {
     return !!key;
   });
+
   //Add our own key to the mix so that we can read the message as well
   //TODO: Should have a meyManager for each room
   keys.push(self.keyManager);

@@ -10,6 +10,12 @@ Options...
 
 
 ### Authentication
++ Initial Signup
+  + signature verification, user creates invite object with a random token created by the client
+  + this token is sha256 hashed and sent to the server,
+  + the client pgp encrpts the non-hashed token and sends it to the invitee
+  + then only the invitee can decrypt the token and then can send it to the server,
+  + which can do a sha256 and say oh yeah thats right
 + authenticate and sign of request using pgp keys?
 + node_http_signature
   + Positives

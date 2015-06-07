@@ -74,9 +74,9 @@ $('#generate-keypair-button').on('click', function() {
   });
 });
 
-$('#select-keypair-button').on('click', function() {
+$('#import-keypair-button').on('click', function() {
   console.log("Loading keypair from file...");
-  promptForImportKeyPair(function(err, data) {
+  ChatManager.promptForImportKeyPair(function(err, data) {
     var privateKey = data.privateKey;
     var publicKey = data.publicKey;
     updateRemotePublicKey(userName, publicKey, function(err) {

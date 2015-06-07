@@ -106,7 +106,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('user connect', function(data) {
-    console.log('user connect', data);
+    //console.log('user connect', data);
   });
 
   this.socket.on('roomMessage', function(data) {

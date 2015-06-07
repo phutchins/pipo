@@ -151,45 +151,58 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('userlist update', function(data) {
     console.log("Got userlist update for room #"+data.room);
     //console.log("data.userList is: "+JSON.stringify(data.userList));
-    window.roomUsers[data.room] = [];
+    window.roomUsers[data.room] = {};
 
     data.userList.forEach(function(user) {
       if (user) {
-        window.roomUsers[data.room].push(user.userName);
+        addToRoomUsers(user);
         if (window.userMap[user.userName]) {
           if (window.userMap[user.userName].publicKey === user.publicKey) {
             return;
           }
         }
-
-        window.userMap[user.userName] = {
-          publicKey: user.publicKey
-        };
-
-        //Don't build publicKey for ourselves
-        if (user.userName != window.userName) {
-          //Build pgp key instance
-          //console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
-          window.kbpgp.KeyManager.import_from_armored_pgp({
-            armored: user.publicKey
-          }, function (err, keyInstance) {
-            if (err) {
-              console.log("Error importing user key", err);
-            }
-            console.log("imported key", user.userName);
-            window.userMap[user.userName].keyInstance = keyInstance;
-            encryptionManager.keyRing.add_key_manager(keyInstance);
-          });
-        };
+        addToGlobalUsers(user);
       }
     });
+
+    function addToRoomUsers(user) {
+      if (!window.roomUsers[data.room][user.userName]) {
+        window.roomUsers[data.room][user.userName] = {
+          connections: 1
+        };
+      }
+      else {
+        window.roomUsers[data.room][user.userName].connections++;
+      }
+    }
+    function addToGlobalUsers(user) {
+      window.userMap[user.userName] = {
+        publicKey: user.publicKey
+      };
+
+      //Don't build publicKey for ourselves
+      if (user.userName != window.userName) {
+        //Build pgp key instance
+        //console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
+        window.kbpgp.KeyManager.import_from_armored_pgp({
+          armored: user.publicKey
+        }, function (err, keyInstance) {
+          if (err) {
+            console.log("Error importing user key", err);
+          }
+          console.log("imported key", user.userName);
+          window.userMap[user.userName].keyInstance = keyInstance;
+          encryptionManager.keyRing.add_key_manager(keyInstance);
+        });
+      }
+    }
 
     //Don't notify us about ourselves
     if (data.joinUser && window.userName !== data.joinUser) {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
     console.log("[USERLIST UPDATE] Updating userlist");
-    ChatManager.updateUserList({ room: data.room, members: window.roomUsers[data.room] });
+    ChatManager.updateUserList({ room: data.room, members: Object.keys(window.roomUsers[data.room]) });
   });
 
   this.socket.on('chatStatus', function(data) {

@@ -86,9 +86,10 @@ function EncryptionManager() {
           return callback(new Error("No payload found in signature"));
         }
 
-        payloadString = payload.toString();
+        payloadString = JSON.stringify(JSON.parse(payload.toString()));
+        expectedPayloadString = JSON.stringify(JSON.parse(expectedPayloadString.toString()));
 
-        if (payloadString.toString() !== expectedPayloadString.toString()) {
+        if (payloadString != expectedPayloadString) {
           return callback(new Error("Signature payload did not match expected payload"));
         }
 

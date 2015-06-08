@@ -82,31 +82,35 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
 
   //Load decrypted key into keyRing
   kbpgp.KeyManager.import_from_armored_pgp({
-    armored: keyPairData.publicKey
+    armored: keyPairData.privateKey
   }, function(err, keyManager) {
     if (err) {
       console.log("Error loading key", err);
       return callback(err);
     } else {
-      keyManager.merge_pgp_private({
-        armored: keyPairData.privateKey
-      }, function(err) {
-        if (!err) {
-        self.keyManager = keyManager;
-          if (keyManager.is_pgp_locked()) {
-            self.unlockClientKey(function(err) {
+      self.keyManager = keyManager;
+      if (keyManager.is_pgp_locked()) {
+        self.unlockClientKey(function(err) {
+          if (err) {
+            console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair", err);
+            return callback(err, null);
+          }
+          console.log("[ENCRYIPTION MANAGER] (loadClientKeyPair) Decrypted client key!");
+          window.encryptionManager.keyManager.sign({}, function(err) {
+            window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
               if (err) {
-                console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair: +err");
-                return callback(err, null);
+                return console.log("[loadClientKeyPair] Error getting public key from keyManager", err);
               }
-              console.log("[ENCRYIPTION MANAGER] (loadClientKeyPair) Decrypted client key!");
+              if (!publicKey) {
+                return console.log("[loadClientKeyPair] publicKey is NULL!");
+              }
               self.clientCredentialsLoaded = true;
               return callback(null, true);
             });
-          };
-        };
-      });
-    };
+          });
+        });
+      }
+    }
   });
 };
 
@@ -118,17 +122,30 @@ EncryptionManager.prototype.loadMasterKeyPair = function loadMasterKeyPair(room,
   var self = this;
   if (masterKeyPair) {
     // MasterKey mode
-    console.log("[ENCRYPTION MANAGER] masterKeyPair found! client keyManager locked: "+self.keyManager.is_pgp_locked().toString());
-    if (self.keyManager.is_pgp_locked()) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Client keyManager is locked! :(") };
-    if (!masterKeyPair.encryptedPrivateKey) { return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) No master key provided to loadMasterKeyPair! encryptedMasterPrivateKey is NULL") };
+    console.log("[ENCRYPTION MANAGER] masterKeyPair found! client keyManager locked", self.keyManager.is_pgp_locked().toString());
+
+    if (self.keyManager.is_pgp_locked()) {
+      return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Client keyManager is locked! :(");
+    }
+    if (!masterKeyPair.encryptedPrivateKey) {
+      return console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) No master key provided to loadMasterKeyPair! encryptedMasterPrivateKey is NULL");
+    }
+
     // Decrypt master key and add to keyRing
     console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Decrypting master key");
+
     self.decryptMasterKey(masterKeyPair.encryptedPrivateKey, function(err, masterPrivateKey) {
-      window.encryptionManager.getKeyManager({ publicKey: masterKeyPair.publicKey, privateKey: masterPrivateKey, passphrase: '' }, function(err, keyManager) {
+      window.encryptionManager.getKeyManager({
+        publicKey: masterKeyPair.publicKey,
+        privateKey: masterPrivateKey,
+        passphrase: ''
+      }, function(err, keyManager) {
         self.masterKeyManager = keyManager;
         // Unlock and add masterKeyManager to keyRing
         window.encryptionManager.unlockMasterKey(room, function(err) {
-          if (err) { return callback(err, false) };
+          if (err) {
+            return callback(err, false);
+          }
           self.masterCredentialsLoaded = true;
           console.log("[ENCRYPTION MANAGER] (loadMasterKeyPair) Unlock master key pair complete!");
           return callback(err, true);
@@ -151,38 +168,34 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
 
   console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation with privateKey: "+privateKey+" publicKey: "+publicKey+" passphrase: "+passphrase);
   console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation");
+
   kbpgp.KeyManager.import_from_armored_pgp({
-    armored: publicKey
+    armored: privateKey
   }, function(err, keyManager) {
-    if (!err) {
-      keyManager.merge_pgp_private({
-        armored: privateKey
+    if (err) {
+      return callback(err);
+    }
+    if (keyManager.is_pgp_locked()) {
+      keyManager.unlock_pgp({
+        passphrase: passphrase
       }, function(err) {
-        if (!err) {
-          if (keyManager.is_pgp_locked()) {
-            keyManager.unlock_pgp({
-              passphrase: passphrase
-            }, function(err) {
-              if (err) { return callback(err) };
-              keyManager.sign({}, function(err) {
-                if (err) { return callback(err) };
-                console.log("Loaded private key with passphrase");
-                return callback(err, keyManager);
-              });
-            });
-          } else {
-            console.log("Loaded private key w/o passphrase");
-            return callback(err, keyManager);
-          }
-        } else {
-          return callback(err, null);
+        if (err) {
+          return callback(err);
         }
+        keyManager.sign({}, function(err) {
+          if (err) {
+            return callback(err);
+          }
+          console.log("Loaded private key with passphrase");
+          return callback(err, keyManager);
+        });
       });
     } else {
-      return callback(err, null);
+      console.log("Loaded private key w/o passphrase");
+      return callback(err, keyManager);
     }
   });
-}
+};
 
 EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback) {
   var self = this;
@@ -253,7 +266,7 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
     console.log("[UNLOCK MASTER KEY] Added passwordless masterKey to keyring");
     return callback(null);
   }
-}
+};
 
 
 /**
@@ -528,31 +541,28 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
         //TODO: add the keys to a keyManager here and save them to self
 
         kbpgp.KeyManager.import_from_armored_pgp({
-          armored: data.publicKey
+          armored: data.privateKey
         }, function(err, masterKeyPair) {
-          if (!err) {
-            masterKeyPair.merge_pgp_private({
-              armored: data.privateKey
+          if (err) {
+            return callback(err);
+          }
+          if (masterKeyPair.is_pgp_locked()) {
+            masterKeyPair.unlock_pgp({
+              passphrase: ''
             }, function(err) {
-              if (!err) {
-                if (masterKeyPair.is_pgp_locked()) {
-                  masterKeyPair.unlock_pgp({
-                    passphrase: ''
-                  }, function(err) {
-                    if (!err) {
-                      console.log("Loaded private key with passphrase");
-                    }
-                  });
-                } else {
-                  console.log("Loaded private key w/o passphrase");
-                }
+              if (err) {
+                return callback(err);
               }
+              console.log("Loaded private key with passphrase");
               localStorage.setItem('masterKeyPair', JSON.stringify(data));
               self.masterKeyManager = masterKeyPair;
             });
+          } else {
+            console.log("Loaded private key w/o passphrase");
+            localStorage.setItem('masterKeyPair', JSON.stringify(data));
+            self.masterKeyManager = masterKeyPair;
           }
         });
-        return callback(null, data);
       }
     }
   });
@@ -618,5 +628,118 @@ EncryptionManager.prototype.updatePublicKeyOnRemote = function updatePublicKeyOn
   });
 };
 
+EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certificate, callback) {
+  var self = this;
+  var rawPayload = atob(certificate.payload);
+  var storedPayloadHash = localStorage.getItem('serverPayloadHash');
+
+  self.sha256(rawPayload).then(function(payloadHash) {
+    if (storedPayloadHash && payloadHash !== storedPayloadHash) {
+      return alert("For security reasons we have prevented the application from attempting to authenticate as the Admin Certificate has changed!\n\nThe Admin Certificate hash does not match our previously recorded hash.\n\nIf this change was expected you may reset the hash, if not please contact the administrator of this server");
+    }
+    else if (storedPayloadHash) {
+      console.log("Admin certificate hash matches previously stored hash, skip full verification");
+      return callback();
+    }
+
+    var rawSignatures = certificate.signatures.map(function (signature) {
+      return atob(signature.data);
+    });
+
+    var parsedPayload = JSON.parse(rawPayload);
+    var fingerprints = parsedPayload.map(function (admin) {
+      return admin.fingerprint;
+    });
+
+    self.loadAdminKeys(certificate, function (err) {
+      window.async.eachSeries(rawSignatures, function (signature, callback) {
+        var fingerprint, index;
+        self.decryptMessage(signature, function (err, message) {
+          if (err) {
+            console.log(err);
+            return callback(err);
+          }
+
+          fingerprint = message[0].get_data_signer().get_key_manager().get_pgp_fingerprint_str();
+          index = fingerprints.indexOf(fingerprint);
+
+          if (index === -1) {
+            return callback("Admin certificate is not valid \nUnknown admin certificate signer with fingerprint: " + fingerprint);
+          }
+          if (message.toString() !== rawPayload) {
+            return callback("Admin certificate not valid: \nAdmin signature does not match payload " + fingerprint);
+          }
+          fingerprints.splice(index, 1);
+          callback();
+        });
+      }, function (err) {
+        if (err) {
+          return alert(err + "\n\nFor security reasons we have prevented the application from attempting to authenticate.\n\nIf you are the administrator for this server please verify your configuration files are correctly setup.\n\nIf you are an end user, please contact the administrator via secure means to determine if the server has been compromised.");
+        }
+        if (!storedPayloadHash) {
+
+          localStorage.setItem('serverPayloadHash', payloadHash.toString());
+        }
+        console.log("Admin certificate appears to be valid");
+        callback();
+      });
+    });
+  });
+};
+
+EncryptionManager.prototype.loadAdminKeys = function loadadminKeys(certificate, callback) {
+  var self = this;
+  var rawAdminKeyData = localStorage.getItem('adminKeys');
+  var adminKeyData;
+
+  try {
+    adminKeyData = JSON.parse(rawAdminKeyData);
+  }
+  catch (e) {
+    console.log(e);
+  }
+
+  if (!adminKeyData) {
+    adminKeyData = certificate.keys;
+  }
+
+  if (!adminKeyData) {
+    return console.error("No known admin keys!", adminKeyData);
+  }
+
+  window.async.each(adminKeyData, function(keyData, callback) {
+    var rawKey = atob(keyData.data);
+    window.kbpgp.KeyManager.import_from_armored_pgp({
+      armored: rawKey
+    }, function(err, keyManager) {
+      self.keyRing.add_key_manager(keyManager);
+      callback();
+    });
+  }, callback);
+};
+
+EncryptionManager.prototype.hex = function hex(buffer) {
+  var hexCodes = [];
+  var view = new DataView(buffer);
+
+  for (var i = 0; i < view.byteLength; i += 4) {
+    var value = view.getUint32(i);
+    var stringValue = value.toString(16);
+    var padding = '00000000';
+    var paddedValue = (padding + stringValue).slice(-padding.length);
+    hexCodes.push(paddedValue);
+  }
+
+  return hexCodes.join("");
+};
+
+EncryptionManager.prototype.sha256 = function hash(data) {
+  var self = this;
+  var buffer = new TextEncoder("utf-8").encode(data);
+
+  return window.crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
+    return self.hex(hash);
+  });
+};
 
 window.encryptionManager = new EncryptionManager();

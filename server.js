@@ -33,7 +33,15 @@ var Channel = require('./models/channel');
 var KeyId = require('./models/keyid');
 
 //Globals
-var SocketServer = require('./socketServer')
+var SocketServer = require('./socketServer');
+
+try {
+  var AdminCertificate = require('./adminData/adminCertificate');
+}
+catch (e) {
+  console.log("Admin Certificate not yet configured, please run setup");
+  process.exit(1);
+}
 
 //Application
 var app = express();
@@ -91,11 +99,11 @@ connectWithRetry();
 var routePath = './routes/';
 var routes = [];
 fs.readdirSync(routePath).forEach(function(file) {
-  var route = routePath+file;
-  routeName = file.split('.')[0]
-  console.log("[SERVER] Loading route: "+routeName);
+  var route = routePath + file;
+  var routeName = file.split('.')[0];
+  console.log("[SERVER] Loading route", routeName);
   routes[routeName] = require(route)(app);
-})
+});
 
 io.on('connection',function (socket) {
   console.log("Connection to io");
@@ -114,6 +122,7 @@ function initServer() {
       console.log("[START] Starting in MASTER KEY mode");
       ioMain.on('connection', function(socket) {
         console.log("Connection to ioMain");
+        socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain);
         socketServer.onSocket(socket);
         //socketServer.start();
@@ -125,14 +134,15 @@ function initServer() {
       console.log("[START] Starting in CLIENT KEY mode");
       ioMain.on('connection', function(socket) {
         console.log("Connection to ioMain");
+        socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain).onSocket(socket);
       });
       break;
     default:
       console.log("Default not set up yet");
       break;
-  };
-};
+  }
+}
 
 /**
  * Handle server errors
@@ -142,6 +152,7 @@ server.on('error', function onError(error) {
     throw error;
   }
 
+  var port = configHttp.port;
   var bind = typeof port === 'string'
     ? 'Pipe ' + port
     : 'Port ' + port;
@@ -153,7 +164,7 @@ server.on('error', function onError(error) {
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error('[SERVER] ' + bind + ' is already in use');
+      console.error('[SERVER] ' + bind + ' is already in use.');
       process.exit(1);
       break;
     default:

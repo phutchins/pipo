@@ -7,8 +7,12 @@ function SocketClient() {
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
-    self.init();
-    //self.initMasterKey();
+  });
+
+  this.socket.on('certificate', function(certificate) {
+    window.encryptionManager.verifyCertificate(certificate, function(err) {
+      self.init();
+    });
   });
 
   this.socket.on('connect_error', function(err) {
@@ -37,13 +41,7 @@ SocketClient.prototype.init = function() {
       self.addListeners();
     }
     console.log("[INIT] Authenticating");
-    window.encryptionManager.keyManager.sign({}, function(err) {
-      window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-        if (err) { return console.log("[INIT] Error getting public key from keyManager: "+err) };
-        if (!publicKey) { return console.log("[INIT] publicKey is NULL!") };
-        return self.authenticate();
-      });
-    });
+    return self.authenticate();
   });
 };
 

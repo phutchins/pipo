@@ -86,9 +86,12 @@ function EncryptionManager() {
           return callback(new Error("No payload found in signature"));
         }
 
-        payloadString = payload.toString();
+        var regex = /\r?\n|\r/g
+        var payloadString = payload.toString().replace(regex, '');
+        expectedPayloadString = expectedPayloadString.toString().replace(regex, '');
+        console.log("payloadString: "+payloadString+" expectedPayloadString: "+expectedPayloadString);
 
-        if (payloadString.toString() !== expectedPayloadString.toString()) {
+        if (payloadString !== expectedPayloadString) {
           return callback(new Error("Signature payload did not match expected payload"));
         }
 

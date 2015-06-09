@@ -666,7 +666,12 @@ EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certi
           if (index === -1) {
             return callback("Admin certificate is not valid \nUnknown admin certificate signer with fingerprint: " + fingerprint);
           }
-          if (message.toString() !== rawPayload) {
+
+          var regex = /\r?\n|\r/g
+          var parsedMessage = message[0].toString().replace(regex, '');
+          var parsedPayload = rawPayload.toString().replace(regex, '');
+
+          if (parsedMessage !== parsedPayload) {
             return callback("Admin certificate not valid: \nAdmin signature does not match payload " + fingerprint);
           }
           fingerprints.splice(index, 1);

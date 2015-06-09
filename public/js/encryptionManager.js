@@ -517,7 +517,7 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
 };
 
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
-EncryptionManager.prototype.verifyRemotePublicKey = function updateRemotePublicKey(userName, publicKey, callback) {
+EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(userName, publicKey, callback) {
   console.log("Verifying remote public key for user '"+userName+"'");
   $.ajax({
     type: "GET",

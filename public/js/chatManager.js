@@ -77,23 +77,22 @@ $('#generate-keypair-button').on('click', function() {
 $('#import-keypair-button').on('click', function() {
   console.log("Loading keypair from file...");
   ChatManager.promptForImportKeyPair(function(err, data) {
-    var privateKey = data.privateKey;
-    var publicKey = data.publicKey;
-    updateRemotePublicKey(userName, publicKey, function(err) {
-      if (err) { return console.log("Error updating remote public key") };
-      promptForPassphrase(function(err) {
-        loadClientKeyPairFromFile({ publicKey: publicKey, privateKey: privateKey }, function(err) {
-          if (err) {
-           alertUser("Error loading key pair", err);
-          } else {
-            console.log("Done loading keypair from file...");
-            // push new public key to server
-            // wait for encrypted master key
-          };
-        });
-      });
-    });
-  });
+    var keyPair = {
+      privateKey: data.privateKey,
+      publicKey: data.publicKey
+    };
+    window.encryptionManager.verifyRemotePublicKey(userName, data.publicKey, function(err) {
+      if (err) {
+        return console.log("Error updating remote public key")
+      };
+      window.encryptionManager.saveClientKeyPair({ keyPair: keyPair }, function(err) {
+        if (err) {
+          return console.log("Error saving client keyPair");
+        }
+        console.log("Client keypair saved to local storage");
+      })
+    })
+  })
 });
 
 $('#export-keypair-button').on('click', function() {

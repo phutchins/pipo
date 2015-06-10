@@ -392,69 +392,11 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
   };
 };
 
-EncryptionManager.prototype.regenerateClientKeyPair = function regenerateClientKeyPair(callback) {
-  initStorage(function(err, fs) {
-    if (err) { return callback(err); };
-    removeClientKeyPair(fs, function() {
-      // Generate new key pair
-      promptForKeyCredentials(function(err, data) {
-        var password = data.password;
-        var userName = data.userName;
-        var email = data.email;
-        var fullName = data.fullName;
-        generateClientKeyPair(data, function(err, keyPair) {
-          saveClientKeyPair(fs, keyPair, userName, function(err) {
-            if(err) { return console.log("Error regenerating client key pair: "+err); };
-            callback(null);
-          });
-        });
-      });
-    });
-  });
-};
-
-EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(fs, keyPair, userName, callback) {
-  var privateKey = keyPair.privateKey;
-  var publicKey = keyPair.publicKey;
-  fs.root.getFile(userName+'_clientkey.aes', {create: true}, function(fileEntry) {
-    // Create a FileWriter object for our FileEntry (log.txt).
-    fileEntry.createWriter(function(fileWriter) {
-      fileWriter.onwriteend = function(e) {
-        console.log('Client secret key write completed.');
-        fs.root.getFile(userName+'_clientkey.pub', {create: true}, function(fileEntry) {
-          // Create a FileWriter object for our FileEntry (log.txt).
-          fileEntry.createWriter(function(fileWriter) {
-            fileWriter.onwriteend = function(e) {
-              console.log('Client public key write completed.');
-              return callback(null);
-            };
-            fileWriter.onerror = function(e) {
-              console.log('Write failed: ' + e.toString());
-            };
-            // Create a new Blob and write it to log.txt.
-            var blob = new Blob([publicKey], {type: 'text/plain'});
-            fileWriter.write(blob);
-          }, errorHandler);
-        }, errorHandler);
-      };
-      fileWriter.onerror = function(e) {
-        console.log('Write failed: ' + e.toString());
-      };
-      // Create a new Blob and write it to log.txt.
-      var blob = new Blob([privateKey], {type: 'text/plain'});
-      fileWriter.write(blob);
-    }, errorHandler);
-  }, errorHandler);
-  function errorHandler(err) {
-    var msg = '';
-    switch(err.name) {
-      case "BAD":
-        console.log("Bad");
-      default:
-        message = 'Unknown Error: '+err.name;
-    };
-    console.log("Error: "+message);
-  };
+EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
+  var keyPair = data.keyPair;
+  // TODO: Save with username in namespace of key name?
+  localStorage.setItem('keyPair', JSON.stringify(keyPair));
+  callback(null);
 }
 
 EncryptionManager.prototype.initStorage = function initStorage(callback) {
@@ -569,7 +511,7 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
 };
 
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
-EncryptionManager.prototype.verifyRemotePublicKey = function updateRemotePublicKey(userName, publicKey, callback) {
+EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(userName, publicKey, callback) {
   console.log("Verifying remote public key for user '"+userName+"'");
   $.ajax({
     type: "GET",
@@ -593,8 +535,6 @@ EncryptionManager.prototype.verifyRemotePublicKey = function updateRemotePublicK
           return callback(null, true);
         } else {
           console.log("Key on remote does not match");
-          //console.log("local publicKey: "+keyPair.publicKey);
-          //console.log("remote publicKey: "+remotePublicKey);
           return callback(null, false);
         };
       }

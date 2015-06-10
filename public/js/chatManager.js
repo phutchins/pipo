@@ -69,36 +69,85 @@ $('.dropdown')
 
 $('#generate-keypair-button').on('click', function() {
   console.log("Regenerating client keypair");
-  regenerateClientKeyPair(function(err) {
-    console.log("Client keypair regeneration done...");
-  });
+  ChatManager.promptForCredentials();
 });
 
-$('#select-keypair-button').on('click', function() {
+$('#import-keypair-button').on('click', function() {
   console.log("Loading keypair from file...");
-  promptForImportKeyPair(function(err, data) {
-    var privateKey = data.privateKey;
-    var publicKey = data.publicKey;
-    updateRemotePublicKey(userName, publicKey, function(err) {
-      if (err) { return console.log("Error updating remote public key") };
-      promptForPassphrase(function(err) {
-        loadClientKeyPairFromFile({ publicKey: publicKey, privateKey: privateKey }, function(err) {
+  ChatManager.promptForImportKeyPair(function(err, data) {
+    var keyPair = {
+      privateKey: data.privateKey,
+      publicKey: data.publicKey
+    };
+    window.encryptionManager.saveClientKeyPair({ keyPair: keyPair }, function(err) {
+      if (err) {
+        return console.log("Error saving client keyPair");
+      };
+      // TODO: Do we need to verify the public key here?
+      window.encryptionManager.verifyRemotePublicKey(userName, data.publicKey, function(err) {
+        if (err) {
+          return console.log("Error updating remote public key")
+        }
+        console.log("Client keypair saved to local storage");
+        window.encryptionManager.loadClientKeyPair(function(err) {
           if (err) {
-           alertUser("Error loading key pair", err);
-          } else {
-            console.log("Done loading keypair from file...");
-            // push new public key to server
-            // wait for encrypted master key
-          };
-        });
-      });
-    });
-  });
+            return console.log("Error loading client keyPair");
+          }
+        })
+      })
+    })
+  })
 });
 
+/*
+ * Triggered when user clicks the 'Export Key Pair button'
+ */
 $('#export-keypair-button').on('click', function() {
   console.log("Exporting keypair to file");
+  var keyPairData = window.localStorage.getItem('keyPair');
+
+  if (!keyPairData) {
+    console.log("No keypair data to export to file");
+    return ChatManager.showError("No keypair data exists to export to file");
+  }
+
+  var keyPair = JSON.parse(keyPairData);
+  console.log("Got keyPair data to export");
+
+  var get_blob = function() {
+    return window.Blob;
+  }
+
+  var BB = get_blob();
+  saveAs(
+      new BB(
+        [keyPair.publicKey.toString()]
+      , {type: "text/plain;charset=" + document.characterSet}
+    )
+    , (window.userName + ".pub")
+  );
+
+  var BB = get_blob();
+  saveAs(
+      new BB(
+        [keyPair.privateKey.toString()]
+      , {type: "text/plain;charset=" + document.characterSet}
+    )
+    , (window.userName + ".key")
+  );
+
 });
+
+/*
+ * Show an error to the user
+ */
+ChatManager.showError = function showError(message) {
+  $(".ui.modal.error")
+    .modal('setting', 'closable', false)
+    .modal("show");
+
+  $(".ui.modal.error .content").text(message);
+};
 
 // Assists in splitting line in the case of shift+enter
 ChatManager.getCaret = function getCaret(el) {
@@ -334,8 +383,9 @@ ChatManager.sendPrivateMessage = function sendPrivateMessage(username, message) 
   socketClient.sendPrivateMessage(username, message);
 };
 
-ChatManager.promptForCredentials = function promptForCredentials() {
+ChatManager.initialPromptForCredentials = function initialPromptForCredentials() {
   var self = this;
+  console.log("Prompting for credentials!");
 
   $(".ui.modal.initial")
     .modal('setting', 'closable', false)
@@ -344,12 +394,13 @@ ChatManager.promptForCredentials = function promptForCredentials() {
   $('.ui.modal.create')
     .modal("attach events", ".ui.modal.initial .button.generate")
     .modal('setting', 'closable', false)
-    .modal('setting', 'debug', true)
+    .modal('setting', 'debug', false)
     .modal("setting", {
       onApprove: function() {
         $('.ui.form.create').submit();
       }
     });
+
   $('.ui.form.create').form('setting', {
     onSuccess: function() {
       var errorDisplay = $('.create #createError');
@@ -439,17 +490,19 @@ ChatManager.promptForCredentials = function promptForCredentials() {
       //TODO: Check for username collision
 
       $('.ui.modal.generate').modal('show');
+      ChatManager.disableChat();
       window.encryptionManager.generateClientKeyPair(2048, userName, password, function(err, generatedKeypair) {
         if (err) {
           console.log("Error generating client keypair: "+err);
         } else {
           console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
           window.userName = userName;
-          //console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
+          console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
           $('.ui.modal.generate').modal('hide');
+          ChatManager.enableChat();
           socketClient.init();
         }
       });
@@ -459,6 +512,133 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 
   $('.ui.modal.generate').modal('setting', 'closable', false);
 };
+
+ChatManager.promptForCredentials = function promptForCredentials() {
+  var self = this;
+  console.log("Prompting for credentials!");
+
+  $('.ui.modal.create')
+    .modal("attach events", ".ui.modal.initial .button.generate")
+    .modal('setting', 'closable', false)
+    .modal('setting', 'debug', false)
+    .modal("setting", {
+      onApprove: function() {
+        $('.ui.form.create').submit();
+      }
+    })
+    .modal('show');
+
+  $('.ui.form.create').form('setting', {
+    onSuccess: function() {
+      var errorDisplay = $('.create #createError');
+      var userName = $('.create.form #username').val();
+      var password = $('.create.form #password').val();
+      var confirmPassword = $('.create #confirmPassword').val();
+
+      if (!username) {
+        if (errorDisplay.text().toLowerCase().indexOf('username') !== -1) {
+          return false;
+        }
+        if (errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Password is required");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Username is required");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
+      }
+      else if(!password) {
+        if (errorDisplay.text().toLowerCase().indexOf('password is required') !== -1) {
+          return false;
+        }
+        if(errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Password is required");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Password is required");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
+      }
+      else if (password !== confirmPassword) {
+        if (errorDisplay.text().toLowerCase().indexOf('passwords do not match') !== -1) {
+          return false;
+        }
+        if(errorDisplay.transition('is visible')) {
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '0.5s',
+            onComplete: function() {
+              errorDisplay.text("Passwords do not match");
+            }
+          });
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        else {
+          errorDisplay.text("Passwords do not match");
+          errorDisplay.transition({
+            animation: 'fade up',
+            duration: '1s'
+          });
+        }
+        return false;
+      }
+
+      //TODO: Check for username collision
+
+      $('.ui.modal.generate').modal('show');
+      ChatManager.disableChat();
+      window.encryptionManager.generateClientKeyPair(2048, userName, password, function(err, generatedKeypair) {
+        if (err) {
+          console.log("Error generating client keypair: "+err);
+        } else {
+          console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
+          window.userName = userName;
+          console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
+          localStorage.setItem('userName', userName);
+          localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+          console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
+          $('.ui.modal.generate').modal('hide');
+          ChatManager.enableChat();
+          socketClient.init();
+        }
+      });
+      return false;
+    }
+  });
+
+  $('.ui.modal.generate').modal('setting', 'closable', false);
+}
 
 ChatManager.promptForPassphrase = function(callback) {
   $('.ui.modal.unlock')
@@ -511,7 +691,8 @@ ChatManager.promptForPassphrase = function(callback) {
 
 ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
   console.log("Prompting user to import existing keypair");
-  $('.basic.modal.import-keypair-modal').modal('show');
+  $('.modal.import-keypair-modal').modal('show');
+  //TODO: Use this to hide the default file open dialog and replace with more stylish bits
   //$('.basic.modal.import-keypair-modal #publickey-file-input').css('opacity', '0');
   //$('.basic.modal.import-keypair-modal #privatekey-file-input').css('opacity', '0');
   $('.import-keypair-modal #select-publickey').click(function(e) {

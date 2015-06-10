@@ -33,7 +33,7 @@ SocketClient.prototype.init = function() {
     }
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
-      return ChatManager.promptForCredentials();
+      return ChatManager.initialPromptForCredentials();
     } else {
       console.log("[INIT] Client credentials loaded");
     }
@@ -104,7 +104,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('user connect', function(data) {
-    console.log('user connect', data);
+    //console.log('user connect', data);
   });
 
   this.socket.on('roomMessage', function(data) {

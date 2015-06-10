@@ -73,18 +73,6 @@ console.log('   |    |   |  ||    |  (  <_> )'    );
 console.log('   |____|   |__||____|   \\____/    ');
 console.log('');
 
-//console.log('');
-//console.log(' ██▓███   ██▓ ██▓███   ▒█████    ');
-//console.log(' ▓██░  ██▒▓██▒▓██░  ██▒▒██▒  ██▒ ');
-//console.log(' ▓██░ ██▓▒▒██▒▓██░ ██▓▒▒██░  ██▒ ');
-//console.log(' ▒██▄█▓▒ ▒░██░▒██▄█▓▒ ▒▒██   ██░ ');
-//console.log(' ▒██▒ ░  ░░██░▒██▒ ░  ░░ ████▓▒░ ');
-//console.log(' ▒▓▒░ ░  ░░▓  ▒▓▒░ ░  ░░ ▒░▒░▒░  ');
-//console.log(' ░▒ ░      ▒ ░░▒ ░       ░ ▒ ▒░  ');
-//console.log(' ░░        ▒ ░░░       ░ ░ ░ ▒   ');
-//console.log('           ░               ░ ░   ');
-//console.log('');
-
 var connectWithRetry = function() {
   return mongoose.connect(configDB.url, function(err) {
     if (err) {

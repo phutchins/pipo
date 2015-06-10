@@ -529,8 +529,9 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
         //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
         var remotePublicKey = data.publicKey;
         console.log("Key exists on remote");
-        //console.log("Remote Pub Key: "+data.publicKey);
-        if (keyPair.publicKey == remotePublicKey) {
+        console.log("Remote Pub Key: "+data.publicKey);
+        console.log("Local Pub Key: "+publicKey);
+        if (publicKey == remotePublicKey) {
           console.log("Key on remote matches local");
           return callback(null, true);
         } else {

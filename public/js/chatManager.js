@@ -83,15 +83,16 @@ $('#import-keypair-button').on('click', function() {
       if (err) {
         return console.log("Error saving client keyPair");
       };
-      // TODO: Do we need to verify the public key here?
-      window.encryptionManager.verifyRemotePublicKey(userName, data.publicKey, function(err) {
+      console.log("Client keypair saved to local storage");
+      window.encryptionManager.clientCredentialsLoaded = false;
+      window.encryptionManager.loadClientKeyPair(function(err) {
         if (err) {
-          return console.log("Error updating remote public key")
+          return console.log("Error loading client keyPair");
         }
-        console.log("Client keypair saved to local storage");
-        window.encryptionManager.loadClientKeyPair(function(err) {
+        // TODO: Do we need to verify the public key here?
+        window.encryptionManager.verifyRemotePublicKey(userName, data.publicKey, function(err) {
           if (err) {
-            return console.log("Error loading client keyPair");
+            return console.log("Error updating remote public key")
           }
         })
       })
@@ -720,7 +721,6 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
             publicKey: publicKeyContents,
             privateKey: privateKeyContents,
           });
-          console.log("Read key files with contents: publicKey: "+publicKeyContents+" privateKey: "+privateKeyContents);
           callback(null, data);
         };
       };

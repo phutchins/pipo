@@ -29,7 +29,7 @@ SocketClient.prototype.init = function() {
     }
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
-      return ChatManager.promptForCredentials();
+      return ChatManager.initialPromptForCredentials();
     } else {
       console.log("[INIT] Client credentials loaded");
     }

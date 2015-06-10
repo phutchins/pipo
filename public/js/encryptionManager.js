@@ -379,22 +379,6 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
   };
 };
 
-EncryptionManager.prototype.regenerateClientKeyPair = function regenerateClientKeyPair(callback) {
-  // Generate new key pair
-  promptForKeyCredentials(function(err, data) {
-    var userName = data.userName;
-    generateClientKeyPair(data, function(err, keyPair) {
-      if (err) { return callback(err) };
-      removeClientKeyPair(fs, function() {
-        saveClientKeyPair( { keyPair: keyPair, userName: userName }, function(err) {
-          if(err) { return callback(err) };
-          callback(null);
-        });
-      });
-    });
-  });
-};
-
 EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
   var keyPair = data.keyPair;
   // TODO: Save with username in namespace of key name?
@@ -541,8 +525,6 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
           return callback(null, true);
         } else {
           console.log("Key on remote does not match");
-          //console.log("local publicKey: "+keyPair.publicKey);
-          //console.log("remote publicKey: "+remotePublicKey);
           return callback(null, false);
         };
       }

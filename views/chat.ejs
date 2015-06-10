@@ -124,7 +124,7 @@
       </div>
     </div>
 
-    <div class="ui form basic modal import-keypair-modal">
+    <div class="ui form modal import-keypair-modal">
       <i class="close icon"></i>
       <div class="header">
         Import Client Key Pair
@@ -141,15 +141,13 @@
         </div>
       </div>
       <div class="actions">
-        <div class="two fluid ui inverted buttons">
-          <div class="ui red basic inverted button">
-            <i class="remove icon"></i>
-            Cancel
-          </div>
-          <div class="ui green basic inverted button import-keypair-submit-button">
-            <i class="checkmark icon"></i>
-            Ok
-          </div>
+        <div class="ui button approve red cancel">
+          <i class="remove icon"></i>
+          Cancel
+        </div>
+        <div class="ui button approve green import-keypair-submit-button">
+          <i class="checkmark icon"></i>
+          Ok
         </div>
       </div>
     </div>
@@ -212,6 +210,38 @@
         <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
       </div>
     </div>
+    <div class="ui small modal error">
+      <div class="header">Error</div>
+      <div class="content">Some horrible error occurred</div>
+      <div class="actions">
+        <div class="ui button approve blue cancel">
+          <i class="remove icon"></i>
+          Ok
+        </div>
+      </div>
+    </div>
+    <div class="ui small modal profile">
+      <div class="header">Profile</div>
+      <form class="ui form content profile">
+        <div class="field">Enter your information</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" class="username" id="username">
+        </div>
+        <div class="field">
+          <label for="fullname">Full Name</label>
+          <input type="fullname" class="fullname" id="fullname">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" class="email" id="email">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green go" data-value="go">Go</div>
+      </div>
+    </div>
 
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
@@ -228,6 +258,8 @@
     <script src="/js/lib/moment.min.js"></script>
     <script src="/js/lib/livestamp.min.js"></script>
     <script src="/js/lib/marked.js"></script>
+    <script src="/js/lib/FileSaver.js"></script>
+    <script src="/js/lib/blob.js"></script>
 
     <script src="/js/chatManager.js"></script>
     <script src="/js/socketClient.js"></script>

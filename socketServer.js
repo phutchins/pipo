@@ -300,7 +300,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  */
 SocketServer.prototype.updateUserList = function updateUserList(room) {
   var self = this;
-  console.log("[SOCKET SERVER] (updateUserList) Update user list called from socket server ******************");
   self.getUserList(room, function(err, members) {
     self.namespace.to(room).emit("userlist update", {
       room: room,

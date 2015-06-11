@@ -82,34 +82,29 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
 
   //Load decrypted key into keyRing
   kbpgp.KeyManager.import_from_armored_pgp({
-    armored: keyPairData.privateKey
+    armored: keyPairData.publicKey
   }, function(err, keyManager) {
     if (err) {
       console.log("Error loading key", err);
       return callback(err);
     } else {
-      self.keyManager = keyManager;
-      if (keyManager.is_pgp_locked()) {
-        self.unlockClientKey(function(err) {
-          if (err) {
-            console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair", err);
-            return callback(err, null);
-          }
-          console.log("[ENCRYIPTION MANAGER] (loadClientKeyPair) Decrypted client key!");
-          window.encryptionManager.keyManager.sign({}, function(err) {
-            window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+      keyManager.merge_pgp_private({
+        armored: keyPairData.privateKey
+      }, function(err) {
+        if (!err) {
+          self.keyManager = keyManager;
+          if (keyManager.is_pgp_locked()) {
+            self.unlockClientKey(function(err) {
               if (err) {
-                return console.log("[loadClientKeyPair] Error getting public key from keyManager", err);
-              }
-              if (!publicKey) {
-                return console.log("[loadClientKeyPair] publicKey is NULL!");
+                console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair: +err");
+                return callback(err, null);
               }
               self.clientCredentialsLoaded = true;
               return callback(null, true);
             });
-          });
-        });
-      }
+          };
+        };
+      })
     }
   });
 };
@@ -170,32 +165,37 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
   console.log("[ENCRYPTION MANAGER] (getKeyManager) Starting KeyManager creation");
 
   kbpgp.KeyManager.import_from_armored_pgp({
-    armored: privateKey
+    armored: publicKey
   }, function(err, keyManager) {
-    if (err) {
-      return callback(err);
-    }
-    if (keyManager.is_pgp_locked()) {
-      keyManager.unlock_pgp({
-        passphrase: passphrase
+    if (!err) {
+      keyManager.merge_pgp_private({
+        armored: privateKey
       }, function(err) {
-        if (err) {
-          return callback(err);
-        }
-        keyManager.sign({}, function(err) {
-          if (err) {
-            return callback(err);
+        if (!err) {
+          if (keyManager.is_pgp_locked()) {
+            keyManager.unlock_pgp({
+              passphrase: passphrase
+            }, function(err) {
+              if (err) { return callback(err) };
+              keyManager.sign({}, function(err) {
+                if (err) { return callback(err) };
+                console.log("Loaded private key with passphrase");
+                return callback(err, keyManager);
+              });
+            });
+          } else {
+            console.log("Loaded private key w/o passphrase");
+            return callback(err, keyManager);
           }
-          console.log("Loaded private key with passphrase");
-          return callback(err, keyManager);
-        });
+        } else {
+          return callback(err, null);
+        }
       });
     } else {
-      console.log("Loaded private key w/o passphrase");
-      return callback(err, keyManager);
+      return callback(err, null);
     }
   });
-};
+}
 
 EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback) {
   var self = this;
@@ -394,7 +394,10 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
 
 EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
   var keyPair = data.keyPair;
+  var userName = data.userName;
+  console.log("Saving client keyPair with userName: " + userName);
   // TODO: Save with username in namespace of key name?
+  localStorage.setItem('userName', userName);
   localStorage.setItem('keyPair', JSON.stringify(keyPair));
   callback(null);
 }
@@ -483,28 +486,32 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
         //TODO: add the keys to a keyManager here and save them to self
 
         kbpgp.KeyManager.import_from_armored_pgp({
-          armored: data.privateKey
+          armored: data.publicKey
         }, function(err, masterKeyPair) {
-          if (err) {
-            return callback(err);
-          }
-          if (masterKeyPair.is_pgp_locked()) {
-            masterKeyPair.unlock_pgp({
-              passphrase: ''
+          if (!err) {
+            masterKeyPair.merge_pgp_private({
+              armored: data.privateKey
             }, function(err) {
-              if (err) {
-                return callback(err);
+              if (!err) {
+                if (masterKeyPair.is_pgp_locked()) {
+                  masterKeyPair.unlock_pgp({
+                    passphrase: ''
+                  }, function(err) {
+                    if (!err) {
+                      console.log("Loaded private key with passphrase");
+                    }
+                  });
+                } else {
+                  console.log("Loaded private key w/o passphrase");
+                }
               }
               console.log("Loaded private key with passphrase");
               localStorage.setItem('masterKeyPair', JSON.stringify(data));
               self.masterKeyManager = masterKeyPair;
             });
-          } else {
-            console.log("Loaded private key w/o passphrase");
-            localStorage.setItem('masterKeyPair', JSON.stringify(data));
-            self.masterKeyManager = masterKeyPair;
           }
         });
+        return callback(null, data);
       }
     }
   });
@@ -531,10 +538,18 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
         console.log("Key exists on remote");
         console.log("Remote Pub Key: "+data.publicKey);
         console.log("Local Pub Key: "+publicKey);
-        if (publicKey == remotePublicKey) {
+        //var regex = /\r?\n|\r/g
+        var regex = /\n/g
+        //console.log("pubKey: " + JSON.stringify(publicKey));
+        //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
+        var parsedPublicKey = publicKey.toString().replace(regex, '');
+        var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '');
+        if (parsedPublicKey == parsedRemotePublicKey) {
           console.log("Key on remote matches local");
           return callback(null, true);
         } else {
+          console.log("parsedPublicKey: " + parsedPublicKey);
+          console.log("parsedRemotePublicKey: " + parsedRemotePublicKey);
           console.log("Key on remote does not match");
           return callback(null, false);
         };

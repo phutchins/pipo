@@ -133,12 +133,18 @@
         <div class="description">
           <p>Please locate your keys...</p>
         </div>
-        <div class="ui">
-          <a href="#" id="select-publickey">Public Key: </a><input type="file" id="publickey-file-input"></input>
-        </div>
-        <div class="ui">
-          <a href="#" id="select-privatekey">Private Key: </a><input type="file" id="privatekey-file-input"></input>
-        </div>
+        <form class="ui form content create">
+          <div class="field">
+            <label for="username">Username</label>
+            <input type="text" class="username-input" id="username-input">
+          </div>
+          <div class="ui">
+            <a href="#" id="select-publickey">Public Key: </a><input type="file" id="publickey-file-input"></input>
+          </div>
+          <div class="ui">
+            <a href="#" id="select-privatekey">Private Key: </a><input type="file" id="privatekey-file-input"></input>
+          </div>
+        </form>
       </div>
       <div class="actions">
         <div class="ui button approve red cancel">

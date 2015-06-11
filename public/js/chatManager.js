@@ -79,7 +79,8 @@ $('#import-keypair-button').on('click', function() {
       privateKey: data.privateKey,
       publicKey: data.publicKey
     };
-    window.encryptionManager.saveClientKeyPair({ keyPair: keyPair }, function(err) {
+    var userName = data.userName;
+    window.encryptionManager.saveClientKeyPair({ userName: userName, keyPair: keyPair }, function(err) {
       if (err) {
         return console.log("Error saving client keyPair");
       };
@@ -705,21 +706,27 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
     $('#privatekey-file-input').trigger('click');
   });
   $('.import-keypair-submit-button').click(function(e) {
+
     var publicKeyFile = document.getElementById('publickey-file-input').files[0];
     var publicKeyContents = null;
     var privateKeyFile = document.getElementById('privatekey-file-input').files[0];
     var privateKeyContents = null;
+    var userName = document.getElementById('username-input').value;
+
     if (publicKeyFile && privateKeyFile) {
+      var regex = /\r?\n|\r/g
       var reader = new FileReader();
       reader.readAsText(publicKeyFile);
       reader.onload = function(e) {
-        publicKeyContents = e.target.result;
+        publicKeyContents = e.target.result
+        console.log("TEST: " + publicKeyContents.toString().replace(regex, '\n'));
         reader.readAsText(privateKeyFile);
         reader.onload = function(e) {
-          privateKeyContents = e.target.result;
+          privateKeyContents = e.target.result.toString().replace(regex, '\n');
           var data = ({
             publicKey: publicKeyContents,
             privateKey: privateKeyContents,
+            userName: userName,
           });
           callback(null, data);
         };

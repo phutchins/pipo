@@ -538,13 +538,18 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
         console.log("Key exists on remote");
         console.log("Remote Pub Key: "+data.publicKey);
         console.log("Local Pub Key: "+publicKey);
-        var regex = /\r?\n|\r/g
-        var parsedPublicKey = publicKey.toString().replace(regex, '\n');
-        var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '\n');
+        //var regex = /\r?\n|\r/g
+        var regex = /\n/g
+        //console.log("pubKey: " + JSON.stringify(publicKey));
+        //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
+        var parsedPublicKey = publicKey.toString().replace(regex, '');
+        var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '');
         if (parsedPublicKey == parsedRemotePublicKey) {
           console.log("Key on remote matches local");
           return callback(null, true);
         } else {
+          console.log("parsedPublicKey: " + parsedPublicKey);
+          console.log("parsedRemotePublicKey: " + parsedRemotePublicKey);
           console.log("Key on remote does not match");
           return callback(null, false);
         };

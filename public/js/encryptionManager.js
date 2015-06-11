@@ -394,7 +394,10 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
 
 EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
   var keyPair = data.keyPair;
+  var userName = data.userName;
+  console.log("Saving client keyPair with userName: " + userName);
   // TODO: Save with username in namespace of key name?
+  localStorage.setItem('userName', userName);
   localStorage.setItem('keyPair', JSON.stringify(keyPair));
   callback(null);
 }
@@ -485,22 +488,22 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
         kbpgp.KeyManager.import_from_armored_pgp({
           armored: data.publicKey
         }, function(err, masterKeyPair) {
--          if (!err) {
--            masterKeyPair.merge_pgp_private({
--              armored: data.privateKey
+          if (!err) {
+            masterKeyPair.merge_pgp_private({
+              armored: data.privateKey
             }, function(err) {
--              if (!err) {
--                if (masterKeyPair.is_pgp_locked()) {
--                  masterKeyPair.unlock_pgp({
--                    passphrase: ''
--                  }, function(err) {
--                    if (!err) {
--                      console.log("Loaded private key with passphrase");
--                    }
--                  });
--                } else {
--                  console.log("Loaded private key w/o passphrase");
--                }
+              if (!err) {
+                if (masterKeyPair.is_pgp_locked()) {
+                  masterKeyPair.unlock_pgp({
+                    passphrase: ''
+                  }, function(err) {
+                    if (!err) {
+                      console.log("Loaded private key with passphrase");
+                    }
+                  });
+                } else {
+                  console.log("Loaded private key w/o passphrase");
+                }
               }
               console.log("Loaded private key with passphrase");
               localStorage.setItem('masterKeyPair', JSON.stringify(data));
@@ -535,7 +538,10 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
         console.log("Key exists on remote");
         console.log("Remote Pub Key: "+data.publicKey);
         console.log("Local Pub Key: "+publicKey);
-        if (publicKey == remotePublicKey) {
+        var regex = /\r?\n|\r/g
+        var parsedPublicKey = publicKey.toString().replace(regex, '\n');
+        var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '\n');
+        if (parsedPublicKey == parsedRemotePublicKey) {
           console.log("Key on remote matches local");
           return callback(null, true);
         } else {

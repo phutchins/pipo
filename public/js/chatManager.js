@@ -86,17 +86,7 @@ $('#import-keypair-button').on('click', function() {
       };
       console.log("Client keypair saved to local storage");
       window.encryptionManager.clientCredentialsLoaded = false;
-      window.encryptionManager.loadClientKeyPair(function(err) {
-        if (err) {
-          return console.log("Error loading client keyPair");
-        }
-        // TODO: Do we need to verify the public key here?
-        window.encryptionManager.verifyRemotePublicKey(userName, data.publicKey, function(err) {
-          if (err) {
-            return console.log("Error updating remote public key")
-          }
-        })
-      })
+      window.socketClient.init();
     })
   })
 });

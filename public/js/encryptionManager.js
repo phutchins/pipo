@@ -65,8 +65,9 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
   }
   console.log("[LOAD CLIENT KEY PAIR] Loading client key pair from local storage");
   var keyPairData = localStorage.getItem('keyPair');
+  var userName = localStorage.getItem('userName');
   // If we have a local client keypair, load it and try to parse from JSON
-  if (keyPairData) {
+  if (keyPairData && userName) {
     console.log("[LOAD CLIENT KEY PAIR] Loaded client key pair from local storage!");
     try {
       keyPairData = JSON.parse(keyPairData);
@@ -397,6 +398,7 @@ EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data,
   var userName = data.userName;
   console.log("Saving client keyPair with userName: " + userName);
   // TODO: Save with username in namespace of key name?
+  window.userName = userName;
   localStorage.setItem('userName', userName);
   localStorage.setItem('keyPair', JSON.stringify(keyPair));
   callback(null);
@@ -536,10 +538,9 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
         //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
         var remotePublicKey = data.publicKey;
         console.log("Key exists on remote");
-        console.log("Remote Pub Key: "+data.publicKey);
-        console.log("Local Pub Key: "+publicKey);
-        //var regex = /\r?\n|\r/g
-        var regex = /\n/g
+        //console.log("Remote Pub Key: "+data.publicKey);
+        //console.log("Local Pub Key: "+publicKey);
+        var regex = /\r?\n|\r/g
         //console.log("pubKey: " + JSON.stringify(publicKey));
         //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
         var parsedPublicKey = publicKey.toString().replace(regex, '');

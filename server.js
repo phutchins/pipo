@@ -45,8 +45,8 @@ catch (e) {
 
 //Application
 var app = express();
-var server = http.Server(app);
-//var https_server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+//var server = http.Server(app);
+var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
 var io = socketIO(server);
 
 //Express
@@ -180,5 +180,5 @@ server.on('listening', function listening() {
   console.log('[SERVER] Listening on ' + bind);
 });
 
-//server.listen(configHttps.port);
+//https_server.listen(configHttps.port);
 server.listen(configHttp.port);

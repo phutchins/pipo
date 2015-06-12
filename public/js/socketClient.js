@@ -49,6 +49,7 @@ SocketClient.prototype.joinRoom = function(room, callback) {
   var self = this;
   console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
   self.socket.emit('join', { userName: window.userName, channel: room } );
+  ChatManager.joinedChannels.push(room);
   callback(null);
 };
 
@@ -56,7 +57,7 @@ SocketClient.prototype.joinRoom = function(room, callback) {
 SocketClient.prototype.addListeners = function() {
   var self = this;
   var channel = 'general';
-  var autoJoinRooms = ['general'];
+  var autoJoinRooms = ['general', 'offtopic'];
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
     if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
@@ -252,12 +253,13 @@ SocketClient.prototype.joinComplete = function(data) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
       console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
-      ChatManager.enableChat(room, data.encryptionScheme);
     });
   } else {
     console.log("[INIT] Enabling chat in clientKey mode");
-    ChatManager.enableChat(room, data.encryptionScheme);
   }
+  ChatManager.initRoom(room, function(err) {
+    ChatManager.enableChat(room, data.encryptionScheme);
+  });
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

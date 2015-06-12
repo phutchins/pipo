@@ -5,7 +5,8 @@ var ChatManager = {};
 
 var host = window.location.host;
 var socket = io(host+'/main');
-var currentChannel = "general";
+var joinedChannels = [];
+var currentChannels = null;
 var clientKeyPassword = null;
 var masterKeyPassword = 'pipo';
 var amountOfSpaceNeeded = 5000000;
@@ -160,6 +161,22 @@ ChatManager.getCaret = function getCaret(el) {
   return 0;
 };
 
+ChatManager.initRoom = function initRoom(room, callback) {
+  // Add div to window in namespace of channel
+  $('#room-container').append('<ul id="room-' + room + '" hidden=true></ul>');
+  this.focusRoom(room, function(err) {
+    callback(null);
+  });
+};
+
+ChatManager.focusRoom = function focusRoom(room, callback) {
+  // Remove focus class from currently focused room
+  $('ul[hidden=true]').attr('false');
+  // Add focus class to newly focused room
+  // TODO: Fix this...
+  $('#room-' + room).attr('hidden', 'false');
+  callback(null);
+};
 
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
 ChatManager.sendNotification = function sendNotification(image, title, message, timeout, showOnFocus) {

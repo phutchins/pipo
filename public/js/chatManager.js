@@ -2,11 +2,11 @@ var userMap = {};
 var roomUsers = {};
 
 var ChatManager = {};
+ChatManager.rooms = [];
+ChatManager.activeRoom = null;
 
 var host = window.location.host;
 var socket = io(host+'/main');
-var joinedChannels = [];
-var currentChannels = null;
 var clientKeyPassword = null;
 var masterKeyPassword = 'pipo';
 var amountOfSpaceNeeded = 5000000;
@@ -163,18 +163,31 @@ ChatManager.getCaret = function getCaret(el) {
 
 ChatManager.initRoom = function initRoom(room, callback) {
   // Add div to window in namespace of channel
-  $('#room-container').append('<ul id="room-' + room + '" hidden=true></ul>');
-  this.focusRoom(room, function(err) {
-    callback(null);
+  var self = this;
+  console.log("Adding room " + room + " to the room list");
+  ChatManager.rooms[room] = { messages: "" };
+  self.updateRoomList(function(err) {
+    self.focusRoom(room, function(err) {
+      callback(null);
+    });
   });
 };
 
 ChatManager.focusRoom = function focusRoom(room, callback) {
-  // Remove focus class from currently focused room
-  $('ul[hidden=true]').attr('false');
-  // Add focus class to newly focused room
-  // TODO: Fix this...
-  $('#room-' + room).attr('hidden', 'false');
+  $('#room').html(ChatManager.rooms[room].messages);
+  $('.selected-room').removeClass('selected-room');
+  $('#' + room).addClass('selected-room');
+  ChatManager.activeRoom = room;
+  callback(null);
+};
+
+ChatManager.updateRoomList = function updateRoomList(callback) {
+  Object.keys(ChatManager.rooms).forEach(function(roomName) {
+    if ( !$('#' + roomName).length ) {
+      var roomListHtml = '<li class="room-list-item" id="' + roomName + '">' + roomName + '</li>';
+      $('#room-list').append(roomListHtml);
+    }
+  });
   callback(null);
 };
 
@@ -297,7 +310,7 @@ ChatManager.getCaret = function getCaret(el) {
 };
 
 ChatManager.prepareMessage = function prepareMessage(message, callback) {
-  var parsedMessage = window.marked(message);
+  var parsedMessage = window.marked(message).replace(/(<p>|<\/p>)/g, '');
   var container = $('<div>').html(parsedMessage);
 
   // Check the hostname to make sure that it's not a local link...
@@ -307,11 +320,14 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
   callback(null, container.html());
 };
 
-ChatManager.handleMessage = function handleMessage(message, fromUser) {
-  var messages = $('#messages');
+ChatManager.handleMessage = function handleMessage(data) {
+  var fromUser = data.user;
+  var message = data.message;
+  var room = data.room;
+  var messages = $('#room');
   var messageLine = "["+fromUser+"] "+message;
 
-  this.localMsg({ type: null, message: messageLine });
+  this.localMsg({ type: null, message: messageLine, room: room });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
@@ -337,6 +353,7 @@ ChatManager.updateUserList = function updateUserList(data) {
 ChatManager.localMsg = function localMsg(data) {
   var type = data.type;
   var message = data.message;
+  var room = data.room;
   var id = data.id;
 
   //Add timestamp
@@ -344,16 +361,30 @@ ChatManager.localMsg = function localMsg(data) {
   message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
   if (type !== null && id !== null) {
-    $('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
+    ChatManager.rooms[room].messages.concat($('<li id="'+id+'">').html("["+type+"] "+message));
+    console.log("1 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
+    //$('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
   } else if (type !== null) {
-    $('#messages').append($('<li>').html("["+type+"] "+message));
+    ChatManager.rooms[room].messages.concat($('#messages').append($('<li>').html("["+type+"] "+message)));
+    console.log("2 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
+    //$('#messages').append($('<li>').html("["+type+"] "+message));
   } else {
-    $('#messages').append($('<li>').html(message));
+    ChatManager.rooms[room].messages = ChatManager.rooms[room].messages.concat("<li>" + message + "</li>");
+    console.log("3 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
+    //$('#messages').append($('<li>').html(message));
   }
+  ChatManager.refreshRoomContent(room);
+};
+
+ChatManager.refreshRoomContent = function refreshRoomContent(room) {
+  $('#room').html(ChatManager.rooms[room].messages);
 };
 
 ChatManager.sendMessage = function sendMessage() {
   var input = $('#message-input').val();
+  console.log("1 sendMessage input: " + input);
+  //input = input.replace(/(<p>|<\/p>)/g, '');
+  //console.log("2 sendMessage input: " + input);
   var commandRegex = /^\/(.*)$/;
   var regexResult = input.match(commandRegex);
 
@@ -379,7 +410,8 @@ ChatManager.sendMessage = function sendMessage() {
   }
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {
-      window.socketClient.sendMessage('general', preparedInput);
+      console.log("Sending message to room #"+ChatManager.activeRoom);
+      window.socketClient.sendMessage(ChatManager.activeRoom, preparedInput);
     })
   }
 };

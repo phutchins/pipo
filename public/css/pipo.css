@@ -9,19 +9,19 @@ body, html { padding: 0; margin: 0; }
   margin: 0;
 }
 
-#messages p {
+.channel-window p {
   display: inline;
 }
 
-#messages li {
+.channel-window li {
   padding: 5px 10px;
 }
 
-#messages li:nth-child(odd) {
+.channel-window li:nth-child(odd) {
   background: #eee;
 }
 
-#messages {
+#room {
   position: absolute;
   padding: 0px 0px 0px 0px;
   list-style-type: none;
@@ -235,7 +235,6 @@ body, html { padding: 0; margin: 0; }
   font-family: source-sans-pro, sans-serif;
   font-size: 16px;
   font-weight: normal;
-  height: 34px;
   line-height: 23.2000007629395px;
   list-style-image: none;
   list-style-position: outside;
@@ -328,10 +327,11 @@ body, html { padding: 0; margin: 0; }
   list-style-image: none;
   list-style-position: outside;
   list-style-type: none;
-  padding-bottom: 0px;
+  padding-bottom: 4px;
   padding-left: 4px;
   padding-right: 0px;
-  padding-top: 0px;
+  padding-top: 4px;
+  margin: 4px;
   text-align: left;
   width: 248px;
 }
@@ -342,6 +342,14 @@ body, html { padding: 0; margin: 0; }
   position: absolute;
   box-sizing: border-box;
   bottom: 0;
+}
+
+.chat-hidden {
+  visibility: hidden;
+}
+
+.chat-visible {
+  visibility: visible;
 }
 
 #inputMultiline {

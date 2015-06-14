@@ -241,7 +241,7 @@ SocketClient.prototype.sendMessage = function(room, message) {
 SocketClient.prototype.joinComplete = function(data) {
   var room = data.room;
   var self = this;
-  console.log("[SOCKET] (joinCOmplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
+  console.log("[SOCKET] (joinComplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
   window.encryptionManager.encryptionScheme[room] = data.encryptionScheme;
   console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
   if (data.encryptionScheme == 'masterKey') {

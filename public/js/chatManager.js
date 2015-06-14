@@ -161,32 +161,65 @@ ChatManager.getCaret = function getCaret(el) {
   return 0;
 };
 
+/*
+ * Create the room and give it focus
+ */
 ChatManager.initRoom = function initRoom(room, callback) {
   // Add div to window in namespace of channel
   var self = this;
   console.log("Adding room " + room + " to the room list");
   ChatManager.rooms[room] = { messages: "" };
+
   self.updateRoomList(function(err) {
-    self.focusRoom(room, function(err) {
+    // Set focus to room
+    console.log("About to set room focus to " + room);
+    ChatManager.focusRoom(room, function(err) {
+      console.log("Room focus for " + room + " done");
       callback(null);
     });
   });
 };
 
+/*
+ * Set the specified room to be in focus for the user
+ */
 ChatManager.focusRoom = function focusRoom(room, callback) {
-  $('#room').html(ChatManager.rooms[room].messages);
-  $('.selected-room').removeClass('selected-room');
-  $('#' + room).addClass('selected-room');
+  console.log("Focusing room " + room );
+  // Set the active room in ChatManager
   ChatManager.activeRoom = room;
+
+  // Update the content in the room for the desired room to be in focus
+  $('#room').html(ChatManager.rooms[room].messages);
+
+  // Update the room list to reflect the desired room to be infocus
+  $('.room-list-item-selected')
+    .addClass('room-list-item')
+    .removeClass('room-list-item-selected');
+  $('#' + room)
+    .removeClass('room-list-item')
+    .addClass('room-list-item-selected');
+
   callback(null);
 };
 
+/*
+ * Update the list of rooms on the left bar
+ */
 ChatManager.updateRoomList = function updateRoomList(callback) {
-  Object.keys(ChatManager.rooms).forEach(function(roomName) {
-    if ( !$('#' + roomName).length ) {
-      var roomListHtml = '<li class="room-list-item" id="' + roomName + '">' + roomName + '</li>';
+  $('#room-list').empty();
+  var rooms = Object.keys(ChatManager.rooms)
+  rooms.forEach(function(room) {
+    // Catch clicks on the room list to update room focus
+    if ( !$('#' + room).length ) {
+      var roomListHtml = '<li class="room-list-item" id="' + room + '">' + room + '</li>';
       $('#room-list').append(roomListHtml);
+      console.log("Added " + room + " to room-list");
     }
+    $("#" + room).click(function() {
+      ChatManager.focusRoom(room, function(err) {
+        // Room focus complete
+      });
+    });
   });
   callback(null);
 };

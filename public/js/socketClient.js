@@ -218,7 +218,6 @@ SocketClient.prototype.authenticate = function() {
   console.log("[AUTH] Authenticating with server with userName: '"+window.userName+"'");
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      console.log("[AUTHENTICATE] Authenticating with publicKey: "+publicKey);
       self.socket.emit('authenticate', {userName: window.userName, publicKey: publicKey});
     });
   });

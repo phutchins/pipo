@@ -395,16 +395,10 @@ ChatManager.localMsg = function localMsg(data) {
 
   if (type !== null && id !== null) {
     ChatManager.rooms[room].messages.concat($('<li id="'+id+'">').html("["+type+"] "+message));
-    console.log("1 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
-    //$('#messages').append($('<li id="'+id+'">').html("["+type+"] "+message));
   } else if (type !== null) {
     ChatManager.rooms[room].messages.concat($('#messages').append($('<li>').html("["+type+"] "+message)));
-    console.log("2 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
-    //$('#messages').append($('<li>').html("["+type+"] "+message));
   } else {
     ChatManager.rooms[room].messages = ChatManager.rooms[room].messages.concat("<li>" + message + "</li>");
-    console.log("3 ChatManager.rooms[" + room + "].messages is: " + ChatManager.rooms[room].messages);
-    //$('#messages').append($('<li>').html(message));
   }
   ChatManager.refreshRoomContent(room);
 };

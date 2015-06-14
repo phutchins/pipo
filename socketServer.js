@@ -259,16 +259,11 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   // Ensure that user has the most recent master key for this channel if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
     //console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
-    KeyId.getMasterKeyId(function(err, currentKeyId) {
+    KeyId.getMasterKeyId(room, function(err, currentKeyId) {
       User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
-          // If the users key id is not up to date with what we have encrypted to them
-          // TODO: AND they should have a key encrypted to them for this room
-          // then create and encrypt a new master key for this room
           self.initMasterKeyPair(function(err) {
-            //console.log("[JOIN CHANNEL] Clients master key has been updated, emitting joinComplete with new masterKeyPair");
             User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
-              //console.log("[JOIN ROOM] Got masterKeyPair id "+newMasterKeyPair.id+", emitting joinComplete to user "+userName);
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
@@ -311,23 +306,15 @@ SocketServer.prototype.updateUserList = function updateUserList(room) {
 SocketServer.prototype.getUserList = function(room, callback) {
   var self = this;
   var members = [];
-  console.log("[SOCKETSERVER] Room: "+room);
-
-  //Get all sockets in this room
-  //TODO: This fails when server restarted with users connected
-  console.log("[DEBUG] Rooms: "+JSON.stringify(this.namespace.adapter.rooms));
   if (typeof this.namespace.adapter.rooms[room] !== 'undefined') {
     var members = this.namespace.adapter.rooms[room];
     members = Object.keys(this.namespace.adapter.rooms[room]).filter(function(sid) {
       return members[sid];
     });
-    //console.log("[DEBUG] Member sockets: "+JSON.stringify(members));
-
     //Map sockets to users
     members = members.map(function(sid) {
       return self.namespace.socketMap[sid];
     });
-    //console.log("[DEBUG] Member names: "+JSON.stringify(members));
   } else {
     console.log("[GET USER LIST] User list is empty");
   };

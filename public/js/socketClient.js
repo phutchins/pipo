@@ -56,7 +56,7 @@ SocketClient.prototype.joinRoom = function(room, callback) {
 SocketClient.prototype.addListeners = function() {
   var self = this;
   var channel = 'general';
-  var autoJoinRooms = ['general'];
+  var autoJoinRooms = ['general', 'offtopic'];
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
     if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
@@ -108,13 +108,12 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    console.log("[SOCKET] (roomMessage) Got room message in mode: "+window.encryptionManager.encryptionScheme[data.room]);
     if (window.encryptionManager.encryptionScheme[data.room] == 'masterKey') {
       window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
         if (err) {
           console.log(err);
         }
-        ChatManager.handleMessage(message, data.user);
+        ChatManager.handleMessage({ message: message, user: data.user, room: data.room });
       });
     } else if (window.encryptionManager.encryptionScheme[data.room] == 'clientKey') {
       window.encryptionManager.decryptMessage(data.message, function(err, message) {
@@ -122,7 +121,7 @@ SocketClient.prototype.addListeners = function() {
           console.log(err);
         }
         console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
-        ChatManager.handleMessage(message, data.user);
+        ChatManager.handleMessage({ message: message, user: data.user, room: data.room });
       });
     };
   });
@@ -219,7 +218,6 @@ SocketClient.prototype.authenticate = function() {
   console.log("[AUTH] Authenticating with server with userName: '"+window.userName+"'");
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      console.log("[AUTHENTICATE] Authenticating with publicKey: "+publicKey);
       self.socket.emit('authenticate', {userName: window.userName, publicKey: publicKey});
     });
   });
@@ -227,6 +225,7 @@ SocketClient.prototype.authenticate = function() {
 
 SocketClient.prototype.sendMessage = function(room, message) {
   var self = this;
+  console.log("Encrypting message: " + message);
   window.encryptionManager.encryptRoomMessage({ room: room, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
@@ -241,7 +240,7 @@ SocketClient.prototype.sendMessage = function(room, message) {
 SocketClient.prototype.joinComplete = function(data) {
   var room = data.room;
   var self = this;
-  console.log("[SOCKET] (joinCOmplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
+  console.log("[SOCKET] (joinComplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
   window.encryptionManager.encryptionScheme[room] = data.encryptionScheme;
   console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
   if (data.encryptionScheme == 'masterKey') {
@@ -252,12 +251,13 @@ SocketClient.prototype.joinComplete = function(data) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
       console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
-      ChatManager.enableChat(room, data.encryptionScheme);
     });
   } else {
     console.log("[INIT] Enabling chat in clientKey mode");
-    ChatManager.enableChat(room, data.encryptionScheme);
   }
+  ChatManager.initRoom(room, function(err) {
+    ChatManager.enableChat(room, data.encryptionScheme);
+  });
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

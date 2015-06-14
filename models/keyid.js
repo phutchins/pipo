@@ -3,18 +3,18 @@ var Schema = mongoose.Schema;
 
 var keyIdSchema = new Schema({
   type: { type: String },
-  channel: { type: String },
+  room: { type: String },
   id: { type: Number }
 });
 
-keyIdSchema.statics.getMasterKeyId = function getMasterKeyId(callback) {
+keyIdSchema.statics.getMasterKeyId = function getMasterKeyId(room, callback) {
   var self = this;
   var keyId = null;
-  self.findOne({ type: 'master' }, function(err, keyId, count) {
+  self.findOne({ type: 'master', room: room }, function(err, keyId, count) {
     if (err) {
       return callback(err, null);
     } else if (typeof keyId == 'undefined' || keyId == null) {
-      self.create(function(err, keyId) { keyId = self.id;
+      self.create(room, function(err, keyId) { keyId = self.id;
       });
     } else {
       console.log("keyId is: "+keyId);
@@ -23,9 +23,10 @@ keyIdSchema.statics.getMasterKeyId = function getMasterKeyId(callback) {
   });
 };
 
-keyIdSchema.statics.create = function createMasterKeyId(callback) {
+keyIdSchema.statics.create = function createMasterKeyId(room, callback) {
   new this({
     type: 'master',
+    room: room,
     id: 0
   }).save(function(err, keyId) {
     if (err) {
@@ -37,9 +38,9 @@ keyIdSchema.statics.create = function createMasterKeyId(callback) {
   });
 };
 
-keyIdSchema.statics.increment = function incrementMasterKeyId(callback) {
+keyIdSchema.statics.increment = function incrementMasterKeyId(room, callback) {
   var self = this;
-  this.findOne({ type: 'master' }, function(err, keyId, count) {
+  this.findOne({ type: 'master', room: room }, function(err, keyId, count) {
     if (typeof keyId == 'undefined') {
       return callback("Cannot find master key ID while trying to increment", null);
     } else {

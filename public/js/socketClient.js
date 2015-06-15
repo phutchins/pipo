@@ -113,7 +113,7 @@ SocketClient.prototype.addListeners = function() {
         if (err) {
           console.log(err);
         }
-        ChatManager.handleMessage({ message: message, user: data.user, room: data.room });
+        ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
       });
     } else if (window.encryptionManager.encryptionScheme[data.room] == 'clientKey') {
       window.encryptionManager.decryptMessage(data.message, function(err, message) {
@@ -269,9 +269,6 @@ SocketClient.prototype.sendPrivateMessage = function(userName, message) {
         console.log("Error Encrypting Message: " + err);
       }
       else {
-        //Write private message locally to chat
-        ChatManager.handlePrivateMessage(message, window.userName, userName);
-
         self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage});
         $('#message-input').val('');
       }

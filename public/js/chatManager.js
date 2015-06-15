@@ -300,11 +300,13 @@ ChatManager.updateUserList = function updateUserList(data) {
   });
   $('#user-list').html(userListHtml);
   members.forEach(function(userName) {
-    $('#' + userName).click(function() {
-      ChatManager.focusPrivateChat(userName, function(err) {
-        // Done
+    if (userName !== window.userName) {
+      $('#' + userName).click(function() {
+        ChatManager.focusPrivateChat(userName, function(err) {
+          // Done
+        });
       });
-    });
+    }
   });
 };
 

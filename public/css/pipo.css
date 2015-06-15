@@ -21,9 +21,9 @@ body, html { padding: 0; margin: 0; }
   background: #eee;
 }
 
-#room {
+#chat {
   position: absolute;
-  padding: 0px 0px 0px 0px;
+  padding: 5px 5px 5px 5px;
   list-style-type: none;
   top: 0;
   right: 0px;
@@ -304,18 +304,17 @@ body, html { padding: 0; margin: 0; }
   width: 248px;
 }
 
-.room-list-item-selected {
+.chat-list-item {
   -webkit-box-align: center;
   -webkit-box-flex: 1;
   -webkit-user-select: none;
   align-items: center;
-  background-color: rgb(255, 255, 255);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 0px;
   border-top-left-radius: 4px;
   border-top-right-radius: 0px;
   box-sizing: border-box;
-  color: rgb(48, 64, 71);
+  color: rgb(255, 255, 255);
   cursor: pointer;
   display: flex;
   flex-grow: 1;
@@ -336,17 +335,19 @@ body, html { padding: 0; margin: 0; }
   width: 248px;
 }
 
-.room-list-item {
+
+.chat-list-item-selected {
   -webkit-box-align: center;
   -webkit-box-flex: 1;
   -webkit-user-select: none;
   align-items: center;
+  background-color: rgb(255, 255, 255);
   border-bottom-left-radius: 4px;
   border-bottom-right-radius: 0px;
   border-top-left-radius: 4px;
   border-top-right-radius: 0px;
   box-sizing: border-box;
-  color: rgb(255, 255, 255);
+  color: rgb(48, 64, 71);
   cursor: pointer;
   display: flex;
   flex-grow: 1;

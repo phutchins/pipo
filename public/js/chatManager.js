@@ -2,8 +2,12 @@ var userMap = {};
 var roomUsers = {};
 
 var ChatManager = {};
-ChatManager.rooms = [];
+
+ChatManager.chats = [];
+ChatManager.activeChatType = null;
+
 ChatManager.activeRoom = null;
+ChatManager.activePrivateChat = null;
 
 var host = window.location.host;
 var socket = io(host+'/main');
@@ -168,7 +172,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
   // Add div to window in namespace of channel
   var self = this;
   console.log("Adding room " + room + " to the room list");
-  ChatManager.rooms[room] = { messages: "" };
+  // TODO: Should store online status for members and messages in an object or array also
+  ChatManager.chats[room] = { members: [], type: 'room', messages: "" };
 
   self.updateRoomList(function(err) {
     // Set focus to room
@@ -181,23 +186,59 @@ ChatManager.initRoom = function initRoom(room, callback) {
 };
 
 /*
- * Set the specified room to be in focus for the user
+ * Set focus for a room
  */
 ChatManager.focusRoom = function focusRoom(room, callback) {
-  console.log("Focusing room " + room );
-  // Set the active room in ChatManager
   ChatManager.activeRoom = room;
+  ChatManager.activeChatType = 'room';
 
   // Update the content in the room for the desired room to be in focus
-  $('#room').html(ChatManager.rooms[room].messages);
+  ChatManager.refreshChatContent(room);
+
+  ChatManager.updateUserList({ room: room });
+
+  // Update the menu to reflect the selected room
+  ChatManager.focusChat({ id: room }, function(err) {
+    callback(err);
+  })
+}
+
+/*
+ * Set focus for a private chat
+ */
+ChatManager.focusPrivateChat = function focusPrivateChat(user, callback) {
+  ChatManager.activePrivateChat = user;
+  console.log("Setting active chat type to privatechat");
+  ChatManager.activeChatType = 'privatechat';
+
+  // Init private message for user if it does not exist
+  if (ChatManager.chats[user] == null) {
+    ChatManager.chats[user] = { type: 'privatechat', messages: "" };
+  }
+
+  // Display private messages for user in the room element
+  ChatManager.refreshChatContent(user);
+
+  // Update the menu to reflect the selected private chat
+  ChatManager.focusChat({ id: user }, function(err) {
+    callback(err);
+  })
+}
+
+/*
+ * Set the specified chat to be in focus for the user
+ */
+ChatManager.focusChat = function focusChat(data, callback) {
+  var id = data.id;
 
   // Update the room list to reflect the desired room to be infocus
-  $('.room-list-item-selected')
-    .addClass('room-list-item')
-    .removeClass('room-list-item-selected');
-  $('#' + room)
-    .removeClass('room-list-item')
-    .addClass('room-list-item-selected');
+  $('.chat-list-item-selected')
+    .addClass('chat-list-item')
+    .removeClass('chat-list-item-selected');
+
+  $('#' + id)
+    .removeClass('chat-list-item')
+    .addClass('chat-list-item-selected');
 
   callback(null);
 };
@@ -207,22 +248,68 @@ ChatManager.focusRoom = function focusRoom(room, callback) {
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
   $('#room-list').empty();
-  var rooms = Object.keys(ChatManager.rooms)
-  rooms.forEach(function(room) {
-    // Catch clicks on the room list to update room focus
-    if ( !$('#' + room).length ) {
-      var roomListHtml = '<li class="room-list-item" id="' + room + '">' + room + '</li>';
-      $('#room-list').append(roomListHtml);
-      console.log("Added " + room + " to room-list");
-    }
-    $("#" + room).click(function() {
-      ChatManager.focusRoom(room, function(err) {
-        // Room focus complete
+  var chatNames = Object.keys(ChatManager.chats)
+  var activeChat = null;
+  if (ChatManager.activeChatType == 'room') {
+    activeChat = ChatManager.activeRoom;
+  }
+  chatNames.forEach(function(chatName) {
+    if (ChatManager.chats[chatName].type == 'room') {
+      // Catch clicks on the room list to update room focus
+      if ( !$('#' + chatName).length ) {
+        if ( activeChat && activeChat == chatName ) {
+          var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';
+        } else {
+          var roomListHtml = '<li class="room chat-list-item" id="' + chatName + '">' + chatName + '</li>';
+        }
+        $('#room-list').append(roomListHtml);
+        console.log("Added " + chatName + " to room-list");
+      }
+      $("#" + chatName).click(function() {
+        ChatManager.focusRoom(chatName, function(err) {
+          // Room focus complete
+        });
       });
-    });
+    }
   });
   callback(null);
 };
+
+/*
+ * Update the user list on the left bar
+ */
+ChatManager.updateUserList = function updateUserList(data) {
+  var room = data.room;
+  var members = ChatManager.chats[room].members;
+  var userListHtml = "";
+  var activeChat = null;
+  if ( ChatManager.activeChatType == 'privatechat' ) {
+    activeChat = ChatManager.activePrivateChat;
+  }
+  console.log("[CHAT MANAGER] (updateUserList) members: "+JSON.stringify(members));
+  members.forEach(function(userName) {
+    if ( !ChatManager.chats[userName] ) {
+      console.log("chat for " + userName + " was empty so initializing");
+      ChatManager.chats[userName] = { type: 'privatechat', messages: "" };
+    }
+    if ( activeChat && activeChat == userName ) {
+      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'>" + userName + "</li>\n";
+    } else {
+      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'>" + userName + "</li>\n";
+    }
+  });
+  $('#user-list').html(userListHtml);
+  members.forEach(function(userName) {
+    if (userName !== window.userName) {
+      $('#' + userName).click(function() {
+        ChatManager.focusPrivateChat(userName, function(err) {
+          // Done
+        });
+      });
+    }
+  });
+};
+
 
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
 ChatManager.sendNotification = function sendNotification(image, title, message, timeout, showOnFocus) {
@@ -357,55 +444,70 @@ ChatManager.handleMessage = function handleMessage(data) {
   var fromUser = data.user;
   var message = data.message;
   var room = data.room;
-  var messages = $('#room');
+  var messages = $('#chat');
   var messageLine = "["+fromUser+"] "+message;
 
-  this.localMsg({ type: null, message: messageLine, room: room });
+  this.addMessageToChat({ type: 'room', message: messageLine, chat: room });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
-ChatManager.handlePrivateMessage = function handleMessage(message, fromUser, toUser) {
-  var messages = $('#messages');
-  var messageLine = "[" + fromUser + " > " + toUser + "] " + message;
+ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUser, toUser) {
+  // If we're the ones sending the message we should add it to the correct place
+  if (fromUser == window.userName) {
+    var chat = toUser;
+  } else {
+    var chat = fromUser;
+  }
+  var messageLine = "[" + fromUser + "] " + message;
 
-  this.localMsg({ type: null, message: messageLine });
-  messages[0].scrollTop = messages[0].scrollHeight;
+  ChatManager.addMessageToChat({ type: 'privatechat', chat: chat, message: messageLine });
 };
 
-ChatManager.updateUserList = function updateUserList(data) {
-  var room = data.room;
-  var members = data.members;
-  var userListHtml = "";
-  console.log("[CHAT MANAGER] (updateUserList) members: "+JSON.stringify(members));
-  members.forEach(function(userName) {
-    userListHtml += "<li>"+userName+"</li>\n";
-  });
-  $('#user-list').html(userListHtml);
-};
-
-ChatManager.localMsg = function localMsg(data) {
+ChatManager.addMessageToChat = function addMessageToChat(data) {
   var type = data.type;
   var message = data.message;
-  var room = data.room;
   var id = data.id;
+  var fromUser = data.fromUser;
+  var chat = data.chat;
+  var chatContainer = $('#chat');
 
   //Add timestamp
   var time = new Date().toISOString();
   message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
-  if (type !== null && id !== null) {
-    ChatManager.rooms[room].messages.concat($('<li id="'+id+'">').html("["+type+"] "+message));
-  } else if (type !== null) {
-    ChatManager.rooms[room].messages.concat($('#messages').append($('<li>').html("["+type+"] "+message)));
-  } else {
-    ChatManager.rooms[room].messages = ChatManager.rooms[room].messages.concat("<li>" + message + "</li>");
+  if (ChatManager.chats[chat] == null) {
+    ChatManager.chats[chat] = { messages: '' };
   }
-  ChatManager.refreshRoomContent(room);
+
+  ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat("<li>" + message + "</li>");
+
+  if (type == 'status') {
+    // Status message?
+    if (ChatManager.activeChatType == 'status' && ChatManager.activeRoom == chat) {
+      ChatManager.refreshChatContent(chat);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+  } else if (type == 'room') {
+    // Room message
+    if (ChatManager.activeChatType == 'room' && ChatManager.activeRoom == chat) {
+      ChatManager.refreshChatContent(chat);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+  } else if (type == 'privatechat') {
+    // Private message
+    if (ChatManager.activeChatType == 'privatechat' && ChatManager.activePrivateChat == chat) {
+      ChatManager.refreshChatContent(chat);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+  } else {
+    return console.log("ERROR: Unknown message type!");
+  }
 };
 
-ChatManager.refreshRoomContent = function refreshRoomContent(room) {
-  $('#room').html(ChatManager.rooms[room].messages);
-};
+ChatManager.refreshChatContent = function refreshChatContent(room) {
+  console.log("Refreshing room content");
+  $('#chat').html(ChatManager.chats[room].messages);
+}
 
 ChatManager.sendMessage = function sendMessage() {
   var input = $('#message-input').val();
@@ -423,10 +525,10 @@ ChatManager.sendMessage = function sendMessage() {
     var command = regexResult[1];
     var splitCommand = command.split(" ");
 
-    // Locally parsed commands
-    if (splitCommand[0] === "msg") {
+    // Catch local command
+    if (splitCommand[0] === "local") {
+      var param1 = splitCommand[1];
       var message = command.split(" ").slice(2).join(" ");
-      ChatManager.sendPrivateMessage(splitCommand[1], message);
     }
     else {
       // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
@@ -437,18 +539,22 @@ ChatManager.sendMessage = function sendMessage() {
   }
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {
-      console.log("Sending message to room #"+ChatManager.activeRoom);
-      window.socketClient.sendMessage(ChatManager.activeRoom, preparedInput);
+      console.log("Active chat type is: " + ChatManager.activeChatType);
+      if (ChatManager.activeChatType == 'room') {
+        console.log("Sending message to room #"+ChatManager.activeRoom);
+        window.socketClient.sendMessage(ChatManager.activeRoom, preparedInput);
+      }
+      else if (ChatManager.activeChatType == 'privatechat') {
+        var userName = ChatManager.activePrivateChat;
+        console.log("Sending private mesage to '" + userName + "' with message '" + preparedInput + "'");
+        ChatManager.handlePrivateMessage(preparedInput, window.userName, userName);
+        socketClient.sendPrivateMessage(userName, preparedInput);
+      }
+      else {
+        return console.log("ERROR: No activeChatType!");
+      }
     })
   }
-};
-
-ChatManager.sendPrivateMessage = function sendPrivateMessage(username, message) {
-  if (!userMap[username]) {
-    console.log("user does not exist");
-    return false;
-  }
-  socketClient.sendPrivateMessage(username, message);
 };
 
 ChatManager.initialPromptForCredentials = function initialPromptForCredentials() {

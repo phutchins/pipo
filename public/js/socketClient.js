@@ -113,7 +113,7 @@ SocketClient.prototype.addListeners = function() {
         if (err) {
           console.log(err);
         }
-        ChatManager.handleMessage({ message: message, user: data.user, room: data.room });
+        ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
       });
     } else if (window.encryptionManager.encryptionScheme[data.room] == 'clientKey') {
       window.encryptionManager.decryptMessage(data.message, function(err, message) {
@@ -121,7 +121,7 @@ SocketClient.prototype.addListeners = function() {
           console.log(err);
         }
         console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
-        ChatManager.handleMessage({ message: message, user: data.user, room: data.room });
+        ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
       });
     };
   });
@@ -199,7 +199,8 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
     }
     console.log("[USERLIST UPDATE] Updating userlist");
-    ChatManager.updateUserList({ room: data.room, members: Object.keys(window.roomUsers[data.room]) });
+    ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
+    ChatManager.updateUserList({ room: data.room });
   });
 
   this.socket.on('chatStatus', function(data) {
@@ -268,9 +269,6 @@ SocketClient.prototype.sendPrivateMessage = function(userName, message) {
         console.log("Error Encrypting Message: " + err);
       }
       else {
-        //Write private message locally to chat
-        ChatManager.handlePrivateMessage(message, window.userName, userName);
-
         self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage});
         $('#message-input').val('');
       }

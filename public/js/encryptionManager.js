@@ -203,7 +203,6 @@ EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback)
   //Unlock key with passphrase if locked
   if (self.keyManager.is_pgp_locked()) {
     var tries = 3;
-    promptAndDecrypt();
 
     function promptAndDecrypt() {
       console.log("[ENCRYPTION MANAGER] (unlockClientKey) Prompting for password to decrypt client key...");
@@ -229,6 +228,8 @@ EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback)
         });
       });
     }
+
+    promptAndDecrypt();
   }
   else {
     self.keyRing.add_key_manager(keyManager);

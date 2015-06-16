@@ -540,7 +540,7 @@ ChatManager.sendMessage = function sendMessage() {
     if (splitCommand[0] == "join") {
       var room = splitCommand[1];
       socketClient.joinRoom(room, function(err) {
-        console.log("Joined room " + room);
+        console.log("Sent request to join room " + room);
       });
     }
     else if (splitCommand[0] == "part") {

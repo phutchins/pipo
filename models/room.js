@@ -66,7 +66,7 @@ roomSchema.statics.join = function join(data, callback) {
         return callback(null, true);
       } else {
         console.log("User " + userName + " unable to join #" + roomName + " due to incorrect membership");
-        return callback("User " + userName + " unable to join #" + roomName + " due to incorrect membership", false);
+        return callback(null, false);
       }
     })
   })

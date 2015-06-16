@@ -264,24 +264,30 @@ SocketClient.prototype.sendMessage = function(room, message) {
 SocketClient.prototype.joinComplete = function(data) {
   var room = data.room;
   var self = this;
-  console.log("[SOCKET] (joinComplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
-  window.encryptionManager.encryptionScheme[room] = data.encryptionScheme;
-  console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
-  if (data.encryptionScheme == 'masterKey') {
-    var masterKeyPair = data.masterKeyPair;
-    console.log("[SOCKET] (joinComplete) Loading master key pair...");
-    // TODO: Need to make sure clientKeyManager is decrypted here
-    window.encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
-      if (err) { return console.log("[INIT] ERROR loading master key pair") };
-      if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
-      console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
-    });
+  var err = data.err;
+  if (err) {
+    console.log("Cannot join channel due to permissions");
+    return ChatManager.showError(err);
   } else {
-    console.log("[INIT] Enabling chat in clientKey mode");
+    console.log("[SOCKET] (joinComplete) room: "+room+" data.encryptionScheme: "+data.encryptionScheme);
+    window.encryptionManager.encryptionScheme[room] = data.encryptionScheme;
+    console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
+    if (data.encryptionScheme == 'masterKey') {
+      var masterKeyPair = data.masterKeyPair;
+      console.log("[SOCKET] (joinComplete) Loading master key pair...");
+      // TODO: Need to make sure clientKeyManager is decrypted here
+      window.encryptionManager.loadMasterKeyPair(room, masterKeyPair, function(err, loaded) {
+        if (err) { return console.log("[INIT] ERROR loading master key pair") };
+        if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
+        console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
+      });
+    } else {
+      console.log("[INIT] Enabling chat in clientKey mode");
+    }
+    ChatManager.initRoom(room, function(err) {
+      ChatManager.enableChat(room, data.encryptionScheme);
+    });
   }
-  ChatManager.initRoom(room, function(err) {
-    ChatManager.enableChat(room, data.encryptionScheme);
-  });
 };
 
 SocketClient.prototype.sendServerCommand = function(data) {

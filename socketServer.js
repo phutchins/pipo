@@ -322,12 +322,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     });
   } else {
     // Using client key encryption scheme
-    Room.join({roomName: room, userName: userName}, function(err, success) {
+    Room.join({roomName: room, userName: userName}, function(err, auth) {
       if (err) {
-        return console.log("Error while joining room " + room + ": "+ err);
+        return self.socket.emit('joinComplete', { err: "Error while joining room " + room + ": "+ err });
       }
-      if (!success) {
-        return console.log("Failed to join room " + room);
+      if (!auth) {
+        return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room });
       }
       self.socket.join(room);
       console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");

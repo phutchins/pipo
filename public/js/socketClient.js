@@ -76,6 +76,7 @@ SocketClient.prototype.addListeners = function() {
                 });
               });
             } else {
+              // Join the default room
               self.joinRoom('pipo', function(err) {
                 console.log("[SOCKET] (authenticated) Joined default room becuase autoJoin was empty");
               })
@@ -281,6 +282,13 @@ SocketClient.prototype.joinComplete = function(data) {
   ChatManager.initRoom(room, function(err) {
     ChatManager.enableChat(room, data.encryptionScheme);
   });
+};
+
+SocketClient.prototype.sendServerCommand = function(data) {
+  var self = this;
+  var command = data.command;
+  var currentChannel = data.currentChannel;
+  self.socket.emit('serverCommand', { command: command, currentChannel: currentChannel });
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

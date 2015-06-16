@@ -1,6 +1,5 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-var User = require('./user');
 
 var roomSchema = new Schema({
   name: { type: String },
@@ -18,59 +17,64 @@ var roomSchema = new Schema({
 });
 
 roomSchema.statics.create = function create(data, callback) {
-  User.findOne({ userName: data.userName }, function(err, user) {
+  var self = this;
+  mongoose.model('User').findOne({ userName: data.userName }, function(err, user) {
     if (err) {
       return callback(err);
     }
     if (!user) {
       return console.log("Could not find user " + data.userName + " while creating room " + data.roomName);
     }
-    new this({
+    var newRoom = new self({
       name: data.roomName,
       createDate: Date.now(),
       owner: user,
-      members: [ user ]
-    }).save(callback);
+      members: []
+    })
+    newRoom.members.push(user);
+    newRoom.save(callback);
   })
-}
+};
 
 
 roomSchema.statics.join = function join(data, callback) {
   var self = this;
-  User.findOne({ userName: data.userName }, function(err, user) {
-    this.findOne({ name: data.roomName }, function(err, room) {
+  var userName = data.userName;
+  var roomName = data.roomName;
+  mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+    mongoose.model('Room').findOne({ name: roomName }, function(err, room) {
       if (err) {
         return callback(err, false);
       }
       if (!room) {
-        console.log("Room " + data.roomName + " does not exist so creating...");
+        console.log("Room " + roomName + " does not exist so creating...");
         return self.create(data, function(err) {
           if (err) {
             return console.log("Failed to create room " + data.roomName);
           }
-          return self.join(data, callback)
+          return self.join(data, callback);
         })
       }
       var isMember = room.members.some(function(member) {
-        return member.equals(user._id)
+        return member.equals(user._id);
       });
-      if (isMember) {
+      if (isMember || room.name == 'pipo') {
         user.rooms
         room.activeMembers.push(user);
         room.save();
-        console.log("User " + data.userName + " has joined #" + data.roomName);
+        console.log("User " + userName + " has joined #" + data.roomName);
         return callback(null, true);
       } else {
-        console.log("User " + data.userName + " unable to join #" + data.roomName + " due to incorrect membership");
-        return callback("User " + data.userName + " unable to join #" + data.roomName + " due to incorrect membership", false);
+        console.log("User " + userName + " unable to join #" + roomName + " due to incorrect membership");
+        return callback("User " + userName + " unable to join #" + roomName + " due to incorrect membership", false);
       }
     })
   })
-}
+};
 
 roomSchema.statics.part = function part(data, callback) {
-  User.findOne({ userName: data.userName }, function(err, user) {
-    this.findOne({ name: data.roomName }, function(err, room) {
+  mongoose.model('User').findOne({ userName: data.userName }, function(err, user) {
+    mongoose.model('Room').findOne({ name: data.roomName }, function(err, room) {
       if (err) {
         return callback(err, false);
       }
@@ -85,6 +89,37 @@ roomSchema.statics.part = function part(data, callback) {
       return callback(null, true);
     })
   })
-}
+};
+
+roomSchema.statics.addMember = function addMember(data, callback) {
+  var requestingUser = data.requestingUser;
+  var memberToAdd = data.memberToAdd;
+  var roomName = data.roomName;
+  mongoose.model('User').findOne({ userName: requestingUser }, function(err, requestingUserObj) {
+    mongoose.model('Room').findOne({ name: roomName }, function(err, room) {
+      if (err) {
+        return callback(err, false);
+      }
+      if (!room) {
+        return console.log("No room found when trying to part for user " + userName);
+      }
+      var isRoomAdmin = room.admins.some(function(admin) {
+        return admin.equals(requestingUserObj._id);
+      });
+      var isRoomOwner = room.owner.equals(requestingUserObj._id);
+      console.log("Attempting to add member to room - isRoomOwner: " + isRoomOwner + " isRoomAdmin: " + isRoomAdmin);
+      if (isRoomAdmin || isRoomOwner) {
+        mongoose.model('User').findOne({ userName: memberToAdd }, function(err, memberToAddObj) {
+          console.log("Requesting user " + requestingUser + " is an admin of room " + room.name + " so adding " + memberToAdd);
+          room.members.push(memberToAddObj);
+          room.save();
+          return callback(null, true);
+        })
+      } else {
+        return callback(null, false);
+      }
+    })
+  })
+};
 
 module.exports = mongoose.model('Room', roomSchema);

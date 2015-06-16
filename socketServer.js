@@ -1,6 +1,7 @@
 var User = require('./models/user');
 var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
+var Room = require('./models/room');
 var config = require('./config/pipo');
 
 /**
@@ -228,8 +229,10 @@ SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(userName, 
 };
 
 SocketServer.prototype.onServerCommand = function onServerCommand(data) {
+  var self = this;
   var socket = this.socket;
   var command = data.command;
+  var userName = self.socket.user.userName;
   //TODO refactor this
   var currentChannel = data.currentChannel;
   console.log("Received command '"+command+"' from user '"+socket.name+"'");
@@ -245,6 +248,23 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
     console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChannel+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
     this.namespace.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )"});
     //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )");
+  } else if (splitCommand[0] == "room") {
+    console.log("Got room command");
+    if (splitCommand[2] == "member") {
+      console.log("Got member sub command");
+      if (splitCommand[3] == "add") {
+        console.log("Got add sub sub command");
+        Room.addMember({ requestingUser: userName, memberToAdd: splitCommand[4], roomName: splitCommand[1] }, function(err, success) {
+          if (err) {
+            return console.log("Error adding member to room: " + err);
+          }
+          if (!success) {
+            return console.log("Was not successful when adding membe to room");
+          }
+          console.log("Added " + splitCommand[4] + " to room " + splitCommand[1]);
+        })
+      }
+    }
   } else if (splitCommand[0] == "help") {
     // Output help here
   } else {
@@ -302,11 +322,19 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     });
   } else {
     // Using client key encryption scheme
-    self.socket.join(room);
-    console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
-    self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
-    console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
-    self.updateUserList(room);
+    Room.join({roomName: room, userName: userName}, function(err, success) {
+      if (err) {
+        return console.log("Error while joining room " + room + ": "+ err);
+      }
+      if (!success) {
+        return console.log("Failed to join room " + room);
+      }
+      self.socket.join(room);
+      console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
+      self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
+      console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
+      self.updateUserList(room);
+    })
   };
 };
 

@@ -547,13 +547,17 @@ ChatManager.sendMessage = function sendMessage() {
       var room = splitCommand[1];
       ChatManager.leaveRoom(room);
     }
-    else if (splitCommand[0] == "channel") {
+    else if (splitCommand[0] == "help") {
       var command = splitCommand[1];
       //var message = command.split(" ").slice(2).join(" ");
     }
     else {
       // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
-      socket.emit('server command', {command: regexResult[1], currentChannel: currentChannel});
+      var currentChannel = null;
+      if (ChatManager.activeChatType == 'room') {
+        currentChannel = ChatManager.activeRoom;
+      }
+      socketClient.sendServerCommand({ command: regexResult[1], currentChannel: currentChannel });
       console.log("Sending command '" + regexResult[1] + "' to server");
     }
     $('#message-input').val('');

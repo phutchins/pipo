@@ -83,13 +83,24 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
       self.socket.user = user;
       console.log("[INIT] Init'd user " + user.userName);
-      self.socket.emit('authenticated', {message: 'ok'});
+      var autoJoin = []
+      console.log("user.membership._autoJoin before populate is: " + user.membership._autoJoin);
+      User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
+        console.log("populatedUser.membership._autoJoin is: " + populatedUser.membership._autoJoin);
+        if (populatedUser.membership._autoJoin.length > 0) {
+          Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
+            console.log("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
+            autoJoin.push(populatedUser.membership._autoJoin[key].name);
+          })
+        }
+        self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin });
 
-      console.log("[INIT] Emitting user connect");
-      return self.namespace.emit('user connect', {
-        userName: user.userName,
-        publicKey: user.publicKey
-      });
+        console.log("[INIT] Emitting user connect");
+        return self.namespace.emit('user connect', {
+          userName: user.userName,
+          publicKey: user.publicKey
+        })
+      })
     }
     else {
       console.log("[INIT] Problem initializing connection, no error, but no user");
@@ -263,10 +274,19 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
           self.initMasterKeyPair(function(err) {
+            // Should probably return and call self here
             User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
+              Room.join({userName: userName, roomName: room}, function(err, success) {
+                if (err) {
+                  return console.log("Error joining room " + room + " with error: " + err);
+                }
+                if (!success) {
+                  return console.log("Failed to join room " + room);
+                }
+              })
               console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
               self.updateUserList(room);
             });
@@ -342,7 +362,30 @@ SocketServer.prototype.disconnect = function disconnect() {
   if (self.socket.user && self.socket.user.userName) {
     var userName = self.socket.user.userName;
     console.log("[SOCKET SERVER] (disconnect) userName: "+userName);
+    User.findOne({ userName: userName }).populate('membership._currentRooms').exec(function(err, user) {
+      if (err) {
+        return console.log("ERROR finding user while parting room");
+      }
+      if (!user) {
+        return console.log("ERROR finding user while parting room");
+      }
+      console.log("[DISCONNECT] Found user, disconnecting...");
+      user.membership._currentRooms.forEach(function(currentRoom) {
+        console.log("User " + userName + " parting room " + currentRoom.room.name);
+        Room.part({ userName: userName, roomName: currentRoom.room }, function(err, success) {
+          if (err) {
+            return console.log("ERROR parting room: " + err);
+          }
+          if (!success) {
+            return console.log("User " + userName + " failed to part room " + currentRoom.room.name);
+          }
+          console.log("User " + userName + " successfully parted room " + currentRoom.room.name);
+        })
+      })
+    })
     delete self.namespace.userMap[self.socket.user.userName];
+  } else {
+    console.log("WARNING! Someone left the channel and we don't know who it was...");
   }
   self.updateUserList('general');
 };

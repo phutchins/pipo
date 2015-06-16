@@ -536,17 +536,27 @@ ChatManager.sendMessage = function sendMessage() {
     var command = regexResult[1];
     var splitCommand = command.split(" ");
 
-    // Catch local command
-    if (splitCommand[0] === "local") {
-      var param1 = splitCommand[1];
-      var message = command.split(" ").slice(2).join(" ");
+    // Catch join command
+    if (splitCommand[0] == "join") {
+      var room = splitCommand[1];
+      socketClient.joinRoom(room, function(err) {
+        console.log("Joined room " + room);
+      });
+    }
+    else if (splitCommand[0] == "part") {
+      var room = splitCommand[1];
+      ChatManager.leaveRoom(room);
+    }
+    else if (splitCommand[0] == "channel") {
+      var command = splitCommand[1];
+      //var message = command.split(" ").slice(2).join(" ");
     }
     else {
       // Not a locally parsed command so sending unencrypted to server (server might should have its own key to decrypt server commands)
       socket.emit('server command', {command: regexResult[1], currentChannel: currentChannel});
       console.log("Sending command '" + regexResult[1] + "' to server");
-      $('#message-input').val('');
     }
+    $('#message-input').val('');
   }
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {

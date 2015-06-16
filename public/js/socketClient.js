@@ -55,11 +55,11 @@ SocketClient.prototype.joinRoom = function(room, callback) {
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
-  var channel = 'general';
-  var autoJoinRooms = ['general', 'offtopic'];
   self.listeners = true;
   this.socket.on('authenticated', function(data) {
     if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
+    var autoJoinRooms = data.autoJoin;
+    console.log("Auto join rooms is: " + autoJoinRooms.toString() );
     window.encryptionManager.keyManager.sign({}, function(err) {
       window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
         window.encryptionManager.verifyRemotePublicKey(window.userName, publicKey, function(err, upToDate) {
@@ -68,12 +68,18 @@ SocketClient.prototype.addListeners = function() {
             console.log("[INIT] Your public key matches what is on the server");
             console.log("[AUTHENTICATED] Authenticated successfully");
             // Use cilent keys and enable chat for each room user is currently in
-            autoJoinRooms.forEach(function(room) {
-              console.log("[SOCKET] (authenticated) Joining room "+room);
-              self.joinRoom(room, function(err) {
-                console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+            if (autoJoinRooms.length > 0) {
+              autoJoinRooms.forEach(function(room) {
+                console.log("[SOCKET] (authenticated) Joining room "+room);
+                self.joinRoom(room, function(err) {
+                  console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+                });
               });
-            });
+            } else {
+              self.joinRoom('pipo', function(err) {
+                console.log("[SOCKET] (authenticated) Joined default room becuase autoJoin was empty");
+              })
+            }
           } else {
             // TODO: Prompt to confirm update remote key
             console.log("[INIT] Remote public key is not up to date so updating!");

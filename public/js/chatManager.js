@@ -258,6 +258,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
       // Catch clicks on the room list to update room focus
       if ( !$('#' + chatName).length ) {
         if ( activeChat && activeChat == chatName ) {
+          console.log("Active chat is " + activeChat);
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';
         } else {
           var roomListHtml = '<li class="room chat-list-item" id="' + chatName + '">' + chatName + '</li>';
@@ -447,6 +448,13 @@ ChatManager.handleMessage = function handleMessage(data) {
   var messages = $('#chat');
   var messageLine = "["+fromUser+"] "+message;
 
+  var mentionRegexString = '.*@' + window.userName + '.*';
+  var mentionRegex = new RegExp(mentionRegexString);
+  console.log("Running mention regex: " + message.match(mentionRegex));
+  if (message.match(mentionRegex)) {
+    ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, message, 3000);
+  };
+
   this.addMessageToChat({ type: 'room', message: messageLine, chat: room });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
@@ -459,6 +467,9 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
     var chat = fromUser;
   }
   var messageLine = "[" + fromUser + "] " + message;
+  if (ChatManager.activeChatType !== 'privatechat' && ChatManager.activePrivateMessage !== fromUser) {
+    ChatManager.sendNotification(null, 'Private message from ' + fromUser, message, 3000);
+  }
 
   ChatManager.addMessageToChat({ type: 'privatechat', chat: chat, message: messageLine });
 };

@@ -148,6 +148,26 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('userlist update', function(data) {
     console.log("Got userlist update for room #"+data.room);
     //console.log("data.userList is: "+JSON.stringify(data.userList));
+
+    var uniqueRoomUsersArray = [];
+    var newRoomUsersArray = [];
+    if (window.roomUsers[data.room]) {
+      var currentRoomUsersArray = Object.keys(window.roomUsers[data.room]);
+      Object.keys(data.userList).forEach(function(key) {
+        console.log("Found new user '" + data.userList[key].userName);
+        newRoomUsersArray.push(data.userList[key].userName);
+      });
+      uniqueRoomUsersArray = newRoomUsersArray.filter(function(user) {
+        return !currentRoomUsersArray.indexOf(user);
+      });
+      //Don't notify us about ourselves
+      uniqueRoomUsersArray.forEach(function(joinUserName) {
+        if (window.userName !== joinUserName) {
+          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + data.room, 3000);
+        }
+      })
+    }
+
     window.roomUsers[data.room] = {};
 
     data.userList.forEach(function(user) {
@@ -194,10 +214,6 @@ SocketClient.prototype.addListeners = function() {
       }
     }
 
-    //Don't notify us about ourselves
-    if (data.joinUser && window.userName !== data.joinUser) {
-      ChatManager.sendNotification(null, 'PiPo', data.joinUser + ' has joined channel #' + data.channel, 3000);
-    }
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
     ChatManager.updateUserList({ room: data.room });
@@ -307,5 +323,22 @@ SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {
     };
   });
 };
+
+Array.prototype.contains = function(v) {
+  for(var i = 0; i < this.length; i++) {
+    if(this[i] === v) return true;
+  }
+  return false;
+};
+
+Array.prototype.unique = function() {
+  var arr = [];
+  for(var i = 0; i < this.length; i++) {
+    if(!arr.contains(this[i])) {
+      arr.push(this[i]);
+    }
+  }
+  return arr;
+}
 
 window.socketClient = new SocketClient();

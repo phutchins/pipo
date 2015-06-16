@@ -163,7 +163,7 @@ SocketClient.prototype.addListeners = function() {
       //Don't notify us about ourselves
       uniqueRoomUsersArray.forEach(function(joinUserName) {
         if (window.userName !== joinUserName) {
-          ChatManager.sendNotification(null, 'PiPo', data.joinUserName + ' has joined channel #' + data.channel, 3000);
+          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + data.room, 3000);
         }
       })
     }

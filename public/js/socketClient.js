@@ -325,7 +325,8 @@ SocketClient.prototype.sendServerCommand = function(data) {
 SocketClient.prototype.serverCommandComplete = function(data) {
   var self = this;
   var response = data.response;
-  ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: response, chat: ChatManager.activeChat.chat });
+  console.log("Displaying response from server command in chat '" + ChatManager.activeChat.name + "'");
+  ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: response, chat: ChatManager.activeChat.name });
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

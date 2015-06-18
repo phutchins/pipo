@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var bcrypt = require('bcrypt-nodejs');
+var Room = require('./room')
 
 var userSchema = new Schema({
   userName: { type: String },
@@ -9,6 +10,16 @@ var userSchema = new Schema({
   email: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
+  membership: {
+    rooms: [{
+      _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
+      active: { type: Boolean, default: false },
+      lastSeen: { type: Date },
+      accessLevel: { type: String, default: 'none' }
+    }],
+    _autoJoin: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }],
+    _currentRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }]
+  },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
     // latestId: { type: String },
@@ -50,7 +61,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
-  this.findOne({userName: data.userName}).exec(function(err, user) {
+  this.findOne({userName: data.userName}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
     if (err) {
       return callback(err);
     }
@@ -77,6 +88,29 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
   });
 };
 
+userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
+  var userName = data.userName;
+  var roomName = data.roomName;
+  this.findOne({ userName: data.userName }).populate('membership._autoJoin').exec(function(err, user) {
+    Room.findOne({ name: data.roomName }, function(err, room) {
+      user.membership.autoJoin.push(room);
+      user.save();
+      return callback(err);
+    })
+  })
+};
+
+userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
+  var userName = data.userName;
+  var roomName = data.roomName;
+  this.findOne({ userName: data.userName }).populate('membership._autoJoin').exec(function(err, user) {
+    Room.findOne({ name: data.roomName }, function(err, room) {
+      user.membership.autoJoin.pull(room);
+      user.save();
+      return callback(err);
+    })
+  })
+};
 
 // TODO: Decide if these are needed still
 userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, callback) {
@@ -155,7 +189,6 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
     };
   });
 };
-
 
 userSchema.methods.generateHash = function(publicKey) {
   return bcrypt.hashSync(publicKey, bcrypt.genSaltSync(8), null);

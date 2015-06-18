@@ -518,6 +518,7 @@ ChatManager.sendMessage = function sendMessage() {
     // Catch commands here and encrypt data to users as needed
     var command = regexResult[1];
     var splitCommand = command.split(" ");
+    console.log("Split command is: " + splitCommand.toString());
 
     // Catch join command
     if (splitCommand[0] == "join") {
@@ -569,7 +570,7 @@ ChatManager.sendMessage = function sendMessage() {
 ChatManager.showHelp = function showHelp() {
   var helpTextArray = [ "** ROOM Commands **", "/room [room] member add [member]" ];
   helpTextArray.forEach(function(msg) {
-    ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: msg, chat: ChatManager.activeChat.chat });
+    ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: msg, chat: ChatManager.activeChat.name });
   })
 };
 

@@ -8,7 +8,6 @@ var roomSchema = new Schema({
   owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
   members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
-  activeMembers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
   messages: [{
     date: { type: Date },
     user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
@@ -59,10 +58,9 @@ roomSchema.statics.join = function join(data, callback) {
         return member.equals(user._id);
       });
       if (isMember || room.name == 'pipo') {
-        user.rooms
-        room.activeMembers.push(user);
-        room.save();
         console.log("User " + userName + " has joined #" + data.roomName);
+        user.membership._currentRooms.push(room);
+        user.save();
         return callback(null, true);
       } else {
         console.log("User " + userName + " unable to join #" + roomName + " due to incorrect membership");
@@ -81,12 +79,17 @@ roomSchema.statics.part = function part(data, callback) {
       if (!room) {
         return console.log("No room found when trying to part for user " + data.userName);
       }
-      room.activeMembers.pull(user);
-      room.save();
-      user.membership.currentRooms.pull(room);
-      user.save();
-      console.log("User " + data.userName + " has parted #" + data.roomName + " successfully");
-      return callback(null, true);
+      var isMember = room.members.some(function(member) {
+        return member.equals(user._id);
+      });
+      if (isMember || room.name == 'pipo') {
+        user.membership._currentRooms.pull(room);
+        user.save();
+        console.log("User " + data.userName + " has parted #" + data.roomName + " successfully");
+        return callback(null, true);
+      } else {
+        return callback(null, false);
+      }
     })
   })
 };

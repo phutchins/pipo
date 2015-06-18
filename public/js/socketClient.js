@@ -48,10 +48,16 @@ SocketClient.prototype.init = function() {
 SocketClient.prototype.joinRoom = function(room, callback) {
   var self = this;
   console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
-  self.socket.emit('join', { userName: window.userName, channel: room } );
+  self.socket.emit('join', { room: room } );
   callback(null);
 };
 
+SocketClient.prototype.partRoom = function(room, callback) {
+  var self = this;
+  console.log("[PART ROOM] Parting room #" + room);
+  self.socket.emit('part', { room: room } );
+  callback(null);
+};
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
@@ -104,6 +110,16 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('joinComplete', function(data) {
     console.log("[SOCKET] joinComplete");
     self.joinComplete(data);
+  });
+
+  this.socket.on('partComplete', function(data) {
+    console.log("[SOCKET] partComplete");
+    self.partComplete(data);
+  });
+
+  this.socket.on('serverCommandComplete', function(data) {
+    console.log("[SOCKET] serverCommandComplete");
+    self.serverCommandComplete(data);
   });
 
   this.socket.on('errorMessage', function(data) {
@@ -262,9 +278,10 @@ SocketClient.prototype.sendMessage = function(room, message) {
 };
 
 SocketClient.prototype.joinComplete = function(data) {
-  var room = data.room;
   var self = this;
   var err = data.err;
+  var room = data.room;
+
   if (err) {
     console.log("Cannot join channel due to permissions");
     return ChatManager.showError(err);
@@ -290,11 +307,25 @@ SocketClient.prototype.joinComplete = function(data) {
   }
 };
 
+SocketClient.prototype.partComplete = function(data) {
+  var self = this;
+  var room = data.room;
+  ChatManager.destroyRoom(room, function() {
+    console.log("Done parting room");
+  });
+}
+
 SocketClient.prototype.sendServerCommand = function(data) {
   var self = this;
   var command = data.command;
-  var currentChannel = data.currentChannel;
-  self.socket.emit('serverCommand', { command: command, currentChannel: currentChannel });
+  var currentChat = data.currentChat;
+  self.socket.emit('serverCommand', { command: command, currentChat: currentChat });
+};
+
+SocketClient.prototype.serverCommandComplete = function(data) {
+  var self = this;
+  var response = data.response;
+  ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: response, chat: ChatManager.activeChat.chat });
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

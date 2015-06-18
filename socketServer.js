@@ -33,7 +33,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('disconnect', self.disconnect.bind(self));
 
   socket.on('join', self.joinRoom.bind(self));
-  socket.on('part', self.leaveChannel.bind(self));
+  socket.on('part', self.partRoom.bind(self));
 
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
@@ -234,20 +234,20 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
   var command = data.command;
   var userName = self.socket.user.userName;
   //TODO refactor this
-  var currentChannel = data.currentChannel;
+  var currentChat = data.currentChat;
   console.log("Received command '"+command+"' from user '"+socket.name+"'");
   var splitCommand = command.split(" ");
   if (splitCommand[0] == "who") {
     console.log("[SERVER] Responding to 'who' request from '"+socket.name+"'");
     var channelMembershipArray = [];
-    console.log("[SERVER COMMAND] Checking channel #"+currentChannel);
-    for (var key in channelMembership[currentChannel]) {
-      console.log("[SERVER COMMAND] Iterating user "+channelMembership[currentChannel][key].username);
-      channelMembershipArray.push(channelMembership[currentChannel][key].username);
+    console.log("[SERVER COMMAND] Checking channel #"+currentChat);
+    for (var key in channelMembership[currentChat]) {
+      console.log("[SERVER COMMAND] Iterating user "+channelMembership[CurrentChat][key].username);
+      channelMembershipArray.push(channelMembership[currentChat][key].username);
     }
-    console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChannel+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
-    this.namespace.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )"});
-    //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChannel+" are ( "+channelMembershipArray.toString()+" )");
+    console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChat+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
+    this.namespace.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChat+" are ( "+channelMembershipArray.toString()+" )"});
+    //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChat+" are ( "+channelMembershipArray.toString()+" )");
   } else if (splitCommand[0] == "room") {
     console.log("Got room command");
     if (splitCommand[2] == "member") {
@@ -262,6 +262,7 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
             return console.log("Was not successful when adding membe to room");
           }
           console.log("Added " + splitCommand[4] + " to room " + splitCommand[1]);
+          return socket.emit('serverCommandComplete', { response: "[SERVER] Added " + splitCommand[4] + " to room " + splitCommand[1] });
         })
       }
     }
@@ -274,11 +275,10 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 
 
 /**
- * Client join channel
+ * Client join room
  */
 SocketServer.prototype.joinRoom = function joinRoom(data) {
   var self = this;
-  console.log("[JOIN ROOM] User '"+data.userName+"' joining room #"+data.channel);
 
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
@@ -286,8 +286,11 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   }
 
   var userName = self.socket.user.userName;
-  var room = data.channel;
-  // Ensure that user has the most recent master key for this channel if in masterKey mode
+  var room = data.room;
+
+  console.log("[JOIN ROOM] User '" + userName + "' joining room #" + room);
+
+  // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
     //console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
     KeyId.getMasterKeyId(room, function(err, currentKeyId) {
@@ -338,8 +341,36 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   };
 };
 
+/*
+ * Client part room
+ */
+SocketServer.prototype.partRoom = function partRoom(data) {
+  var self = this;
+
+  console.log("[PART ROOM] User " + userName + " parting room " + room);
+  if (!self.socket.user) {
+    console.log("Ignoring join attempt by unauthenticated user");
+    return selfsocket.emit('errorMessage', {message: 401});
+  }
+
+  var userName = self.socket.user.userName;
+  var room = data.room;
+
+  Room.part({ userName: userName, room: room }, function(err, success) {
+    if (err) {
+      return console.log("Error parting room " + room + " with error: " + err);
+    }
+    if (!success) {
+      return console.log("Failed to part room " + room);
+    }
+    console.log("User " + userName + " parted room " + room);
+    self.updateUserList(room);
+    self.socket.emit('partComplete', { room: room });
+  })
+};
+
 /**
- * Update userlist for a channel
+ * Update userlist for a room
  */
 SocketServer.prototype.updateUserList = function updateUserList(room) {
   var self = this;
@@ -399,15 +430,15 @@ SocketServer.prototype.disconnect = function disconnect() {
       }
       console.log("[DISCONNECT] Found user, disconnecting...");
       user.membership._currentRooms.forEach(function(currentRoom) {
-        console.log("User " + userName + " parting room " + currentRoom.room.name);
-        Room.part({ userName: userName, roomName: currentRoom.room }, function(err, success) {
+        console.log("User " + userName + " parting room " + currentRoom.name);
+        Room.part({ userName: userName, roomName: currentRoom.name }, function(err, success) {
           if (err) {
             return console.log("ERROR parting room: " + err);
           }
           if (!success) {
-            return console.log("User " + userName + " failed to part room " + currentRoom.room.name);
+            return console.log("User " + userName + " failed to part room " + currentRoom.name);
           }
-          console.log("User " + userName + " successfully parted room " + currentRoom.room.name);
+          console.log("User " + userName + " successfully parted room " + currentRoom.name);
         })
       })
     })

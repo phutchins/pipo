@@ -3,7 +3,8 @@ var Schema = mongoose.Schema;
 
 var roomSchema = new Schema({
   name: { type: String },
-  description: { type: String, default: '' },
+  topic: { type: String, default: 'This is the default description. You should replace this with a snarky description.' },
+  group: { type: String, default: 'general' },
   createDate: { type: Date },
   owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
@@ -43,7 +44,7 @@ roomSchema.statics.join = function join(data, callback) {
   mongoose.model('User').findOne({ userName: userName }, function(err, user) {
     mongoose.model('Room').findOne({ name: roomName }, function(err, room) {
       if (err) {
-        return callback(err, false);
+        return callback(err, { auth: false });
       }
       if (!room) {
         console.log("Room " + roomName + " does not exist so creating...");
@@ -61,10 +62,10 @@ roomSchema.statics.join = function join(data, callback) {
         console.log("User " + userName + " has joined #" + data.roomName);
         user.membership._currentRooms.push(room);
         user.save();
-        return callback(null, true);
+        return callback(null, { auth: true, room: room });
       } else {
         console.log("User " + userName + " unable to join #" + roomName + " due to incorrect membership");
-        return callback(null, false);
+        return callback(null, { auth: false });
       }
     })
   })

@@ -310,33 +310,35 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
                   return console.log("Failed to join room " + room);
                 }
               })
-              console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
-              self.updateUserList(room);
+              console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
+              self.updateUserList(room.name);
             });
           });
         } else {
           //console.log("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
-          console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
-          self.updateUserList(room);
+          console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
+          self.updateUserList(room.name);
         };
       });
     });
   } else {
     // Using client key encryption scheme
-    Room.join({roomName: room, userName: userName}, function(err, auth) {
+    Room.join({roomName: room, userName: userName}, function(err, data) {
+      var auth = data.auth;
+      var room = data.room;
       if (err) {
-        return self.socket.emit('joinComplete', { err: "Error while joining room " + room + ": "+ err });
+        return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
       }
       if (!auth) {
-        return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room });
+        return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
       }
-      self.socket.join(room);
+      self.socket.join(room.name);
       console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
       self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
-      console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList");
-      self.updateUserList(room);
+      console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
+      self.updateUserList(room.name);
     })
   };
 };
@@ -347,7 +349,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 SocketServer.prototype.partRoom = function partRoom(data) {
   var self = this;
 
-  console.log("[PART ROOM] User " + userName + " parting room " + room);
+  console.log("[PART ROOM] User " + userName + " parting room " + room.name);
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
     return selfsocket.emit('errorMessage', {message: 401});
@@ -356,16 +358,16 @@ SocketServer.prototype.partRoom = function partRoom(data) {
   var userName = self.socket.user.userName;
   var room = data.room;
 
-  Room.part({ userName: userName, room: room }, function(err, success) {
+  Room.part({ userName: userName, room: room.name }, function(err, success) {
     if (err) {
-      return console.log("Error parting room " + room + " with error: " + err);
+      return console.log("Error parting room " + room.name + " with error: " + err);
     }
     if (!success) {
-      return console.log("Failed to part room " + room);
+      return console.log("Failed to part room " + room.name);
     }
-    console.log("User " + userName + " parted room " + room);
-    self.updateUserList(room);
-    self.socket.emit('partComplete', { room: room });
+    console.log("User " + userName + " parted room " + room.name);
+    self.updateUserList(room.name);
+    self.socket.emit('partComplete', { room: room.name });
   })
 };
 
@@ -446,6 +448,7 @@ SocketServer.prototype.disconnect = function disconnect() {
   } else {
     console.log("WARNING! Someone left the channel and we don't know who it was...");
   }
+  // TODO: Should update all appropritae channels here
   self.updateUserList('general');
 };
 

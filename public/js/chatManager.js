@@ -169,13 +169,13 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
   console.log("Adding room " + room + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
-  self.chats[room] = { name: room, members: [], type: 'room', messages: "" };
+  self.chats[room.name] = { name: room.name, members: [], type: room.type, topic: room.topic, group: room.group, messages: "" };
 
-  self.focusRoom(room, function(err) {
+  self.focusRoom(self.chats[room.name], function(err) {
     self.updateRoomList(function(err) {
     // Set focus to room
-    console.log("About to set room focus to " + room);
-      console.log("Room focus for " + room + " done");
+    console.log("About to set room focus to " + room.name);
+      console.log("Room focus for " + room.name + " done");
       callback(null);
     });
   });
@@ -188,8 +188,8 @@ ChatManager.destroyRoom = function destroyRoom(room, callback) {
   delete ChatManager.chats[room];
   var sortedChats = Object.keys(ChatManager.chats).sort();
   var lastChat = ChatManager.chats[sortedChats[sortedChats.length - 1]];
-  ChatManager.activeChat = { name: lastChat.name, type: lastChat.type };
-  ChatManager.focusRoom(lastChat.name, function(err) {
+  ChatManager.activeChat = lastChat;
+  ChatManager.focusRoom(lastChat, function(err) {
     ChatManager.updateRoomList(function(err) {
       callback(null);
     });
@@ -201,29 +201,38 @@ ChatManager.destroyRoom = function destroyRoom(room, callback) {
  * Set focus for a room
  */
 ChatManager.focusRoom = function focusRoom(room, callback) {
-  console.log("Setting activeChat to room: " + room + " type: room");
-  ChatManager.activeChat = { name: room, type: 'room' };
+  console.log("Setting activeChat to room: " + room.name + " type: room");
+  //ChatManager.activeChat = { name: room.name, type: 'room', group: room.group, topic: room.topic };
+  room.type = 'room';
+  ChatManager.activeChat = room;
 
   // Update the content in the room for the desired room to be in focus
-  ChatManager.refreshChatContent(room);
-
-  ChatManager.updateUserList({ room: room });
+  ChatManager.refreshChatContent(room.name);
+  ChatManager.updateChatHeader(room);
+  ChatManager.updateUserList({ room: room.name });
 
   // Update the menu to reflect the selected room
-  ChatManager.focusChat({ id: room }, function(err) {
+  ChatManager.focusChat({ id: room.name }, function(err) {
     callback(err);
   })
+}
+
+ChatManager.updateChatHeader = function updateChatHeader(room) {
+  // update p chat-header__title
+  $('.chat-header__title').text(room.group + '/' + room.name);
+  // update p chat-topic
+  $('.chat-topic').text(room.topic);
 }
 
 /*
  * Set focus for a private chat
  */
 ChatManager.focusPrivateChat = function focusPrivateChat(user, callback) {
-  ChatManager.activeChat = { name: user, type: 'privateChat' };
+  ChatManager.activeChat = { name: user, type: 'privatechat' };
 
   // Init private message for user if it does not exist
   if (ChatManager.chats[user] == null) {
-    ChatManager.chats[user] = { name: user, type: 'privatechat', messages: "" };
+    ChatManager.chats[user] = { name: user, type: 'privatechat', messages: "", topic: 'Private conversation...', group: 'PM' };
   }
 
   // Display private messages for user in the room element
@@ -273,7 +282,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
         console.log("Added " + chatName + " to room-list");
       }
       $("#" + chatName).click(function() {
-        ChatManager.focusRoom(chatName, function(err) {
+        ChatManager.focusRoom(ChatManager.chats[chatName], function(err) {
           // Room focus complete
         });
       });
@@ -448,7 +457,6 @@ ChatManager.handleMessage = function handleMessage(data) {
   var message = data.message;
   var room = data.room;
   var messages = $('#chat');
-  var messageLine = "["+fromUser+"] "+message;
 
   var mentionRegexString = '.*@' + window.userName + '.*';
   var mentionRegex = new RegExp(mentionRegexString);
@@ -457,7 +465,7 @@ ChatManager.handleMessage = function handleMessage(data) {
     ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, message, 3000);
   };
 
-  this.addMessageToChat({ type: 'room', message: messageLine, chat: room });
+  this.addMessageToChat({ type: 'room', message: message, fromUser: fromUser, chat: room });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
@@ -468,12 +476,11 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
   } else {
     var chat = fromUser;
   }
-  var messageLine = "[" + fromUser + "] " + message;
   if (ChatManager.activeChat.name !== fromUser) {
     ChatManager.sendNotification(null, 'Private message from ' + fromUser, message, 3000);
   }
 
-  ChatManager.addMessageToChat({ type: 'privatechat', chat: chat, message: messageLine });
+  ChatManager.addMessageToChat({ type: 'privatechat', chat: chat, message: message });
 };
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
@@ -486,16 +493,30 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 
   //Add timestamp
   var time = new Date().toISOString();
-  message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
+  //message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
-  if (ChatManager.chats[chat] == null) {
-    ChatManager.chats[chat] = { name: chat, messages: '' };
-  }
+  ChatManager.formatChatMessage({ message: message, fromUser: fromUser }, function(messageHtml) {
+    if (ChatManager.chats[chat] == null) {
+      ChatManager.chats[chat] = { name: chat, messages: '' };
+    }
 
-  ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat("<li>" + message + "</li>");
+    //ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat("<li>" + message + "</li>");
+    ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat(messageHtml);
 
-  ChatManager.refreshChatContent(chat);
-  chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    if (ChatManager.activeChat.name == chat) {
+      ChatManager.refreshChatContent(chat);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+  })
+};
+
+ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
+  var message = data.message;
+  var fromUser = data.fromUser;
+
+  var time = new Date().toISOString();
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://avatars1.githubusercontent.com/' + fromUser + '?v=3&amp;s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + message + '</div> </div> </div></div>';
+  return callback(messageHtml);
 };
 
 ChatManager.refreshChatContent = function refreshChatContent(room) {
@@ -548,7 +569,7 @@ ChatManager.sendMessage = function sendMessage() {
   }
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {
-      console.log("Active chat type is: " + ChatManager.activeChat.tpe);
+      console.log("Active chat type is: " + ChatManager.activeChat.type);
       if (ChatManager.activeChat.type == 'room') {
         console.log("Sending message to room #"+ChatManager.activeChat.name);
         window.socketClient.sendMessage(ChatManager.activeChat.name, preparedInput);

@@ -329,6 +329,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     Room.join({roomName: room, userName: userName}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
+      console.log("Member trying to join room and room is: " + JSON.stringify(room));
       if (err) {
         return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
       }

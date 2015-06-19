@@ -208,7 +208,6 @@ ChatManager.focusRoom = function focusRoom(room, callback) {
 
   // Update the content in the room for the desired room to be in focus
   ChatManager.refreshChatContent(room.name);
-  ChatManager.updateChatHeader(room);
   ChatManager.updateUserList({ room: room.name });
 
   // Update the menu to reflect the selected room
@@ -218,10 +217,20 @@ ChatManager.focusRoom = function focusRoom(room, callback) {
 }
 
 ChatManager.updateChatHeader = function updateChatHeader(room) {
+  var self = this;
   // update p chat-header__title
-  $('.chat-header__title').text(room.group + '/' + room.name);
+  var chat = ChatManager.chats[room];
+  var headerAvatarHtml = '';
+
+  if (chat.type == 'privatechat') {
+    headerAvatarHtml = '<i class="huge spy icon"></i>';
+  } else {
+    headerAvatarHtml = '<i class="huge comments outline icon"></i>';
+  }
+  $('.chat-header__avatar').html(headerAvatarHtml);
+  $('.chat-header__title').text(chat.group + '/' + chat.name);
   // update p chat-topic
-  $('.chat-topic').text(room.topic);
+  $('.chat-topic').text(chat.topic);
 }
 
 /*
@@ -302,7 +311,7 @@ ChatManager.updateUserList = function updateUserList(data) {
   members.forEach(function(userName) {
     if ( !ChatManager.chats[userName] ) {
       console.log("chat for " + userName + " was empty so initializing");
-      ChatManager.chats[userName] = { name: userName, type: 'privatechat', messages: "" };
+      ChatManager.chats[userName] = { name: userName, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + userName };
     }
     if ( ChatManager.activeChat.name && ChatManager.activeChat.name == userName ) {
       userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'>" + userName + "</li>\n";
@@ -480,7 +489,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
     ChatManager.sendNotification(null, 'Private message from ' + fromUser, message, 3000);
   }
 
-  ChatManager.addMessageToChat({ type: 'privatechat', chat: chat, message: message });
+  ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, message: message });
 };
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
@@ -522,6 +531,7 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
 ChatManager.refreshChatContent = function refreshChatContent(room) {
   console.log("Refreshing room content");
   $('#chat').html(ChatManager.chats[room].messages);
+  ChatManager.updateChatHeader(room);
 }
 
 ChatManager.sendMessage = function sendMessage() {

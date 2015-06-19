@@ -7,6 +7,7 @@ var userSchema = new Schema({
   userName: { type: String },
   userNameLowerCase: { type: String },
   fullName: { type: String },
+  title: { type: String },
   email: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],

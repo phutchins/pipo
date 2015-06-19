@@ -113,3 +113,59 @@ Options...
 
 + Problem
   + Communication in this way is hard with multiple people
+
+
+# UX Flow
++ User Signup / Login
+  + User visits the PiPo URL
+  + If the user has cached login info in their browser, go to Path B
+  + If the user does not have cached login data, prompt to Register (Path A) or Authenticate (Path B)
+  + Path A - Register ( never registered )
+    + Path 1 - Open registration
+      + User asked to Generate new Key Pair or Upload Existing Key Pair
+        + Genreate
+          + User prompted for userName, fullName, email, password (for their private key)
+          + Keypair is generated showing a prompt while the user waits
+          + User is dropped into the default chat room
+          + User gets NEW USER path or Straight to chat
+        + Upload
+          + User prompted for public & private keys
+          + User prompted for userName, fullName, email, password (for their private key)
+            + decrypt private key locally with password success or failure
+            + re-prompt for password if failure (give the option to upload a different keypair)
+          + User is dropped into default chat room
+          + User gets NEW USER path or Straight to chat
+    + Path 2 - Signup request
+      + User is notified that registration is on approval only basis and given the option to request approval
+      + User is prompted to upload public & private keys
+      + User is prompted for userName, fullName, email, password (for their private key)
+      + User is notified that their application has been submitted and will be reviewed
+      + Upon approval user is sent an email stating that it has been approved and the user would proceed down Path B
+    + Path 3 - Email domain confirmation
+      + User is notified that registration is available to a restricted user set only and given the option to continue registration
+      + User is prompted to upload public & private key
+      + User is prompted for userName, fullName, email, password (for their private key)
+      + If the email matches the approved domain list
+       + User is notified that they will receive an email with a link to active their account
+       + Upon activation link
+         + User is prompted to decrypt their private key
+         + User is notified that their account is being activated
+         + If activation link is valid
+           + User is dropped into default chat room
+           + User gets NEW USER path or Straight to chat
+         + If activation link is not valid, sorry, resend activation email or contact an admin
+      + If the email does not match the approved domain list
+       + User is notified that they are not approved to register and to contact the admin if they think this is an error
+    + Path 4 - Signup by invite URL
+      + User receives invite URL and visits
+      + User follows Path 1 from here
+  + Path B - Already Registered ( load credentials and authenticate )
+    + User follows Path 1 > Upload
+    + User does not get prompted for NEW USER path
+
++ NEW USER path
+  + User has the option to be guided through uploading avatar and how to use pipo
+
+
+Notes...
+-  We can switch the order of public & private key upload with getting the users information like password if that makes more sense. We will just need the password to decrypt the key so we would have to add some more logic to wait to decrypt the key until after the user has entered their password

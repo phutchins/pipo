@@ -7,17 +7,18 @@
     <div id="mainContainer">
       <ul id="chat" class="chat-window">
       </ul>
-<header class="chat-header" id="header-wrapper">
+
+      <header class="chat-header" id="header-wrapper">
         <div id="header">
           <div class="chat-header__avatar ">
             <i class="huge comments outline icon"></i>
           </div>
         <div class="chat-header__buttons">
           <div class="chat-header__favourite">
-            <i class="js-favourite-button icon-star-1"></i>
+            <i class="empty star icon"></i>
           </div>
           <div class="chat-header__settings">
-            <i class="js-chat-settings octicon octicon-tools" data-toggle="dropdown"></i>
+            <i class="options icon" data-toggle="dropdown"></i>
           </div>
           </div>
           <div class="chat-header__content">
@@ -27,7 +28,8 @@
             <p class="chat-topic">...</p>
           </div>
         </div>
-</header>
+      </header>
+
       <div id="menu">
         <div id="left-menu-profile">
           <div id="menu-header-profile">
@@ -49,11 +51,6 @@
           </div>
         </div>
 
-
-
-
-
-
         <div id="left-menu-scroll">
           <div class="room-list-container">
             <h5 class="room-list-header">Rooms</h5>
@@ -69,6 +66,20 @@
         <div id="menu-actions">
         </div>
       </div>
+
+      <div id="right-menu-container" class="right-menu-container">
+        <header id="right-menu-header-wrapper" class="right-menu-header-wrapper">
+
+        </header>
+
+        <div id="right-menu-content-wrapper" class="right-menu-content-wrapper">
+          <div id="right-menu-user-actions" class="right-menu-user-actions">
+            <i class="left big add user icon"></i>
+            <i class="right big remove user icon"></i>
+          </div>
+        </div>
+      </div>
+
     </div>
 
     <div class="input-container" id="input-container">
@@ -275,6 +286,7 @@
       </div>
     </div>
 
+    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">

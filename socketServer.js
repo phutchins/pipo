@@ -317,7 +317,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         } else {
           //console.log("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
-          console.log("[SOCKET SERVER sending join complete with: " + JSON.stringify(room));
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
           console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
           self.updateUserList(room.name);
@@ -338,7 +337,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       }
       self.socket.join(room.name);
       console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
-      console.log("[SOCKET SERVER sending join complete with: " + JSON.stringify(room));
       self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
       console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
       self.updateUserList(room.name);

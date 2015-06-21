@@ -104,11 +104,31 @@ userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
 userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
   var userName = data.userName;
   var roomName = data.roomName;
-  this.findOne({ userName: data.userName }).populate('membership._autoJoin').exec(function(err, user) {
-    Room.findOne({ name: data.roomName }, function(err, room) {
+  this.findOne({ userName: userName }).populate('membership._autoJoin').exec(function(err, user) {
+    Room.findOne({ name: roomName }, function(err, room) {
       user.membership.autoJoin.pull(room);
       user.save();
       return callback(err);
+    })
+  })
+};
+
+/*
+ * Get the list of rooms that a user is a member of or able to join
+ */
+userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
+  var userName = data.userName;
+  this.findOne({ userName: userName }, function(err, user) {
+    Room.find({ members: user }, function(err, rooms) {
+      if (err) {
+        return callback(err, { rooms: null });
+      }
+      if (!rooms) {
+        console.log("No rooms found for member");
+        return callback(null, { rooms: null });
+      }
+      console.log("Found rooms for member " + userName + " : " + Object.keys(rooms).toString());
+      return callback(null, { rooms: rooms });
     })
   })
 };
@@ -160,7 +180,6 @@ userSchema.statics.findBySocketId = function findUserBySocketId(socketId, callba
     };
   });
 };
-
 
 userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
   findUserBySocketId(socketId, function(err, user) {

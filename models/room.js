@@ -40,7 +40,7 @@ roomSchema.statics.create = function create(data, callback) {
       members: []
     })
     newRoom.members.push(user);
-    newRoom.save(callback);
+    newRoom.save(callback(null, newRoom));
   })
 };
 

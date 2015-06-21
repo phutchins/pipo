@@ -121,6 +121,11 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
+  this.socket.on('membershipUpdate', function(data) {
+    console.log("[SOCKET] membershipUpdate");
+    self.handleMembershipUpdate(data);
+  });
+
   this.socket.on('joinComplete', function(data) {
     console.log("[SOCKET] joinComplete");
     self.joinComplete(data);
@@ -342,6 +347,19 @@ SocketClient.prototype.createRoomComplete = function(data) {
       return console.log("Error joining room after creating: " + err);
     }
     console.log("Joined room...");
+  })
+};
+
+/*
+ * Get all rooms that user is a member of or is public
+ */
+SocketClient.prototype.handleMembershipUpdate = function(data) {
+  var self = this;
+  var rooms = data.rooms;
+  // We want to update one at a time in case we only receive an update for select room(s)
+  Object.keys(rooms).forEach(function(roomName) {
+    console.log("Adding room " + roomName + " to array with data: " + rooms[roomName]);
+    ChatManager.rooms[roomName] = rooms[roomName];
   })
 };
 

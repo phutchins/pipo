@@ -3,7 +3,11 @@ var roomUsers = {};
 
 var ChatManager = {};
 
+// Chats are rooms that the user has currently joined
 ChatManager.chats = [];
+// Rooms are all available for user to join
+ChatManager.rooms = {};
+// activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
 
 var host = window.location.host;
@@ -39,14 +43,6 @@ marked.setOptions({
   }
 });
 
-//$('#main-input-form').form('setting', {
-//  onSuccess: function () {
-//    ChatManager.sendMessage();
-//    return false;
-//  }
-//});
-
-//TODO: This should probably replace the one above
 $('#message-input').keydown(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
@@ -161,6 +157,45 @@ var buildCreateRoomModal = function() {
 
 $(document).ready( buildCreateRoomModal );
 
+var buildRoomListModal = function() {
+  $('.modal.join-room-list-modal').modal({
+    detachable: true,
+    closable: true,
+    transition: 'fade up'
+  })
+  $('#room-list-button').click(function(e) {
+    var roomListModalHtml = '';
+    Object.keys(ChatManager.rooms).forEach(function(roomName) {
+      roomListModalHtml += "<div class='item'>\n";
+      if (ChatManager.rooms[roomName].membershipRequired) {
+        roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
+      } else {
+        roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
+      }
+      roomListModalHtml += "  <div class='content'>\n";
+      roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
+      roomListModalHtml += "    <div class='description'>" + ChatManager.rooms[roomName].topic + "</div>\n";
+      roomListModalHtml += "  </div>\n";
+      roomListModalHtml += "</div>\n";
+    })
+    $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
+    Object.keys(ChatManager.rooms).forEach(function(roomName) {
+      $('.modal.join-room-list-modal a[id="' + roomName + '"]').click(function() {
+        socketClient.joinRoom(roomName, function(err) {
+          $('.modal.join-room-list-modal').modal('hide');
+          if (err) {
+            return console.log("Error joining room: " + err);
+          }
+          console.log("Joined room " + roomName);
+        })
+      })
+    })
+    $('.modal.join-room-list-modal').modal('show');
+  })
+};
+
+$(document).ready( buildRoomListModal );
+
 var formValidationRules = {
   name: {
     identifier : 'name',
@@ -243,7 +278,7 @@ ChatManager.getCaret = function getCaret(el) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
-  console.log("Adding room " + room + " to the room list");
+  console.log("Adding room " + room.name + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
   self.chats[room.name] = { name: room.name, members: [], type: room.type, topic: room.topic, group: room.group, messages: "" };
 
@@ -352,11 +387,12 @@ ChatManager.focusChat = function focusChat(data, callback) {
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
   $('#room-list').empty();
+  console.log("Updating room list!");
   var chatNames = Object.keys(ChatManager.chats)
   chatNames.forEach(function(chatName) {
     if (ChatManager.chats[chatName].type == 'room') {
       // Catch clicks on the room list to update room focus
-      if ( !$('#' + chatName).length ) {
+      if ( !$('#room-list #' + chatName).length ) {
         if ( ChatManager.activeChat.name && ChatManager.activeChat.name == chatName ) {
           console.log("Active chat is " + ChatManager.activeChat.name);
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';

@@ -35,6 +35,14 @@ body, html { padding: 0; margin: 0; }
   margin: 0;
 }
 
+.join-room-list ul {
+  list-style-type: none;
+}
+
+.room-list-avatar {
+  padding-left: 10px;
+}
+
 #left-menu-scroll {
   height: 100%;
 }

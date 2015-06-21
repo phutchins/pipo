@@ -41,7 +41,7 @@
                     </div>
                   </div>
                 </div>
-                <div class="item">Something Else</div>
+                <div class="item">Delete Room</div>
                 <div class="item">Help</div>
               </div>
             </div>
@@ -81,7 +81,7 @@
         <div id="left-menu-scroll">
           <div class="room-list-container">
             <h5 class="room-list-header">Rooms</h5>
-            <i class="menu-icon search icon"></i>
+            <i id="room-list-button" class="menu-icon search icon"></i>
             <i id="add-room-button" class="add-room-icon plus square outline icon"></i>
             <ul id="room-list">
             </ul>
@@ -297,25 +297,11 @@
       </div>
     </div>
 
-    <div class="ui small modal createroomold">
-      <div class="header">Create Room</div>
-      <div class="content">Please configure your new room</div>
-      <form class="ui form segment error content createroomold">
-        <div class="field">
-          <label for="roomName">Name</label>
-          <input type="text" class="name" id="name"></input>
-        </div>
-        <div class="field">
-          <label for="roomName">Topic</label>
-          <input type="text" class="topic" id="topic"></input>
-        </div>
-      </form>
-      <div class="actions">
-        <div class="ui buttons">
-          <div class="ui cancel button">Cancel</div>
-          <div class="or"></div>
-          <div class="ui positive submit button" data-value="save">Save</div>
-        </div>
+    <div class="ui small modal join-room-list-modal">
+      <i class="close icon"></i></i>
+      <div class="header">Room List</div>
+      <div class="content">Select a room to join...</div>
+      <div class="ui list join-room-list">
       </div>
     </div>
 

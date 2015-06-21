@@ -86,6 +86,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
       self.socket.user = user;
       console.log("[INIT] Init'd user " + user.userName);
+      // TODO: Replace this with current rooms
       var autoJoin = []
       console.log("user.membership._autoJoin before populate is: " + user.membership._autoJoin);
       User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
@@ -97,6 +98,20 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           })
         }
         self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin });
+
+        User.availableRooms({ userName: user.userName }, function(err, data) {
+          if (err) {
+            return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
+          }
+          var rooms = {};
+          Object.keys(data.rooms).forEach(function(key) {
+            console.log("Adding room " + data.rooms[key].name + " to array");
+            rooms[data.rooms[key].name] = data.rooms[key];
+          })
+          console.log("Rooms is: " + JSON.stringify(rooms));
+          console.log("Sending membership update to user " + user.userName);
+          self.socket.emit('membershipUpdate', { rooms: rooms });
+        })
 
         console.log("[INIT] Emitting user connect");
         return self.namespace.emit('user connect', {
@@ -361,11 +376,18 @@ SocketServer.prototype.createRoom = function createRoom(data) {
   }
 
   console.log("User " + self.socket.user.userName + " is trying to create room " + data.roomName);
-  Room.create(roomData, function(err) {
+  Room.create(roomData, function(err, newRoom) {
     if (err) {
       return console.log("Error creating room: " + err);
     }
     self.socket.emit('createRoomComplete', { roomName: data.roomName });
+    if (roomData.membershipRequired) {
+      // Emit membership update to user who created private room
+      self.socket.emit('membershipUpdate', { rooms: [ newRoom ] } );
+    } else {
+      // Emit membership update to all users
+      self.namespace.emit('membershipUpdate', { rooms: [ newRoom ] } );
+    }
   })
 }
 
@@ -378,7 +400,7 @@ SocketServer.prototype.partRoom = function partRoom(data) {
   console.log("[PART ROOM] User " + userName + " parting room " + room.name);
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
-    return selfsocket.emit('errorMessage', {message: 401});
+    return self.socket.emit('errorMessage', {message: 401});
   }
 
   var userName = self.socket.user.userName;

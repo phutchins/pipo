@@ -35,6 +35,8 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.partRoom.bind(self));
 
+  socket.on('createRoom', self.createRoom.bind(self));
+
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
 
@@ -343,6 +345,29 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     })
   };
 };
+
+/*
+ * Create a room if user has permission
+ */
+SocketServer.prototype.createRoom = function createRoom(data) {
+  var self = this;
+  var roomData = {
+    userName: self.socket.user.userName,
+    roomName: data.roomName,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  }
+
+  console.log("User " + self.socket.user.userName + " is trying to create room " + data.roomName);
+  Room.create(roomData, function(err) {
+    if (err) {
+      return console.log("Error creating room: " + err);
+    }
+    self.socket.emit('createRoomComplete', { roomName: data.roomName });
+  })
+}
 
 /*
  * Client part room

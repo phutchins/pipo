@@ -18,7 +18,34 @@
             <i class="empty star icon"></i>
           </div>
           <div class="chat-header__settings">
-            <i class="options icon" data-toggle="dropdown"></i>
+
+            <div class="ui icon top left pointing dropdown button">
+              <i class="wrench icon"></i>
+              <div class="menu">
+                <div class="header">Room Options</div>
+                <div class="item">Manage Members</div>
+                <div class="item">Set Topic</div>
+                <div class="ui divider"></div>
+                <div class="item">Encryption</div>
+                <div class="item">
+                  <i class="dropdown icon"></i>
+                  <span class="text">Key Options</span>
+                  <div class="menu">
+                    <div class="item">
+                      <i class="check icon"></i>
+                      Something awesome
+                    </div>
+                    <div class="item">
+                      <i class="check icon"></i>
+                      Bleh
+                    </div>
+                  </div>
+                </div>
+                <div class="item">Something Else</div>
+                <div class="item">Help</div>
+              </div>
+            </div>
+
           </div>
           </div>
           <div class="chat-header__content">
@@ -54,11 +81,15 @@
         <div id="left-menu-scroll">
           <div class="room-list-container">
             <h5 class="room-list-header">Rooms</h5>
+            <i class="menu-icon search icon"></i>
+            <i id="add-room-button" class="add-room-icon plus square outline icon"></i>
             <ul id="room-list">
             </ul>
           </div>
           <div class="user-list-container">
             <h5 class="user-list-header">Users</h5>
+            <i class="menu-icon search icon"></i>
+            <i class="add-user-icon plus square outline icon"></i>
             <div id="user-list">
             </div>
           </div>
@@ -74,8 +105,7 @@
 
         <div id="right-menu-content-wrapper" class="right-menu-content-wrapper">
           <div id="right-menu-user-actions" class="right-menu-user-actions">
-            <i class="left big add user icon"></i>
-            <i class="right big remove user icon"></i>
+            <i class="search icon"></i>
           </div>
         </div>
       </div>
@@ -203,6 +233,7 @@
         <div class="ui button approve blue authenticate" data-value="authenticate">Authenticate</div>
       </div>
     </div>
+
     <div class="ui small modal create">
       <div class="header">Create</div>
       <form class="ui form content create">
@@ -225,12 +256,14 @@
         <div class="ui button approve green go" data-value="go">Go</div>
       </div>
     </div>
+
     <div class="ui small modal generate">
       <div class="header">Generate</div>
       <div class="content center">
         <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
       </div>
     </div>
+
     <div class="ui small modal unlock">
       <div class="header">Unlock Credentials</div>
       <form class="ui form content unlock">
@@ -245,6 +278,7 @@
         <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
       </div>
     </div>
+
     <div class="ui small modal authenticate">
       <div class="header">Authenticate</div>
       <div class="content">Please select your credentials</div>
@@ -253,6 +287,102 @@
         <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
       </div>
     </div>
+
+    <div class="ui small modal joinroom">
+      <div class="header">Authenticate</div>
+      <div class="content">Please select your credentials</div>
+      <div class="actions">
+        <div class="ui button approve green" data-value="generate">Generate</div>
+        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+
+    <div class="ui small modal createroomold">
+      <div class="header">Create Room</div>
+      <div class="content">Please configure your new room</div>
+      <form class="ui form segment error content createroomold">
+        <div class="field">
+          <label for="roomName">Name</label>
+          <input type="text" class="name" id="name"></input>
+        </div>
+        <div class="field">
+          <label for="roomName">Topic</label>
+          <input type="text" class="topic" id="topic"></input>
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui buttons">
+          <div class="ui cancel button">Cancel</div>
+          <div class="or"></div>
+          <div class="ui positive submit button" data-value="save">Save</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui basic modal createroom">
+      <i class="close icon"></i>
+      <div class="header">
+        Create a room
+      </div>
+      <div class="content">
+        <form class="ui form createroom">
+          <div class="ui segment">
+            <p style="color:black;">Please enter the information for your new room.</p>
+            <div class="wide field">
+              <label>Name</label>
+              <input type="text" name="name">
+            </div>
+            <div class="wide field">
+              <label>Topic</label>
+              <input type="text" name="topic">
+            </div>
+
+            <div class="field">
+              <label>Please choose an encryption scheme</label>
+              <select class="ui search dropdown encryptionscheme">
+                <option value="encryptionscheme">Encryption Scheme</option>
+                <option value="clientkey">Client Key</option>
+                <option value="masterkey">Master Key</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Keep Message History</label>
+              <select class="ui search dropdown messagehistory">
+                <option value="messagehistory">Message History</option>
+                <option value="clientkey">Keep</option>
+                <option value="masterkey">Don't Keep</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Room Membership</label>
+              <select class="ui search dropdown membershipmode">
+                <option value="membershipmode">Membership Mode</option>
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+
+          </div>
+          <!-- Below tag is the placeholder/container for the error messages -->
+          <div class="ui error message"></div>
+        </form>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui cancel red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui ok green basic inverted button">
+            <i class="checkmark icon"></i>
+            Submit
+          </div>
+        </div>
+      </div>
+    </div>
+
     <div class="ui small modal error">
       <div class="header">Error</div>
       <div class="content">Some horrible error occurred</div>
@@ -263,6 +393,7 @@
         </div>
       </div>
     </div>
+
     <div class="ui small modal profile">
       <div class="header">Profile</div>
       <form class="ui form content profile">

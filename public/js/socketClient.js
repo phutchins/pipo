@@ -52,6 +52,20 @@ SocketClient.prototype.joinRoom = function(room, callback) {
   callback(null);
 };
 
+SocketClient.prototype.createRoom = function(data, callback) {
+  var self = this;
+  console.log("[CREATE ROOM] Creating room");
+  var data = {
+    roomName: data.roomName,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  };
+  self.socket.emit('createRoom', data);
+  callback(null);
+};
+
 SocketClient.prototype.partRoom = function(room, callback) {
   var self = this;
   console.log("[PART ROOM] Parting room #" + room);
@@ -115,6 +129,11 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('partComplete', function(data) {
     console.log("[SOCKET] partComplete");
     self.partComplete(data);
+  });
+
+  this.socket.on('createRoomComplete', function(data) {
+    console.log('[SOCKET] createRoomComplete');
+    self.createRoomComplete(data);
   });
 
   this.socket.on('serverCommandComplete', function(data) {
@@ -313,7 +332,18 @@ SocketClient.prototype.partComplete = function(data) {
   ChatManager.destroyRoom(room, function() {
     console.log("Done parting room");
   });
-}
+};
+
+SocketClient.prototype.createRoomComplete = function(data) {
+  var self = this;
+  var roomName = data.roomName;
+  self.joinRoom(roomName, function(err) {
+    if (err) {
+      return console.log("Error joining room after creating: " + err);
+    }
+    console.log("Joined room...");
+  })
+};
 
 SocketClient.prototype.sendServerCommand = function(data) {
   var self = this;

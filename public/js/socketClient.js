@@ -52,6 +52,20 @@ SocketClient.prototype.joinRoom = function(room, callback) {
   callback(null);
 };
 
+SocketClient.prototype.createRoom = function(data, callback) {
+  var self = this;
+  console.log("[CREATE ROOM] Creating room");
+  var data = {
+    roomName: data.roomName,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  };
+  self.socket.emit('createRoom', data);
+  callback(null);
+};
+
 SocketClient.prototype.partRoom = function(room, callback) {
   var self = this;
   console.log("[PART ROOM] Parting room #" + room);
@@ -107,6 +121,11 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
+  this.socket.on('membershipUpdate', function(data) {
+    console.log("[SOCKET] membershipUpdate");
+    self.handleMembershipUpdate(data);
+  });
+
   this.socket.on('joinComplete', function(data) {
     console.log("[SOCKET] joinComplete");
     self.joinComplete(data);
@@ -115,6 +134,11 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('partComplete', function(data) {
     console.log("[SOCKET] partComplete");
     self.partComplete(data);
+  });
+
+  this.socket.on('createRoomComplete', function(data) {
+    console.log('[SOCKET] createRoomComplete');
+    self.createRoomComplete(data);
   });
 
   this.socket.on('serverCommandComplete', function(data) {
@@ -313,7 +337,31 @@ SocketClient.prototype.partComplete = function(data) {
   ChatManager.destroyRoom(room, function() {
     console.log("Done parting room");
   });
-}
+};
+
+SocketClient.prototype.createRoomComplete = function(data) {
+  var self = this;
+  var roomName = data.roomName;
+  self.joinRoom(roomName, function(err) {
+    if (err) {
+      return console.log("Error joining room after creating: " + err);
+    }
+    console.log("Joined room...");
+  })
+};
+
+/*
+ * Get all rooms that user is a member of or is public
+ */
+SocketClient.prototype.handleMembershipUpdate = function(data) {
+  var self = this;
+  var rooms = data.rooms;
+  // We want to update one at a time in case we only receive an update for select room(s)
+  Object.keys(rooms).forEach(function(roomName) {
+    console.log("Adding room " + roomName + " to array with data: " + rooms[roomName]);
+    ChatManager.rooms[roomName] = rooms[roomName];
+  })
+};
 
 SocketClient.prototype.sendServerCommand = function(data) {
   var self = this;

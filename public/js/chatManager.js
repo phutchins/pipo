@@ -3,7 +3,11 @@ var roomUsers = {};
 
 var ChatManager = {};
 
+// Chats are rooms that the user has currently joined
 ChatManager.chats = [];
+// Rooms are all available for user to join
+ChatManager.rooms = {};
+// activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
 
 var host = window.location.host;
@@ -39,14 +43,6 @@ marked.setOptions({
   }
 });
 
-//$('#main-input-form').form('setting', {
-//  onSuccess: function () {
-//    ChatManager.sendMessage();
-//    return false;
-//  }
-//});
-
-//TODO: This should probably replace the one above
 $('#message-input').keydown(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
@@ -133,6 +129,126 @@ $('#export-keypair-button').on('click', function() {
 });
 
 /*
+ * Create Room Modal Setup
+ */
+var buildCreateRoomModal = function() {
+  console.log("Building create room modal");
+  $('.modal.createroom').modal({
+    detachable: true,
+    //By default, if click outside of modal, modal will close
+    //Set closable to false to prevent this
+    closable: false,
+    transition: 'fade up',
+    //Callback function for the submit button, which has the class of "ok"
+    onApprove : function() {
+      //Submits the semantic ui form
+      //And pass the handling responsibilities to the form handlers, e.g. on form validation success
+      $('.ui.form.createroom').submit();
+      //Return false as to not close modal dialog
+      return false;
+    }
+  });
+  $('#add-room-button').click(function(e) {
+    //Resets form input fields
+    $('.ui.form.createroom').trigger("reset");
+    //Resets form error messages
+    $('.ui.form.createroom .field.error').removeClass( "error" );
+    $('.ui.form.createroom.error').removeClass( "error" );
+    $('.modal.createroom').modal('show');
+  });
+};
+
+$(document).ready( buildCreateRoomModal );
+
+var formValidationRules = {
+  name: {
+    identifier : 'name',
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room name'
+    }
+    ]
+  },
+  topic: {
+    identifier : 'topic',
+    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
+    optional   : true,
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room topic'
+    }
+    ]
+  },
+}
+
+var createRoomFormSettings = {
+  onSuccess : function()
+  {
+    //Hides modal on validation success
+    $('.modal.createroom').modal('hide');
+    var data = {
+      roomName: $('.ui.form.createroom input[name="name"]').val(),
+      topic: $('.ui.form.createroom input[name="topic"]').val(),
+      encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
+      keepHistory: $('.dropdown.messagehistory .selected').data().value,
+      membershipRequired: $('.dropdown.membershiprequired .selected').data().value
+    };
+    debugger;
+    socketClient.createRoom(data, function(err) {
+      if (err) {
+        return console.log("Error creating room: " + err);
+      }
+      console.log("Sent request to create room " + data.roomName);
+    })
+    return false;
+  }
+}
+
+$('.ui.form.createroom').form(formValidationRules, createRoomFormSettings);
+
+
+var buildRoomListModal = function() {
+  $('.modal.join-room-list-modal').modal({
+    detachable: true,
+    closable: true,
+    transition: 'fade up'
+  })
+  $('#room-list-button').click(function(e) {
+    var roomListModalHtml = '';
+    Object.keys(ChatManager.rooms).forEach(function(roomName) {
+      roomListModalHtml += "<div class='item'>\n";
+      if (ChatManager.rooms[roomName].membershipRequired) {
+        roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
+      } else {
+        roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
+      }
+      roomListModalHtml += "  <div class='content'>\n";
+      roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
+      roomListModalHtml += "    <div class='description'>" + ChatManager.rooms[roomName].topic + "</div>\n";
+      roomListModalHtml += "  </div>\n";
+      roomListModalHtml += "</div>\n";
+    })
+    $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
+    Object.keys(ChatManager.rooms).forEach(function(roomName) {
+      $('.modal.join-room-list-modal a[id="' + roomName + '"]').click(function() {
+        socketClient.joinRoom(roomName, function(err) {
+          $('.modal.join-room-list-modal').modal('hide');
+          if (err) {
+            return console.log("Error joining room: " + err);
+          }
+          console.log("Joined room " + roomName);
+        })
+      })
+    })
+    $('.modal.join-room-list-modal').modal('show');
+  })
+};
+
+$(document).ready( buildRoomListModal );
+
+/*
  * Show an error to the user
  */
 ChatManager.showError = function showError(message) {
@@ -167,7 +283,7 @@ ChatManager.getCaret = function getCaret(el) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
-  console.log("Adding room " + room + " to the room list");
+  console.log("Adding room " + room.name + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
   self.chats[room.name] = { name: room.name, members: [], type: room.type, topic: room.topic, group: room.group, messages: "" };
 
@@ -276,11 +392,12 @@ ChatManager.focusChat = function focusChat(data, callback) {
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
   $('#room-list').empty();
+  console.log("Updating room list!");
   var chatNames = Object.keys(ChatManager.chats)
   chatNames.forEach(function(chatName) {
     if (ChatManager.chats[chatName].type == 'room') {
       // Catch clicks on the room list to update room focus
-      if ( !$('#' + chatName).length ) {
+      if ( !$('#room-list #' + chatName).length ) {
         if ( ChatManager.activeChat.name && ChatManager.activeChat.name == chatName ) {
           console.log("Active chat is " + ChatManager.activeChat.name);
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';

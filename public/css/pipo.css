@@ -27,12 +27,28 @@ body, html { padding: 0; margin: 0; }
   list-style-type: none;
   top: 0;
   right: 80px;
-  bottom: 40px;
+  bottom: 50px;
   top: 84px;
   box-sizing: border-box;
   overflow-y: scroll;
   left: 260px;
   margin: 0;
+}
+
+.join-room-list {
+  overflow-y: scroll;
+  max-height: 400px;
+}
+
+.join-room-list ul {
+  list-style-type: none;
+}
+
+.join-room-list-modal {
+}
+
+.room-list-avatar {
+  padding-left: 10px;
 }
 
 #left-menu-scroll {
@@ -267,7 +283,17 @@ body, html { padding: 0; margin: 0; }
   padding-top: 0px;
   position: relative;
   text-transform: uppercase;
-  width: 248px;
+  float: left;
+}
+
+.add-room-icon {
+  padding-right: 8px;
+  float: right;
+}
+
+.menu-icon {
+  padding-right: 8px;
+  float: right;
 }
 
 .user-list-header {
@@ -293,7 +319,12 @@ body, html { padding: 0; margin: 0; }
   padding-top: 0px;
   position: relative;
   text-transform: uppercase;
-  width: 248px;
+  float: left;
+}
+
+.add-user-icon {
+  float: right;
+  padding-right: 8px;
 }
 
 .chat-list-item {

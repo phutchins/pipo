@@ -5,6 +5,9 @@ var roomSchema = new Schema({
   name: { type: String },
   topic: { type: String, default: 'This is the default description. You should replace this with a snarky description.' },
   group: { type: String, default: 'general' },
+  membershipRequired: { type: Boolean, default: true },
+  keepHistory: { type: Boolean, default: true },
+  encryptionScheme: { type: String, default: 'clientkey' },
   createDate: { type: Date },
   owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
@@ -25,14 +28,19 @@ roomSchema.statics.create = function create(data, callback) {
     if (!user) {
       return console.log("Could not find user " + data.userName + " while creating room " + data.roomName);
     }
+    // TODO: Add conditional to check if user is allowed to create rooms
     var newRoom = new self({
       name: data.roomName,
+      topic: data.topic,
+      encryptionScheme: data.encryptionScheme,
+      keepHistory: (data.keepHistory === 'keep'),
+      membershipRequired: (data.membershipRequired === 'private'),
       createDate: Date.now(),
       owner: user,
       members: []
     })
     newRoom.members.push(user);
-    newRoom.save(callback);
+    newRoom.save(callback(null, newRoom));
   })
 };
 

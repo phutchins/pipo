@@ -35,8 +35,16 @@ body, html { padding: 0; margin: 0; }
   margin: 0;
 }
 
+.join-room-list {
+  overflow-y: scroll;
+  max-height: 400px;
+}
+
 .join-room-list ul {
   list-style-type: none;
+}
+
+.join-room-list-modal {
 }
 
 .room-list-avatar {

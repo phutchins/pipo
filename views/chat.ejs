@@ -26,22 +26,22 @@
                 <div class="item">Manage Members</div>
                 <div class="item">Set Topic</div>
                 <div class="ui divider"></div>
-                <div class="item">Encryption</div>
+                <div class="item">Advanced</div>
                 <div class="item">
                   <i class="dropdown icon"></i>
-                  <span class="text">Key Options</span>
+                  <span class="text">Admin</span>
                   <div class="menu">
                     <div class="item">
                       <i class="check icon"></i>
-                      Something awesome
+                      Destroy History
                     </div>
                     <div class="item">
                       <i class="check icon"></i>
-                      Bleh
+                      Delete Room
                     </div>
                   </div>
                 </div>
-                <div class="item">Delete Room</div>
+                <div class="item">Leave Room</div>
                 <div class="item">Help</div>
               </div>
             </div>
@@ -297,7 +297,7 @@
       </div>
     </div>
 
-    <div class="ui small modal join-room-list-modal">
+    <div class="ui small long modal join-room-list-modal">
       <i class="close icon"></i></i>
       <div class="header">Room List</div>
       <div class="content">Select a room to join...</div>
@@ -323,10 +323,10 @@
               <input type="text" name="topic">
             </div>
 
-            <div class="field">
+            <div class="field encryptionscheme">
               <label>Please choose an encryption scheme</label>
+              <input name="encryptionscheme" type="hidden" value="clientkey">
               <select class="ui search dropdown encryptionscheme">
-                <option value="encryptionscheme">Encryption Scheme</option>
                 <option value="clientkey">Client Key</option>
                 <option value="masterkey">Master Key</option>
               </select>
@@ -334,17 +334,17 @@
 
             <div class="field">
               <label>Keep Message History</label>
+              <input name="messagehistory" type="hidden" value="keep">
               <select class="ui search dropdown messagehistory">
-                <option value="messagehistory">Message History</option>
-                <option value="clientkey">Keep</option>
-                <option value="masterkey">Don't Keep</option>
+                <option value="keep">Keep</option>
+                <option value="dontkeep">Don't Keep</option>
               </select>
             </div>
 
             <div class="field">
-              <label>Room Membership</label>
-              <select class="ui search dropdown membershipmode">
-                <option value="membershipmode">Membership Mode</option>
+              <label>Membership Required</label>
+              <input name="membershiprequired" type="hidden" value="private">
+              <select class="ui search dropdown membershiprequired">
                 <option value="private">Private</option>
                 <option value="public">Public</option>
               </select>

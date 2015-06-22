@@ -128,6 +128,9 @@ $('#export-keypair-button').on('click', function() {
 
 });
 
+/*
+ * Create Room Modal Setup
+ */
 var buildCreateRoomModal = function() {
   console.log("Building create room modal");
   $('.modal.createroom').modal({
@@ -156,6 +159,55 @@ var buildCreateRoomModal = function() {
 };
 
 $(document).ready( buildCreateRoomModal );
+
+var formValidationRules = {
+  name: {
+    identifier : 'name',
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room name'
+    }
+    ]
+  },
+  topic: {
+    identifier : 'topic',
+    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
+    optional   : true,
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room topic'
+    }
+    ]
+  },
+}
+
+var createRoomFormSettings = {
+  onSuccess : function()
+  {
+    //Hides modal on validation success
+    $('.modal.createroom').modal('hide');
+    var data = {
+      roomName: $('.ui.form.createroom input[name="name"]').val(),
+      topic: $('.ui.form.createroom input[name="topic"]').val(),
+      encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
+      keepHistory: $('.dropdown.messagehistory .selected').data().value,
+      membershipRequired: $('.dropdown.membershiprequired .selected').data().value
+    };
+    debugger;
+    socketClient.createRoom(data, function(err) {
+      if (err) {
+        return console.log("Error creating room: " + err);
+      }
+      console.log("Sent request to create room " + data.roomName);
+    })
+    return false;
+  }
+}
+
+$('.ui.form.createroom').form(formValidationRules, createRoomFormSettings);
+
 
 var buildRoomListModal = function() {
   $('.modal.join-room-list-modal').modal({
@@ -195,53 +247,6 @@ var buildRoomListModal = function() {
 };
 
 $(document).ready( buildRoomListModal );
-
-var formValidationRules = {
-  name: {
-    identifier : 'name',
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room name'
-    }
-    ]
-  },
-  topic: {
-    identifier : 'topic',
-    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
-    optional   : true,
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room topic'
-    }
-    ]
-  },
-}
-
-var formSettings = {
-  onSuccess : function()
-  {
-    //Hides modal on validation success
-    $('.modal.createroom').modal('hide');
-    var data = {
-      roomName: $('.ui.form.createroom input[name="name"]').val(),
-      topic: $('.ui.form.createroom input[name="topic"]').val(),
-      encryptionScheme: $('.ui.form.createroom .encryptionscheme').val(),
-      keepHistory: $('.ui.form.createroom .messagehistory').val(),
-      membershipRequired: $('.ui.form.createroom .membershipmode').val()
-    };
-    socketClient.createRoom(data, function(err) {
-      if (err) {
-        return console.log("Error creating room: " + err);
-      }
-      console.log("Sent request to create room " + data.roomName);
-    })
-    return false;
-  }
-}
-
-$('.ui.form.createroom').form(formValidationRules, formSettings);
 
 /*
  * Show an error to the user

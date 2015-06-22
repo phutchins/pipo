@@ -108,7 +108,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             console.log("Adding room " + data.rooms[key].name + " to array");
             rooms[data.rooms[key].name] = data.rooms[key];
           })
-          console.log("Rooms is: " + JSON.stringify(rooms));
+          //console.log("Rooms is: " + JSON.stringify(rooms));
           console.log("Sending membership update to user " + user.userName);
           self.socket.emit('membershipUpdate', { rooms: rooms });
         })
@@ -345,7 +345,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     Room.join({roomName: room, userName: userName}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
-      console.log("Member trying to join room and room is: " + JSON.stringify(room));
+      //console.log("Member trying to join room and room is: " + JSON.stringify(room));
       if (err) {
         return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
       }
@@ -381,12 +381,15 @@ SocketServer.prototype.createRoom = function createRoom(data) {
       return console.log("Error creating room: " + err);
     }
     self.socket.emit('createRoomComplete', { roomName: data.roomName });
+    console.log("Room created : " + JSON.stringify(newRoom));
+    var rooms = {};
+    rooms[newRoom.name] = newRoom;
     if (roomData.membershipRequired) {
       // Emit membership update to user who created private room
-      self.socket.emit('membershipUpdate', { rooms: [ newRoom ] } );
+      self.socket.emit('membershipUpdate', { rooms: rooms });
     } else {
       // Emit membership update to all users
-      self.namespace.emit('membershipUpdate', { rooms: [ newRoom ] } );
+      self.namespace.emit('membershipUpdate', { rooms: rooms });
     }
   })
 }

@@ -33,8 +33,8 @@ roomSchema.statics.create = function create(data, callback) {
       name: data.roomName,
       topic: data.topic,
       encryptionScheme: data.encryptionScheme,
-      keepHistory: data.keepHistory,
-      membershipRequired: data.membershipRequired,
+      keepHistory: (data.keepHistory === 'keep'),
+      membershipRequired: (data.membershipRequired === 'private'),
       createDate: Date.now(),
       owner: user,
       members: []

@@ -225,6 +225,7 @@ body, html { padding: 0; margin: 0; }
   list-style-type: none;
   font-size: 18px;
   margin-left: 28px;
+  float: left;
 }
 
 .room-list-container {
@@ -258,6 +259,7 @@ body, html { padding: 0; margin: 0; }
   padding-right: 0px;
   padding-top: 0px;
   width: 248px;
+  float: left;
 }
 
 .room-list-header {
@@ -675,7 +677,7 @@ h1, h2, h3, h4, h5 {
 
 #message-input {
   overflow-y: hidden;
-  padding: 9px 30px 9px 8px;
+  padding: 7px 30px 9px 8px;
   background: padding-box #fff;
   border: 2px solid #E0E0E0;
   resize: none!important;

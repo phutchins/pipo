@@ -66,7 +66,7 @@ roomSchema.statics.join = function join(data, callback) {
       var isMember = room.members.some(function(member) {
         return member.equals(user._id);
       });
-      if (isMember || room.name == 'pipo') {
+      if (isMember || !self.membershipRequired || room.name == 'pipo') {
         console.log("User " + userName + " has joined #" + data.roomName);
         user.membership._currentRooms.push(room);
         user.save();

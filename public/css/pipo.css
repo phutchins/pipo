@@ -224,7 +224,7 @@ body, html { padding: 0; margin: 0; }
 #user-list {
   list-style-type: none;
   font-size: 18px;
-  margin-left: 28px;
+  margin-left: 12px;
 }
 
 .room-list-container {

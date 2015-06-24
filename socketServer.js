@@ -400,25 +400,25 @@ SocketServer.prototype.createRoom = function createRoom(data) {
 SocketServer.prototype.partRoom = function partRoom(data) {
   var self = this;
 
-  console.log("[PART ROOM] User " + userName + " parting room " + room.name);
   if (!self.socket.user) {
     console.log("Ignoring join attempt by unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
   var userName = self.socket.user.userName;
-  var room = data.room;
+  var roomName = data.roomName
+  console.log("[PART ROOM] User " + userName + " parting room " + roomName);
 
-  Room.part({ userName: userName, room: room.name }, function(err, success) {
+  Room.part({ userName: userName, roomName: roomName }, function(err, success) {
     if (err) {
-      return console.log("Error parting room " + room.name + " with error: " + err);
+      return console.log("Error parting room " + roomName + " with error: " + err);
     }
     if (!success) {
-      return console.log("Failed to part room " + room.name);
+      return console.log("Failed to part room " + roomName);
     }
-    console.log("User " + userName + " parted room " + room.name);
-    self.updateUserList(room.name);
-    self.socket.emit('partComplete', { room: room.name });
+    console.log("User " + userName + " parted room " + roomName);
+    self.updateUserList(roomName);
+    self.socket.emit('partComplete', { room: roomName });
   })
 };
 

@@ -66,10 +66,11 @@ SocketClient.prototype.createRoom = function(data, callback) {
   callback(null);
 };
 
-SocketClient.prototype.partRoom = function(room, callback) {
+SocketClient.prototype.partRoom = function(data, callback) {
   var self = this;
-  console.log("[PART ROOM] Parting room #" + room);
-  self.socket.emit('part', { room: room } );
+  var roomName = data.roomName;
+  console.log("[PART ROOM] Parting room #" + roomName);
+  self.socket.emit('part', { roomName: roomName } );
   callback(null);
 };
 

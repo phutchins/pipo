@@ -195,7 +195,6 @@ var createRoomFormSettings = {
       keepHistory: $('.dropdown.messagehistory .selected').data().value,
       membershipRequired: $('.dropdown.membershiprequired .selected').data().value
     };
-    debugger;
     socketClient.createRoom(data, function(err) {
       if (err) {
         return console.log("Error creating room: " + err);
@@ -247,6 +246,16 @@ var buildRoomListModal = function() {
 };
 
 $(document).ready( buildRoomListModal );
+
+/*
+ * Catch clicks on room options dropdown
+ */
+$('.chat-header__settings .room-options.leave-room').click(function(e) {
+  var roomName = ChatManager.activeChat.name;
+  socketClient.partRoom({ roomName: roomName }, function(err) {
+    console.log("Sent request to part room " + roomName);
+  })
+});
 
 /*
  * Show an error to the user
@@ -676,9 +685,9 @@ ChatManager.sendMessage = function sendMessage() {
       });
     }
     else if (splitCommand[0] == "part") {
-      var room = splitCommand[1];
-      socketClient.partRoom(room, function(err) {
-        console.log("Sent request to part room " + room);
+      var roomName = splitCommand[1];
+      socketClient.partRoom({ roomName: roomName }, function(err) {
+        console.log("Sent request to part room " + roomName);
       })
     }
     else if (splitCommand[0] == "help") {

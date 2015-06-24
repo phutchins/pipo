@@ -119,7 +119,7 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
 userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
   var userName = data.userName;
   this.findOne({ userName: userName }, function(err, user) {
-    Room.find({ members: user }, function(err, rooms) {
+    Room.find({ $or: [ { members: user }, { membershipRequired: false } ] }, function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }

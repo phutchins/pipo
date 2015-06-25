@@ -331,19 +331,24 @@ ChatManager.destroyRoom = function destroyRoom(room, callback) {
  * Set focus for a room
  */
 ChatManager.focusRoom = function focusRoom(room, callback) {
+  var messages = $('#chat');
+
   console.log("Setting activeChat to room: " + room.name + " type: room");
-  //ChatManager.activeChat = { name: room.name, type: 'room', group: room.group, topic: room.topic };
+
   room.type = 'room';
   ChatManager.activeChat = room;
 
   // Update the content in the room for the desired room to be in focus
   ChatManager.refreshChatContent(room.name);
+
+  // Scroll to the most recent message
+  // TODO: This should remember the last position the window was scrolled to
+  messages[0].scrollTop = messages[0].scrollHeight;
+
   ChatManager.updateUserList({ room: room.name });
 
   // Update the menu to reflect the selected room
   ChatManager.focusChat({ id: room.name }, function(err) {
-    var $messageInput = $('#message-input');
-    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     callback(err);
   })
 }

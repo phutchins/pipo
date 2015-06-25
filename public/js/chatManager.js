@@ -342,6 +342,8 @@ ChatManager.focusRoom = function focusRoom(room, callback) {
 
   // Update the menu to reflect the selected room
   ChatManager.focusChat({ id: room.name }, function(err) {
+    var $messageInput = $('#message-input');
+    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     callback(err);
   })
 }

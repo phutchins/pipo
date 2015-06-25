@@ -69,19 +69,14 @@
       <div id="menu">
         <div id="left-menu-profile">
           <div id="menu-header-profile">
-            <div class="ui teal buttons">
-              <div class="ui button">Options</div>
-              <div class="ui floating dropdown icon button">
-                <i class="chevron down icon"></i>
-                <div id="options-menu-dropdown" class="menu">
-                  <div class="ui icon search input">
-                    <i class="search icon"></i>
-                    <input type="text" name="search" placeholder="Search messages...">
-                  </div>
-                  <div id="generate-keypair-button" class="item"><i class="spy icon"></i> Generate new client key pair</div>
-                  <div id="import-keypair-button" class="item"><i class="folder open icon"></i> Import existing key pair</div>
-                  <div id="export-keypair-button" class="item"><i class="download icon"></i> Export client key pair</div>
-                </div>
+            <div class="ui inline dropdown header-profile-dropdown">
+              <div class="trpDisplayPicture avatar-s avatar" style="" data-original-title=""> </div>
+              <div class="text username">Unauthenticated</div>
+              <i class="chevron down icon"></i>
+              <div id="options-menu-dropdown" class="menu">
+                <div id="generate-keypair-button" class="item"><i class="spy icon"></i> Generate new client key pair</div>
+                <div id="import-keypair-button" class="item"><i class="folder open icon"></i> Import existing key pair</div>
+                <div id="export-keypair-button" class="item"><i class="download icon"></i> Export client key pair</div>
               </div>
             </div>
           </div>
@@ -114,7 +109,6 @@
 
         <div id="right-menu-content-wrapper" class="right-menu-content-wrapper">
           <div id="right-menu-user-actions" class="right-menu-user-actions">
-            <i class="search icon"></i>
           </div>
         </div>
       </div>

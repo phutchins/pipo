@@ -61,22 +61,23 @@ body, html { padding: 0; margin: 0; }
   display: block;
   font-size: 16px;
   font-weight: normal;
-  height: 41px;
+  height: 44px;
   line-height: 23.2000007629395px;
   margin-bottom: 10px;
   margin-left: 10.40625px;
   margin-right: 10.40625px;
   margin-top: 10px;
-  max-height: 41px;
-  padding-bottom: 5px;
-  padding-left: 5px;
+  padding-bottom: 8px;
+  padding-left: 8px;
   padding-right: 5px;
-  padding-top: 5px;
+  padding-top: 3px;
   transition-delay: 0s;
   transition-duration: 0.2s;
   transition-property: all;
   transition-timing-function: ease;
   width: 239.1875px;
+  background-color: rgba(35, 46, 52, 0.55);
+  border-radius: 4px;
 }
 
 #options-menu-dropdown {
@@ -89,12 +90,34 @@ body, html { padding: 0; margin: 0; }
   box-sizing: border-box;
   color: rgb(255, 255, 255);
   cursor: pointer;
-  display: flex;
   font-size: 16px;
   font-weight: normal;
   height: 32px;
   line-height: 23.2000007629395px;
   width: 229.1875px;
+}
+
+.header-profile-dropdown {
+  width:100%;
+}
+
+#menu-header-profile .username {
+  top: 6px;
+  left: 18px;
+  position: relative;
+  margin-top: auto;
+}
+
+#menu-header-profile .chevron.icon {
+  position: relative;
+  float: right;
+  top: 4px;
+  right: 8px;
+}
+
+.trpDisplayPicture {
+  display: block;
+  float: left;
 }
 
 #menu-header-avatar {
@@ -203,15 +226,12 @@ body, html { padding: 0; margin: 0; }
   background-color: rgb(48, 64, 71);
   box-sizing: border-box;
   color: rgb(255, 255, 255);
-  display: flex;
   flex-direction: column;
   flex-grow: 0;
   flex-shrink: 0;
   font-size: 16px;
   font-weight: normal;
   line-height: 23.2000007629395px;
-  margin-left: 0px;
-  margin-right: 0px;
   position: relative;
   transition-delay: 0s, 0s;
   transition-duration: 0.3s, 0.2s;
@@ -396,7 +416,7 @@ body, html { padding: 0; margin: 0; }
   box-sizing: border-box;
   z-index: 100;
   position: absolute;
-  padding: 10px 26px;
+  padding: 5px 16px;
   background-color: rgba(255,255,255,.97);
   border-bottom: 1px solid rgba(0,0,0,.05);
   left: 260px;
@@ -446,6 +466,7 @@ body, html { padding: 0; margin: 0; }
 
 .chat-header__buttons {
   float: right;
+  margin-top: 6px;
 }
 
 .chat-header__favourite {

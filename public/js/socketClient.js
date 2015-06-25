@@ -80,7 +80,7 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('authenticated', function(data) {
     if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
     var autoJoinRooms = data.autoJoin;
-    console.log("Auto join rooms is: " + autoJoinRooms.toString() );
+    ChatManager.userSignedIn();
     window.encryptionManager.keyManager.sign({}, function(err) {
       window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
         window.encryptionManager.verifyRemotePublicKey(window.userName, publicKey, function(err, upToDate) {

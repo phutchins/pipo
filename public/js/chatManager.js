@@ -268,6 +268,11 @@ ChatManager.showError = function showError(message) {
   $(".ui.modal.error .content").text(message);
 };
 
+ChatManager.userSignedIn = function userSignedIn() {
+  $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://avatars1.githubusercontent.com/philip?v=3&s=64')");
+  $('#menu-header-profile .ui.dropdown .text.username').text(window.userName);
+};
+
 // Assists in splitting line in the case of shift+enter
 ChatManager.getCaret = function getCaret(el) {
   if (el.selectionStart) {

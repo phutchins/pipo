@@ -84,21 +84,21 @@
 
         <div id="left-menu-scroll">
           <div class="room-list-container">
-            <h5 class="room-list-header">Rooms</h5>
+            <h5 class="room-list-header">Active Rooms</h5>
             <i id="room-list-button" class="menu-icon search icon"></i>
             <i id="add-room-button" class="add-room-icon plus square outline icon"></i>
             <ul id="room-list">
             </ul>
           </div>
-          <div class="user-list-container">
-            <h5 class="user-list-header">Users</h5>
+          <div class="chat-list-container">
+            <h5 class="chat-list-header">Active Chats</h5>
             <i class="menu-icon search icon"></i>
             <i class="add-user-icon plus square outline icon"></i>
-            <div id="user-list">
+            <div id="chat-list">
             </div>
           </div>
-        </div>
-        <div id="menu-actions">
+          <div id="menu-actions">
+          </div>
         </div>
       </div>
 
@@ -106,6 +106,12 @@
         <header id="right-menu-header-wrapper" class="right-menu-header-wrapper">
 
         </header>
+        <div class="user-list-container">
+          <i class="menu-icon search icon"></i>
+          <i class="add-user-icon plus square outline icon"></i>
+          <div id="user-list">
+          </div>
+        </div>
 
         <div id="right-menu-content-wrapper" class="right-menu-content-wrapper">
           <div id="right-menu-user-actions" class="right-menu-user-actions">
@@ -403,6 +409,58 @@
       </form>
       <div class="actions">
         <div class="ui button approve green go" data-value="go">Go</div>
+      </div>
+    </div>
+
+    <div class="userPopup popover-hidden left in" style="z-index: 101; left: initial; display: block; top: 10px; right: 60px;">
+      <div>
+        <div class="arrow"></div>
+        <div class="popover-inner" style="min-height: 88px;">
+          <h5 class="popover-title" style="display: none;"></h5>
+          <div class="popover-content">
+            <div>
+              <div class="avatar" style="float: left"></div>
+              <div class="trpPopoverDetails">
+                <h2 class="fullName">Full Name</h2>
+                <h3 class="username"><a href="http://pipo.chat/users/username" target="_blank">username</a></h3>
+                <div class="vcard-stats">
+                  <strong class="vcard-stat-count">1</strong>
+                  followers &nbsp;
+                  <strong class="vcard-stat-count">13</strong>
+                  repos &nbsp;
+                  <strong class="vcard-stat-count">1</strong>
+                  following &nbsp;
+                </div>
+                <ul class="trpUserDetails">
+                  <li>
+                    <div class="trpUserDetails__icon">
+                      <i class="octicon octicon-location"></i>
+                    </div>
+                    <div class="trpUserDetails__text">Atlanta, GA</div>
+                  </li>
+                  <li>
+                    <div class="trpUserDetails__icon">
+                      <i class="octicon octicon-mail"></i>
+                    </div>
+                    <div class="trpUserDetails__text"><a class="email" href="mailto:philip@phutchins.com">philip@phutchins.com</a></div>
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="popover-footer">
+        <div class="popover-footer-content">
+          <div>
+            <button class="trpBtnLightGrey buttonSmall" id="button-mention">
+              Mention
+            </button>
+            <button class="privateChatButton buttonSmall" id="button-onetoone">
+              Chat Privately
+            </button>
+          </div>
+        </div>
       </div>
     </div>
 

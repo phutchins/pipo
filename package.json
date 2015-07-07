@@ -5,13 +5,12 @@
     "url": "http://choosealicense.com/licenses/gpl-2.0/"
   },
   "author": "Philip Hutchins",
-  "email": "philip@pipo.chat"
-  "contributors": [
-    { "name": "Rob Riddle",
-      "email": "rob@pipo.chat",
-      "url": "https://github.com/unusualbob"
-    }
-  ],
+  "email": "philip@pipo.chat",
+  "contributors": [{
+    "name": "Rob Riddle",
+    "email": "rob@pipo.chat",
+    "url": "https://github.com/unusualbob"
+  }],
   "version": "0.1.0",
   "description": "Encrypted chat server/client",
   "main": "server.js",

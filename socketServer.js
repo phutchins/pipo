@@ -97,7 +97,10 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             autoJoin.push(populatedUser.membership._autoJoin[key].name);
           })
         }
-        self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin });
+        User.getAllUsers({}, function(err, userlist) {
+          console.log("Sending userlist to user...", userlist);
+          self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist });
+        })
 
         User.availableRooms({ userName: user.userName }, function(err, data) {
           if (err) {

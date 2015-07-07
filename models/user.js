@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var bcrypt = require('bcrypt-nodejs');
+var md5 = require('md5');
 var Room = require('./room')
 
 var userSchema = new Schema({
@@ -9,6 +10,7 @@ var userSchema = new Schema({
   fullName: { type: String },
   title: { type: String },
   email: { type: String },
+  emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
   membership: {
@@ -89,6 +91,19 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
   });
 };
 
+userSchema.statics.setEmail = function setEmail(data, callback) {
+  var username = data.username;
+  var email = data.email;
+  var emailHash = this.generateEmailHash(email);
+  this.findOne({ userName: username }).exec(function(err, user) {
+    if (err) { return callback(err) }
+    user.email = email;
+    user.emailHash = emailHash;
+    user.save();
+    return callback(null);
+  })
+};
+
 userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
   var userName = data.userName;
   var roomName = data.roomName;
@@ -130,6 +145,30 @@ userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
       console.log("Found rooms for member " + userName + " : " + Object.keys(rooms).toString());
       return callback(null, { rooms: rooms });
     })
+  })
+};
+
+/*
+ * Get users email hash
+ * TODO: This may should be a generic getter to which you pass the field that you want to get
+ */
+userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
+  var username = data.username;
+  this.findOne({ userName: username }, function(err, user) {
+    if (err) { return callback(err, null) }
+    return callback(null, user.emailHash);
+  })
+};
+
+userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
+  var userlist = {};
+  this.find({}, function(err, users) {
+    if (err) { return callback(err, null) }
+    users.forEach(function(user) {
+      console.log("Looping user ", user.userName);
+      userlist[user.userName] = { fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+    })
+    return callback(null, userlist);
   })
 };
 
@@ -208,6 +247,10 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
       });
     };
   });
+};
+
+userSchema.methods.generateEmailHash = function(emailAddress) {
+  return md5(emailAddress);
 };
 
 userSchema.methods.generateHash = function(publicKey) {

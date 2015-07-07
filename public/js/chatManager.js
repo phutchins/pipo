@@ -7,6 +7,9 @@ var ChatManager = {};
 ChatManager.chats = [];
 // Rooms are all available for user to join
 ChatManager.rooms = {};
+// Users is a list of all users that exist on the server
+//   This will be paginated and populated as needed in the future
+ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
 ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
@@ -66,6 +69,12 @@ $('.dropdown')
     transition: 'drop'
   })
 ;
+
+$('#edit-profile-button').on('click', function() {
+  console.log("Editing users profile");
+  ChatManager.editProfile();
+  return false;
+});
 
 $('#generate-keypair-button').on('click', function() {
   console.log("Regenerating client keypair");
@@ -283,7 +292,8 @@ ChatManager.showError = function showError(message) {
 };
 
 ChatManager.userSignedIn = function userSignedIn() {
-  $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://avatars1.githubusercontent.com/philip?v=3&s=64')");
+  var emailHash = ChatManager.userlist[window.userName].emailHash;
+  $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
   $('#menu-header-profile .ui.dropdown .text.username').text(window.userName);
 };
 
@@ -449,9 +459,9 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
   ChatManager.activePrivateChats.forEach(function(userName) {
     var privateChat = ChatManager.chats[userName];
     if ( ChatManager.activeChat.name && ChatManager.activeChat.name == userName ) {
-      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://avatars1.githubusercontent.com/" + userName + "?v=3&amp;s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
     } else {
-      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://avatars1.githubusercontent.com/" + userName + "?v=3&amp;s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
     }
   });
 
@@ -483,7 +493,7 @@ ChatManager.updateUserList = function updateUserList(data) {
       ChatManager.chats[userName] = { name: userName, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + userName };
     }
     userListHtml += "<li class='user-list-li' id='userlist-" + userName + "' name='" + userName + "' data-content='" + userName + "'>\n";
-    userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://avatars1.githubusercontent.com/" + userName + "?v=3&amp;s=64')\" data-original-title=''>\n";
+    userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=''>\n";
     userListHtml += "  </div>\n";
     userListHtml += "</li>\n";
   });

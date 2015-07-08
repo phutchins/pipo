@@ -6,11 +6,13 @@
   },
   "author": "Philip Hutchins",
   "email": "philip@pipo.chat",
-  "contributors": [{
-    "name": "Rob Riddle",
-    "email": "rob@pipo.chat",
-    "url": "https://github.com/unusualbob"
-  }],
+  "contributors": [
+    {
+      "name": "Rob Riddle",
+      "email": "rob@pipo.chat",
+      "url": "https://github.com/unusualbob"
+    }
+  ],
   "version": "0.1.0",
   "description": "Encrypted chat server/client",
   "main": "server.js",
@@ -25,6 +27,7 @@
     "highlight": "^0.2.3",
     "kbpgp": "^2.0.11",
     "marked": "^0.3.3",
+    "md5": "^1.0.0",
     "mongoose": "^4.0.2",
     "morgan": "^1.5.3",
     "node-notifier": "^4.2.1",

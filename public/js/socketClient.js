@@ -204,18 +204,17 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomUsersUpdate', function(data) {
     console.log("Got roomUsersUpdate for room #"+data.room);
-    //console.log("data.userList is: "+JSON.stringify(data.userList));
 
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
     var room = data.room;
-    var members = data.userlist;
+    var roomUsers = data.userlist;
 
     if (window.roomUsers[room]) {
       var currentRoomUsersArray = Object.keys(window.roomUsers[room]);
-      Object.keys(data.userList).forEach(function(key) {
-        console.log("Found new user '" + data.userList[key].userName);
-        newRoomUsersArray.push(data.userList[key].userName);
+      Object.keys(roomUsers).forEach(function(key) {
+        console.log("Found new user '" + roomUsers[key].userName);
+        newRoomUsersArray.push(roomUsers[key].userName);
       });
       uniqueRoomUsersArray = newRoomUsersArray.filter(function(user) {
         return !currentRoomUsersArray.indexOf(user);
@@ -229,9 +228,8 @@ SocketClient.prototype.addListeners = function() {
     }
 
     window.roomUsers[room] = {};
-    ChatManager.updateRoomUsers({ room: room, userlist: members });
 
-    members.forEach(function(user) {
+    roomUsers.forEach(function(user) {
       if (user) {
         addToRoomUsers(user);
         if (window.userMap[user.userName]) {
@@ -276,7 +274,11 @@ SocketClient.prototype.addListeners = function() {
     }
 
     console.log("[USERLIST UPDATE] Updating userlist");
+    // TODO: Should have members and users differ
+    // Members are users that have access to a room
+    // Users are members that have actually joined the room (even if they are not currently connected)
     ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
+    debugger;
     ChatManager.updateRoomUsers({ room: data.room });
   });
 

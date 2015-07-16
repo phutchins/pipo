@@ -487,17 +487,16 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
 ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var room = data.room;
   var members = ChatManager.chats[room].members;
-  if (data.userlist) {
-    ChatManager.chats[room].members = data.userlist;
-    members = data.userlist;
-  }
+  //if (data.userlist) {
+  //  ChatManager.chats[room].members = data.userlist;
+  //  members = data.userlist;
+  //}
   // BUG: members is not being looped over properly here
 
   var userListHtml = "";
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
-  members.forEach(function(member) {
-    var username = member.userName;
+  members.forEach(function(username) {
     var user = ChatManager.userlist[username];
     if ( !ChatManager.chats[username] ) {
       console.log("chat for " + username + " was empty so initializing");
@@ -513,8 +512,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
     userListHtml += "</li>\n";
   });
   $('#user-list').html(userListHtml);
-  members.forEach(function(member) {
-    var username = member.userName;
+  members.forEach(function(username) {
     $('#userlist-' + username).popup({
       inline: true
     })

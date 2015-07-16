@@ -70,12 +70,13 @@ SocketServer.prototype.init = function init() {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  console.log("[AUTHENTICATE] Authenticating user '"+data.userName+"'");
+  console.log("[AUTHENTICATE] Authenticating user data is: ",data.userName);
   User.authenticateOrCreate(data, function(err, authData) {
-    console.log("[AUTHENTICATE] authData is ", authData);
+    //console.log("[AUTHENTICATE] authData is ", authData);
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;
+    //console.log("[AUTHENTICATE] AuthData.user: ",authData.user);
 
     if (err) {
       console.log('Authentication error', err);
@@ -84,7 +85,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
     if (user) {
       if (newUser) {
-        console.log("User", user.userName, "was not in the userlist so adding them");
+        console.log("User", data.userName, "was not in the userlist so adding them");
         self.updateUserList({scope: 'all'});
       }
 
@@ -99,9 +100,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       console.log("[INIT] Init'd user " + user.userName);
       // TODO: Replace this with current rooms
       var autoJoin = []
-      console.log("user.membership._autoJoin before populate is: " + user.membership._autoJoin);
       User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
-        console.log("populatedUser.membership._autoJoin is: " + populatedUser.membership._autoJoin);
         if (populatedUser.membership._autoJoin.length > 0) {
           Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
             console.log("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
@@ -111,7 +110,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
         // Get complete userlist to send to client on initial connection
         User.getAllUsers({}, function(err, userlist) {
-          console.log("Sending userlist to user...", userlist);
+          //console.log("Sending userlist to user...", userlist);
           self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist });
         })
 
@@ -416,8 +415,13 @@ SocketServer.prototype.createRoom = function createRoom(data) {
 SocketServer.prototype.partRoom = function partRoom(data) {
   var self = this;
 
+  // Check if user has already initiated parting this room
+  //
+
+  console.log("[PART ROOM] Parting room for",self.socket.user.userName);
+
   if (!self.socket.user) {
-    console.log("Ignoring join attempt by unauthenticated user");
+    console.log("Ignoring part attempt by unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
@@ -434,6 +438,10 @@ SocketServer.prototype.partRoom = function partRoom(data) {
     }
     console.log("User " + userName + " parted room " + roomName);
     self.updateRoomUsers(roomName);
+
+    // Update user status
+    //
+
     self.socket.emit('partComplete', { room: roomName });
   })
 };
@@ -441,7 +449,7 @@ SocketServer.prototype.partRoom = function partRoom(data) {
 SocketServer.prototype.updateUserList = function updateUserList(data) {
   var self = this;
   var scope = data.scope;
-  User.getAllUsers(function(data) {
+  User.getAllUsers({}, function(err, data) {
     var userlist = data.userlist;
     if (scope == 'all') {
       self.namespace.emit("userlistUpdate", {
@@ -480,7 +488,7 @@ SocketServer.prototype.getRoomUsers = function(room, callback) {
     members = members.map(function(sid) {
       return self.namespace.socketMap[sid];
     });
-    console.log("(getRoomUsers) - (",room,")(",members,")")
+    //console.log("(getRoomUsers) - (",room,")(",members,")")
   } else {
     console.log("[GET USER LIST] User list is empty");
   };
@@ -551,7 +559,7 @@ SocketServer.prototype.sendUserListUpdate = function sendUserListUpdate(room, ca
           userList: channelUsersArray,
           room: room
         }
-        ioMain.emit("userlist update", userListData);
+        ioMain.emit("userlistUpdate", userListData);
         callback(null);
       };
     });

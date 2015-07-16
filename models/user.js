@@ -35,23 +35,30 @@ var userSchema = new Schema({
 
 userSchema.statics.create = function createUser(userData, callback) {
   var self = this;
-  console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase());
+  console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
   console.log("[USER] userData is", userData);
 
   var userName = userData.userName;
   var email = userData.email;
-  var emailHash = userSchema.methods.generateEmailHash(email);
+  var emailHash = crypto.createHash('md5').update(email).digest('hex');
   var userNameLowerCase = userName.toLowerCase();
   var publicKey = userData.publicKey;
+  var createUserCallback = callback;
+  console.log("[USER] created emailHash",emailHash,"from email",email);
 
-  new this({
+  var newUser = new this({
     userName: userName,
     email: email,
     emailHash: emailHash,
     //TODO: Is there a better way to find users case insensitive?
     userNameLowerCase: userNameLowerCase,
     publicKey: publicKey
-  }).save(callback(null, {user: user, newUser: true}));
+  }).save(function(err) {
+    mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+      console.log("[USER] Created user and found new user: ",user," error is: ",err);
+      return createUserCallback(null, {user: user, newUser: true});
+    })
+  })
 };
 
 /**
@@ -81,7 +88,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     }
     if (!user) {
       console.log("[USER AUTHENTICATEORCREATE] User '"+data.userName+"' not found so creating");
-      console.log("[DEBUG] User did not exist so creating user with data: "+ data);
+      console.log("[DEBUG] User did not exist so creating user with data: ",data);
       data.userNameLowerCase = data.userName.toLowerCase();
       return self.create(data, callback);
     }
@@ -176,8 +183,8 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return callback(err, null) }
     users.forEach(function(user) {
-      console.log("User is: ",user);
-      console.log("Looping user ", user.userName, "fullName ", user.fullName, " email ", user.email, "emailHash ", user.emailHash);
+      //console.log("User is: ",user);
+      //console.log("Looping user ", user.userName, "fullName ", user.fullName, " email ", user.email, "emailHash ", user.emailHash);
       userlist[user.userName] = { fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(null, userlist);
@@ -262,7 +269,7 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
 };
 
 userSchema.methods.generateEmailHash = function(emailAddress) {
-  if (emailAddress) {
+  if (emailAddress && emailAddress !== '' && typeof emailaddress !== 'undefined') {
     return crypto.createHash('md5').update(emailAddress).digest('hex');
   } else {
     return null

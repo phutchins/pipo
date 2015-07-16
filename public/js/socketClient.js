@@ -3,7 +3,9 @@ function SocketClient() {
   var host = window.location.host;
   this.socket = window.io(host + '/socket');
 
-  window.userName = localStorage.getItem("userName");
+  window.userName = localStorage.getItem('userName');
+  window.email = localStorage.getItem('email');
+  window.fullName = localStorage.getItem('fullName');
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
@@ -297,7 +299,7 @@ SocketClient.prototype.authenticate = function() {
   console.log("[AUTH] Authenticating with server with userName: '"+window.userName+"'");
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      self.socket.emit('authenticate', {userName: window.userName, publicKey: publicKey});
+      self.socket.emit('authenticate', {userName: window.userName, publicKey: publicKey, email: window.email});
     });
   });
 };

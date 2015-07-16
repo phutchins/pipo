@@ -40,7 +40,7 @@ userSchema.statics.create = function createUser(userData, callback) {
     //TODO: Is there a better way to find users case insensitive?
     userNameLowerCase: userData.userName.toLowerCase(),
     publicKey: userData.publicKey
-  }).save(callback);
+  }).save(callback({user: this, newUser: true}));
 };
 
 /**
@@ -82,7 +82,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
       if ( user.publicKey == data.publicKey ) {
         console.log("[USER] User '"+data.userName+"' has a public key that matches userName");
         //TODO: Check signature
-        return callback(null, user);
+        return callback(null, { user: user } );
       }
       else {
         return callback(new Error("userName and publicKey mismatch"));
@@ -165,7 +165,8 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return callback(err, null) }
     users.forEach(function(user) {
-      console.log("Looping user ", user.userName);
+      console.log("User is: ",user);
+      console.log("Looping user ", user.userName, "fullName ", user.fullName, " email ", user.email, "emailHash ", user.emailHash);
       userlist[user.userName] = { fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(null, userlist);

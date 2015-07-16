@@ -93,6 +93,7 @@ roomSchema.statics.part = function part(data, callback) {
       });
       if (isMember || room.name == 'pipo') {
         user.membership._currentRooms.pull(room);
+        console.log("User " + data.userName + " is a member of ", user.membership._currentRooms);
         user.save();
         console.log("User " + data.userName + " has parted #" + data.roomName + " successfully");
         return callback(null, true);

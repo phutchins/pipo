@@ -71,7 +71,14 @@ SocketServer.prototype.init = function init() {
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
   console.log("[AUTHENTICATE] Authenticating user '"+data.userName+"'");
-  User.authenticateOrCreate(data, function(err, user) {
+  User.authenticateOrCreate(data, function(err, data) {
+    var user = data.user;
+    var newUser = data.newUser;
+
+    if (newUser) {
+      console.log("User", user.userName, "was not in the userlist so adding them");
+      self.updateUserList({scope: 'all'});
+    }
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
@@ -97,6 +104,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             autoJoin.push(populatedUser.membership._autoJoin[key].name);
           })
         }
+
+        // Get complete userlist to send to client on initial connection
         User.getAllUsers({}, function(err, userlist) {
           console.log("Sending userlist to user...", userlist);
           self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist });
@@ -330,16 +339,16 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
                   return console.log("Failed to join room " + room);
                 }
               })
-              console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
-              self.updateUserList(room.name);
+              console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+              self.updateRoomUsers(room.name);
             });
           });
         } else {
           //console.log("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: masterKeyPair });
-          console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
-          self.updateUserList(room.name);
+          console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+          self.updateRoomUsers(room.name);
         };
       });
     });
@@ -358,8 +367,8 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       self.socket.join(room.name);
       console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
       self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: room });
-      console.log("[SOCKET SERVER] (joinRoom) Sending updateUserList for room " + room.name);
-      self.updateUserList(room.name);
+      console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+      self.updateRoomUsers(room.name);
     })
   };
 };
@@ -420,25 +429,42 @@ SocketServer.prototype.partRoom = function partRoom(data) {
       return console.log("Failed to part room " + roomName);
     }
     console.log("User " + userName + " parted room " + roomName);
-    self.updateUserList(roomName);
+    self.updateRoomUsers(roomName);
     self.socket.emit('partComplete', { room: roomName });
+  })
+};
+
+SocketServer.prototype.updateUserList = function updateUserList(data) {
+  var self = this;
+  var scope = data.scope;
+  User.getAllUsers(function(data) {
+    var userlist = data.userlist;
+    if (scope == 'all') {
+      self.namespace.emit("userlistUpdate", {
+        userlist: userlist
+      })
+    } else if (scope == 'self') {
+      self.socket.emit("userlistUpdate", {
+        userlist: userlist
+      })
+    }
   })
 };
 
 /**
  * Update userlist for a room
  */
-SocketServer.prototype.updateUserList = function updateUserList(room) {
+SocketServer.prototype.updateRoomUsers = function updateRoomUsers(room) {
   var self = this;
-  self.getUserList(room, function(err, members) {
-    self.namespace.to(room).emit("userlist update", {
+  self.getRoomUsers(room, function(err, members) {
+    self.namespace.to(room).emit("roomUsersUpdate", {
       room: room,
-      userList: members
+      userlist: members
     });
   });
 };
 
-SocketServer.prototype.getUserList = function(room, callback) {
+SocketServer.prototype.getRoomUsers = function(room, callback) {
   var self = this;
   var members = [];
   if (typeof this.namespace.adapter.rooms[room] !== 'undefined') {
@@ -450,6 +476,7 @@ SocketServer.prototype.getUserList = function(room, callback) {
     members = members.map(function(sid) {
       return self.namespace.socketMap[sid];
     });
+    console.log("(getRoomUsers) - (",room,")(",members,")")
   } else {
     console.log("[GET USER LIST] User list is empty");
   };
@@ -494,6 +521,7 @@ SocketServer.prototype.disconnect = function disconnect() {
           if (!success) {
             return console.log("User " + userName + " failed to part room " + currentRoom.name);
           }
+          //BOOKMARK
           console.log("User " + userName + " successfully parted room " + currentRoom.name);
         })
       })
@@ -503,26 +531,27 @@ SocketServer.prototype.disconnect = function disconnect() {
     console.log("WARNING! Someone left the channel and we don't know who it was...");
   }
   // TODO: Should update all appropritae channels here
-  self.updateUserList('general');
+  self.updateRoomUsers('general');
 };
 
 
 //TODO: Are these still needed?
-SocketServer.prototype.sendUserListUpdate = function sendUserListUpdate(channel, callback) {
-  if (channel != null) {
-    getChannelUsersArray(channel, function(err, channelUsersArray) {
+SocketServer.prototype.sendUserListUpdate = function sendUserListUpdate(room, callback) {
+  if (room != null) {
+    getChannelUsersArray(room, function(err, channelUsersArray) {
       if (err) {
         callback(err);
       } else {
         var userListData = {
-          userList: channelUsersArray
+          userList: channelUsersArray,
+          room: room
         }
-        //ioMain.emit("userlist update", userListData);
+        ioMain.emit("userlist update", userListData);
         callback(null);
       };
     });
   } else {
-    // update all channels
+    // update all room
   };
 };
 

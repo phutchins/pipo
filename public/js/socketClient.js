@@ -196,14 +196,23 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
-  this.socket.on('userlist update', function(data) {
-    console.log("Got userlist update for room #"+data.room);
+  this.socket.on('userlistUpdate', function(data) {
+    var userlist = data.userlit;
+    console.log("[SOCKET] 'userlistUpdate'");
+    ChatManager.userlist = userlist;
+  });
+
+  this.socket.on('roomUsersUpdate', function(data) {
+    console.log("Got roomUsersUpdate for room #"+data.room);
     //console.log("data.userList is: "+JSON.stringify(data.userList));
 
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
-    if (window.roomUsers[data.room]) {
-      var currentRoomUsersArray = Object.keys(window.roomUsers[data.room]);
+    var room = data.room;
+    var members = data.userlist;
+
+    if (window.roomUsers[room]) {
+      var currentRoomUsersArray = Object.keys(window.roomUsers[room]);
       Object.keys(data.userList).forEach(function(key) {
         console.log("Found new user '" + data.userList[key].userName);
         newRoomUsersArray.push(data.userList[key].userName);
@@ -214,14 +223,15 @@ SocketClient.prototype.addListeners = function() {
       //Don't notify us about ourselves
       uniqueRoomUsersArray.forEach(function(joinUserName) {
         if (window.userName !== joinUserName) {
-          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + data.room, 3000);
+          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + room, 3000);
         }
       })
     }
 
-    window.roomUsers[data.room] = {};
+    window.roomUsers[room] = {};
+    ChatManager.updateRoomUsers({ room: room, userlist: members });
 
-    data.userList.forEach(function(user) {
+    members.forEach(function(user) {
       if (user) {
         addToRoomUsers(user);
         if (window.userMap[user.userName]) {
@@ -267,7 +277,7 @@ SocketClient.prototype.addListeners = function() {
 
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
-    ChatManager.updateUserList({ room: data.room });
+    ChatManager.updateRoomUsers({ room: data.room });
   });
 
   this.socket.on('chatStatus', function(data) {

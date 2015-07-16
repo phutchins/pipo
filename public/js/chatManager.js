@@ -292,7 +292,8 @@ ChatManager.showError = function showError(message) {
 };
 
 ChatManager.userSignedIn = function userSignedIn() {
-  var emailHash = ChatManager.userlist[window.userName].emailHash;
+  // TODO: This should be smarter and have a sane default in the DB as well as a better default image
+  var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
   $('#menu-header-profile .ui.dropdown .text.username').text(window.userName);
 };
@@ -386,7 +387,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
     // TODO: This should remember the last position the window was scrolled to
     messages[0].scrollTop = messages[0].scrollHeight;
 
-    ChatManager.updateUserList({ room: id });
+    ChatManager.updateRoomUsers({ room: id });
   }
   else if (ChatManager.chats[id].type == 'privatechat') {
 
@@ -458,10 +459,12 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
 
   ChatManager.activePrivateChats.forEach(function(userName) {
     var privateChat = ChatManager.chats[userName];
+    var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
+
     if ( ChatManager.activeChat.name && ChatManager.activeChat.name == userName ) {
-      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
     } else {
-      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
     }
   });
 
@@ -481,25 +484,38 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
 /*
  * Update the user list on the left bar
  */
-ChatManager.updateUserList = function updateUserList(data) {
+ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var room = data.room;
   var members = ChatManager.chats[room].members;
+  if (data.userlist) {
+    ChatManager.chats[room].members = data.userlist;
+    members = data.userlist;
+  }
+  // BUG: members is not being looped over properly here
+
   var userListHtml = "";
-  console.log("[CHAT MANAGER] (updateUserList) members: "+JSON.stringify(members));
-  console.log("[CHAT MANAGER] (updateUserList) chats: ", Object.keys(ChatManager.chats));
-  members.forEach(function(userName) {
-    if ( !ChatManager.chats[userName] ) {
-      console.log("chat for " + userName + " was empty so initializing");
-      ChatManager.chats[userName] = { name: userName, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + userName };
+  console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
+  console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
+  members.forEach(function(member) {
+    var username = member.userName;
+    var user = ChatManager.userlist[username];
+    if ( !ChatManager.chats[username] ) {
+      console.log("chat for " + username + " was empty so initializing");
+      ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
     }
-    userListHtml += "<li class='user-list-li' id='userlist-" + userName + "' name='" + userName + "' data-content='" + userName + "'>\n";
-    userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + ChatManager.userlist[userName].emailHash + "?s=64')\" data-original-title=''>\n";
+    var emailHash = "0";
+    if (user && user.emailHash) {
+      var emailHash = user.emailHash;
+    }
+    userListHtml += "<li class='user-list-li' id='userlist-" + username + "' name='" + username + "' data-content='" + username + "'>\n";
+    userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=''>\n";
     userListHtml += "  </div>\n";
     userListHtml += "</li>\n";
   });
   $('#user-list').html(userListHtml);
-  members.forEach(function(userName) {
-    $('#userlist-' + userName).popup({
+  members.forEach(function(member) {
+    var username = member.userName;
+    $('#userlist-' + username).popup({
       inline: true
     })
 
@@ -528,7 +544,8 @@ ChatManager.updateUserList = function updateUserList(data) {
 ChatManager.populateUserPopup = function populateUserPopup(username) {
   // Get full name from users object here
   var fullName = 'Default Name';
-  var avatarHtml = "<img src='https://avatars0.githubusercontent.com/" + username + "?&amp;s=256' class='avatar-l'>";
+  var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
+  var avatarHtml = "<img src='https://www.gravatar.com/avatar/" + emailHash + "?s=256' class='avatar-l'>";
   $('.userPopup .avatar').html(avatarHtml);
   $('.userPopup .fullName').text(fullName);
   var usernameHtml = "<a href='http://pipo.chat/users/" + username + "' target='_blank'>" + username + "</a>";
@@ -739,9 +756,10 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var message = data.message;
   var fromUser = data.fromUser;
+  var emailHash = ChatManager.userlist[fromUser].emailHash || "00000000000";
 
   var time = new Date().toISOString();
-  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://avatars1.githubusercontent.com/' + fromUser + '?v=3&amp;s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + message + '</div> </div> </div></div>';
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + message + '</div> </div> </div></div>';
   return callback(messageHtml);
 };
 
@@ -846,6 +864,7 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
       var errorDisplay = $('.create #createError');
       var userName = $('.create.form #username').val();
       var password = $('.create.form #password').val();
+      var email = $('.create.form #email').val();
       var confirmPassword = $('.create #confirmPassword').val();
 
       if (!username) {
@@ -940,6 +959,7 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
           console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+          localStorage.setItem('email', email);
           console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
           $('.ui.modal.generate').modal('hide');
           ChatManager.enableChat();
@@ -1065,6 +1085,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
           console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
           window.userName = userName;
           console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
+
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");

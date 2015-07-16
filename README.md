@@ -87,7 +87,9 @@ Options...
 
 
 ## Mobile
-+ Ionic & Socket.io
++ Ionic or Famous & Socket.io
+  + Famous - Is very new but quite powerful and fast
+  + Ionic - Been around for a while
 
 ## Desktop & Browser
 + NodeJS & Node WebKit

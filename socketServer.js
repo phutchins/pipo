@@ -71,19 +71,23 @@ SocketServer.prototype.init = function init() {
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
   console.log("[AUTHENTICATE] Authenticating user '"+data.userName+"'");
-  User.authenticateOrCreate(data, function(err, data) {
-    var user = data.user;
-    var newUser = data.newUser;
+  User.authenticateOrCreate(data, function(err, authData) {
+    console.log("[AUTHENTICATE] authData is ", authData);
+    var user = new User;
+    user = authData.user;
+    var newUser = authData.newUser;
 
-    if (newUser) {
-      console.log("User", user.userName, "was not in the userlist so adding them");
-      self.updateUserList({scope: 'all'});
-    }
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
+
     if (user) {
+      if (newUser) {
+        console.log("User", user.userName, "was not in the userlist so adding them");
+        self.updateUserList({scope: 'all'});
+      }
+
       self.namespace.socketMap[self.socket.id] = {
         userName: user.userName,
         publicKey: user.publicKey
@@ -111,14 +115,14 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist });
         })
 
-        User.availableRooms({ userName: user.userName }, function(err, data) {
+        User.availableRooms({ userName: user.userName }, function(err, roomData) {
           if (err) {
             return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
           }
           var rooms = {};
-          Object.keys(data.rooms).forEach(function(key) {
-            console.log("Adding room " + data.rooms[key].name + " to array");
-            rooms[data.rooms[key].name] = data.rooms[key];
+          Object.keys(roomData.rooms).forEach(function(key) {
+            console.log("Adding room " + roomData.rooms[key].name + " to array");
+            rooms[roomData.rooms[key].name] = roomData.rooms[key];
           })
           //console.log("Rooms is: " + JSON.stringify(rooms));
           console.log("Sending membership update to user " + user.userName);
@@ -523,6 +527,9 @@ SocketServer.prototype.disconnect = function disconnect() {
           }
           //BOOKMARK
           console.log("User " + userName + " successfully parted room " + currentRoom.name);
+          // TODO: Should update all appropritae channels here
+          console.log("Updating room users!");
+          self.updateRoomUsers(currentRoom.name);
         })
       })
     })
@@ -530,8 +537,6 @@ SocketServer.prototype.disconnect = function disconnect() {
   } else {
     console.log("WARNING! Someone left the channel and we don't know who it was...");
   }
-  // TODO: Should update all appropritae channels here
-  self.updateRoomUsers('general');
 };
 
 

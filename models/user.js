@@ -1,7 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var bcrypt = require('bcrypt-nodejs');
-var md5 = require('md5');
+var crypto = require('crypto');
 var Room = require('./room')
 
 var userSchema = new Schema({
@@ -34,13 +34,24 @@ var userSchema = new Schema({
 });
 
 userSchema.statics.create = function createUser(userData, callback) {
+  var self = this;
   console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase());
+  console.log("[USER] userData is", userData);
+
+  var userName = userData.userName;
+  var email = userData.email;
+  var emailHash = userSchema.methods.generateEmailHash(email);
+  var userNameLowerCase = userName.toLowerCase();
+  var publicKey = userData.publicKey;
+
   new this({
-    userName: userData.userName,
+    userName: userName,
+    email: email,
+    emailHash: emailHash,
     //TODO: Is there a better way to find users case insensitive?
-    userNameLowerCase: userData.userName.toLowerCase(),
-    publicKey: userData.publicKey
-  }).save(callback({user: this, newUser: true}));
+    userNameLowerCase: userNameLowerCase,
+    publicKey: publicKey
+  }).save(callback(null, {user: user, newUser: true}));
 };
 
 /**
@@ -251,7 +262,11 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
 };
 
 userSchema.methods.generateEmailHash = function(emailAddress) {
-  return md5(emailAddress);
+  if (emailAddress) {
+    return crypto.createHash('md5').update(emailAddress).digest('hex');
+  } else {
+    return null
+  }
 };
 
 userSchema.methods.generateHash = function(publicKey) {

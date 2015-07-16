@@ -278,7 +278,6 @@ SocketClient.prototype.addListeners = function() {
     // Members are users that have access to a room
     // Users are members that have actually joined the room (even if they are not currently connected)
     ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
-    debugger;
     ChatManager.updateRoomUsers({ room: data.room });
   });
 

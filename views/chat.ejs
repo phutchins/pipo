@@ -24,7 +24,7 @@
               <div class="menu">
                 <div class="header">Room Options</div>
                 <div class="item room-options manage-members">Manage Members</div>
-                <div class="item room-options set-topic">Set Topic</div>
+                <div class="item room-options edit-room">Edit Room</div>
                 <div class="ui divider"></div>
                 <div class="item">
                   <i class="dropdown icon"></i>
@@ -108,8 +108,6 @@
 
         </header>
         <div class="user-list-container">
-          <i class="menu-icon search icon"></i>
-          <i class="add-user-icon plus square outline icon"></i>
           <div id="user-list">
           </div>
         </div>
@@ -469,7 +467,93 @@
       </div>
     </div>
 
-    <link href='http://fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>
+    <div class="ui form basic modal edit-room-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Editing Room
+      </div>
+      <div class="content">
+        <form class="ui form edit-room-form">
+          <div class="ui segment">
+            <div class="wide field">
+              <label>Name</label>
+              <input type="text" name="name">
+            </div>
+
+            <div class="wide field">
+              <label>Name</label>
+              <input type="text" name="group">
+            </div>
+
+            <div class="wide field">
+              <label>Topic</label>
+              <input type="text" name="topic">
+            </div>
+
+            <div class="field encryptionscheme">
+              <label>Encryption scheme</label>
+              <input name="encryptionscheme" type="hidden">
+              <select class="ui search dropdown encryption-scheme">
+                <option value="clientkey">Client Key</option>
+                <option value="masterkey">Master Key</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Message History</label>
+              <input name="keep-history" type="hidden">
+              <select class="ui search dropdown keep-history">
+                <option value="true">Keep</option>
+                <option value="false">Don't Keep</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Privacy</label>
+              <input name="membership-required" type="hidden">
+              <select class="ui search dropdown membership-required">
+                <option value="true">Private</option>
+                <option value="false">Public</option>
+              </select>
+            </div>
+
+          </div>
+          <!-- Below tag is the placeholder/container for the error messages -->
+          <div class="ui error message"></div>
+        </form>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui cancel red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui ok green basic inverted button">
+            <i class="checkmark icon"></i>
+            Save
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui modal manage-members-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Manage Members
+      </div>
+      <div class="content">
+        <div class="manage-members-header">
+          Members
+        </div>
+        <ul class="manage-members-list">
+        </ul>
+      </div>
+      <div class="actions">
+      </div>
+    </div>
+
+
+    <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>
     <link rel="stylesheet" href="/css/semantic.css">
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">

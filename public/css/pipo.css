@@ -934,3 +934,11 @@ button, input, select, textarea {
   color: white;
   border-bottom: 2px solid #17a15a;
 }
+
+.manage-members-list {
+  list-style-type: none;
+}
+
+.manage-members-list-membership-dropdown {
+  float: right;
+}

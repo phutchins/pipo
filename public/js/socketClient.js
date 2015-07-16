@@ -196,17 +196,25 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
-  this.socket.on('userlist update', function(data) {
-    console.log("Got userlist update for room #"+data.room);
-    //console.log("data.userList is: "+JSON.stringify(data.userList));
+  this.socket.on('userlistUpdate', function(data) {
+    var userlist = data.userlit;
+    console.log("[SOCKET] 'userlistUpdate'");
+    ChatManager.userlist = userlist;
+  });
+
+  this.socket.on('roomUsersUpdate', function(data) {
+    console.log("Got roomUsersUpdate for room #"+data.room);
 
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
-    if (window.roomUsers[data.room]) {
-      var currentRoomUsersArray = Object.keys(window.roomUsers[data.room]);
-      Object.keys(data.userList).forEach(function(key) {
-        console.log("Found new user '" + data.userList[key].userName);
-        newRoomUsersArray.push(data.userList[key].userName);
+    var room = data.room;
+    var roomUsers = data.userlist;
+
+    if (window.roomUsers[room]) {
+      var currentRoomUsersArray = Object.keys(window.roomUsers[room]);
+      Object.keys(roomUsers).forEach(function(key) {
+        console.log("Found new user '" + roomUsers[key].userName);
+        newRoomUsersArray.push(roomUsers[key].userName);
       });
       uniqueRoomUsersArray = newRoomUsersArray.filter(function(user) {
         return !currentRoomUsersArray.indexOf(user);
@@ -214,14 +222,14 @@ SocketClient.prototype.addListeners = function() {
       //Don't notify us about ourselves
       uniqueRoomUsersArray.forEach(function(joinUserName) {
         if (window.userName !== joinUserName) {
-          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + data.room, 3000);
+          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + room, 3000);
         }
       })
     }
 
-    window.roomUsers[data.room] = {};
+    window.roomUsers[room] = {};
 
-    data.userList.forEach(function(user) {
+    roomUsers.forEach(function(user) {
       if (user) {
         addToRoomUsers(user);
         if (window.userMap[user.userName]) {
@@ -266,8 +274,12 @@ SocketClient.prototype.addListeners = function() {
     }
 
     console.log("[USERLIST UPDATE] Updating userlist");
+    // TODO: Should have members and users differ
+    // Members are users that have access to a room
+    // Users are members that have actually joined the room (even if they are not currently connected)
     ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
-    ChatManager.updateUserList({ room: data.room });
+    debugger;
+    ChatManager.updateRoomUsers({ room: data.room });
   });
 
   this.socket.on('chatStatus', function(data) {

@@ -584,6 +584,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
     if ( !ChatManager.chats[username] ) {
       console.log("chat for " + username + " was empty so initializing");
       ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
+      ChatManager.updatePrivateChats();
     }
     var emailHash = "0";
     if (user && user.emailHash) {
@@ -805,6 +806,14 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
   }
 
   ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, message: message });
+  // TODO: Show chat here and add to chat list if it does not exist there already
+  // BOOKMARK
+  //
+  ChatManager.activePrivateChats.push(fromUser);
+  console.log("Updating private chats");
+  debugger;
+  ChatManager.updatePrivateChats();
+
 };
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
@@ -831,6 +840,7 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
       ChatManager.refreshChatContent(chat);
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
+    // BOOKMARK
   })
 };
 

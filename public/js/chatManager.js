@@ -568,7 +568,6 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   // BUG: This is null sometimes
   var members = ChatManager.chats[room].members;
 
-  //debugger;
   //if (data.userlist) {
   //  ChatManager.chats[room].members = data.userlist;
   //  members = data.userlist;
@@ -579,7 +578,6 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
   members.forEach(function(username) {
-    //debugger;
     var user = ChatManager.userlist[username];
     if ( !ChatManager.chats[username] ) {
       console.log("chat for " + username + " was empty so initializing");
@@ -811,7 +809,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
   //
   ChatManager.activePrivateChats.push(fromUser);
   console.log("Updating private chats");
-  debugger;
   ChatManager.updatePrivateChats();
 
 };
@@ -1055,7 +1052,6 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
           localStorage.setItem('userName', userName);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           localStorage.setItem('email', email);
-          debugger;
           //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
           $('.ui.modal.generate').modal('hide');
           ChatManager.enableChat();

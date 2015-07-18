@@ -35,8 +35,8 @@ var userSchema = new Schema({
 
 userSchema.statics.create = function createUser(userData, callback) {
   var self = this;
-  console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
-  console.log("[USER] userData is", userData);
+  //console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
+  //console.log("[USER] userData is", userData);
 
   var userName = userData.userName;
   var email = userData.email;
@@ -44,7 +44,7 @@ userSchema.statics.create = function createUser(userData, callback) {
   var userNameLowerCase = userName.toLowerCase();
   var publicKey = userData.publicKey;
   var createUserCallback = callback;
-  console.log("[USER] created emailHash",emailHash,"from email",email);
+  //console.log("[USER] created emailHash",emailHash,"from email",email);
 
   var newUser = new this({
     userName: userName,
@@ -87,8 +87,8 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
       return callback(err);
     }
     if (!user) {
-      console.log("[USER AUTHENTICATEORCREATE] User '"+data.userName+"' not found so creating");
-      console.log("[DEBUG] User did not exist so creating user with data: ",data);
+      console.log("[USER] User '"+data.userName+"' not found so creating");
+      //console.log("[DEBUG] User did not exist so creating user with data: ",data);
       data.userNameLowerCase = data.userName.toLowerCase();
       return self.create(data, callback);
     }
@@ -150,9 +150,11 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
  * Get the list of rooms that a user is a member of or able to join
  */
 userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
+  console.log("Building available rooms list...");
   var userName = data.userName;
-  this.findOne({ userName: userName }, function(err, user) {
-    Room.find({ $or: [ { members: user }, { membershipRequired: false } ] }, function(err, rooms) {
+  this.findOne({ userName: userName }).populate('_members').exec(function(err, user) {
+    console.log("Found user ",userName," for which we are building the room list");
+    Room.find({ $or: [ { _members: user }, { membershipRequired: false } ] }, function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }
@@ -185,7 +187,7 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
     users.forEach(function(user) {
       //console.log("User is: ",user);
       //console.log("Looping user ", user.userName, "fullName ", user.fullName, " email ", user.email, "emailHash ", user.emailHash);
-      userlist[user.userName] = { fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      userlist[user.userName] = { userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(null, userlist);
   })

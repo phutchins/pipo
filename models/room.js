@@ -9,13 +9,14 @@ var roomSchema = new Schema({
   keepHistory: { type: Boolean, default: true },
   encryptionScheme: { type: String, default: 'clientkey' },
   createDate: { type: Date },
-  owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-  admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
-  members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+  _owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User", default: null },
+  _admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
+  _members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: []  }],
   messages: [{
     date: { type: Date },
-    user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-    message: { Type: String }
+    _user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
+    message: { Type: String },
+    default: []
   }]
 });
 
@@ -36,10 +37,11 @@ roomSchema.statics.create = function create(data, callback) {
       keepHistory: (data.keepHistory === 'keep'),
       membershipRequired: (data.membershipRequired === 'private'),
       createDate: Date.now(),
-      owner: user,
-      members: []
+      _owner: user,
+      _admins: [ user ],
+      _members: []
     })
-    newRoom.members.push(user);
+    newRoom._members.push(user);
     newRoom.save(callback(null, newRoom));
   })
 };
@@ -48,32 +50,34 @@ roomSchema.statics.create = function create(data, callback) {
 roomSchema.statics.join = function join(data, callback) {
   var self = this;
   var userName = data.userName;
-  var roomName = data.roomName;
+  var name = data.name;
   mongoose.model('User').findOne({ userName: userName }, function(err, user) {
-    mongoose.model('Room').findOne({ name: roomName }, function(err, room) {
+    mongoose.model('Room').findOne({ name: name }).populate('_members').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
       if (!room) {
-        console.log("Room " + roomName + " does not exist so creating...");
+        console.log("Room " + name + " does not exist so creating...");
         return self.create(data, function(err) {
           if (err) {
-            return console.log("Failed to create room " + data.roomName);
+            return console.log("Failed to create room " + data.name);
           }
           return self.join(data, callback);
         })
       }
-      var isMember = room.members.some(function(member) {
-        return member.equals(user._id);
+      //console.log("[ROOM] room._members is: ",room._members);
+      var isMember = room._members.some(function(member) {
+        return member._id.equals(user._id);
       });
       if (isMember || !self.membershipRequired || room.name == 'pipo') {
-        console.log("User " + userName + " has joined #" + data.roomName);
+        self.populate(room, { path: '_owner _admins messages._user' });
+        console.log("User " + userName + " has joined #" + data.name);
         user.membership._currentRooms.push(room);
         user.save();
         return callback(null, { auth: true, room: room });
       } else {
-        console.log("User " + userName + " unable to join #" + roomName + " due to incorrect membership");
-        return callback(null, { auth: false, room: { name: roomName } });
+        console.log("User " + userName + " unable to join #" + name + " due to incorrect membership");
+        return callback(null, { auth: false, room: { name: name } });
       }
     })
   })
@@ -88,7 +92,7 @@ roomSchema.statics.part = function part(data, callback) {
       if (!room) {
         return console.log("No room found when trying to part for user " + data.userName);
       }
-      var isMember = room.members.some(function(member) {
+      var isMember = room._members.some(function(member) {
         return member.equals(user._id);
       });
       if (isMember || room.name == 'pipo') {
@@ -124,7 +128,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
       if (isRoomAdmin || isRoomOwner) {
         mongoose.model('User').findOne({ userName: memberToAdd }, function(err, memberToAddObj) {
           console.log("Requesting user " + requestingUser + " is an admin of room " + room.name + " so adding " + memberToAdd);
-          room.members.push(memberToAddObj);
+          room._members.push(memberToAddObj);
           room.save();
           return callback(null, true);
         })

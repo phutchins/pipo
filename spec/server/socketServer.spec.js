@@ -2,9 +2,6 @@
 //spec/socketServer.spec.js
 
 var mongoose = require('mongoose');
-var socketIO = require('socket.io');
-var express = require('express');
-var https = require('https');
 
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.ObjectId;
@@ -14,17 +11,12 @@ var Room = require('../../models/room');
 
 var configHttps = require('../../config/https');
 
-var app = express();
-var server = require('../../server');
-var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
-var io = socketIO(server);
 var SocketServer = require('../../socketServer');
-var ioMain = io.of('/socket');
 var socketServer = null;
 
-
-socketServer = new SocketServer(ioMain);
-//socketServer.onSocket(socket);
+// Instantiating this prototype without args sets socketMap and userMap to empty
+// TODO: Stub out socketMap and userMap
+socketServer = new SocketServer();
 
 // Stubbed objects
 var testUser = new User({
@@ -48,17 +40,49 @@ var testPublicRoom = new Room({
   encryptionScheme: 'clientkey',
   membershipRequired: false,
   _owner: testUser,
-  _members: [ testUser ],
-  _admins: [ testUser ],
   messages: [ ]
 });
 
+testPublicRoom._members.push(testUser);
+testPublicRoom._admins.push(testUser);
 
-describe("sanatize room for client", function() {
-  it("should convert _members object to array of usernames", function() {
+describe('Sanatize room for client', function() {
+  it('should convert _members object to array of usernames', function() {
+    var correctlySanatizedRoom = ({
+      name : 'testroom',
+      topic : 'test room topic',
+      group : 'default',
+      messages : [  ],
+      encryptionScheme : 'clientkey',
+      keepHistory : true,
+      membershipRequired : false,
+      members : [ 'TestUser1' ],
+      admins : [ 'TestUser1' ],
+      owner : 'TestUser1'
+    });
     socketServer.sanatizeRoomForClient(testPublicRoom, function(sanatizedRoom) {
-      console.log("Sanatized room is:",sanatizedRoom);
-      expect(sanatizedRoom).toBe(0);
+      expect(sanatizedRoom).toMatch(correctlySanatizedRoom);
     })
+  })
+});
+
+describe('Get default room', function() {
+  it('should return a room', function() {
+    socketServer.getDefaultRoom(function(defaultRoom) {
+      expect(typeof defaultRoom == mongoose.Schema('Room')).toBe(true);
+    })
+  })
+  it('should return a room that is public', function() {
+    socketServer.getDefaultRoom(function(defaultRoom) {
+      expect(defaultRoom.membershipRequired).toBe(false);
+    })
+  })
+});
+
+describe('Authenticate', function() {
+  it('should be successful with a valid key', function() {
+    socketServer.authenticate(data);
+    // Mock up user private and public keys
+    expect(authenticated).toBe(true);
   })
 });

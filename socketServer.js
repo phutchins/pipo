@@ -12,11 +12,13 @@ var config = require('./config/pipo');
  */
 function SocketServer(namespace) {
   this.namespace = namespace;
-  if (!this.namespace.socketMap) {
-    this.namespace.socketMap = {};
-  }
-  if (!this.namespace.userMap) {
-    this.namespace.userMap = {};
+  if (this.namespace) {
+    if (!this.namespace.socketMap) {
+      this.namespace.socketMap = {};
+    }
+    if (!this.namespace.userMap) {
+      this.namespace.userMap = {};
+    }
   }
 }
 
@@ -453,7 +455,6 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   //console.log("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
-    console.log("About to loop through members, Object.keys for members is: ",Object.keys(room._members));
     console.log("room members is: ",room._members);
 
     room._members.forEach(function(member) {

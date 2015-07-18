@@ -49,9 +49,13 @@ SocketClient.prototype.init = function() {
 
 SocketClient.prototype.joinRoom = function(room, callback) {
   var self = this;
-  console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
-  self.socket.emit('join', { room: room } );
-  callback(null);
+  if (room && typeof room !== 'undefined') {
+    console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
+    self.socket.emit('join', { room: room } );
+    return callback(null);
+  } else {
+    return console.log("[JOIN ROOM] room was null  !");
+  }
 };
 
 SocketClient.prototype.createRoom = function(data, callback) {
@@ -82,7 +86,9 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('authenticated', function(data) {
     if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
     var autoJoinRooms = data.autoJoin;
+    var defaultRoomName = data.defaultRoomName;
 
+    ChatManager.defaultRoomName = data.defaultRoomName;
     ChatManager.userlist = data.userlist;
 
     ChatManager.userSignedIn();
@@ -95,15 +101,21 @@ SocketClient.prototype.addListeners = function() {
             console.log("[AUTHENTICATED] Authenticated successfully");
             // Use cilent keys and enable chat for each room user is currently in
             if (autoJoinRooms.length > 0) {
+              console.log("[SOCKET] (authenticated) Joining room ",room);
               autoJoinRooms.forEach(function(room) {
-                console.log("[SOCKET] (authenticated) Joining room "+room);
-                self.joinRoom(room, function(err) {
-                  console.log("[SOCKET] (authenticated) Sent join request for room "+room);
-                });
+                if (room && typeof room !== 'undefined') {
+                  self.joinRoom(room, function(err) {
+                    console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+                  });
+                }
               });
             } else {
               // Join the default room
-              self.joinRoom('pipo', function(err) {
+              // Get default room name
+              var defaultRoomName = ChatManager.defaultRoomName;
+              // Join default room
+              console.log("[SOCKET] (authenticated) Joining room ",defaultRoomName);
+              self.joinRoom(defaultRoomName, function(err) {
                 console.log("[SOCKET] (authenticated) Joined default room becuase autoJoin was empty");
               })
             }
@@ -115,7 +127,7 @@ SocketClient.prototype.addListeners = function() {
               console.log("[AUTHENTICATED] Authenticated successfully");
               // Use cilent keys and enable chat for each room user is currently in
               autoJoinRooms.forEach(function(room) {
-                console.log("[SOCKET] (authenticated) Joining room "+room);
+                console.log("[SOCKET] (authenticated) Joining room ",room);
                 self.joinRoom(room, function(err) {
                   console.log("[SOCKET] (authenticated) Sent join request for room "+room);
                 });
@@ -375,7 +387,7 @@ SocketClient.prototype.handleMembershipUpdate = function(data) {
   var rooms = data.rooms;
   // We want to update one at a time in case we only receive an update for select room(s)
   Object.keys(rooms).forEach(function(roomName) {
-    console.log("Adding room " + roomName + " to array with data: " + rooms[roomName]);
+    console.log("Adding room",roomName,"to array with data:",rooms[roomName]);
     ChatManager.rooms[roomName] = rooms[roomName];
   })
 };

@@ -109,7 +109,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  console.log("[AUTHENTICATE] Authenticating user data is: ",data.userName);
+  console.log("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
     //console.log("[AUTHENTICATE] authData is ", authData);
     var user = new User;
@@ -455,7 +455,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   //console.log("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
-    console.log("room members is: ",room._members);
+    //console.log("room members is: ",room._members);
 
     room._members.forEach(function(member) {
       //console.log("[sanatizeRoomForClient] looping members - key:",key);

@@ -109,7 +109,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  console.log("[AUTHENTICATE] Authenticating user data is: ",data);
+  //console.log("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
     //console.log("[AUTHENTICATE] authData is ", authData);
     var user = new User;
@@ -117,11 +117,13 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     var newUser = authData.newUser;
     //console.log("[AUTHENTICATE] AuthData.user: ",authData.user);
 
+    console.log("Error: ",err);
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
+    console.log("user is: ",user);
     if (user) {
       if (newUser) {
         console.log("User", data.userName, " not in the mastr cached userlist so adding them");

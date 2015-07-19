@@ -85,10 +85,14 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
+  console.log("About to find user...");
   this.findOne({userName: data.userName}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
+    console.log("done finding user");
     if (err) {
+      console.log("Error finding or creating user: ",err);
       return callback(err);
     }
+    console.log("no error");
     if (!user) {
       console.log("[USER] User '"+data.userName+"' not found so creating");
       //console.log("[DEBUG] User did not exist so creating user with data: ",data);

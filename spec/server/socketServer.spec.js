@@ -98,13 +98,18 @@ describe('Chat server', function() {
   var socketServer;
   describe('authentication', function() {
     beforeEach(function() {
-      emitSpy = createSpy('emitSpy');
-      onSpy = createSpy('onSpy');
-      console.log("running before each");
-      socket = {
-        emit : emitSpy,
-        on : onSpy
-      };
+      var emitCode, emitData;
+      socket = jasmine.createSpyObj('socket', ['emit']);
+      //User = jasmine.createSpyObj('authenticateOrCreate');;
+      //socket = {
+      //  emit : function(emitCode, emitData) {
+      //    emitCode = emitCode;
+      //    emitData = emitData;
+      //  }
+      //};
+
+      // Should create a sample good user object here
+      spyOn(User, 'authenticateOrCreate').andReturn(null, { user: testUser } );
 
       socketServer = new SocketServer(socket);
     })
@@ -112,14 +117,24 @@ describe('Chat server', function() {
     afterEach(function() {
     })
 
+    it('should call authenticateOrCreate', function() {
+      socketServer.authenticate(validUserData);
+      expect(User.authenticateOrCreate.callCount).toEqual(1);
+    });
+
+    it('should call authenticateOrCreate with the data we povided', function() {
+      socketServer.authenticate(validUserData);
+      expect(User.authenticateOrCreate).toHaveBeenCalledWith(validUserData, jasmine.any(Function));
+    });
+
     it('should be successful with a valid key', function() {
       socketServer.authenticate(validUserData);
-      expect(emitSpy).toHaveBeenCalledWith({ 'message': 'ok'});
+      expect(socket.emit).toHaveBeenCalledWith({ 'message': 'ok'});
     });
 
     it('should send a list of rooms with membership to the client', function() {
       socketServer.authenticate(validUserData);
-      expect(onSpy).toHaveBeenCalledWith({ bleh: 'hi' });
+      expect(socket.emit).toHaveBeenCalledWith({ bleh: 'hi' });
     })
   })
 });

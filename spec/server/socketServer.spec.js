@@ -93,13 +93,13 @@ describe('Get default room', function() {
 });
 
 describe('Chat server', function() {
-  var socket, socketEmitData, socketOnData, emitSpy, onSpy;
+  var socket = {};
+  var socketEmitData, socketOnData, emitSpy, onSpy;
   //var spy = jasmine.createSpy('spy');
   var socketServer;
   describe('authentication', function() {
     beforeEach(function() {
       var emitCode, emitData;
-      socket = jasmine.createSpyObj('socket', ['emit']);
       //User = jasmine.createSpyObj('authenticateOrCreate');;
       //socket = {
       //  emit : function(emitCode, emitData) {
@@ -109,9 +109,22 @@ describe('Chat server', function() {
       //};
 
       // Should create a sample good user object here
-      spyOn(User, 'authenticateOrCreate').andReturn(null, { user: testUser } );
+      //spyOn(socket, 'emit').andCallFake( function(type, data) {
+      //});
+      spyOn(User, 'authenticateOrCreate').andCallFake( function(testUser, callback) {
+        callback(null, {user: testUser});
+      });
+      spyOn(User, 'populate').andCallFake( function(user, data, callback) {
+        // This should return a populated user
+        callback(null, testUser);
+      });
 
       socketServer = new SocketServer(socket);
+      socketServer.socket = {}
+      socketServer.socket.socketMap = {}
+      socketServer.socket.emit = jasmine.createSpy('socket emit');
+      socketServer.socket.id = '55aa6c0e937db58bcea22f4b';
+      socketServer.socket.socketMap[socketServer.socket.id] = {};
     })
 
     afterEach(function() {

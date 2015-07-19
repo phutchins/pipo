@@ -117,13 +117,11 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     var newUser = authData.newUser;
     //console.log("[AUTHENTICATE] AuthData.user: ",authData.user);
 
-    console.log("Error: ",err);
     if (err) {
       console.log('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
-    console.log("user is: ",user);
     if (user) {
       if (newUser) {
         console.log("User", data.userName, " not in the mastr cached userlist so adding them");
@@ -152,6 +150,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
         // Get complete userlist to send to client on initial connection
         console.log("getting userlist for user...");
+        self.socket.emit('bleh', {test: 'hi'});
         self.getDefaultRoom(function(defaultRoom) {
           if (defaultRoom == null) { return console.log("[AUTHENTICATE] ERROR - default room is null") }
           self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {

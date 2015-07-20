@@ -94,23 +94,14 @@ describe('Get default room', function() {
 
 describe('Chat server', function() {
   var socket = {};
-  var socketEmitData, socketOnData, emitSpy, onSpy;
-  //var spy = jasmine.createSpy('spy');
   var socketServer;
   describe('authentication', function() {
     beforeEach(function() {
       var emitCode, emitData;
-      //User = jasmine.createSpyObj('authenticateOrCreate');;
-      //socket = {
-      //  emit : function(emitCode, emitData) {
-      //    emitCode = emitCode;
-      //    emitData = emitData;
-      //  }
-      //};
+      var namespace = io.of('/socket');
 
-      // Should create a sample good user object here
-      //spyOn(socket, 'emit').andCallFake( function(type, data) {
-      //});
+      socketServer = new SocketServer(namespace);
+
       spyOn(User, 'authenticateOrCreate').andCallFake( function(testUser, callback) {
         callback(null, {user: testUser});
       });
@@ -118,13 +109,18 @@ describe('Chat server', function() {
         // This should return a populated user
         callback(null, testUser);
       });
+      // Spy for default room
+      spyOn(socketServer, 'getDefaultRoom').andCallFake( function(callback) {
+        callback(testPublicRoom);
+      });
 
-      socketServer = new SocketServer(socket);
+      socket = jasmine.createSpyObj('socket', ['emit', 'on']);
+
       socketServer.socket = {}
       socketServer.socket.socketMap = {}
-      socketServer.socket.emit = jasmine.createSpy('socket emit');
       socketServer.socket.id = '55aa6c0e937db58bcea22f4b';
       socketServer.socket.socketMap[socketServer.socket.id] = {};
+
     })
 
     afterEach(function() {
@@ -142,12 +138,12 @@ describe('Chat server', function() {
 
     it('should be successful with a valid key', function() {
       socketServer.authenticate(validUserData);
-      expect(socket.emit).toHaveBeenCalledWith({ 'message': 'ok'});
+      expect(socketServer.socket.emit).toHaveBeenCalledWith({ 'message': 'ok'});
     });
 
     it('should send a list of rooms with membership to the client', function() {
       socketServer.authenticate(validUserData);
-      expect(socket.emit).toHaveBeenCalledWith({ bleh: 'hi' });
+      expect(socketServer.socket.emit).toHaveBeenCalledWith({ bleh: 'hi' });
     })
   })
 });

@@ -3,7 +3,7 @@
 
 var mongoose = require('mongoose');
 
-var io = require('socket.io-client');
+//var io = require('socket.io-client');
 var should = require('should');
 var socketURL = 'https://127.0.0.1:3030';
 
@@ -93,14 +93,17 @@ describe('Get default room', function() {
 });
 
 describe('Chat server', function() {
-  var socket = {};
-  var socketServer;
   describe('authentication', function() {
+    var socketServer;
     beforeEach(function() {
       var emitCode, emitData;
-      var namespace = io.of('/socket');
+      var namespace = jasmine.createSpyObj('namespace', ['emit', 'socketMap']);
+      namespace.socketMap['1234567890'] = {};
+      var fakeSocket = jasmine.createSpyObj('fakeSocket', ['emit', 'on', 'id']);
 
       socketServer = new SocketServer(namespace);
+      //socketServer.socket.id = '55aa6c0e937db58bcea22f4b';
+      socketServer.onSocket(fakeSocket);
 
       spyOn(User, 'authenticateOrCreate').andCallFake( function(testUser, callback) {
         callback(null, {user: testUser});
@@ -114,12 +117,9 @@ describe('Chat server', function() {
         callback(testPublicRoom);
       });
 
-      socket = jasmine.createSpyObj('socket', ['emit', 'on']);
+      //socket = jasmine.createSpyObj('socket', ['emit', 'on']);
 
-      socketServer.socket = {}
-      socketServer.socket.socketMap = {}
-      socketServer.socket.id = '55aa6c0e937db58bcea22f4b';
-      socketServer.socket.socketMap[socketServer.socket.id] = {};
+      //socketServer.socket.socketMap[socketServer.socket.id] = {};
 
     })
 

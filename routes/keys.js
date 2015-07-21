@@ -8,17 +8,17 @@ module.exports = function(app) {
   app.get('/key/publickey', function(req, res) {
     var timestamp = new Date().toString();
     var userName = req.param('userName');
-    logger.info("["+timestamp+"] [API] [GET] [/key/publickey] Getting publickey for user "+userName);
+    logger.debug("[API] [GET] [/key/publickey] Getting publickey for user "+userName);
     User.findOne({ userName: userName }, function(err, user) {
       if (err) return logger.info("[ERROR] Error getting user: "+err);
       if (user == null) {
-        logger.info("["+timestamp+"] publicKey for "+userName+"  not found");
+        logger.error("["+timestamp+"] publicKey for "+userName+"  not found");
         res.status(404).send();
       } else if (typeof user.publicKey != 'undefined') {
-        logger.info("["+timestamp+"] KeyPair found...");
+        logger.debug("KeyPair found...");
         res.json({ publicKey: user.publicKey });
       } else {
-        logger.info("["+timestamp+"] Error while looking for publickey for "+userName);
+        logger.error("[API] [GET] Error while looking for publickey for "+userName);
         res.status(500).send();
       }
     });

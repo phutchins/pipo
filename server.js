@@ -86,15 +86,16 @@ connectWithRetry();
 // Load routes
 var routePath = './routes/';
 var routes = [];
+logger.info("[SERVER] Loading routes...");
 fs.readdirSync(routePath).forEach(function(file) {
   var route = routePath + file;
   var routeName = file.split('.')[0];
-  logger.info("[SERVER] Loading route", routeName);
+  logger.debug("[SERVER] Loading route", routeName);
   routes[routeName] = require(route)(app);
 });
 
 io.on('connection',function (socket) {
-  logger.info("Connection to io");
+  logger.debug("Connection to io");
 });
 
 var ioMain = io.of('/socket');
@@ -109,7 +110,7 @@ function initServer() {
     case 'masterKey':
       logger.info("[START] Starting in MASTER KEY mode");
       ioMain.on('connection', function(socket) {
-        logger.info("Connection to ioMain");
+        logger.debug("Connection to ioMain");
         socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain);
         socketServer.onSocket(socket);
@@ -121,7 +122,7 @@ function initServer() {
     case 'clientKey':
       logger.info("[START] Starting in CLIENT KEY mode");
       ioMain.on('connection', function(socket) {
-        logger.info("Connection to ioMain");
+        logger.debug("Connection to ioMain");
         socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain).onSocket(socket);
       });

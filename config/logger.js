@@ -41,7 +41,7 @@ if (process.env.NODE_ENV !== 'test') {
   })
 
   logger.add(winston.transports.Console, {
-    level: 'trace',
+    level: 'info',
     prettyPrint: true,
     colorize: true,
     silent: false,

@@ -187,11 +187,11 @@ userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
 userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   var userlist = {};
   this.find({}, function(err, users) {
-    if (err) { return callback(err, null) }
+    if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
       userlist[user.userName] = { userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
-    return callback(null, userlist);
+    return callback(userlist);
   })
 };
 

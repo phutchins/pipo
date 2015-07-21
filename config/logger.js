@@ -29,7 +29,7 @@ var logger = new (winston.Logger)({
 
 if (process.env.NODE_ENV !== 'test') {
   logger.add(winston.transports.File, {
-    level: 'info',
+    level: 'debug',
     prettyPrint: false,
     colorize: true,
     silent: false,
@@ -41,7 +41,7 @@ if (process.env.NODE_ENV !== 'test') {
   })
 
   logger.add(winston.transports.Console, {
-    level: 'info',
+    level: 'debug',
     prettyPrint: true,
     colorize: true,
     silent: false,

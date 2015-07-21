@@ -1,489 +1,750 @@
-{"level":"info","message":"Logger is working","timestamp":"2015-07-21T11:32:33.894Z"}
-{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T11:33:30.038Z"}
-{"level":"info","message":"this is a test","timestamp":"2015-07-21T11:33:30.192Z"}
-{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:55:46.796Z"}
-{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:55:46.968Z"}
-{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:55:46.969Z"}
-{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:55:46.969Z"}
-{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:55:46.973Z"}
-{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:55:46.973Z"}
-{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:55:46.974Z"}
-{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:55:46.980Z"}
-{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:55:46.983Z"}
-{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:55:46.984Z"}
-{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:55:46.984Z"}
-{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:55:46.984Z"}
-{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:55:46.984Z"}
-{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:56:52.036Z"}
-{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:56:52.036Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:56:52.041Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:56:52.041Z"}
-{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:58:41.836Z"}
-{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:58:42.441Z"}
-{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:58:42.442Z"}
-{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:58:42.442Z"}
-{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:58:42.446Z"}
-{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:58:42.447Z"}
-{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:58:42.447Z"}
-{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:58:42.453Z"}
-{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:58:42.456Z"}
-{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:58:42.456Z"}
-{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:58:42.456Z"}
-{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:58:42.456Z"}
-{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:58:42.456Z"}
-{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:58:42.932Z"}
-{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:58:42.932Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:58:42.936Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:58:42.937Z"}
-{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:59:07.834Z"}
-{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:59:08.385Z"}
-{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:59:08.386Z"}
-{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:59:08.386Z"}
-{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:59:08.390Z"}
-{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:59:08.391Z"}
-{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:59:08.391Z"}
-{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:59:08.396Z"}
-{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:59:08.399Z"}
-{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:59:08.399Z"}
-{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:59:08.399Z"}
-{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:59:08.399Z"}
-{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:59:08.399Z"}
-{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:59:08.832Z"}
-{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:59:08.832Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:59:08.836Z"}
-{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:59:08.837Z"}
-2015-07-21T14:08:34.906Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:08:35.763Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T14:08:35.763Z - [32minfo[39m: this is a test
-2015-07-21T14:08:35.764Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:08:35.768Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T14:08:35.768Z - [32minfo[39m: getting available room list
-2015-07-21T14:08:35.769Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:08:35.773Z - [32minfo[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined
-2015-07-21T14:08:35.778Z - [32minfo[39m: done getting available room list
-2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room secret to array
-2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T14:08:35.778Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T14:08:36.302Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T14:08:36.303Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
-2015-07-21T14:08:36.308Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
-2015-07-21T14:08:36.309Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
-2015-07-21T14:10:26.225Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T14:10:26.227Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T14:10:26.228Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T14:10:26.228Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T14:10:26.229Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T14:10:26.230Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T14:10:26.752Z - [32minfo[39m: Connection to io
-2015-07-21T14:10:26.764Z - [32minfo[39m: Connection to ioMain
-2015-07-21T14:10:26.765Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:10:27.287Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T14:10:27.287Z - [32minfo[39m: this is a test
-2015-07-21T14:10:27.288Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:10:27.292Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T14:10:27.292Z - [32minfo[39m: getting available room list
-2015-07-21T14:10:27.293Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:10:27.298Z - [32minfo[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined
-2015-07-21T14:10:27.303Z - [32minfo[39m: done getting available room list
-2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room secret to array
-2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T14:10:27.303Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T14:10:27.728Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T14:10:27.730Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
-2015-07-21T14:10:27.734Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
-2015-07-21T14:10:27.734Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
-2015-07-21T14:10:48.444Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T14:10:48.445Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T14:10:48.446Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T14:10:48.446Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T14:10:48.446Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T14:10:48.448Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T14:10:49.768Z - [32minfo[39m: Connection to io
-2015-07-21T14:10:49.810Z - [32minfo[39m: Connection to ioMain
-2015-07-21T14:10:49.811Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:10:50.317Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T14:10:50.317Z - [32minfo[39m: this is a test
-2015-07-21T14:10:50.317Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:10:50.321Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T14:10:50.965Z - [32minfo[39m: getting available room list
-2015-07-21T14:10:50.965Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:10:50.980Z - [32minfo[39m: done getting available room list
-2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room secret to array
-2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T14:10:50.980Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T14:10:51.749Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T14:10:51.750Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
-2015-07-21T14:10:51.755Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
-2015-07-21T14:10:51.755Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
-2015-07-21T14:11:05.300Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:05.301Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:05.302Z - [32minfo[39m: this is a test
-2015-07-21T14:11:05.302Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:05.303Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:05.303Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:05.303Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:05.303Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:05.303Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:05.303Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:05.304Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:05.304Z - [32minfo[39m: this is a test
-2015-07-21T14:11:05.304Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:05.304Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:05.304Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:05.304Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:05.304Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:05.304Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:05.304Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:05.305Z - [32minfo[39m: this is a test
-2015-07-21T14:11:05.305Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:05.305Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:05.305Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:05.305Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:05.305Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:05.305Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:05.305Z - [32minfo[39m: this is a test
-2015-07-21T14:11:05.305Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:05.306Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:05.306Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:05.306Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:05.306Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:05.306Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:55.533Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:55.535Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:55.535Z - [32minfo[39m: this is a test
-2015-07-21T14:11:55.536Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:55.536Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:55.536Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:55.536Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:55.536Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:55.536Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:55.537Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:55.537Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:55.537Z - [32minfo[39m: this is a test
-2015-07-21T14:11:55.537Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:55.537Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:55.537Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:55.537Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:55.537Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:55.537Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:55.538Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:55.538Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:55.538Z - [32minfo[39m: this is a test
-2015-07-21T14:11:55.538Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:55.538Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:55.538Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:55.538Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:55.538Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:55.538Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:55.539Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:55.539Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:55.539Z - [32minfo[39m: this is a test
-2015-07-21T14:11:55.539Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:55.539Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:55.539Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:55.539Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:55.539Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:55.539Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:57.724Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:57.726Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:57.726Z - [32minfo[39m: this is a test
-2015-07-21T14:11:57.726Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:57.727Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:57.727Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:57.727Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:57.727Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:57.727Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:57.728Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:57.729Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:57.729Z - [32minfo[39m: this is a test
-2015-07-21T14:11:57.729Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:57.729Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:57.729Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:57.729Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:57.729Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:57.729Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:57.730Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:57.731Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:57.731Z - [32minfo[39m: this is a test
-2015-07-21T14:11:57.731Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:57.731Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:57.731Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:57.731Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:57.731Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:57.731Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:11:57.731Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:11:57.732Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:11:57.732Z - [32minfo[39m: this is a test
-2015-07-21T14:11:57.732Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:11:57.732Z - [32minfo[39m: getting available room list
-2015-07-21T14:11:57.732Z - [32minfo[39m: done getting available room list
-2015-07-21T14:11:57.732Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:11:57.732Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:11:57.732Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:13:21.809Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:13:21.811Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:13:21.811Z - [32minfo[39m: this is a test
-2015-07-21T14:13:21.812Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:13:21.812Z - [32minfo[39m: getting available room list
-2015-07-21T14:13:21.812Z - [32minfo[39m: done getting available room list
-2015-07-21T14:13:21.813Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:13:21.813Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:13:21.813Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:13:21.813Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:13:21.813Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:13:21.813Z - [32minfo[39m: this is a test
-2015-07-21T14:13:21.813Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:13:21.813Z - [32minfo[39m: getting available room list
-2015-07-21T14:13:21.813Z - [32minfo[39m: done getting available room list
-2015-07-21T14:13:21.814Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:13:21.814Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:13:21.814Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:13:21.814Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:13:21.814Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:13:21.814Z - [32minfo[39m: this is a test
-2015-07-21T14:13:21.814Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:13:21.814Z - [32minfo[39m: getting available room list
-2015-07-21T14:13:21.814Z - [32minfo[39m: done getting available room list
-2015-07-21T14:13:21.814Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:13:21.815Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:13:21.815Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:13:21.815Z - [32minfo[39m: this is a test
-2015-07-21T14:13:21.815Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:13:21.815Z - [32minfo[39m: getting available room list
-2015-07-21T14:13:21.815Z - [32minfo[39m: done getting available room list
-2015-07-21T14:13:21.815Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:13:21.815Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:14.406Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:14.408Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:14.408Z - [32minfo[39m: this is a test
-2015-07-21T14:16:14.408Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:14.409Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:14.409Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:14.409Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:14.409Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:14.409Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:14.409Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:14.410Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:14.410Z - [32minfo[39m: this is a test
-2015-07-21T14:16:14.410Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:14.410Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:14.410Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:14.410Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:14.410Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:14.410Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:14.411Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:14.411Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:14.411Z - [32minfo[39m: this is a test
-2015-07-21T14:16:14.411Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:14.411Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:14.411Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:14.411Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:14.411Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:14.411Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:14.412Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:14.412Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:14.412Z - [32minfo[39m: this is a test
-2015-07-21T14:16:14.412Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:14.412Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:14.412Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:14.412Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:14.412Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:14.412Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:55.914Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:55.916Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:55.916Z - [32minfo[39m: this is a test
-2015-07-21T14:16:55.916Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:55.917Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:55.917Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:55.917Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:55.917Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:55.917Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:55.918Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:55.918Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:55.918Z - [32minfo[39m: this is a test
-2015-07-21T14:16:55.918Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:55.918Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:55.918Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:55.918Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:55.918Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:55.918Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:55.919Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:55.919Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:55.919Z - [32minfo[39m: this is a test
-2015-07-21T14:16:55.919Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:55.919Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:55.919Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:55.919Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:55.919Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:55.919Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:16:55.920Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:16:55.920Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:16:55.920Z - [32minfo[39m: this is a test
-2015-07-21T14:16:55.920Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:16:55.920Z - [32minfo[39m: getting available room list
-2015-07-21T14:16:55.920Z - [32minfo[39m: done getting available room list
-2015-07-21T14:16:55.920Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:16:55.920Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:16:55.920Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:06.811Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:06.813Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:06.813Z - [32minfo[39m: this is a test
-2015-07-21T14:17:06.813Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:06.814Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:06.814Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:06.814Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:06.814Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:06.814Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:06.815Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:06.815Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:06.815Z - [32minfo[39m: this is a test
-2015-07-21T14:17:06.815Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:06.815Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:06.815Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:06.815Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:06.815Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:06.815Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:06.816Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:06.816Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:06.816Z - [32minfo[39m: this is a test
-2015-07-21T14:17:06.816Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:06.816Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:06.816Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:06.816Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:06.816Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:06.816Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:06.817Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:06.817Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:06.817Z - [32minfo[39m: this is a test
-2015-07-21T14:17:06.817Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:06.817Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:06.817Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:06.817Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:06.817Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:06.817Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:11.646Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:11.647Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:11.647Z - [32minfo[39m: this is a test
-2015-07-21T14:17:11.648Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:11.649Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:11.649Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:11.649Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:11.649Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:11.649Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:11.649Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:11.649Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:11.649Z - [32minfo[39m: this is a test
-2015-07-21T14:17:11.649Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:11.650Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:11.650Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:11.650Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:11.650Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:11.650Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:11.650Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:11.650Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:11.650Z - [32minfo[39m: this is a test
-2015-07-21T14:17:11.650Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:11.651Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:11.651Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:11.651Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:11.651Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:11.651Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T14:17:11.651Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T14:17:11.651Z - [32minfo[39m: [INIT] Init'd user testUser
-2015-07-21T14:17:11.651Z - [32minfo[39m: this is a test
-2015-07-21T14:17:11.651Z - [32minfo[39m: getting userlist for user...
-2015-07-21T14:17:11.651Z - [32minfo[39m: getting available room list
-2015-07-21T14:17:11.651Z - [32minfo[39m: done getting available room list
-2015-07-21T14:17:11.651Z - [32minfo[39m: Adding room testRoom to array
-2015-07-21T14:17:11.651Z - [32minfo[39m: Sending membership update to user testUser
-2015-07-21T14:17:11.652Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T21:49:24.029Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T21:49:24.031Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T21:49:24.032Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T21:49:24.033Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T21:49:24.034Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T21:49:24.035Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T21:49:53.479Z - [32minfo[39m: Connection to io
-2015-07-21T21:49:53.634Z - [32minfo[39m: Connection to ioMain
-2015-07-21T21:49:53.635Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T21:50:00.820Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T21:50:00.820Z - [32minfo[39m: this is a test
-2015-07-21T21:50:00.821Z - [32minfo[39m: getting userlist for user...
-2015-07-21T21:50:00.830Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T21:50:00.830Z - [32minfo[39m: getting available room list
-2015-07-21T21:50:00.830Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T21:50:00.851Z - [32minfo[39m: done getting available room list
-2015-07-21T21:50:00.851Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T21:50:00.851Z - [32minfo[39m: Adding room secret to array
-2015-07-21T21:50:00.852Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T21:50:00.852Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T21:50:01.125Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T21:50:01.125Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
-2015-07-21T21:50:01.132Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
-2015-07-21T21:50:01.132Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
-2015-07-21T21:51:14.156Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T21:51:14.158Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T21:51:14.159Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T21:51:14.160Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T21:51:14.161Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T21:51:14.162Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T21:51:15.216Z - [32minfo[39m: Connection to io
-2015-07-21T21:51:15.227Z - [32minfo[39m: Connection to ioMain
-2015-07-21T21:51:15.227Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T21:51:15.385Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T21:51:15.385Z - [32minfo[39m: this is a test
-2015-07-21T21:51:15.386Z - [32minfo[39m: getting userlist for user...
-2015-07-21T21:51:15.389Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T21:51:15.390Z - [32minfo[39m: getting available room list
-2015-07-21T21:51:15.390Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T21:51:15.399Z - [32minfo[39m: done getting available room list
-2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room secret to array
-2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T21:51:15.399Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T21:51:15.706Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T21:51:15.708Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
-2015-07-21T21:51:15.715Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
-2015-07-21T21:51:15.715Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
-2015-07-21T21:55:29.661Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T21:55:29.663Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T21:55:29.663Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T21:55:29.664Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T21:55:29.664Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T21:55:29.666Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T21:55:31.196Z - [32minfo[39m: Connection to io
-2015-07-21T21:55:31.206Z - [32minfo[39m: Connection to ioMain
-2015-07-21T21:55:31.206Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T21:55:31.353Z - [32minfo[39m: [DISCONNECT] socket.id: XkyXD8P6qZvcMqJxAAAA
-2015-07-21T21:55:31.353Z - [32minfo[39m: WARNING! Someone left the channel and we don't know who it was...
-2015-07-21T21:55:50.909Z - [32minfo[39m: [SERVER] Loading route chat
-2015-07-21T21:55:50.911Z - [32minfo[39m: [SERVER] Loading route keys
-2015-07-21T21:55:50.911Z - [32minfo[39m: [SERVER] Loading route membership
-2015-07-21T21:55:50.912Z - [32minfo[39m: [SERVER] Loading route user
-2015-07-21T21:55:50.912Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
-2015-07-21T21:55:50.914Z - [32minfo[39m: [SERVER] Listening on port 3030
-2015-07-21T21:55:52.189Z - [32minfo[39m: Connection to io
-2015-07-21T21:55:52.199Z - [32minfo[39m: Connection to ioMain
-2015-07-21T21:55:52.200Z - [32minfo[39m: [CONNECTION] Socket connected to main
-2015-07-21T21:55:52.350Z - [32minfo[39m: [INIT] Init'd user philip5
-2015-07-21T21:55:52.350Z - [32minfo[39m: this is a test
-2015-07-21T21:55:52.350Z - [32minfo[39m: getting userlist for user...
-2015-07-21T21:55:52.354Z - [32minfo[39m: Found default room: # pipo
-2015-07-21T21:55:52.354Z - [32minfo[39m: getting available room list
-2015-07-21T21:55:52.355Z - [32minfo[39m: [INIT] Emitting user connect
-2015-07-21T21:55:52.366Z - [32minfo[39m: done getting available room list
-2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room pipo to array
-2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room secret to array
-2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room newroom to array
-2015-07-21T21:55:52.366Z - [32minfo[39m: Sending membership update to user philip5
-2015-07-21T21:55:52.698Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
-2015-07-21T21:55:52.700Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T22:41:55.877Z - [32minfo[39m: [SERVER] Loading routes...
+2015-07-21T22:41:55.878Z - [34mdebug[39m: [SERVER] Loading route chat
+2015-07-21T22:41:55.879Z - [34mdebug[39m: [SERVER] Loading route keys
+2015-07-21T22:41:55.880Z - [34mdebug[39m: [SERVER] Loading route membership
+2015-07-21T22:41:55.881Z - [34mdebug[39m: [SERVER] Loading route user
+2015-07-21T22:41:55.881Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T22:41:55.882Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T22:42:00.624Z - [34mdebug[39m: Connection to io
+2015-07-21T22:42:00.628Z - [34mdebug[39m: Connection to ioMain
+2015-07-21T22:42:00.628Z - [34mdebug[39m: [CONNECTION] Socket connected to main
+2015-07-21T22:42:00.854Z - [34mdebug[39m: [AUTHENTICATE] Authenticating user data is:  userName=awesome2, publicKey=-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: OpenPGP.js v1.0.1
+Comment: http://openpgpjs.org
+
+xsBNBFWuyPQBCAC4F2s2wzB+fjzxwLGKZVoYKPbFDnZO8yuY3f7tOxdkKhkW
+1C4OGCRPp+qSDQl9Jwp26HctukW1BNX6j8W6vA+GqwdBohTqk80g2FYQAmJb
+DzqPwMeBB30EnEh1rchpvo/0F907+kRYoA1d7BNGIMac24e46gTK2YwoKkZ4
+PVoq6esmIdkF/3b7P3F2KWI019g+feuSZtQBXoinXzSp0pG7bVVEYdglaPlU
+ndHzwFUkdoiXNLDriefkzz4AXdqVTApiS2QTr/WVUDlnwl7J35hT94A9sCjW
+LuIK47Wzdy0tbuHWDq+o1QShv2K3f4XL2OoyjhWFxugvcIXuz6cinK/BABEB
+AAHNCGF3ZXNvbWUywsByBBABCAAmBQJVrsj2BgsJCAcDAgkQj0697eyIunkE
+FQgCCgMWAgECGwMCHgEAAK+oCACtvxmltEu8BoZRepmmFafpc5Mng5mdDtf9
+6MlcCiZNg1Kz24iKfyX9bmOdBSU4eNpWwm9iC/LXIrhMoMad5KfVCpYW//Br
+xxzZKpgDZaRDsKMhB9KGRme+oIG8VE9tixU7lYseuRlo6ayR57Xj1TItoP09
+8UeNqK5HZI00vRpimFdeJaxIy0NOhBZdvOoUaCGEUGkMqgp8YZfAISTvZJd6
+BVQwXF9X6iAlD5BXUA9HbmeHrf9BR+IGXxKx48Bf5vkYLDm4Ka5eLFWUOOU3
+yRfguUOliJyyMABywL9KLZR5Qmv6HxpDxelve/aaGtkVxt8D4ehuvacq5CQU
+31wjQA4ZzsBNBFWuyPQBCADDPfEKeOrkIp+3LxQkRWoeHwHQ5zzZ+B6Q3Q+1
+qSXCux+OBUYrE67l3AdWOI2BRtvfBfa1tfpyhDslrJqzLTCcqqy6rNYuxgon
+6MATqLx0arCbmsorjIpyCJXOVmEh1sE3m7m2tG7oF0SA3eXmlrm0TPuvEh6v
+oAcy1bVBfTsyIlADWxAvkv3a5KpZCkZPmfCz+k7I0bIetTpTDLZm6mUl3mkt
+WBk2KiFhFer+mWPiLzOpErw/+pxde/Tzny5slDiti9UxwO8aooPr4GkEQNZA
+gUQjdIIdFz7z13+Kq3sGGuFdqnQQrFRRlhII99MT8UT1k2Jy9EmTMT8BTkVJ
+p0WHABEBAAHCwF8EGAEIABMFAlWuyPYJEI9Ove3siLp5AhsMAABs2wgAnP1v
+um9n3TlWFSKWAHmw6UIYYxwINwY0/NZeKU5YHeHUpTJ9UgHURSN6KG5qI1El
+YUMbBzcsW3PDFyBE/XFgWnLTeeA4/+lOA8rN5uSCV2QvfMBcpy0UNvac+kOX
+wzX98U4hK6y2V9QjlciSDxN0JFKUmgwBoWmExIGY708eGpXSJxoHNCkf42wr
+vaVZiqDOwGD7vdJt9OTz7Fg7mZH5sGtxbMd429kQXMXbGtbzrzcIpJVTUABp
+5n7atfsXniASmaGd5DQZhTjiekhur1c0fGdboq/I4uj0Mf1RxP6MtdCcimhB
+coh8SggmkMogHtPnbNxx0zvLO2hRn3R5ZEqqjg==
+=klid
+-----END PGP PUBLIC KEY BLOCK-----, email=awesome2@awesome.com
+2015-07-21T22:42:00.855Z - [34mdebug[39m: [USER] authenticateOrCreate
+2015-07-21T22:42:00.855Z - [34mdebug[39m: About to find user...
+2015-07-21T22:42:00.865Z - [34mdebug[39m: done finding user
+2015-07-21T22:42:00.865Z - [34mdebug[39m: [USER] Found user 'awesome2'
+2015-07-21T22:42:00.865Z - [34mdebug[39m: [USER] User 'awesome2' has a public key that matches userName
+2015-07-21T22:42:00.865Z - [34mdebug[39m: [AUTHENTICATE] authData is  strictMode=true, selected=undefined, shardval=undefined, saveError=undefined, validationError=undefined, adhocPaths=undefined, removing=undefined, inserting=undefined, version=undefined, , _id=undefined, populate=undefined, value=[], path=membership._autoJoin, match=undefined, select=undefined, options=undefined, model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["user"]["$__"]["populated"]["membership._autoJoin"]["value"], value=[], path=membership.rooms._room, match=undefined, select=undefined, options=undefined, model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["user"]["$__"]["populated"]["membership.rooms._room"]["value"], wasPopulated=false, scope=undefined, socketIds=init, membership.rooms=init, membership._autoJoin=init, membership._currentRooms=init, userNameLowerCase=init, userName=init, publicKey=init, emailHash=init, email=init, _id=init, __v=init, , , userNameLowerCase=true, userName=true, socketIds=true, publicKey=true, membership.rooms=true, membership._currentRooms=true, membership._autoJoin=true, emailHash=true, email=true, _id=true, __v=true, , , stateNames=[require, modify, init, default, ignore], ownerDocument=undefined, fullPath=undefined, domain=null, save=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], isNew=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], _maxListeners=0, isNew=false, errors=undefined, socketIds=[], rooms=[], _autoJoin=[], _currentRooms=[_bsontype=ObjectID, id=Uªl}µÎ¢/K], , userNameLowerCase=awesome2, userName=awesome2, publicKey=-----BEGIN PGP PUBLIC KEY BLOCK-----
+Version: OpenPGP.js v1.0.1
+Comment: http://openpgpjs.org
+
+xsBNBFWuyPQBCAC4F2s2wzB+fjzxwLGKZVoYKPbFDnZO8yuY3f7tOxdkKhkW
+1C4OGCRPp+qSDQl9Jwp26HctukW1BNX6j8W6vA+GqwdBohTqk80g2FYQAmJb
+DzqPwMeBB30EnEh1rchpvo/0F907+kRYoA1d7BNGIMac24e46gTK2YwoKkZ4
+PVoq6esmIdkF/3b7P3F2KWI019g+feuSZtQBXoinXzSp0pG7bVVEYdglaPlU
+ndHzwFUkdoiXNLDriefkzz4AXdqVTApiS2QTr/WVUDlnwl7J35hT94A9sCjW
+LuIK47Wzdy0tbuHWDq+o1QShv2K3f4XL2OoyjhWFxugvcIXuz6cinK/BABEB
+AAHNCGF3ZXNvbWUywsByBBABCAAmBQJVrsj2BgsJCAcDAgkQj0697eyIunkE
+FQgCCgMWAgECGwMCHgEAAK+oCACtvxmltEu8BoZRepmmFafpc5Mng5mdDtf9
+6MlcCiZNg1Kz24iKfyX9bmOdBSU4eNpWwm9iC/LXIrhMoMad5KfVCpYW//Br
+xxzZKpgDZaRDsKMhB9KGRme+oIG8VE9tixU7lYseuRlo6ayR57Xj1TItoP09
+8UeNqK5HZI00vRpimFdeJaxIy0NOhBZdvOoUaCGEUGkMqgp8YZfAISTvZJd6
+BVQwXF9X6iAlD5BXUA9HbmeHrf9BR+IGXxKx48Bf5vkYLDm4Ka5eLFWUOOU3
+yRfguUOliJyyMABywL9KLZR5Qmv6HxpDxelve/aaGtkVxt8D4ehuvacq5CQU
+31wjQA4ZzsBNBFWuyPQBCADDPfEKeOrkIp+3LxQkRWoeHwHQ5zzZ+B6Q3Q+1
+qSXCux+OBUYrE67l3AdWOI2BRtvfBfa1tfpyhDslrJqzLTCcqqy6rNYuxgon
+6MATqLx0arCbmsorjIpyCJXOVmEh1sE3m7m2tG7oF0SA3eXmlrm0TPuvEh6v
+oAcy1bVBfTsyIlADWxAvkv3a5KpZCkZPmfCz+k7I0bIetTpTDLZm6mUl3mkt
+WBk2KiFhFer+mWPiLzOpErw/+pxde/Tzny5slDiti9UxwO8aooPr4GkEQNZA
+gUQjdIIdFz7z13+Kq3sGGuFdqnQQrFRRlhII99MT8UT1k2Jy9EmTMT8BTkVJ
+p0WHABEBAAHCwF8EGAEIABMFAlWuyPYJEI9Ove3siLp5AhsMAABs2wgAnP1v
+um9n3TlWFSKWAHmw6UIYYxwINwY0/NZeKU5YHeHUpTJ9UgHURSN6KG5qI1El
+YUMbBzcsW3PDFyBE/XFgWnLTeeA4/+lOA8rN5uSCV2QvfMBcpy0UNvac+kOX
+wzX98U4hK6y2V9QjlciSDxN0JFKUmgwBoWmExIGY708eGpXSJxoHNCkf42wr
+vaVZiqDOwGD7vdJt9OTz7Fg7mZH5sGtxbMd429kQXMXbGtbzrzcIpJVTUABp
+5n7atfsXniASmaGd5DQZhTjiekhur1c0fGdboq/I4uj0Mf1RxP6MtdCcimhB
+coh8SggmkMogHtPnbNxx0zvLO2hRn3R5ZEqqjg==
+=klid
+-----END PGP PUBLIC KEY BLOCK-----, emailHash=43f84896768b8ef8b046fdd04ed1e6d5, email=awesome2@awesome.com, _bsontype=ObjectID, id=U®ÈøKÅ6§R, __v=1, $__original_save=function () {
+      var self = this
+        , hookArgs // arguments eventually passed to the hook - are mutable
+        , lastArg = arguments[arguments.length-1]
+        , pres = this._pres[name]
+        , posts = this._posts[name]
+        , _total = pres.length
+        , _current = -1
+        , _asyncsLeft = proto[name].numAsyncPres
+        , _asyncsDone = function(err) {
+            if (err) {
+              return handleError(err);
+            }
+            --_asyncsLeft || _done.apply(self, hookArgs);
+          }
+        , handleError = function(err) {
+            if ('function' == typeof lastArg)
+              return lastArg(err);
+            if (errorCb) return errorCb.call(self, err);
+            throw err;
+          }
+        , _next = function () {
+            if (arguments[0] instanceof Error) {
+              return handleError(arguments[0]);
+            }
+            var _args = Array.prototype.slice.call(arguments)
+              , currPre
+              , preArgs;
+            if (_args.length && !(arguments[0] == null && typeof lastArg === 'function'))
+              hookArgs = _args;
+            if (++_current < _total) {
+              currPre = pres[_current]
+              if (currPre.isAsync && currPre.length < 2)
+                throw new Error("Your pre must have next and done arguments -- e.g., function (next, done, ...)");
+              if (currPre.length < 1)
+                throw new Error("Your pre must have a next argument -- e.g., function (next, ...)");
+              preArgs = (currPre.isAsync
+                          ? [once(_next), once(_asyncsDone)]
+                          : [once(_next)]).concat(hookArgs);
+              return currPre.apply(self, preArgs);
+            } else if (!_asyncsLeft) {
+              return _done.apply(self, hookArgs);
+            }
+          }
+        , _done = function () {
+            var args_ = Array.prototype.slice.call(arguments)
+              , ret, total_, current_, next_, done_, postArgs;
+
+            if (_current === _total) {
+              
+              next_ = function () {
+                if (arguments[0] instanceof Error) {
+                  return handleError(arguments[0]);
+                }
+                var args_ = Array.prototype.slice.call(arguments, 1)
+                  , currPost
+                  , postArgs;
+                if (args_.length) hookArgs = args_;
+                if (++current_ < total_) {
+                  currPost = posts[current_]
+                  if (currPost.length < 1)
+                    throw new Error("Your post must have a next argument -- e.g., function (next, ...)");
+                  postArgs = [once(next_)].concat(hookArgs);
+                  return currPost.apply(self, postArgs);
+                } else if (typeof lastArg === 'function'){
+                  // All post handlers are done, call original callback function
+                  return lastArg.apply(self, arguments);
+                }
+              };
+
+              // We are assuming that if the last argument provided to the wrapped function is a function, it was expecting
+              // a callback.  We trap that callback and wait to call it until all post handlers have finished.
+              if(typeof lastArg === 'function'){
+                args_[args_.length - 1] = once(next_);
+              }
+
+              total_ = posts.length;
+              current_ = -1;
+              ret = fn.apply(self, args_); // Execute wrapped function, post handlers come afterward
+
+              if (total_ && typeof lastArg !== 'function') return next_();  // no callback provided, execute next_() manually
+              return ret;
+            }
+          };
+
+      return _next.apply(this, arguments);
+    }, save=function wrappedPointCut() {
+      var args = [].slice.call(arguments);
+      var lastArg = args.pop();
+
+      var wrapingPromise = new Promise;
+      wrapingPromise.end();
+      if (typeof lastArg == 'function') {
+        wrapingPromise.onResolve(lastArg);
+      }
+      if (!(this instanceof Embedded) && !wrapingPromise.hasRejectListeners()) {
+        wrapingPromise.onReject(self.$__handleReject.bind(self));
+      }
+      args.push(function () {
+        return wrapingPromise.resolve.apply(wrapingPromise, arguments);
+      });
+
+      // fire original
+      self[newName].apply(self, args);
+      return wrapingPromise;
+    }, $__original_save=[function (next) {
+        // Nested docs have their own presave
+        if (this.ownerDocument) {
+          return next();
+        }
+
+        // Validate
+        if (this.schema.options.validateBeforeSave) {
+          this.validate(next);
+        } else {
+          next();
+        }
+      }], $__original_save=[]
+2015-07-21T22:42:14.847Z - [34mdebug[39m: [INIT] Init'd user awesome2
+2015-07-21T22:42:14.850Z - [34mdebug[39m: [INIT] getting userlist for user...
+2015-07-21T22:42:14.864Z - [34mdebug[39m: Found default room: # pipo
+2015-07-21T22:42:14.864Z - [34mdebug[39m: sanatizing room:  strictMode=true, selected=undefined, shardval=undefined, saveError=undefined, validationError=undefined, adhocPaths=undefined, removing=undefined, inserting=undefined, version=undefined, , _id=undefined, populate=undefined, value=[], path=_admins, match=undefined, select=undefined, options=undefined, model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["$__"]["populated"]["_admins"]["value"], value=[], path=_members, match=undefined, select=undefined, options=undefined, model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["$__"]["populated"]["_members"]["value"], wasPopulated=false, scope=undefined, topic=init, group=init, membershipRequired=init, keepHistory=init, encryptionScheme=init, _owner=init, _admins=init, _members=init, messages=init, name=init, __v=init, _id=init, , , topic=true, name=true, messages=true, membershipRequired=true, keepHistory=true, group=true, encryptionScheme=true, _owner=true, _members=true, _admins=true, __v=true, _id=true, , , stateNames=[require, modify, init, default, ignore], ownerDocument=undefined, fullPath=undefined, domain=null, save=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], isNew=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], _maxListeners=0, isNew=false, errors=undefined, topic=Welcome to PiPo., group=default, membershipRequired=false, keepHistory=true, encryptionScheme=clientkey, _owner=null, _admins=[], _members=[], messages=[], name=pipo, __v=0, _bsontype=ObjectID, id=Uªl}µÎ¢/K, $__original_save=function () {
+      var self = this
+        , hookArgs // arguments eventually passed to the hook - are mutable
+        , lastArg = arguments[arguments.length-1]
+        , pres = this._pres[name]
+        , posts = this._posts[name]
+        , _total = pres.length
+        , _current = -1
+        , _asyncsLeft = proto[name].numAsyncPres
+        , _asyncsDone = function(err) {
+            if (err) {
+              return handleError(err);
+            }
+            --_asyncsLeft || _done.apply(self, hookArgs);
+          }
+        , handleError = function(err) {
+            if ('function' == typeof lastArg)
+              return lastArg(err);
+            if (errorCb) return errorCb.call(self, err);
+            throw err;
+          }
+        , _next = function () {
+            if (arguments[0] instanceof Error) {
+              return handleError(arguments[0]);
+            }
+            var _args = Array.prototype.slice.call(arguments)
+              , currPre
+              , preArgs;
+            if (_args.length && !(arguments[0] == null && typeof lastArg === 'function'))
+              hookArgs = _args;
+            if (++_current < _total) {
+              currPre = pres[_current]
+              if (currPre.isAsync && currPre.length < 2)
+                throw new Error("Your pre must have next and done arguments -- e.g., function (next, done, ...)");
+              if (currPre.length < 1)
+                throw new Error("Your pre must have a next argument -- e.g., function (next, ...)");
+              preArgs = (currPre.isAsync
+                          ? [once(_next), once(_asyncsDone)]
+                          : [once(_next)]).concat(hookArgs);
+              return currPre.apply(self, preArgs);
+            } else if (!_asyncsLeft) {
+              return _done.apply(self, hookArgs);
+            }
+          }
+        , _done = function () {
+            var args_ = Array.prototype.slice.call(arguments)
+              , ret, total_, current_, next_, done_, postArgs;
+
+            if (_current === _total) {
+              
+              next_ = function () {
+                if (arguments[0] instanceof Error) {
+                  return handleError(arguments[0]);
+                }
+                var args_ = Array.prototype.slice.call(arguments, 1)
+                  , currPost
+                  , postArgs;
+                if (args_.length) hookArgs = args_;
+                if (++current_ < total_) {
+                  currPost = posts[current_]
+                  if (currPost.length < 1)
+                    throw new Error("Your post must have a next argument -- e.g., function (next, ...)");
+                  postArgs = [once(next_)].concat(hookArgs);
+                  return currPost.apply(self, postArgs);
+                } else if (typeof lastArg === 'function'){
+                  // All post handlers are done, call original callback function
+                  return lastArg.apply(self, arguments);
+                }
+              };
+
+              // We are assuming that if the last argument provided to the wrapped function is a function, it was expecting
+              // a callback.  We trap that callback and wait to call it until all post handlers have finished.
+              if(typeof lastArg === 'function'){
+                args_[args_.length - 1] = once(next_);
+              }
+
+              total_ = posts.length;
+              current_ = -1;
+              ret = fn.apply(self, args_); // Execute wrapped function, post handlers come afterward
+
+              if (total_ && typeof lastArg !== 'function') return next_();  // no callback provided, execute next_() manually
+              return ret;
+            }
+          };
+
+      return _next.apply(this, arguments);
+    }, save=function wrappedPointCut() {
+      var args = [].slice.call(arguments);
+      var lastArg = args.pop();
+
+      var wrapingPromise = new Promise;
+      wrapingPromise.end();
+      if (typeof lastArg == 'function') {
+        wrapingPromise.onResolve(lastArg);
+      }
+      if (!(this instanceof Embedded) && !wrapingPromise.hasRejectListeners()) {
+        wrapingPromise.onReject(self.$__handleReject.bind(self));
+      }
+      args.push(function () {
+        return wrapingPromise.resolve.apply(wrapingPromise, arguments);
+      });
+
+      // fire original
+      self[newName].apply(self, args);
+      return wrapingPromise;
+    }, $__original_save=[function (next) {
+        // Nested docs have their own presave
+        if (this.ownerDocument) {
+          return next();
+        }
+
+        // Validate
+        if (this.schema.options.validateBeforeSave) {
+          this.validate(next);
+        } else {
+          next();
+        }
+      }], $__original_save=[]
+2015-07-21T22:42:28.349Z - [34mdebug[39m: [sanatizeRoomForClient] Admins: 
+2015-07-21T22:42:28.351Z - [34mdebug[39m: [INIT] getting available room list
+2015-07-21T22:42:28.351Z - [34mdebug[39m: Building available rooms list...
+2015-07-21T22:42:28.352Z - [32minfo[39m: [INIT] Emitting user connect for awesome2
+2015-07-21T22:42:28.368Z - [34mdebug[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined, userName=awesome, fullName=undefined, email=awesome@awesome.com, emailHash=a284383da6dbedcd11105dfb5dc77615, title=undefined, userName=awesome1, fullName=undefined, email=awesome1@awesome.com, emailHash=48cfb93921f8094730c34f6de450ed1c, title=undefined, userName=awesome2, fullName=undefined, email=awesome2@awesome.com, emailHash=43f84896768b8ef8b046fdd04ed1e6d5, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined
+2015-07-21T22:42:28.372Z - [34mdebug[39m: Found user  awesome2  for which we are building the room list
+2015-07-21T22:42:28.374Z - [34mdebug[39m: Found rooms for member awesome2 : 0,1
+2015-07-21T22:42:28.374Z - [34mdebug[39m: [INIT] done getting available room list
+2015-07-21T22:42:28.374Z - [34mdebug[39m: Adding room pipo to array
+2015-07-21T22:42:28.374Z - [34mdebug[39m: Adding room newroom to array
+2015-07-21T22:42:28.374Z - [34mdebug[39m: Sending membership update to user awesome2
+2015-07-21T22:42:28.773Z - [34mdebug[39m: [API] [GET] [/key/publickey] Getting publickey for user awesome2
+2015-07-21T22:42:28.776Z - [34mdebug[39m: KeyPair found...
+2015-07-21T22:42:28.785Z - [34mdebug[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T22:42:28.785Z - [32minfo[39m: [JOIN ROOM] User 'awesome2' joining room #pipo
+2015-07-21T22:42:28.787Z - [34mdebug[39m: [ROOM] room._members is: 
+2015-07-21T22:42:28.788Z - [34mdebug[39m: User awesome2 has joined #pipo
+2015-07-21T22:42:28.790Z - [34mdebug[39m: sanatizing room:  strictMode=true, selected=undefined, shardval=undefined, saveError=undefined, validationError=undefined, adhocPaths=undefined, removing=undefined, inserting=undefined, version=undefined, , _id=undefined, populate=undefined, value=[], path=_members, match=undefined, select=undefined, options=undefined, model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["$__"]["populated"]["_members"]["value"], value=[], model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["$__"]["populated"]["messages._user"]["value"], options=undefined, select=undefined, match=undefined, path=messages._user, value=[], model=function model(doc, fields, skipId) {
+    if (!(this instanceof model))
+      return new model(doc, fields, skipId);
+    Model.call(this, doc, fields, skipId);
+  }, $ref=$["$__"]["populated"]["_admins"]["value"], options=undefined, select=undefined, match=undefined, path=_admins, wasPopulated=false, scope=undefined, topic=init, group=init, membershipRequired=init, keepHistory=init, encryptionScheme=init, _owner=init, _admins=init, _members=init, messages=init, name=init, __v=init, _id=init, , , topic=true, name=true, messages=true, membershipRequired=true, keepHistory=true, group=true, encryptionScheme=true, _owner=true, _members=true, _admins=true, __v=true, _id=true, , , stateNames=[require, modify, init, default, ignore], ownerDocument=undefined, fullPath=undefined, domain=null, save=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], isNew=[function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }, function notify(val) {
+    var i = self.length;
+    while (i--) {
+      if (!self[i]) continue;
+      switch(event) {
+        // only swap for save event for now, we may change this to all event types later
+        case 'save':
+          val = self[i];
+          break;
+        default:
+          // NO-OP
+          break;
+      }
+      self[i].emit(event, val);
+    }
+  }], _maxListeners=0, isNew=false, errors=undefined, topic=Welcome to PiPo., group=default, membershipRequired=false, keepHistory=true, encryptionScheme=clientkey, _owner=null, _admins=[], _members=[], messages=[], name=pipo, __v=0, _bsontype=ObjectID, id=Uªl}µÎ¢/K, $__original_save=function () {
+      var self = this
+        , hookArgs // arguments eventually passed to the hook - are mutable
+        , lastArg = arguments[arguments.length-1]
+        , pres = this._pres[name]
+        , posts = this._posts[name]
+        , _total = pres.length
+        , _current = -1
+        , _asyncsLeft = proto[name].numAsyncPres
+        , _asyncsDone = function(err) {
+            if (err) {
+              return handleError(err);
+            }
+            --_asyncsLeft || _done.apply(self, hookArgs);
+          }
+        , handleError = function(err) {
+            if ('function' == typeof lastArg)
+              return lastArg(err);
+            if (errorCb) return errorCb.call(self, err);
+            throw err;
+          }
+        , _next = function () {
+            if (arguments[0] instanceof Error) {
+              return handleError(arguments[0]);
+            }
+            var _args = Array.prototype.slice.call(arguments)
+              , currPre
+              , preArgs;
+            if (_args.length && !(arguments[0] == null && typeof lastArg === 'function'))
+              hookArgs = _args;
+            if (++_current < _total) {
+              currPre = pres[_current]
+              if (currPre.isAsync && currPre.length < 2)
+                throw new Error("Your pre must have next and done arguments -- e.g., function (next, done, ...)");
+              if (currPre.length < 1)
+                throw new Error("Your pre must have a next argument -- e.g., function (next, ...)");
+              preArgs = (currPre.isAsync
+                          ? [once(_next), once(_asyncsDone)]
+                          : [once(_next)]).concat(hookArgs);
+              return currPre.apply(self, preArgs);
+            } else if (!_asyncsLeft) {
+              return _done.apply(self, hookArgs);
+            }
+          }
+        , _done = function () {
+            var args_ = Array.prototype.slice.call(arguments)
+              , ret, total_, current_, next_, done_, postArgs;
+
+            if (_current === _total) {
+              
+              next_ = function () {
+                if (arguments[0] instanceof Error) {
+                  return handleError(arguments[0]);
+                }
+                var args_ = Array.prototype.slice.call(arguments, 1)
+                  , currPost
+                  , postArgs;
+                if (args_.length) hookArgs = args_;
+                if (++current_ < total_) {
+                  currPost = posts[current_]
+                  if (currPost.length < 1)
+                    throw new Error("Your post must have a next argument -- e.g., function (next, ...)");
+                  postArgs = [once(next_)].concat(hookArgs);
+                  return currPost.apply(self, postArgs);
+                } else if (typeof lastArg === 'function'){
+                  // All post handlers are done, call original callback function
+                  return lastArg.apply(self, arguments);
+                }
+              };
+
+              // We are assuming that if the last argument provided to the wrapped function is a function, it was expecting
+              // a callback.  We trap that callback and wait to call it until all post handlers have finished.
+              if(typeof lastArg === 'function'){
+                args_[args_.length - 1] = once(next_);
+              }
+
+              total_ = posts.length;
+              current_ = -1;
+              ret = fn.apply(self, args_); // Execute wrapped function, post handlers come afterward
+
+              if (total_ && typeof lastArg !== 'function') return next_();  // no callback provided, execute next_() manually
+              return ret;
+            }
+          };
+
+      return _next.apply(this, arguments);
+    }, save=function wrappedPointCut() {
+      var args = [].slice.call(arguments);
+      var lastArg = args.pop();
+
+      var wrapingPromise = new Promise;
+      wrapingPromise.end();
+      if (typeof lastArg == 'function') {
+        wrapingPromise.onResolve(lastArg);
+      }
+      if (!(this instanceof Embedded) && !wrapingPromise.hasRejectListeners()) {
+        wrapingPromise.onReject(self.$__handleReject.bind(self));
+      }
+      args.push(function () {
+        return wrapingPromise.resolve.apply(wrapingPromise, arguments);
+      });
+
+      // fire original
+      self[newName].apply(self, args);
+      return wrapingPromise;
+    }, $__original_save=[function (next) {
+        // Nested docs have their own presave
+        if (this.ownerDocument) {
+          return next();
+        }
+
+        // Validate
+        if (this.schema.options.validateBeforeSave) {
+          this.validate(next);
+        } else {
+          next();
+        }
+      }], $__original_save=[]
+2015-07-21T22:42:49.213Z - [34mdebug[39m: [sanatizeRoomForClient] Admins: 
+2015-07-21T22:42:49.214Z - [34mdebug[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T22:42:49.217Z - [34mdebug[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T22:44:15.923Z - [32minfo[39m: [SERVER] Loading routes...
+2015-07-21T22:44:15.924Z - [34mdebug[39m: [SERVER] Loading route chat
+2015-07-21T22:44:15.925Z - [34mdebug[39m: [SERVER] Loading route keys
+2015-07-21T22:44:15.926Z - [34mdebug[39m: [SERVER] Loading route membership
+2015-07-21T22:44:15.926Z - [34mdebug[39m: [SERVER] Loading route user
+2015-07-21T22:44:15.926Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T22:44:15.928Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T22:44:20.771Z - [34mdebug[39m: Connection to io
+2015-07-21T22:44:20.776Z - [34mdebug[39m: Connection to ioMain
+2015-07-21T22:44:20.776Z - [34mdebug[39m: [CONNECTION] Socket connected to main
+2015-07-21T22:44:20.995Z - [34mdebug[39m: [USER] authenticateOrCreate
+2015-07-21T22:44:20.995Z - [34mdebug[39m: About to find user...
+2015-07-21T22:44:21.005Z - [34mdebug[39m: done finding user
+2015-07-21T22:44:21.005Z - [34mdebug[39m: [USER] Found user 'awesome2'
+2015-07-21T22:44:21.005Z - [34mdebug[39m: [USER] User 'awesome2' has a public key that matches userName
+2015-07-21T22:44:21.005Z - [34mdebug[39m: [INIT] Init'd user awesome2
+2015-07-21T22:44:21.006Z - [34mdebug[39m: [INIT] getting userlist for user...
+2015-07-21T22:44:21.009Z - [34mdebug[39m: Found default room: # pipo
+2015-07-21T22:45:13.837Z - [32minfo[39m: [SERVER] Loading routes...
+2015-07-21T22:45:13.838Z - [34mdebug[39m: [SERVER] Loading route chat
+2015-07-21T22:45:13.838Z - [34mdebug[39m: [SERVER] Loading route keys
+2015-07-21T22:45:13.839Z - [34mdebug[39m: [SERVER] Loading route membership
+2015-07-21T22:45:13.840Z - [34mdebug[39m: [SERVER] Loading route user
+2015-07-21T22:45:13.840Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T22:45:13.842Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T22:45:14.911Z - [34mdebug[39m: Connection to io
+2015-07-21T22:45:14.915Z - [34mdebug[39m: Connection to ioMain
+2015-07-21T22:45:14.915Z - [34mdebug[39m: [CONNECTION] Socket connected to main
+2015-07-21T22:45:15.121Z - [34mdebug[39m: [USER] authenticateOrCreate
+2015-07-21T22:45:15.122Z - [34mdebug[39m: About to find user...
+2015-07-21T22:45:15.130Z - [34mdebug[39m: done finding user
+2015-07-21T22:45:15.131Z - [34mdebug[39m: [USER] Found user 'awesome2'
+2015-07-21T22:45:15.131Z - [34mdebug[39m: [USER] User 'awesome2' has a public key that matches userName
+2015-07-21T22:45:15.131Z - [34mdebug[39m: [INIT] Init'd user awesome2
+2015-07-21T22:45:15.132Z - [34mdebug[39m: [INIT] getting userlist for user...
+2015-07-21T22:45:15.135Z - [34mdebug[39m: Found default room: # pipo
+2015-07-21T22:45:15.136Z - [34mdebug[39m: [INIT] getting available room list
+2015-07-21T22:45:15.136Z - [34mdebug[39m: Building available rooms list...
+2015-07-21T22:45:15.136Z - [32minfo[39m: [INIT] Emitting user connect for awesome2
+2015-07-21T22:45:15.142Z - [34mdebug[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined, userName=awesome, fullName=undefined, email=awesome@awesome.com, emailHash=a284383da6dbedcd11105dfb5dc77615, title=undefined, userName=awesome1, fullName=undefined, email=awesome1@awesome.com, emailHash=48cfb93921f8094730c34f6de450ed1c, title=undefined, userName=awesome2, fullName=undefined, email=awesome2@awesome.com, emailHash=43f84896768b8ef8b046fdd04ed1e6d5, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined
+2015-07-21T22:45:15.145Z - [34mdebug[39m: Found user  awesome2  for which we are building the room list
+2015-07-21T22:45:15.147Z - [34mdebug[39m: Found rooms for member awesome2 : 0,1
+2015-07-21T22:45:15.147Z - [34mdebug[39m: [INIT] done getting available room list
+2015-07-21T22:45:15.147Z - [34mdebug[39m: Adding room pipo to array
+2015-07-21T22:45:15.147Z - [34mdebug[39m: Adding room newroom to array
+2015-07-21T22:45:15.147Z - [34mdebug[39m: Sending membership update to user awesome2
+2015-07-21T22:45:15.335Z - [34mdebug[39m: [API] [GET] [/key/publickey] Getting publickey for user awesome2
+2015-07-21T22:45:15.336Z - [34mdebug[39m: KeyPair found...
+2015-07-21T22:45:15.340Z - [34mdebug[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T22:45:15.341Z - [32minfo[39m: [JOIN ROOM] User 'awesome2' joining room #pipo
+2015-07-21T22:45:15.344Z - [34mdebug[39m: [ROOM] room._members is: 
+2015-07-21T22:45:15.345Z - [34mdebug[39m: User awesome2 has joined #pipo
+2015-07-21T22:45:15.346Z - [34mdebug[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T22:45:15.346Z - [34mdebug[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T22:48:02.595Z - [32minfo[39m: [SERVER] Loading routes...
+2015-07-21T22:48:02.596Z - [34mdebug[39m: [SERVER] Loading route chat
+2015-07-21T22:48:02.597Z - [34mdebug[39m: [SERVER] Loading route keys
+2015-07-21T22:48:02.598Z - [34mdebug[39m: [SERVER] Loading route membership
+2015-07-21T22:48:02.598Z - [34mdebug[39m: [SERVER] Loading route user
+2015-07-21T22:48:02.598Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T22:48:02.600Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T22:48:03.072Z - [34mdebug[39m: Connection to io
+2015-07-21T22:48:03.078Z - [34mdebug[39m: Connection to ioMain
+2015-07-21T22:48:03.079Z - [34mdebug[39m: [CONNECTION] Socket connected to main
+2015-07-21T22:48:03.217Z - [34mdebug[39m: [USER] authenticateOrCreate
+2015-07-21T22:48:03.217Z - [34mdebug[39m: About to find user...
+2015-07-21T22:48:03.225Z - [34mdebug[39m: done finding user
+2015-07-21T22:48:03.225Z - [34mdebug[39m: [USER] Found user 'awesome2'
+2015-07-21T22:48:03.225Z - [34mdebug[39m: [USER] User 'awesome2' has a public key that matches userName
+2015-07-21T22:48:10.915Z - [34mdebug[39m: [INIT] Init'd user awesome2
+2015-07-21T22:48:10.916Z - [34mdebug[39m: [INIT] getting userlist for user...
+2015-07-21T22:48:10.920Z - [34mdebug[39m: Found default room: # pipo
+2015-07-21T22:48:10.921Z - [34mdebug[39m: [INIT] getting available room list
+2015-07-21T22:48:10.921Z - [34mdebug[39m: Building available rooms list...
+2015-07-21T22:48:10.921Z - [32minfo[39m: [INIT] Emitting user connect for awesome2
+2015-07-21T22:48:10.928Z - [34mdebug[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined, userName=awesome, fullName=undefined, email=awesome@awesome.com, emailHash=a284383da6dbedcd11105dfb5dc77615, title=undefined, userName=awesome1, fullName=undefined, email=awesome1@awesome.com, emailHash=48cfb93921f8094730c34f6de450ed1c, title=undefined, userName=awesome2, fullName=undefined, email=awesome2@awesome.com, emailHash=43f84896768b8ef8b046fdd04ed1e6d5, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined
+2015-07-21T22:48:10.933Z - [34mdebug[39m: Found user  awesome2  for which we are building the room list
+2015-07-21T22:48:10.937Z - [34mdebug[39m: Found rooms for member awesome2 : 0,1
+2015-07-21T22:48:10.937Z - [34mdebug[39m: [INIT] done getting available room list
+2015-07-21T22:48:10.937Z - [34mdebug[39m: Adding room pipo to array
+2015-07-21T22:48:10.937Z - [34mdebug[39m: Adding room newroom to array
+2015-07-21T22:48:10.937Z - [34mdebug[39m: Sending membership update to user awesome2
+2015-07-21T22:48:10.951Z - [34mdebug[39m: Connection to io
+2015-07-21T22:48:11.140Z - [34mdebug[39m: [API] [GET] [/key/publickey] Getting publickey for user awesome2
+2015-07-21T22:48:11.142Z - [34mdebug[39m: KeyPair found...
+2015-07-21T22:48:11.149Z - [34mdebug[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T22:48:11.150Z - [32minfo[39m: [JOIN ROOM] User 'awesome2' joining room #pipo

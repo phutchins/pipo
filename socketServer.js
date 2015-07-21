@@ -109,9 +109,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  logger.debug("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
-    logger.debug("[AUTHENTICATE] authData is ", authData);
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;
@@ -127,7 +125,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     }
 
     if (newUser) {
-      logger.debug("User", data.userName, " not in the mastr cached userlist so adding them");
+      logger.debug("User", data.userName, " not in the master cached userlist so adding them");
       // This helps keep track of when users sign up so that we can emit the new user data to all clients
       self.updateUserList({scope: 'all'});
     }
@@ -157,7 +155,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         if (defaultRoom == null) { return logger.info("[AUTHENTICATE] ERROR - default room is null") }
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
-          User.getAllUsers({}, function(err, userlist) {
+          User.getAllUsers({}, function(userlist) {
             logger.debug("Sending userlist to user...", userlist);
             self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
           })
@@ -436,7 +434,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  * Users will be looked up on the client side using username or id
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
-  logger.debug("sanatizing room: ",room);
   if (room._owner) {
     var ownerUserName = room._owner.userName;
   } else {
@@ -448,8 +445,6 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
 
   var membersArray = [];
   var adminsArray = [];
-
-  logger.debug("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
     //logger.info("room members is: ",room._members);
@@ -564,8 +559,8 @@ SocketServer.prototype.partRoom = function partRoom(data) {
 SocketServer.prototype.updateUserList = function updateUserList(data) {
   var self = this;
   var scope = data.scope;
-  User.getAllUsers({}, function(err, data) {
-    var userlist = data.userlist;
+  User.getAllUsers({}, function(userlist) {
+    logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
     if (scope == 'all') {
       self.namespace.emit("userlistUpdate", {
         userlist: userlist

@@ -28,7 +28,7 @@ SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;
   this.init();
 
-  logger.info("[CONNECTION] Socket connected to main");
+  logger.debug("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
 
@@ -59,7 +59,7 @@ SocketServer.prototype.init = function init() {
     // Do master key things
     this.initMasterKeyPair(function(err) {
       if (err) {
-        return logger.info("[INIT] Error updating master key pair: "+err);
+        return logger.error("[INIT] Error updating master key pair: "+err);
       }
       logger.info("[INIT] Finsihed updating master key pair");
     });
@@ -93,13 +93,12 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
 
   // create the default room object
   Room.findOneAndUpdate({ name: defaultRoomName }, defaultRoomData, { upsert: true, new: true }).populate('_members _owner _admins').exec(function(err, defaultRoom) {
-    if (err) { return logger.info("[getDefaultRoom] ERROR - Problem creating or finding default room:",err) }
+    if (err) { return logger.error("[getDefaultRoom] ERROR - Problem creating or finding default room:",err) }
     if (defaultRoom == null) {
-      logger.info("[getDefaultRoom] ERROR - Default room is NULL");
+      logger.error("[getDefaultRoom] ERROR - Default room is NULL");
       return callback(null);
     } else {
-      logger.info("Found default room: #",defaultRoom.name);
-      //logger.info("Default room is :",defaultRoom);
+      logger.debug("Found default room: #",defaultRoom.name);
       return callback(defaultRoom);
     }
   });
@@ -110,26 +109,25 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  //logger.info("[AUTHENTICATE] Authenticating user data is: ",data);
+  logger.debug("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
-    //logger.info("[AUTHENTICATE] authData is ", authData);
+    logger.debug("[AUTHENTICATE] authData is ", authData);
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;
-    //logger.info("[AUTHENTICATE] AuthData.user: ",authData.user);
 
     if (err) {
-      logger.info('Authentication error', err);
+      logger.warning('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
     if (!user) {
-      logger.info("[INIT] Problem initializing connection, no error, but no user");
+      logger.warning("[INIT] Problem initializing connection, no error, but no user");
       return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
 
     if (newUser) {
-      logger.info("User", data.userName, " not in the mastr cached userlist so adding them");
+      logger.debug("User", data.userName, " not in the mastr cached userlist so adding them");
       // This helps keep track of when users sign up so that we can emit the new user data to all clients
       self.updateUserList({scope: 'all'});
     }
@@ -362,7 +360,7 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 SocketServer.prototype.joinRoom = function joinRoom(data) {
   var self = this;
 
-  logger.info("[JOIN ROOM] data is ",data);
+  logger.debug("[JOIN ROOM] data is ",data);
 
   if (!self.socket.user) {
     logger.info("Ignoring join attempt by unauthenticated user");
@@ -376,7 +374,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 
   // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
-    //logger.info("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
+    logger.debug("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
     KeyId.getMasterKeyId(room, function(err, currentKeyId) {
       User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
@@ -391,7 +389,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
                   return logger.info("Error joining room " + room + " with error: " + err);
                 }
                 if (!success) {
-                  return logger.info("Failed to join room " + room);
+                  return logger.warning("Failed to join room " + room);
                 }
               })
               logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
@@ -425,9 +423,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
         }
         self.socket.join(room.name);
-        logger.info("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
+        logger.debug("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
-        logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+        logger.debug("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
         self.updateRoomUsers(room.name);
       })
     })
@@ -439,7 +437,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  * Users will be looked up on the client side using username or id
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
-  //logger.info("sanatizing room: ",room);
+  logger.debug("sanatizing room: ",room);
   if (room._owner) {
     var ownerUserName = room._owner.userName;
   } else {
@@ -452,23 +450,22 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var membersArray = [];
   var adminsArray = [];
 
-  //logger.info("[sanatizeRoomForClient] Members: ",room._members);
-  //logger.info("[sanatizeRoomForClient] Admins: ",room._admins);
+  logger.debug("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
     //logger.info("room members is: ",room._members);
 
     room._members.forEach(function(member) {
-      //logger.info("[sanatizeRoomForClient] looping members - key:",key);
-      //logger.info("[sanatizeRoomForClient] looping members - userName:",userName);
+      logger.debug("[sanatizeRoomForClient] looping members - key:",key);
+      logger.debug("[sanatizeRoomForClient] looping members - userName:",userName);
       membersArray.push(member.userName);
     })
   }
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
-      //logger.info("[sanatizeRoomForClient] looping admins - key:",key);
-      //logger.info("[sanatizeRoomForClient] looping admins - userName:",userName);
+      logger.debug("[sanatizeRoomForClient] looping admins - key:",key);
+      logger.debug("[sanatizeRoomForClient] looping admins - userName:",userName);
       adminsArray.push(admin.userName);
     })
   }

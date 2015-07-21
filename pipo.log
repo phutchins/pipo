@@ -406,3 +406,84 @@
 2015-07-21T14:17:11.651Z - [32minfo[39m: Adding room testRoom to array
 2015-07-21T14:17:11.651Z - [32minfo[39m: Sending membership update to user testUser
 2015-07-21T14:17:11.652Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T21:49:24.029Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T21:49:24.031Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T21:49:24.032Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T21:49:24.033Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T21:49:24.034Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T21:49:24.035Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T21:49:53.479Z - [32minfo[39m: Connection to io
+2015-07-21T21:49:53.634Z - [32minfo[39m: Connection to ioMain
+2015-07-21T21:49:53.635Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T21:50:00.820Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T21:50:00.820Z - [32minfo[39m: this is a test
+2015-07-21T21:50:00.821Z - [32minfo[39m: getting userlist for user...
+2015-07-21T21:50:00.830Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T21:50:00.830Z - [32minfo[39m: getting available room list
+2015-07-21T21:50:00.830Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T21:50:00.851Z - [32minfo[39m: done getting available room list
+2015-07-21T21:50:00.851Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T21:50:00.851Z - [32minfo[39m: Adding room secret to array
+2015-07-21T21:50:00.852Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T21:50:00.852Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T21:50:01.125Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T21:50:01.125Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T21:50:01.132Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T21:50:01.132Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T21:51:14.156Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T21:51:14.158Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T21:51:14.159Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T21:51:14.160Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T21:51:14.161Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T21:51:14.162Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T21:51:15.216Z - [32minfo[39m: Connection to io
+2015-07-21T21:51:15.227Z - [32minfo[39m: Connection to ioMain
+2015-07-21T21:51:15.227Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T21:51:15.385Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T21:51:15.385Z - [32minfo[39m: this is a test
+2015-07-21T21:51:15.386Z - [32minfo[39m: getting userlist for user...
+2015-07-21T21:51:15.389Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T21:51:15.390Z - [32minfo[39m: getting available room list
+2015-07-21T21:51:15.390Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T21:51:15.399Z - [32minfo[39m: done getting available room list
+2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room secret to array
+2015-07-21T21:51:15.399Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T21:51:15.399Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T21:51:15.706Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T21:51:15.708Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T21:51:15.715Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T21:51:15.715Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T21:55:29.661Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T21:55:29.663Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T21:55:29.663Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T21:55:29.664Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T21:55:29.664Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T21:55:29.666Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T21:55:31.196Z - [32minfo[39m: Connection to io
+2015-07-21T21:55:31.206Z - [32minfo[39m: Connection to ioMain
+2015-07-21T21:55:31.206Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T21:55:31.353Z - [32minfo[39m: [DISCONNECT] socket.id: XkyXD8P6qZvcMqJxAAAA
+2015-07-21T21:55:31.353Z - [32minfo[39m: WARNING! Someone left the channel and we don't know who it was...
+2015-07-21T21:55:50.909Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T21:55:50.911Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T21:55:50.911Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T21:55:50.912Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T21:55:50.912Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T21:55:50.914Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T21:55:52.189Z - [32minfo[39m: Connection to io
+2015-07-21T21:55:52.199Z - [32minfo[39m: Connection to ioMain
+2015-07-21T21:55:52.200Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T21:55:52.350Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T21:55:52.350Z - [32minfo[39m: this is a test
+2015-07-21T21:55:52.350Z - [32minfo[39m: getting userlist for user...
+2015-07-21T21:55:52.354Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T21:55:52.354Z - [32minfo[39m: getting available room list
+2015-07-21T21:55:52.355Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T21:55:52.366Z - [32minfo[39m: done getting available room list
+2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room secret to array
+2015-07-21T21:55:52.366Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T21:55:52.366Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T21:55:52.698Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T21:55:52.700Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined

@@ -4,6 +4,7 @@ var kbpgp = require('kbpgp');
 var encryptionManager = require('./managers/encryption');
 var adminDataDirectory = "./adminData/";
 var AdminPayload, AdminCertificate;
+var logger = require('./config/logger');
 
 function loadAdminCertificate(callback) {
   try {
@@ -73,16 +74,16 @@ function buildAdminPayload() {
   var RawDataToSign = [];
   loadAdminKeys(function(err, adminKeys) {
     if (err) {
-      console.log("Error: ", err);
+      logger.error("Error: ", err);
       process.exit(1);
     }
     if (!adminKeys.length) {
-      console.log("No keys found.");
-      console.log("Place the armored public key of each administrator into the 'adminData' directory with the naming convention 'username.pub'");
+      logger.error("No keys found.");
+      logger.info("Place the armored public key of each administrator into the 'adminData' directory with the naming convention 'username.pub'");
       process.exit(1);
     }
 
-    console.log("Loaded", adminKeys.length, "keys, now generating certificate data");
+    logger.info("Loaded", adminKeys.length, "keys, now generating certificate data");
 
     adminKeys.forEach(function(keySet) {
       RawDataToSign.push({
@@ -94,8 +95,8 @@ function buildAdminPayload() {
 
     fs.writeFileSync(adminDataDirectory + "adminPayload",  JSON.stringify(RawDataToSign, null, 2));
 
-    console.log("Payload generated and saved");
-    console.log("Have each administrator sign ./adminData/adminPayload and then place their signatures in the 'adminData' directory with the naming convention 'username.sig'");
+    logger.info("Payload generated and saved");
+    logger.info("Have each administrator sign ./adminData/adminPayload and then place their signatures in the 'adminData' directory with the naming convention 'username.sig'");
     process.exit(1);
   });
 }
@@ -103,23 +104,23 @@ function buildAdminPayload() {
 function verifyCertificateSignatures() {
   loadAdminKeys(function(err, keys) {
     if (err) {
-      console.log("Error loading admin keys", err);
+      logger.error("Error loading admin keys", err);
       process.exit(1);
     }
     if (!keys || !keys.length) {
-      console.log("No keys found.");
-      console.log("Place the armored public key of each administrator into the 'adminData' directory with the naming convention 'username.pub'");
+      logger.error("No keys found.");
+      logger.info("Place the armored public key of each administrator into the 'adminData' directory with the naming convention 'username.pub'");
       process.exit(1);
     }
 
     loadAdminSignatures(function(err, signatures) {
       if (err) {
-        console.log("Error loading signatures", err);
+        logger.error("Error loading signatures", err);
         process.exit(1);
       }
       if (!signatures || !signatures.length) {
-        console.log("No signatures found.");
-        console.log("Have each administrator sign the AdminPayload and place their signatures in the 'adminData' directory with the naming convention 'username.sig'");
+        logger.error("No signatures found.");
+        logger.info("Have each administrator sign the AdminPayload and place their signatures in the 'adminData' directory with the naming convention 'username.sig'");
         process.exit(1);
       }
       async.each(signatures, function(signature, callback) {
@@ -134,20 +135,20 @@ function verifyCertificateSignatures() {
           if (err) {
             callback(err);
           }
-          console.log("Verified", pubkey[0].name, "fingerprint", fingerprint, "has valid signature for AdminPayload");
+          logger.info("Verified", pubkey[0].name, "fingerprint", fingerprint, "has valid signature for AdminPayload");
           callback();
         });
       }, function(err) {
         if (err) {
-          console.log("Could not verify all signatures", err);
+          logger.error("Could not verify all signatures", err);
           process.exit(1);
         }
         if (signatures.length !== keys.length) {
-          console.log("The number of signatures should match the number of keys for the AdminPayload");
+          logger.error("The number of signatures should match the number of keys for the AdminPayload");
           process.exit(1);
         }
         else {
-          console.log("All required signatures found");
+          logger.info("All required signatures found");
           buildAdminCertificate(signatures, keys, function() {
             require('./server');
           });

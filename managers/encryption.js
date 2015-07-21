@@ -89,7 +89,7 @@ function EncryptionManager() {
         var regex = /\r?\n|\r/g
         var payloadString = payload.toString().replace(regex, '');
         expectedPayloadString = expectedPayloadString.toString().replace(regex, '');
-        console.log("payloadString: "+payloadString+" expectedPayloadString: "+expectedPayloadString);
+        logger.debug("payloadString: "+payloadString+" expectedPayloadString: "+expectedPayloadString);
 
         if (payloadString !== expectedPayloadString) {
           return callback(new Error("Signature payload did not match expected payload"));

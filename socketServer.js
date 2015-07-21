@@ -456,16 +456,12 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
     //logger.info("room members is: ",room._members);
 
     room._members.forEach(function(member) {
-      logger.debug("[sanatizeRoomForClient] looping members - key:",key);
-      logger.debug("[sanatizeRoomForClient] looping members - userName:",userName);
       membersArray.push(member.userName);
     })
   }
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
-      logger.debug("[sanatizeRoomForClient] looping admins - key:",key);
-      logger.debug("[sanatizeRoomForClient] looping admins - userName:",userName);
       adminsArray.push(admin.userName);
     })
   }

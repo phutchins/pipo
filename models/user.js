@@ -37,6 +37,9 @@ userSchema.statics.create = function createUser(userData, callback) {
   var self = this;
   //console.log("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
   //console.log("[USER] userData is", userData);
+  if (!userData) {
+    return callback("no userdata provided to create user", null);
+  }
 
   var userName = userData.userName;
   var email = userData.email;
@@ -69,7 +72,7 @@ userSchema.statics.create = function createUser(userData, callback) {
 userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) {
   console.log("[USER] authenticateOrCreate");
   var self = this;
-  if (typeof data != 'object' || !Object.keys(data).length) {
+  if (typeof data != 'object' || !Object.keys(data).length || data == null) {
     return callback(new Error("No user data included in request"));
   }
   if (!data.userName) {
@@ -82,10 +85,14 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
+  console.log("About to find user...");
   this.findOne({userName: data.userName}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
+    console.log("done finding user");
     if (err) {
+      console.log("Error finding or creating user: ",err);
       return callback(err);
     }
+    console.log("no error");
     if (!user) {
       console.log("[USER] User '"+data.userName+"' not found so creating");
       //console.log("[DEBUG] User did not exist so creating user with data: ",data);

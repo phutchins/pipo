@@ -63,7 +63,7 @@ app.use(bodyParser.urlencoded({extended: true}));
 app.use(express['static'](path.join(__dirname, 'public')));
 
 //Logger
-app.use(morgan('dev'));
+//app.use(morgan('dev'));
 
 //L33t asci
 console.log('  __________.____________           ');
@@ -73,22 +73,10 @@ console.log('   |    |   |  ||    |  (  <_> )'    );
 console.log('   |____|   |__||____|   \\____/    ');
 console.log('');
 
-//console.log('');
-//console.log(' ██▓███   ██▓ ██▓███   ▒█████    ');
-//console.log(' ▓██░  ██▒▓██▒▓██░  ██▒▒██▒  ██▒ ');
-//console.log(' ▓██░ ██▓▒▒██▒▓██░ ██▓▒▒██░  ██▒ ');
-//console.log(' ▒██▄█▓▒ ▒░██░▒██▄█▓▒ ▒▒██   ██░ ');
-//console.log(' ▒██▒ ░  ░░██░▒██▒ ░  ░░ ████▓▒░ ');
-//console.log(' ▒▓▒░ ░  ░░▓  ▒▓▒░ ░  ░░ ▒░▒░▒░  ');
-//console.log(' ░▒ ░      ▒ ░░▒ ░       ░ ▒ ▒░  ');
-//console.log(' ░░        ▒ ░░░       ░ ░ ░ ▒   ');
-//console.log('           ░               ░ ░   ');
-//console.log('');
-
 var connectWithRetry = function() {
   return mongoose.connect(configDB.url, function(err) {
     if (err) {
-      console.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
+      logger.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
       setTimeout(connectWithRetry, 5000);
     }
   });
@@ -101,12 +89,12 @@ var routes = [];
 fs.readdirSync(routePath).forEach(function(file) {
   var route = routePath + file;
   var routeName = file.split('.')[0];
-  console.log("[SERVER] Loading route", routeName);
+  logger.info("[SERVER] Loading route", routeName);
   routes[routeName] = require(route)(app);
 });
 
 io.on('connection',function (socket) {
-  console.log("Connection to io");
+  logger.info("Connection to io");
 });
 
 var ioMain = io.of('/socket');
@@ -119,9 +107,9 @@ function initServer() {
   switch (configPipo.encryptionStrategy) {
     // Use master shared key encryption (faster but slightly less secure possibly)
     case 'masterKey':
-      console.log("[START] Starting in MASTER KEY mode");
+      logger.info("[START] Starting in MASTER KEY mode");
       ioMain.on('connection', function(socket) {
-        console.log("Connection to ioMain");
+        logger.info("Connection to ioMain");
         socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain);
         socketServer.onSocket(socket);
@@ -131,15 +119,15 @@ function initServer() {
       break;
       // Use multi client key encryption (slower but a tad more secure)
     case 'clientKey':
-      console.log("[START] Starting in CLIENT KEY mode");
+      logger.info("[START] Starting in CLIENT KEY mode");
       ioMain.on('connection', function(socket) {
-        console.log("Connection to ioMain");
+        logger.info("Connection to ioMain");
         socket.emit('certificate', AdminCertificate);
         socketServer = new SocketServer(ioMain).onSocket(socket);
       });
       break;
     default:
-      console.log("Default not set up yet");
+      logger.info("Default not set up yet");
       break;
   }
 }
@@ -160,11 +148,11 @@ server.on('error', function onError(error) {
   // handle specific listen errors with friendly messages
   switch (error.code) {
     case 'EACCES':
-      console.error('[SERVER] ' + bind + ' requires elevated privileges');
+      logger.error('[SERVER] ' + bind + ' requires elevated privileges');
       process.exit(1);
       break;
     case 'EADDRINUSE':
-      console.error('[SERVER] ' + bind + ' is already in use.');
+      logger.error('[SERVER] ' + bind + ' is already in use.');
       process.exit(1);
       break;
     default:
@@ -177,7 +165,7 @@ server.on('listening', function listening() {
   var bind = typeof addr === 'string'
     ? 'pipe ' + addr
     : 'port ' + addr.port;
-  console.log('[SERVER] Listening on ' + bind);
+  logger.info('[SERVER] Listening on ' + bind);
 });
 
 //https_server.listen(configHttps.port);

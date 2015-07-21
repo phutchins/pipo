@@ -3,6 +3,7 @@ var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var config = require('./config/pipo');
+var logger = require('./config/logger');
 
 /**
  * Handles all socket traffic
@@ -12,11 +13,13 @@ var config = require('./config/pipo');
  */
 function SocketServer(namespace) {
   this.namespace = namespace;
-  if (!this.namespace.socketMap) {
-    this.namespace.socketMap = {};
-  }
-  if (!this.namespace.userMap) {
-    this.namespace.userMap = {};
+  if (this.namespace) {
+    if (!this.namespace.socketMap) {
+      this.namespace.socketMap = {};
+    }
+    if (!this.namespace.userMap) {
+      this.namespace.userMap = {};
+    }
   }
 }
 
@@ -25,7 +28,7 @@ SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;
   this.init();
 
-  console.log("[CONNECTION] Socket connected to main");
+  logger.info("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
 
@@ -56,9 +59,9 @@ SocketServer.prototype.init = function init() {
     // Do master key things
     this.initMasterKeyPair(function(err) {
       if (err) {
-        return console.log("[INIT] Error updating master key pair: "+err);
+        return logger.info("[INIT] Error updating master key pair: "+err);
       }
-      console.log("[INIT] Finsihed updating master key pair");
+      logger.info("[INIT] Finsihed updating master key pair");
     });
   } else {
     // Do client key things
@@ -90,13 +93,13 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
 
   // create the default room object
   Room.findOneAndUpdate({ name: defaultRoomName }, defaultRoomData, { upsert: true, new: true }).populate('_members _owner _admins').exec(function(err, defaultRoom) {
-    if (err) { return console.log("[getDefaultRoom] ERROR - Problem creating or finding default room:",err) }
+    if (err) { return logger.info("[getDefaultRoom] ERROR - Problem creating or finding default room:",err) }
     if (defaultRoom == null) {
-      console.log("[getDefaultRoom] ERROR - Default room is NULL");
+      logger.info("[getDefaultRoom] ERROR - Default room is NULL");
       return callback(null);
     } else {
-      console.log("Found default room: #",defaultRoom.name);
-      //console.log("Default room is :",defaultRoom);
+      logger.info("Found default room: #",defaultRoom.name);
+      //logger.info("Default room is :",defaultRoom);
       return callback(defaultRoom);
     }
   });
@@ -107,86 +110,86 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  console.log("[AUTHENTICATE] Authenticating user data is: ",data.userName);
+  //logger.info("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
-    //console.log("[AUTHENTICATE] authData is ", authData);
+    //logger.info("[AUTHENTICATE] authData is ", authData);
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;
-    //console.log("[AUTHENTICATE] AuthData.user: ",authData.user);
+    //logger.info("[AUTHENTICATE] AuthData.user: ",authData.user);
 
     if (err) {
-      console.log('Authentication error', err);
+      logger.info('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
-    if (user) {
-      if (newUser) {
-        console.log("User", data.userName, " not in the mastr cached userlist so adding them");
-        // This helps keep track of when users sign up so that we can emit the new user data to all clients
-        self.updateUserList({scope: 'all'});
-      }
-
-      self.namespace.socketMap[self.socket.id] = {
-        userName: user.userName,
-        publicKey: user.publicKey
-      };
-
-      self.namespace.userMap[user.userName] = self.socket.id;
-
-      self.socket.user = user;
-      console.log("[INIT] Init'd user " + user.userName);
-      // TODO: Replace this with current rooms
-      var autoJoin = [];
-      User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
-        if (populatedUser.membership._autoJoin.length > 0) {
-          Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
-            console.log("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
-            autoJoin.push(populatedUser.membership._autoJoin[key].name);
-          })
-        }
-
-        // Get complete userlist to send to client on initial connection
-        console.log("getting userlist for user...");
-        self.getDefaultRoom(function(defaultRoom) {
-          if (defaultRoom == null) { return console.log("[AUTHENTICATE] ERROR - default room is null") }
-          self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
-            //console.log("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
-            User.getAllUsers({}, function(err, userlist) {
-              console.log("Sending userlist to user...", userlist);
-              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
-            })
-          })
-
-          console.log("getting available room list");
-          User.availableRooms({ userName: user.userName }, function(err, roomData) {
-            console.log("done getting available room list");
-            if (err) {
-              return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
-            }
-            var rooms = {};
-            Object.keys(roomData.rooms).forEach(function(key) {
-              console.log("Adding room " + roomData.rooms[key].name + " to array");
-              rooms[roomData.rooms[key].name] = roomData.rooms[key];
-            })
-            //console.log("Rooms is: " + JSON.stringify(rooms));
-            console.log("Sending membership update to user " + user.userName);
-            self.socket.emit('membershipUpdate', { rooms: rooms });
-          })
-
-          console.log("[INIT] Emitting user connect");
-          return self.namespace.emit('user connect', {
-            userName: user.userName,
-            publicKey: user.publicKey
-          })
-        })
-      })
-    }
-    else {
-      console.log("[INIT] Problem initializing connection, no error, but no user");
+    if (!user) {
+      logger.info("[INIT] Problem initializing connection, no error, but no user");
       return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
-  });
+
+    if (newUser) {
+      logger.info("User", data.userName, " not in the mastr cached userlist so adding them");
+      // This helps keep track of when users sign up so that we can emit the new user data to all clients
+      self.updateUserList({scope: 'all'});
+    }
+
+    self.namespace.socketMap[self.socket.id] = {
+      userName: user.userName,
+      publicKey: user.publicKey
+    };
+
+    self.namespace.userMap[user.userName] = self.socket.id;
+
+    self.socket.user = user;
+    logger.info("[INIT] Init'd user " + user.userName);
+    // TODO: Replace this with current rooms
+    var autoJoin = [];
+    logger.info("this is a test");
+    User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
+      if (populatedUser.membership._autoJoin.length > 0) {
+        Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
+          logger.info("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
+          autoJoin.push(populatedUser.membership._autoJoin[key].name);
+        })
+      }
+
+      // Get complete userlist to send to client on initial connection
+      logger.info("getting userlist for user...");
+      self.getDefaultRoom(function(defaultRoom) {
+        if (defaultRoom == null) { return logger.info("[AUTHENTICATE] ERROR - default room is null") }
+        self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
+          //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
+          User.getAllUsers({}, function(err, userlist) {
+            logger.debug("Sending userlist to user...", userlist);
+            self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
+          })
+        })
+
+        logger.info("getting available room list");
+        User.availableRooms({ userName: user.userName }, function(err, roomData) {
+          logger.info("done getting available room list");
+          if (err) {
+            return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
+          }
+          var rooms = {};
+          Object.keys(roomData.rooms).forEach(function(key) {
+            logger.info("Adding room " + roomData.rooms[key].name + " to array");
+            rooms[roomData.rooms[key].name] = roomData.rooms[key];
+          })
+          //logger.info("Rooms is: " + JSON.stringify(rooms));
+          logger.info("Sending membership update to user " + user.userName);
+          self.socket.emit('membershipUpdate', { rooms: rooms });
+        })
+
+        logger.info("[INIT] Emitting user connect");
+        return self.namespace.emit('user connect', {
+          userName: user.userName,
+          publicKey: user.publicKey
+        })
+      })
+    })
+  })
 };
 
 /*
@@ -201,24 +204,24 @@ SocketServer.prototype.initMasterKeyPair = function initMasterKeyPair(callback) 
   var self = this;
   // Run through each room and do this...
   KeyPair.checkMasterKeyPairForAllUsers(function(err, response) {
-    console.log("Checked master key pair for all users. Response is '"+response+"'");
-    if (err) { console.log("[START] Error checking master key for all users: "+err); };
+    logger.info("Checked master key pair for all users. Response is '"+response+"'");
+    if (err) { logger.info("[START] Error checking master key for all users: "+err); };
     if (response == 'update') {
-      console.log("Users keypair needs updating so generating new master key pair");
+      logger.info("Users keypair needs updating so generating new master key pair");
       KeyPair.regenerateMasterKeyPair(function(err, masterKeyPair, id) {
-        console.log("[START] New master keyPair generated with id '"+id+"'");
+        logger.info("[START] New master keyPair generated with id '"+id+"'");
         KeyPair.updateMasterKeyPairForAllUsers(masterKeyPair, id, function(err) {
           if (err) {
-            console.log("[START] Error encrypting master key for all users: "+err);
+            logger.info("[START] Error encrypting master key for all users: "+err);
             return callback(err);
           };
-          console.log("[SOCKET SERVER] (initMasterKeyPair) Encrypted master key for all users!");
+          logger.info("[SOCKET SERVER] (initMasterKeyPair) Encrypted master key for all users!");
           self.namespace.emit('newMasterKey', { room: "general" } );
           callback(null);
         });
       });
     } else if (response == 'ok') {
-      console.log("All users master key matches current version");
+      logger.info("All users master key matches current version");
       //self.namespace.emit('newMasterKey');
       callback(null);
     }
@@ -247,11 +250,11 @@ SocketServer.prototype.onMessage = function onMessage(data) {
   var self = this;
 
   if (!self.socket.user) {
-    console.log("[MSG] Ignoring message from unauthenticated user");
+    logger.info("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
-  console.log("[MSG] Server got chat message from " + self.socket.user.userName);
+  logger.info("[MSG] Server got chat message from " + self.socket.user.userName);
 
   //TODO: Log messages
   //TODO: Room specific messages
@@ -261,7 +264,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
     message: data.pgpMessage
   });
 
-  console.log("[MSG] Server emitted chat message to users");
+  logger.info("[MSG] Server emitted chat message to users");
 };
 
 
@@ -271,17 +274,17 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var self = this;
   if (!self.socket.user) {
-    console.log("[MSG] Ignoring message from unauthenticated user");
+    logger.info("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
-  console.log('data', data)
+  logger.info('data', data)
 
   var fromUser = self.socket.user.userName;
   var targetUsername = data.toUser;
   var targetSocket = self.namespace.userMap[targetUsername];
 
   if (!targetSocket) {
-    console.log("[MSG] Ignoring private message to offline user");
+    logger.info("[MSG] Ignoring private message to offline user");
     return self.socket.emit('errorMessage', {message: "User is not online"});
   }
 
@@ -314,33 +317,33 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
   var userName = self.socket.user.userName;
   //TODO refactor this
   var currentChat = data.currentChat;
-  console.log("Received command '"+command+"' from user '"+socket.name+"'");
+  logger.info("Received command '"+command+"' from user '"+socket.name+"'");
   var splitCommand = command.split(" ");
   if (splitCommand[0] == "who") {
-    console.log("[SERVER] Responding to 'who' request from '"+socket.name+"'");
+    logger.info("[SERVER] Responding to 'who' request from '"+socket.name+"'");
     var channelMembershipArray = [];
-    console.log("[SERVER COMMAND] Checking channel #"+currentChat);
+    logger.info("[SERVER COMMAND] Checking channel #"+currentChat);
     for (var key in channelMembership[currentChat]) {
-      console.log("[SERVER COMMAND] Iterating user "+channelMembership[CurrentChat][key].username);
+      logger.info("[SERVER COMMAND] Iterating user "+channelMembership[CurrentChat][key].username);
       channelMembershipArray.push(channelMembership[currentChat][key].username);
     }
-    console.log("[SERVER COMMAND] Broadcasting user list for #"+currentChat+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
+    logger.info("[SERVER COMMAND] Broadcasting user list for #"+currentChat+" to socket.id "+socket.id+" with data ( "+channelMembershipArray.toString()+" )");
     this.namespace.to(socket.id).emit('chat status', { statusType: "WHO", statusMessage: "Current users of #"+currentChat+" are ( "+channelMembershipArray.toString()+" )"});
     //socket.broadcast.to(socket.id).emit('chat status', "Current users of #"+currentChat+" are ( "+channelMembershipArray.toString()+" )");
   } else if (splitCommand[0] == "room") {
-    console.log("Got room command");
+    logger.info("Got room command");
     if (splitCommand[2] == "member") {
-      console.log("Got member sub command");
+      logger.info("Got member sub command");
       if (splitCommand[3] == "add") {
-        console.log("Got add sub sub command");
+        logger.info("Got add sub sub command");
         Room.addMember({ requestingUser: userName, memberToAdd: splitCommand[4], roomName: splitCommand[1] }, function(err, success) {
           if (err) {
-            return console.log("Error adding member to room: " + err);
+            return logger.info("Error adding member to room: " + err);
           }
           if (!success) {
-            return console.log("Was not successful when adding membe to room");
+            return logger.info("Was not successful when adding membe to room");
           }
-          console.log("Added " + splitCommand[4] + " to room " + splitCommand[1]);
+          logger.info("Added " + splitCommand[4] + " to room " + splitCommand[1]);
           return socket.emit('serverCommandComplete', { response: "[SERVER] Added " + splitCommand[4] + " to room " + splitCommand[1] });
         })
       }
@@ -348,7 +351,7 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
   } else if (splitCommand[0] == "help") {
     // Output help here
   } else {
-    console.log("[SERVER COMMAND] Unable to parse server command...");
+    logger.info("[SERVER COMMAND] Unable to parse server command...");
   }
 };
 
@@ -359,21 +362,21 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 SocketServer.prototype.joinRoom = function joinRoom(data) {
   var self = this;
 
-  console.log("[JOIN ROOM] data is ",data);
+  logger.info("[JOIN ROOM] data is ",data);
 
   if (!self.socket.user) {
-    console.log("Ignoring join attempt by unauthenticated user");
+    logger.info("Ignoring join attempt by unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
   var userName = self.socket.user.userName;
   var room = data.room;
 
-  console.log("[JOIN ROOM] User '" + userName + "' joining room #",room.name);
+  logger.info("[JOIN ROOM] User '" + userName + "' joining room #",room.name);
 
   // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
-    //console.log("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
+    //logger.info("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
     KeyId.getMasterKeyId(room, function(err, currentKeyId) {
       User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
@@ -385,23 +388,23 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
               self.socket.join(room);
               Room.join({userName: userName, name: room}, function(err, success) {
                 if (err) {
-                  return console.log("Error joining room " + room + " with error: " + err);
+                  return logger.info("Error joining room " + room + " with error: " + err);
                 }
                 if (!success) {
-                  return console.log("Failed to join room " + room);
+                  return logger.info("Failed to join room " + room);
                 }
               })
-              console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+              logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
               self.updateRoomUsers(room.name);
             });
           });
         } else {
-          //console.log("[JOIN ROOM] Clients master key is up to date");
+          //logger.info("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
 
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
-          console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name + " with member list of ", membersArray);
+          logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name + " with member list of ", membersArray);
           self.updateRoomUsers(room.name);
         };
       });
@@ -414,7 +417,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       var room = data.room;
 
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
-        //console.log("Member trying to join room and room is: " + JSON.stringify(room));
+        //logger.info("Member trying to join room and room is: " + JSON.stringify(room));
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
@@ -422,9 +425,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
         }
         self.socket.join(room.name);
-        console.log("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
+        logger.info("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
-        console.log("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+        logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
         self.updateRoomUsers(room.name);
       })
     })
@@ -436,7 +439,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  * Users will be looked up on the client side using username or id
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
-  //console.log("sanatizing room: ",room);
+  //logger.info("sanatizing room: ",room);
   if (room._owner) {
     var ownerUserName = room._owner.userName;
   } else {
@@ -449,30 +452,29 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var membersArray = [];
   var adminsArray = [];
 
-  //console.log("[sanatizeRoomForClient] Members: ",room._members);
-  //console.log("[sanatizeRoomForClient] Admins: ",room._admins);
+  //logger.info("[sanatizeRoomForClient] Members: ",room._members);
+  //logger.info("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
-    console.log("About to loop through members, Object.keys for members is: ",Object.keys(room._members));
-    console.log("room members is: ",room._members);
+    //logger.info("room members is: ",room._members);
 
     room._members.forEach(function(member) {
-      //console.log("[sanatizeRoomForClient] looping members - key:",key);
-      //console.log("[sanatizeRoomForClient] looping members - userName:",userName);
+      //logger.info("[sanatizeRoomForClient] looping members - key:",key);
+      //logger.info("[sanatizeRoomForClient] looping members - userName:",userName);
       membersArray.push(member.userName);
     })
   }
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
-      //console.log("[sanatizeRoomForClient] looping admins - key:",key);
-      //console.log("[sanatizeRoomForClient] looping admins - userName:",userName);
+      //logger.info("[sanatizeRoomForClient] looping admins - key:",key);
+      //logger.info("[sanatizeRoomForClient] looping admins - userName:",userName);
       adminsArray.push(admin.userName);
     })
   }
 
-  //console.log("[sanatizeRoomForClient] Members array: ", membersArray);
-  //console.log("[sanatizeRoomForClient] Admins array: ", adminsArray);
+  //logger.info("[sanatizeRoomForClient] Members array: ", membersArray);
+  //logger.info("[sanatizeRoomForClient] Admins array: ", adminsArray);
   //var membersArray = room.members.map(function(member) {
   //  return member.userName;
   //});
@@ -511,13 +513,13 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     membershipRequired: data.membershipRequired
   }
 
-  console.log("User " + self.socket.user.userName + " is trying to create room " + data.roomName);
+  logger.info("User " + self.socket.user.userName + " is trying to create room " + data.roomName);
   Room.create(roomData, function(err, newRoom) {
     if (err) {
-      return console.log("Error creating room: " + err);
+      return logger.info("Error creating room: " + err);
     }
     self.socket.emit('createRoomComplete', { roomName: data.roomName });
-    console.log("Room created : " + JSON.stringify(newRoom));
+    logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
     rooms[newRoom.name] = newRoom;
     if (roomData.membershipRequired) {
@@ -539,25 +541,25 @@ SocketServer.prototype.partRoom = function partRoom(data) {
   // Check if user has already initiated parting this room
   //
 
-  console.log("[PART ROOM] Parting room for",self.socket.user.userName);
+  logger.info("[PART ROOM] Parting room for",self.socket.user.userName);
 
   if (!self.socket.user) {
-    console.log("Ignoring part attempt by unauthenticated user");
+    logger.info("Ignoring part attempt by unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
   var userName = self.socket.user.userName;
   var roomName = data.roomName
-  console.log("[PART ROOM] User " + userName + " parting room " + roomName);
+  logger.info("[PART ROOM] User " + userName + " parting room " + roomName);
 
   Room.part({ userName: userName, roomName: roomName }, function(err, success) {
     if (err) {
-      return console.log("Error parting room " + roomName + " with error: " + err);
+      return logger.info("Error parting room " + roomName + " with error: " + err);
     }
     if (!success) {
-      return console.log("Failed to part room " + roomName);
+      return logger.info("Failed to part room " + roomName);
     }
-    console.log("User " + userName + " parted room " + roomName);
+    logger.info("User " + userName + " parted room " + roomName);
     self.updateRoomUsers(roomName);
 
     // Update user status
@@ -609,9 +611,9 @@ SocketServer.prototype.getRoomUsers = function(room, callback) {
     members = members.map(function(sid) {
       return self.namespace.socketMap[sid];
     });
-    //console.log("(getRoomUsers) - (",room,")(",members,")")
+    //logger.info("(getRoomUsers) - (",room,")(",members,")")
   } else {
-    console.log("[GET USER LIST] User list is empty");
+    logger.info("[GET USER LIST] User list is empty");
   };
 
   callback(null, members);
@@ -628,43 +630,43 @@ SocketServer.prototype.leaveChannel = function leaveChannel(data) {
 SocketServer.prototype.disconnect = function disconnect() {
   var self = this;
   if (!self.socket) {
-    return console.log("unknown socket");
+    return logger.info("unknown socket");
   }
 
-  console.log("[DISCONNECT] socket.id: " + self.socket.id);
+  logger.info("[DISCONNECT] socket.id: " + self.socket.id);
   self.socket.leaveAll();
 
   if (self.socket.user && self.socket.user.userName) {
     var userName = self.socket.user.userName;
-    console.log("[SOCKET SERVER] (disconnect) userName: "+userName);
+    logger.info("[SOCKET SERVER] (disconnect) userName: "+userName);
     User.findOne({ userName: userName }).populate('membership._currentRooms').exec(function(err, user) {
       if (err) {
-        return console.log("ERROR finding user while parting room");
+        return logger.info("ERROR finding user while parting room");
       }
       if (!user) {
-        return console.log("ERROR finding user while parting room");
+        return logger.info("ERROR finding user while parting room");
       }
-      console.log("[DISCONNECT] Found user, disconnecting...");
+      logger.info("[DISCONNECT] Found user, disconnecting...");
       user.membership._currentRooms.forEach(function(currentRoom) {
-        console.log("User " + userName + " parting room " + currentRoom.name);
+        logger.info("User " + userName + " parting room " + currentRoom.name);
         Room.part({ userName: userName, roomName: currentRoom.name }, function(err, success) {
           if (err) {
-            return console.log("ERROR parting room: " + err);
+            return logger.info("ERROR parting room: " + err);
           }
           if (!success) {
-            return console.log("User " + userName + " failed to part room " + currentRoom.name);
+            return logger.info("User " + userName + " failed to part room " + currentRoom.name);
           }
           //BOOKMARK
-          console.log("User " + userName + " successfully parted room " + currentRoom.name);
+          logger.info("User " + userName + " successfully parted room " + currentRoom.name);
           // TODO: Should update all appropritae channels here
-          console.log("Updating room users!");
+          logger.info("Updating room users!");
           self.updateRoomUsers(currentRoom.name);
         })
       })
     })
     delete self.namespace.userMap[self.socket.user.userName];
   } else {
-    console.log("WARNING! Someone left the channel and we don't know who it was...");
+    logger.info("WARNING! Someone left the channel and we don't know who it was...");
   }
 };
 
@@ -700,7 +702,7 @@ SocketServer.prototype.removeUserFromAllChannels = function removeUserFromAllCha
         if (err) {
           callback(err, null);
         } else {
-          console.log("Removed "+user.userName+" from "+count+" channels");
+          logger.info("Removed "+user.userName+" from "+count+" channels");
           callback(null, userName);
         };
       });

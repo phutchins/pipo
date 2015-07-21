@@ -1,3 +1,408 @@
 {"level":"info","message":"Logger is working","timestamp":"2015-07-21T11:32:33.894Z"}
 {"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T11:33:30.038Z"}
 {"level":"info","message":"this is a test","timestamp":"2015-07-21T11:33:30.192Z"}
+{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:55:46.796Z"}
+{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:55:46.968Z"}
+{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:55:46.969Z"}
+{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:55:46.969Z"}
+{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:55:46.973Z"}
+{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:55:46.973Z"}
+{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:55:46.974Z"}
+{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:55:46.980Z"}
+{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:55:46.983Z"}
+{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:55:46.984Z"}
+{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:55:46.984Z"}
+{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:55:46.984Z"}
+{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:55:46.984Z"}
+{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:56:52.036Z"}
+{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:56:52.036Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:56:52.041Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:56:52.041Z"}
+{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:58:41.836Z"}
+{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:58:42.441Z"}
+{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:58:42.442Z"}
+{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:58:42.442Z"}
+{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:58:42.446Z"}
+{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:58:42.447Z"}
+{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:58:42.447Z"}
+{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:58:42.453Z"}
+{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:58:42.456Z"}
+{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:58:42.456Z"}
+{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:58:42.456Z"}
+{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:58:42.456Z"}
+{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:58:42.456Z"}
+{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:58:42.932Z"}
+{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:58:42.932Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:58:42.936Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:58:42.937Z"}
+{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T13:59:07.834Z"}
+{"level":"info","message":"[INIT] Init'd user philip5","timestamp":"2015-07-21T13:59:08.385Z"}
+{"level":"info","message":"this is a test","timestamp":"2015-07-21T13:59:08.386Z"}
+{"level":"info","message":"getting userlist for user...","timestamp":"2015-07-21T13:59:08.386Z"}
+{"level":"info","message":"Found default room: # pipo","timestamp":"2015-07-21T13:59:08.390Z"}
+{"level":"info","message":"getting available room list","timestamp":"2015-07-21T13:59:08.391Z"}
+{"level":"info","message":"[INIT] Emitting user connect","timestamp":"2015-07-21T13:59:08.391Z"}
+{"twisnews":{"userName":"twisnews","email":"twisnews@gmail.com","emailHash":"cdc20c8b46e1e986dc510d562249d9a4"},"philip5":{"userName":"philip5","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"flip12":{"userName":"flip12","email":"flipture@gmail.com","emailHash":"f68dcfd1b2c42c45b07ccfda39f3f53e"},"TestUser":{"userName":"TestUser","email":"testuser@test.com","emailHash":"ed53e691ee322e24d8cc843fff68ebc6"},"level":"info","message":"Sending userlist to user...","timestamp":"2015-07-21T13:59:08.396Z"}
+{"level":"info","message":"done getting available room list","timestamp":"2015-07-21T13:59:08.399Z"}
+{"level":"info","message":"Adding room pipo to array","timestamp":"2015-07-21T13:59:08.399Z"}
+{"level":"info","message":"Adding room secret to array","timestamp":"2015-07-21T13:59:08.399Z"}
+{"level":"info","message":"Adding room newroom to array","timestamp":"2015-07-21T13:59:08.399Z"}
+{"level":"info","message":"Sending membership update to user philip5","timestamp":"2015-07-21T13:59:08.399Z"}
+{"room":"pipo","level":"info","message":"[JOIN ROOM] data is ","timestamp":"2015-07-21T13:59:08.832Z"}
+{"level":"info","message":"[JOIN ROOM] User 'philip5' joining room # undefined","timestamp":"2015-07-21T13:59:08.832Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode","timestamp":"2015-07-21T13:59:08.836Z"}
+{"level":"info","message":"[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo","timestamp":"2015-07-21T13:59:08.837Z"}
+2015-07-21T14:08:34.906Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:08:35.763Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T14:08:35.763Z - [32minfo[39m: this is a test
+2015-07-21T14:08:35.764Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:08:35.768Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T14:08:35.768Z - [32minfo[39m: getting available room list
+2015-07-21T14:08:35.769Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:08:35.773Z - [32minfo[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined
+2015-07-21T14:08:35.778Z - [32minfo[39m: done getting available room list
+2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room secret to array
+2015-07-21T14:08:35.778Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T14:08:35.778Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T14:08:36.302Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T14:08:36.303Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T14:08:36.308Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T14:08:36.309Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T14:10:26.225Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T14:10:26.227Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T14:10:26.228Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T14:10:26.228Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T14:10:26.229Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T14:10:26.230Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T14:10:26.752Z - [32minfo[39m: Connection to io
+2015-07-21T14:10:26.764Z - [32minfo[39m: Connection to ioMain
+2015-07-21T14:10:26.765Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:10:27.287Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T14:10:27.287Z - [32minfo[39m: this is a test
+2015-07-21T14:10:27.288Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:10:27.292Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T14:10:27.292Z - [32minfo[39m: getting available room list
+2015-07-21T14:10:27.293Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:10:27.298Z - [32minfo[39m: Sending userlist to user... userName=twisnews, fullName=undefined, email=twisnews@gmail.com, emailHash=cdc20c8b46e1e986dc510d562249d9a4, title=undefined, userName=philip5, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=flip12, fullName=undefined, email=flipture@gmail.com, emailHash=f68dcfd1b2c42c45b07ccfda39f3f53e, title=undefined, userName=TestUser, fullName=undefined, email=testuser@test.com, emailHash=ed53e691ee322e24d8cc843fff68ebc6, title=undefined
+2015-07-21T14:10:27.303Z - [32minfo[39m: done getting available room list
+2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room secret to array
+2015-07-21T14:10:27.303Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T14:10:27.303Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T14:10:27.728Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T14:10:27.730Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T14:10:27.734Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T14:10:27.734Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T14:10:48.444Z - [32minfo[39m: [SERVER] Loading route chat
+2015-07-21T14:10:48.445Z - [32minfo[39m: [SERVER] Loading route keys
+2015-07-21T14:10:48.446Z - [32minfo[39m: [SERVER] Loading route membership
+2015-07-21T14:10:48.446Z - [32minfo[39m: [SERVER] Loading route user
+2015-07-21T14:10:48.446Z - [32minfo[39m: [START] Starting in CLIENT KEY mode
+2015-07-21T14:10:48.448Z - [32minfo[39m: [SERVER] Listening on port 3030
+2015-07-21T14:10:49.768Z - [32minfo[39m: Connection to io
+2015-07-21T14:10:49.810Z - [32minfo[39m: Connection to ioMain
+2015-07-21T14:10:49.811Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:10:50.317Z - [32minfo[39m: [INIT] Init'd user philip5
+2015-07-21T14:10:50.317Z - [32minfo[39m: this is a test
+2015-07-21T14:10:50.317Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:10:50.321Z - [32minfo[39m: Found default room: # pipo
+2015-07-21T14:10:50.965Z - [32minfo[39m: getting available room list
+2015-07-21T14:10:50.965Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:10:50.980Z - [32minfo[39m: done getting available room list
+2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room pipo to array
+2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room secret to array
+2015-07-21T14:10:50.980Z - [32minfo[39m: Adding room newroom to array
+2015-07-21T14:10:50.980Z - [32minfo[39m: Sending membership update to user philip5
+2015-07-21T14:10:51.749Z - [32minfo[39m: [JOIN ROOM] data is  room=pipo
+2015-07-21T14:10:51.750Z - [32minfo[39m: [JOIN ROOM] User 'philip5' joining room # undefined
+2015-07-21T14:10:51.755Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode
+2015-07-21T14:10:51.755Z - [32minfo[39m: [SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room pipo
+2015-07-21T14:11:05.300Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:05.301Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:05.302Z - [32minfo[39m: this is a test
+2015-07-21T14:11:05.302Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:05.303Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:05.303Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:05.303Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:05.303Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:05.303Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:05.303Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:05.304Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:05.304Z - [32minfo[39m: this is a test
+2015-07-21T14:11:05.304Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:05.304Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:05.304Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:05.304Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:05.304Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:05.304Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:05.304Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:05.305Z - [32minfo[39m: this is a test
+2015-07-21T14:11:05.305Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:05.305Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:05.305Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:05.305Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:05.305Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:05.305Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:05.305Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:05.305Z - [32minfo[39m: this is a test
+2015-07-21T14:11:05.305Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:05.306Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:05.306Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:05.306Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:05.306Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:05.306Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:55.533Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:55.535Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:55.535Z - [32minfo[39m: this is a test
+2015-07-21T14:11:55.536Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:55.536Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:55.536Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:55.536Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:55.536Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:55.536Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:55.537Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:55.537Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:55.537Z - [32minfo[39m: this is a test
+2015-07-21T14:11:55.537Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:55.537Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:55.537Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:55.537Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:55.537Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:55.537Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:55.538Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:55.538Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:55.538Z - [32minfo[39m: this is a test
+2015-07-21T14:11:55.538Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:55.538Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:55.538Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:55.538Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:55.538Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:55.538Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:55.539Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:55.539Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:55.539Z - [32minfo[39m: this is a test
+2015-07-21T14:11:55.539Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:55.539Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:55.539Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:55.539Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:55.539Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:55.539Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:57.724Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:57.726Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:57.726Z - [32minfo[39m: this is a test
+2015-07-21T14:11:57.726Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:57.727Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:57.727Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:57.727Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:57.727Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:57.727Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:57.728Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:57.729Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:57.729Z - [32minfo[39m: this is a test
+2015-07-21T14:11:57.729Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:57.729Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:57.729Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:57.729Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:57.729Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:57.729Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:57.730Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:57.731Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:57.731Z - [32minfo[39m: this is a test
+2015-07-21T14:11:57.731Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:57.731Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:57.731Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:57.731Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:57.731Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:57.731Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:11:57.731Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:11:57.732Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:11:57.732Z - [32minfo[39m: this is a test
+2015-07-21T14:11:57.732Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:11:57.732Z - [32minfo[39m: getting available room list
+2015-07-21T14:11:57.732Z - [32minfo[39m: done getting available room list
+2015-07-21T14:11:57.732Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:11:57.732Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:11:57.732Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:13:21.809Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:13:21.811Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:13:21.811Z - [32minfo[39m: this is a test
+2015-07-21T14:13:21.812Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:13:21.812Z - [32minfo[39m: getting available room list
+2015-07-21T14:13:21.812Z - [32minfo[39m: done getting available room list
+2015-07-21T14:13:21.813Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:13:21.813Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:13:21.813Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:13:21.813Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:13:21.813Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:13:21.813Z - [32minfo[39m: this is a test
+2015-07-21T14:13:21.813Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:13:21.813Z - [32minfo[39m: getting available room list
+2015-07-21T14:13:21.813Z - [32minfo[39m: done getting available room list
+2015-07-21T14:13:21.814Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:13:21.814Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:13:21.814Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:13:21.814Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:13:21.814Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:13:21.814Z - [32minfo[39m: this is a test
+2015-07-21T14:13:21.814Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:13:21.814Z - [32minfo[39m: getting available room list
+2015-07-21T14:13:21.814Z - [32minfo[39m: done getting available room list
+2015-07-21T14:13:21.814Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:13:21.815Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:13:21.815Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:13:21.815Z - [32minfo[39m: this is a test
+2015-07-21T14:13:21.815Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:13:21.815Z - [32minfo[39m: getting available room list
+2015-07-21T14:13:21.815Z - [32minfo[39m: done getting available room list
+2015-07-21T14:13:21.815Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:13:21.815Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:13:21.815Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:14.406Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:14.408Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:14.408Z - [32minfo[39m: this is a test
+2015-07-21T14:16:14.408Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:14.409Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:14.409Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:14.409Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:14.409Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:14.409Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:14.409Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:14.410Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:14.410Z - [32minfo[39m: this is a test
+2015-07-21T14:16:14.410Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:14.410Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:14.410Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:14.410Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:14.410Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:14.410Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:14.411Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:14.411Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:14.411Z - [32minfo[39m: this is a test
+2015-07-21T14:16:14.411Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:14.411Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:14.411Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:14.411Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:14.411Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:14.411Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:14.412Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:14.412Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:14.412Z - [32minfo[39m: this is a test
+2015-07-21T14:16:14.412Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:14.412Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:14.412Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:14.412Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:14.412Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:14.412Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:55.914Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:55.916Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:55.916Z - [32minfo[39m: this is a test
+2015-07-21T14:16:55.916Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:55.917Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:55.917Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:55.917Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:55.917Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:55.917Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:55.918Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:55.918Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:55.918Z - [32minfo[39m: this is a test
+2015-07-21T14:16:55.918Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:55.918Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:55.918Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:55.918Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:55.918Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:55.918Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:55.919Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:55.919Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:55.919Z - [32minfo[39m: this is a test
+2015-07-21T14:16:55.919Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:55.919Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:55.919Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:55.919Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:55.919Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:55.919Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:16:55.920Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:16:55.920Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:16:55.920Z - [32minfo[39m: this is a test
+2015-07-21T14:16:55.920Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:16:55.920Z - [32minfo[39m: getting available room list
+2015-07-21T14:16:55.920Z - [32minfo[39m: done getting available room list
+2015-07-21T14:16:55.920Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:16:55.920Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:16:55.920Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:06.811Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:06.813Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:06.813Z - [32minfo[39m: this is a test
+2015-07-21T14:17:06.813Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:06.814Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:06.814Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:06.814Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:06.814Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:06.814Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:06.815Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:06.815Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:06.815Z - [32minfo[39m: this is a test
+2015-07-21T14:17:06.815Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:06.815Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:06.815Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:06.815Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:06.815Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:06.815Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:06.816Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:06.816Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:06.816Z - [32minfo[39m: this is a test
+2015-07-21T14:17:06.816Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:06.816Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:06.816Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:06.816Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:06.816Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:06.816Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:06.817Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:06.817Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:06.817Z - [32minfo[39m: this is a test
+2015-07-21T14:17:06.817Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:06.817Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:06.817Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:06.817Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:06.817Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:06.817Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:11.646Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:11.647Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:11.647Z - [32minfo[39m: this is a test
+2015-07-21T14:17:11.648Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:11.649Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:11.649Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:11.649Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:11.649Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:11.649Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:11.649Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:11.649Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:11.649Z - [32minfo[39m: this is a test
+2015-07-21T14:17:11.649Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:11.650Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:11.650Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:11.650Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:11.650Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:11.650Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:11.650Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:11.650Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:11.650Z - [32minfo[39m: this is a test
+2015-07-21T14:17:11.650Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:11.651Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:11.651Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:11.651Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:11.651Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:11.651Z - [32minfo[39m: [INIT] Emitting user connect
+2015-07-21T14:17:11.651Z - [32minfo[39m: [CONNECTION] Socket connected to main
+2015-07-21T14:17:11.651Z - [32minfo[39m: [INIT] Init'd user testUser
+2015-07-21T14:17:11.651Z - [32minfo[39m: this is a test
+2015-07-21T14:17:11.651Z - [32minfo[39m: getting userlist for user...
+2015-07-21T14:17:11.651Z - [32minfo[39m: getting available room list
+2015-07-21T14:17:11.651Z - [32minfo[39m: done getting available room list
+2015-07-21T14:17:11.651Z - [32minfo[39m: Adding room testRoom to array
+2015-07-21T14:17:11.651Z - [32minfo[39m: Sending membership update to user testUser
+2015-07-21T14:17:11.652Z - [32minfo[39m: [INIT] Emitting user connect

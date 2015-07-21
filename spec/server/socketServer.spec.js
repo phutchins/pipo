@@ -141,14 +141,14 @@ describe('Chat server', function() {
       expect(User.authenticateOrCreate).toHaveBeenCalledWith(validUserData, jasmine.any(Function));
     });
 
-    it('should be successful with a valid key', function() {
+    it('should send a list of rooms with membership to the client', function() {
       socketServer.authenticate(validUserData);
       expect(socketServer.socket.emit.calls[0].args).toEqual( [ 'membershipUpdate', { rooms : { testRoom : { name : 'testRoom' } } } ] );
     });
 
-    it('should send a list of rooms with membership to the client', function() {
+    it('should be successful with a valid key', function() {
       socketServer.authenticate(validUserData);
-      expect(socketServer.socket.emit.calls[1].args).toEqual( [ 'test', { message : 'testing' } ] );
+      expect(socketServer.namespace.emit.calls[0].args).toEqual( [ 'user connect', { userName : 'testUser', publicKey: validUserData.publicKey } ] );
     })
   })
 });

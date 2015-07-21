@@ -1,0 +1,3 @@
+{"level":"info","message":"Logger is working","timestamp":"2015-07-21T11:32:33.894Z"}
+{"level":"info","message":"[CONNECTION] Socket connected to main","timestamp":"2015-07-21T11:33:30.038Z"}
+{"level":"info","message":"this is a test","timestamp":"2015-07-21T11:33:30.192Z"}

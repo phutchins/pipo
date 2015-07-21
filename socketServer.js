@@ -3,6 +3,7 @@ var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var config = require('./config/pipo');
+var logger = require('./config/logger');
 
 /**
  * Handles all socket traffic
@@ -27,7 +28,7 @@ SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;
   this.init();
 
-  console.log("[CONNECTION] Socket connected to main");
+  logger.info("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
 
@@ -122,74 +123,73 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
-    if (user) {
-      if (newUser) {
-        console.log("User", data.userName, " not in the mastr cached userlist so adding them");
-        // This helps keep track of when users sign up so that we can emit the new user data to all clients
-        self.updateUserList({scope: 'all'});
-      }
-
-      self.namespace.socketMap[self.socket.id] = {
-        userName: user.userName,
-        publicKey: user.publicKey
-      };
-
-      self.namespace.userMap[user.userName] = self.socket.id;
-
-      self.socket.user = user;
-      console.log("[INIT] Init'd user " + user.userName);
-      // TODO: Replace this with current rooms
-      var autoJoin = [];
-      User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
-        if (populatedUser.membership._autoJoin.length > 0) {
-          Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
-            console.log("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
-            autoJoin.push(populatedUser.membership._autoJoin[key].name);
-          })
-        }
-
-        // Get complete userlist to send to client on initial connection
-        console.log("getting userlist for user...");
-        self.getDefaultRoom(function(defaultRoom) {
-          if (defaultRoom == null) { return console.log("[AUTHENTICATE] ERROR - default room is null") }
-          self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
-            //console.log("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
-            User.getAllUsers({}, function(err, userlist) {
-              console.log("Sending userlist to user...", userlist);
-              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
-            })
-          })
-
-          console.log("getting available room list");
-          User.availableRooms({ userName: user.userName }, function(err, roomData) {
-            console.log("done getting available room list");
-            if (err) {
-              return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
-            }
-            var rooms = {};
-            Object.keys(roomData.rooms).forEach(function(key) {
-              console.log("Adding room " + roomData.rooms[key].name + " to array");
-              rooms[roomData.rooms[key].name] = roomData.rooms[key];
-            })
-            //console.log("Rooms is: " + JSON.stringify(rooms));
-            console.log("Sending membership update to user " + user.userName);
-            self.socket.emit('membershipUpdate', { rooms: rooms });
-          })
-
-          console.log("[INIT] Emitting user connect");
-          self.socket.emit('test', { message: 'testing' });
-          return self.namespace.emit('user connect', {
-            userName: user.userName,
-            publicKey: user.publicKey
-          })
-        })
-      })
-    }
-    else {
+    if (!user) {
       console.log("[INIT] Problem initializing connection, no error, but no user");
       return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
-  });
+
+    if (newUser) {
+      console.log("User", data.userName, " not in the mastr cached userlist so adding them");
+      // This helps keep track of when users sign up so that we can emit the new user data to all clients
+      self.updateUserList({scope: 'all'});
+    }
+
+    self.namespace.socketMap[self.socket.id] = {
+      userName: user.userName,
+      publicKey: user.publicKey
+    };
+
+    self.namespace.userMap[user.userName] = self.socket.id;
+
+    self.socket.user = user;
+    console.log("[INIT] Init'd user " + user.userName);
+    // TODO: Replace this with current rooms
+    var autoJoin = [];
+    logger.info("this is a test");
+    User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
+      if (populatedUser.membership._autoJoin.length > 0) {
+        Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
+          console.log("Adding " + populatedUser.membership._autoJoin[key].name + " to auto join array");
+          autoJoin.push(populatedUser.membership._autoJoin[key].name);
+        })
+      }
+
+      // Get complete userlist to send to client on initial connection
+      console.log("getting userlist for user...");
+      self.getDefaultRoom(function(defaultRoom) {
+        if (defaultRoom == null) { return console.log("[AUTHENTICATE] ERROR - default room is null") }
+        self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
+          //console.log("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
+          User.getAllUsers({}, function(err, userlist) {
+            console.log("Sending userlist to user...", userlist);
+            self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
+          })
+        })
+
+        console.log("getting available room list");
+        User.availableRooms({ userName: user.userName }, function(err, roomData) {
+          console.log("done getting available room list");
+          if (err) {
+            return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
+          }
+          var rooms = {};
+          Object.keys(roomData.rooms).forEach(function(key) {
+            console.log("Adding room " + roomData.rooms[key].name + " to array");
+            rooms[roomData.rooms[key].name] = roomData.rooms[key];
+          })
+          //console.log("Rooms is: " + JSON.stringify(rooms));
+          console.log("Sending membership update to user " + user.userName);
+          self.socket.emit('membershipUpdate', { rooms: rooms });
+        })
+
+        console.log("[INIT] Emitting user connect");
+        return self.namespace.emit('user connect', {
+          userName: user.userName,
+          publicKey: user.publicKey
+        })
+      })
+    })
+  })
 };
 
 /*

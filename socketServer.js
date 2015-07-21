@@ -150,7 +150,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
         // Get complete userlist to send to client on initial connection
         console.log("getting userlist for user...");
-        self.socket.emit('bleh', {test: 'hi'});
         self.getDefaultRoom(function(defaultRoom) {
           if (defaultRoom == null) { return console.log("[AUTHENTICATE] ERROR - default room is null") }
           self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
@@ -178,6 +177,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           })
 
           console.log("[INIT] Emitting user connect");
+          self.socket.emit('test', { message: 'testing' });
           return self.namespace.emit('user connect', {
             userName: user.userName,
             publicKey: user.publicKey

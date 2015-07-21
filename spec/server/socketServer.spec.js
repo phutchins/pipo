@@ -22,6 +22,7 @@ var configHttps = require('../../config/https');
 
 var SocketServer = require('../../socketServer');
 
+process.env.NODE_ENV = 'test';
 
 // Stubbed objects
 var testUser = new User({
@@ -99,7 +100,11 @@ describe('Chat server', function() {
       var emitCode, emitData;
       var namespace = jasmine.createSpyObj('namespace', ['emit', 'socketMap']);
       namespace.socketMap['1234567890'] = {};
+      namespace.name = '/socket';
       var fakeSocket = jasmine.createSpyObj('fakeSocket', ['emit', 'on', 'id']);
+      spyOn(User, 'availableRooms').andCallFake( function(data, callback) {
+        callback( null, { rooms: { 'testRoom': { name: 'testRoom' } } } );
+      })
 
       socketServer = new SocketServer(namespace);
       //socketServer.socket.id = '55aa6c0e937db58bcea22f4b';
@@ -138,12 +143,12 @@ describe('Chat server', function() {
 
     it('should be successful with a valid key', function() {
       socketServer.authenticate(validUserData);
-      expect(socketServer.socket.emit).toHaveBeenCalledWith({ 'message': 'ok'});
+      expect(socketServer.socket.emit.calls[0].args).toEqual( [ 'membershipUpdate', { rooms : { testRoom : { name : 'testRoom' } } } ] );
     });
 
     it('should send a list of rooms with membership to the client', function() {
       socketServer.authenticate(validUserData);
-      expect(socketServer.socket.emit).toHaveBeenCalledWith({ bleh: 'hi' });
+      expect(socketServer.socket.emit.calls[1].args).toEqual( [ 'test', { message : 'testing' } ] );
     })
   })
 });

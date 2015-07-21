@@ -65,6 +65,24 @@ app.use(express['static'](path.join(__dirname, 'public')));
 //Logger
 app.use(morgan('dev'));
 
+// Use this to hide logging during tests
+if (process.env.NODE_ENV !== 'test') {
+    console.log = function() {};
+    logger = new (winston.Logger)({
+        transports: [
+            new (winston.transports.Console)(),
+            new (winston.transports.File)({ filename: 'foo.log' })
+        ]
+    });
+} else {
+    // while testing, log only to file, leaving stdout free for unit test status messages
+    logger = new (winston.Logger)({
+        transports: [
+            new (winston.transports.File)({ filename: 'foo.log' })
+        ]
+    });
+}
+
 //L33t asci
 console.log('  __________.____________           ');
 console.log('  \\______   \\__\\______   \\____  ');

@@ -109,9 +109,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  */
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
-  logger.debug("[AUTHENTICATE] Authenticating user data is: ",data);
   User.authenticateOrCreate(data, function(err, authData) {
-    logger.debug("[AUTHENTICATE] authData is ", authData);
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;
@@ -127,7 +125,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     }
 
     if (newUser) {
-      logger.debug("User", data.userName, " not in the mastr cached userlist so adding them");
+      logger.debug("User", data.userName, " not in the master cached userlist so adding them");
       // This helps keep track of when users sign up so that we can emit the new user data to all clients
       self.updateUserList({scope: 'all'});
     }
@@ -140,10 +138,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     self.namespace.userMap[user.userName] = self.socket.id;
 
     self.socket.user = user;
-    logger.info("[INIT] Init'd user " + user.userName);
+    logger.debug("[INIT] Init'd user " + user.userName);
     // TODO: Replace this with current rooms
     var autoJoin = [];
-    logger.info("this is a test");
     User.populate(user, { path: 'membership._autoJoin' }, function(err, populatedUser) {
       if (populatedUser.membership._autoJoin.length > 0) {
         Object.keys(populatedUser.membership._autoJoin).forEach(function(key) {
@@ -153,34 +150,34 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       }
 
       // Get complete userlist to send to client on initial connection
-      logger.info("getting userlist for user...");
+      logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
         if (defaultRoom == null) { return logger.info("[AUTHENTICATE] ERROR - default room is null") }
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
-          User.getAllUsers({}, function(err, userlist) {
+          User.getAllUsers({}, function(userlist) {
             logger.debug("Sending userlist to user...", userlist);
             self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
           })
         })
 
-        logger.info("getting available room list");
+        logger.debug("[INIT] getting available room list");
         User.availableRooms({ userName: user.userName }, function(err, roomData) {
-          logger.info("done getting available room list");
+          logger.debug("[INIT] done getting available room list");
           if (err) {
             return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
           }
           var rooms = {};
           Object.keys(roomData.rooms).forEach(function(key) {
-            logger.info("Adding room " + roomData.rooms[key].name + " to array");
+            logger.debug("Adding room " + roomData.rooms[key].name + " to array");
             rooms[roomData.rooms[key].name] = roomData.rooms[key];
           })
           //logger.info("Rooms is: " + JSON.stringify(rooms));
-          logger.info("Sending membership update to user " + user.userName);
+          logger.debug("Sending membership update to user " + user.userName);
           self.socket.emit('membershipUpdate', { rooms: rooms });
         })
 
-        logger.info("[INIT] Emitting user connect");
+        logger.info("[INIT] Emitting user connect for",user.userName);
         return self.namespace.emit('user connect', {
           userName: user.userName,
           publicKey: user.publicKey
@@ -370,7 +367,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   var userName = self.socket.user.userName;
   var room = data.room;
 
-  logger.info("[JOIN ROOM] User '" + userName + "' joining room #",room.name);
+  logger.info("[JOIN ROOM] User '" + userName + "' joining room #"+room);
 
   // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
@@ -437,7 +434,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  * Users will be looked up on the client side using username or id
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
-  logger.debug("sanatizing room: ",room);
   if (room._owner) {
     var ownerUserName = room._owner.userName;
   } else {
@@ -449,8 +445,6 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
 
   var membersArray = [];
   var adminsArray = [];
-
-  logger.debug("[sanatizeRoomForClient] Admins: ",room._admins);
 
   if (membersLength > 0) {
     //logger.info("room members is: ",room._members);
@@ -565,8 +559,8 @@ SocketServer.prototype.partRoom = function partRoom(data) {
 SocketServer.prototype.updateUserList = function updateUserList(data) {
   var self = this;
   var scope = data.scope;
-  User.getAllUsers({}, function(err, data) {
-    var userlist = data.userlist;
+  User.getAllUsers({}, function(userlist) {
+    logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
     if (scope == 'all') {
       self.namespace.emit("userlistUpdate", {
         userlist: userlist

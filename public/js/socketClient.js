@@ -83,8 +83,19 @@ SocketClient.prototype.partRoom = function(data, callback) {
 SocketClient.prototype.addListeners = function() {
   var self = this;
   self.listeners = true;
+
   this.socket.on('authenticated', function(data) {
-    if (data.message !== 'ok') { return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication") };
+
+    ChatManager.getNotifyPermissions(function(permission) {
+      if (permission) {
+        console.log("Have notification permission");
+      }
+    })
+
+    if (data.message !== 'ok') {
+      return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication")
+    };
+
     var autoJoinRooms = data.autoJoin;
     var defaultRoomName = data.defaultRoomName;
 
@@ -92,10 +103,12 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.userlist = data.userlist;
 
     ChatManager.userSignedIn();
+
     window.encryptionManager.keyManager.sign({}, function(err) {
       window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
         window.encryptionManager.verifyRemotePublicKey(window.userName, publicKey, function(err, upToDate) {
           if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
+
           if (upToDate) {
             console.log("[INIT] Your public key matches what is on the server");
             console.log("[AUTHENTICATED] Authenticated successfully");
@@ -211,7 +224,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('userlistUpdate', function(data) {
-    var userlist = data.userlit;
+    var userlist = data.userlist;
     console.log("[SOCKET] 'userlistUpdate'");
     ChatManager.userlist = userlist;
   });

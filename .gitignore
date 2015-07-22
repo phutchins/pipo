@@ -3,3 +3,4 @@ config/pgpKeys.json
 node_modules
 adminData/
 pipo*.log
+log/pipo*.log

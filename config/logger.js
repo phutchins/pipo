@@ -34,7 +34,7 @@ if (process.env.NODE_ENV !== 'test') {
     colorize: true,
     silent: false,
     timestamp: true,
-    filename: './pipo.log',
+    filename: './log/pipo.log',
     maxsize: 40000,
     maxFiles: 10,
     json: false
@@ -50,12 +50,12 @@ if (process.env.NODE_ENV !== 'test') {
 } else {
   // while testing, log only to file, leaving stdout free for unit test status messages
   logger.add(winston.transports.File, {
-    level: 'info',
+    level: 'debug',
     prettyPrint: false,
     colorize: true,
     silent: false,
     timestamp: true,
-    filename: './pipo.log',
+    filename: './log/pipo.log',
     maxsize: 40000,
     maxFiles: 10,
     json: false

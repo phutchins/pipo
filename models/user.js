@@ -36,15 +36,22 @@ var userSchema = new Schema({
 
 userSchema.statics.create = function createUser(userData, callback) {
   var self = this;
-  if (!userData) {
+  if (!userData || userData == null) {
     return callback("no userdata provided to create user", null);
   }
+  if (!userData.userName || !userData.publicKey || !userData.email) {
+    return callback("Missing username, publickey or email", null);
+  }
+
   logger.debug("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
   logger.debug("[USER] userData is", userData);
 
   var userName = userData.userName;
   var email = userData.email;
-  var emailHash = crypto.createHash('md5').update(email).digest('hex');
+  var emailHash = null;
+  if (email) {
+    emailHash = crypto.createHash('md5').update(email).digest('hex');
+  }
   var userNameLowerCase = userName.toLowerCase();
   var publicKey = userData.publicKey;
   var createUserCallback = callback;
@@ -54,13 +61,20 @@ userSchema.statics.create = function createUser(userData, callback) {
     userName: userName,
     email: email,
     emailHash: emailHash,
-    //TODO: Is there a better way to find users case insensitive?
     userNameLowerCase: userNameLowerCase,
     publicKey: publicKey
-  }).save(function(err) {
+  });
+
+  logger.debug("[USER] Saving user...");
+  newUser.save(function(err) {
+    logger.debug("[USER] Saved user!");
+    if (err) {
+      return callback("error saving new user", null);
+    }
+    logger.debug("[USER] saved new user");
     mongoose.model('User').findOne({ userName: userName }, function(err, user) {
       logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
-      return createUserCallback(null, {user: user, newUser: true});
+      return callback(err, {user: user, newUser: true});
     })
   })
 };

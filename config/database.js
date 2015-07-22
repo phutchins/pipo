@@ -1,4 +1,9 @@
 // config/database.js
+var logger = require('./logger');
+
 module.exports = {
-  'url' : 'mongodb://localhost:27017/pipo'
+  'url' : {
+    'development': 'mongodb://localhost:27017/pipo',
+    'test': 'mongodb://localhost:27017/pipo_test'
+  }
 }

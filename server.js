@@ -9,7 +9,6 @@ var express = require('express');
 var socketIO = require('socket.io');
 var openpgp = require('openpgp');
 var favicon = require('serve-favicon');
-var mongoose = require('mongoose');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
 var async = require('async');
@@ -18,10 +17,12 @@ var events = require('events');
 var winston = require('winston');
 var pgp = require('kbpgp');
 
+//Local modules
+var database = require('./database');
+
 //Configuration
 var configPipo = require('./config/pipo');
 var configMD = require('./config/markdown');
-var configDB = require('./config/database');
 var logger = require('./config/logger');
 var configHttp = require('./config/http');
 var configHttps = require('./config/https');
@@ -73,15 +74,7 @@ console.log('   |    |   |  ||    |  (  <_> )'    );
 console.log('   |____|   |__||____|   \\____/    ');
 console.log('');
 
-var connectWithRetry = function() {
-  return mongoose.connect(configDB.url, function(err) {
-    if (err) {
-      logger.error('Failed to connect to mongo on startup - retrying in 5 sec', err);
-      setTimeout(connectWithRetry, 5000);
-    }
-  });
-};
-connectWithRetry();
+database.connect('development');
 
 // Load routes
 var routePath = './routes/';

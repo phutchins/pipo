@@ -110,6 +110,10 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
   User.authenticateOrCreate(data, function(err, authData) {
+    if (!authData) {
+      return self.socket.emit('errorMessage', {message: 'auth data provided was not sufficent to authenticate: ',err});
+    }
+
     var user = new User;
     user = authData.user;
     var newUser = authData.newUser;

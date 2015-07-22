@@ -36,11 +36,11 @@ var userSchema = new Schema({
 
 userSchema.statics.create = function createUser(userData, callback) {
   var self = this;
-  logger.debug("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
-  logger.debug("[USER] userData is", userData);
   if (!userData) {
     return callback("no userdata provided to create user", null);
   }
+  logger.debug("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
+  logger.debug("[USER] userData is", userData);
 
   var userName = userData.userName;
   var email = userData.email;

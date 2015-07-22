@@ -631,7 +631,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 ChatManager.populateUserPopup = function populateUserPopup(username) {
   // Get full name from users object here
   var fullName = 'Default Name';
-  var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
+  var emailHash = ChatManager.userlist[username].emailHash || "00000000000";
   var avatarHtml = "<img src='https://www.gravatar.com/avatar/" + emailHash + "?s=256' class='avatar-l'>";
   $('.userPopup .avatar').html(avatarHtml);
   $('.userPopup .fullName').text(fullName);

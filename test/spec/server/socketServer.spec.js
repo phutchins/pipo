@@ -15,12 +15,12 @@ var options ={
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.ObjectId;
 
-var User = require('../../models/user');
-var Room = require('../../models/room');
+var User = require('../../../models/user');
+var Room = require('../../../models/room');
 
-var configHttps = require('../../config/https');
+var configHttps = require('../../../config/https');
 
-var SocketServer = require('../../socketServer');
+var SocketServer = require('../../../socketServer');
 
 process.env.NODE_ENV = 'test';
 

@@ -200,13 +200,15 @@ var createRoomFormSettings = {
   {
     //Hides modal on validation success
     $('.modal.createroom').modal('hide');
+
     var data = {
       roomName: $('.ui.form.createroom input[name="name"]').val(),
       topic: $('.ui.form.createroom input[name="topic"]').val(),
       encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
-      keepHistory: $('.dropdown.messagehistory .selected').data().value,
-      membershipRequired: $('.dropdown.membershiprequired .selected').data().value
+      keepHistory: ($('.dropdown.messagehistory .selected').data().value === 'keep'),
+      membershipRequired: ($('.dropdown.membershiprequired .selected').data().value === 'private')
     };
+
     socketClient.createRoom(data, function(err) {
       if (err) {
         return console.log("Error creating room: " + err);

@@ -510,7 +510,8 @@ SocketServer.prototype.createRoom = function createRoom(data) {
       return logger.info("Error creating room: " + err);
     }
     self.socket.emit('createRoomComplete', { roomName: data.roomName });
-    logger.info("Room created : " + JSON.stringify(newRoom));
+    logger.info("Room created - roomData.membershipRequired: ",roomData.membershipRequired);
+    logger.debug("Room is : " + JSON.stringify(newRoom));
     var rooms = {};
     rooms[newRoom.name] = newRoom;
     if (roomData.membershipRequired) {

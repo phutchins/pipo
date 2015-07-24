@@ -23,6 +23,10 @@ var testUser = new User({
 });
 
 describe('Create user', function() {
+  spyOn(User, 'create').andCallFake( function() {
+    return testUser;
+  })
+
   spyOn(User, 'save').andCallFake( function(callback) {
     callback(null);
   })

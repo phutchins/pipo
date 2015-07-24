@@ -34,7 +34,7 @@ var userSchema = new Schema({
   }
 });
 
-userSchema.statics.create = function createUser(userData, callback) {
+userSchema.statics.createUser = function createUser(userData, callback) {
   var self = this;
   if (!userData || userData == null) {
     return callback("no userdata provided to create user", null);
@@ -57,7 +57,8 @@ userSchema.statics.create = function createUser(userData, callback) {
   var createUserCallback = callback;
   logger.debug("[USER] created emailHash",emailHash,"from email",email);
 
-  var newUser = new this({
+  var User = mongoose.model('User', userSchema);
+  var newUser = User.create({
     userName: userName,
     email: email,
     emailHash: emailHash,
@@ -110,7 +111,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     if (!user) {
       logger.debug("[USER] User '"+data.userName+"' not found so creating");
       data.userNameLowerCase = data.userName.toLowerCase();
-      return self.create(data, callback);
+      return self.createUser(data, callback);
     }
     if (user) {
       logger.debug("[USER] Found user '"+data.userName+"'");

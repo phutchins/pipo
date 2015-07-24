@@ -62,7 +62,7 @@ SocketClient.prototype.createRoom = function(data, callback) {
   var self = this;
   console.log("[CREATE ROOM] Creating room");
   var data = {
-    roomName: data.roomName,
+    name: data.name,
     topic: data.topic,
     encryptionScheme: data.encryptionScheme,
     keepHistory: data.keepHistory,
@@ -72,11 +72,27 @@ SocketClient.prototype.createRoom = function(data, callback) {
   callback(null);
 };
 
+SocketClient.prototype.updateRoom = function(data, callback) {
+  var self = this;
+  console.log("[UPDATE ROOM] Updating room");
+  var data = {
+    id: data.id,
+    name: data.name,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  };
+  console.log("[UPDATE ROOM] Updating with data:",data);
+  self.socket.emit('updateRoom', data);
+  callback(null);
+};
+
 SocketClient.prototype.partRoom = function(data, callback) {
   var self = this;
-  var roomName = data.roomName;
-  console.log("[PART ROOM] Parting room #" + roomName);
-  self.socket.emit('part', { roomName: roomName } );
+  var name = data.name;
+  console.log("[PART ROOM] Parting room #" + name);
+  self.socket.emit('part', { name: name } );
   callback(null);
 };
 
@@ -170,6 +186,10 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('createRoomComplete', function(data) {
     console.log('[SOCKET] createRoomComplete');
     self.createRoomComplete(data);
+  });
+
+  this.socket.on('updateRoomComplete', function(data) {
+    self.updateRoomComplete(data);
   });
 
   this.socket.on('serverCommandComplete', function(data) {
@@ -383,13 +403,18 @@ SocketClient.prototype.partComplete = function(data) {
 
 SocketClient.prototype.createRoomComplete = function(data) {
   var self = this;
-  var roomName = data.roomName;
-  self.joinRoom(roomName, function(err) {
+  var name = data.name;
+  self.joinRoom(name, function(err) {
     if (err) {
       return console.log("Error joining room after creating: " + err);
     }
     console.log("Joined room...");
   })
+};
+
+SocketClient.prototype.updateRoomComplete = function(data) {
+  var self = this;
+  var name = data.name;
 };
 
 /*
@@ -399,10 +424,12 @@ SocketClient.prototype.handleMembershipUpdate = function(data) {
   var self = this;
   var rooms = data.rooms;
   // We want to update one at a time in case we only receive an update for select room(s)
-  Object.keys(rooms).forEach(function(roomName) {
-    console.log("Adding room",roomName,"to array with data:",rooms[roomName]);
-    ChatManager.rooms[roomName] = rooms[roomName];
+  Object.keys(rooms).forEach(function(name) {
+    console.log("Adding room",name,"to array with data:",rooms[name]);
+    ChatManager.chats[name] = rooms[name];
   })
+  var activeChatName = ChatManager.activeChat.name;
+  ChatManager.refreshChatContent(activeChatName);
 };
 
 SocketClient.prototype.sendServerCommand = function(data) {

@@ -201,7 +201,7 @@ var createRoomFormSettings = {
     //Hides modal on validation success
     $('.modal.createroom').modal('hide');
     var data = {
-      roomName: $('.ui.form.createroom input[name="name"]').val(),
+      name: $('.ui.form.createroom input[name="name"]').val(),
       topic: $('.ui.form.createroom input[name="topic"]').val(),
       encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
       keepHistory: $('.dropdown.messagehistory .selected').data().value,
@@ -211,7 +211,7 @@ var createRoomFormSettings = {
       if (err) {
         return console.log("Error creating room: " + err);
       }
-      console.log("Sent request to create room " + data.roomName);
+      console.log("Sent request to create room " + data.name);
     })
     return false;
   }
@@ -281,33 +281,19 @@ $('.chat-header__settings .room-options.leave-room').click(function(e) {
 
   } else {
 
-    socketClient.partRoom({ roomName: chatName }, function(err) {
+    socketClient.partRoom({ name: chatName }, function(err) {
       console.log("Sent request to part room " + chatName);
     })
 
   }
 });
 
-$('.chat-header__settings .room-options.edit-room').click(function(e) {
-  var chatName = ChatManager.activeChat.name;
-  var populateFormData = {
-    name: chatName,
-    group: ChatManager.chats[chatName].group,
-    topic: ChatManager.chats[chatName].topic,
-    encryptionScheme: ChatManager.chats[chatName].encryptionScheme,
-    keepHistory: ChatManager.chats[chatName].keepHistory,
-    membershipRequired: ChatManager.chats[chatName].membershipRequired
-  };
 
-  $('.edit-room-modal .edit-room-form').trigger('reset');
-
-  ChatManager.populateEditRoomModal(populateFormData);
-
-  $('.edit-room-modal').modal('show');
-});
-
+/*
+ * Builds the edit room modal
+ */
 var buildEditRoomModal = function() {
-  $('.edit-room-modal').modal({
+  $('.modal.editroom').modal({
     detachable: true,
     //By default, if click outside of modal, modal will close
     //Set closable to false to prevent this
@@ -317,12 +303,89 @@ var buildEditRoomModal = function() {
     onApprove : function() {
       //Submits the semantic ui form
       //And pass the handling responsibilities to the form handlers, e.g. on form validation success
-      $('.ui.form.edit-room-form').submit();
+      $('.ui.form.editroom').submit();
       //Return false as to not close modal dialog
       return false;
     }
   });
+
+  // Opens the edit room modal when edit room is clicked
+  $('.chat-header__settings .room-options.edit-room').click(function(e) {
+    var chatName = ChatManager.activeChat.name;
+    var populateFormData = {
+      id: ChatManager.chats[chatName].id,
+      name: chatName,
+      group: ChatManager.chats[chatName].group,
+      topic: ChatManager.chats[chatName].topic,
+      encryptionScheme: ChatManager.chats[chatName].encryptionScheme,
+      keepHistory: ChatManager.chats[chatName].keepHistory,
+      membershipRequired: ChatManager.chats[chatName].membershipRequired
+    };
+
+    // Reset the form before we show it
+    $('.modal.editroom .form').trigger('reset');
+
+    // Populate the fields of the form
+    ChatManager.populateEditRoomModal(populateFormData);
+
+    // Show modal
+    $('.modal.editroom').modal('show');
+  });
 };
+
+$(document).ready( buildEditRoomModal );
+
+var editRoomFormSettings = {
+  onSuccess : function()
+  {
+    //Hides modal on validation success
+    $('.modal.editroom').modal('hide');
+    var data = {
+      id: $('.ui.form.editroom input[name="id"]').val(),
+      name: $('.ui.form.editroom input[name="name"]').val(),
+      topic: $('.ui.form.editroom input[name="topic"]').val(),
+      encryptionScheme: $('.ui.form.editroom .dropdown.encryptionscheme .selected').data().value,
+      keepHistory: $('.ui.form.editroom .dropdown.keephistory .selected').data().value,
+      membershipRequired: $('.ui.form.editroom .dropdown.membershiprequired .selected').data().value
+    };
+    console.log("Sending room update socket request with data:", data);
+    socketClient.updateRoom(data, function(err) {
+      if (err) {
+        return console.log("Error creating room: " + err);
+      }
+      console.log("Sent request to update room " + data.name);
+    })
+    return false;
+  }
+}
+
+var editRoomFormValidationRules = {
+  name: {
+    identifier : 'name',
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room name'
+    }
+    ]
+  },
+  topic: {
+    identifier : 'topic',
+    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
+    optional   : true,
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room topic'
+    }
+    ]
+  },
+}
+
+// Binds the validation rules and form settings to the form
+$('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
+
+
 
 
 $('.chat-header__settings .room-options.manage-members').click(function(e) {
@@ -341,12 +404,13 @@ $('.chat-header__settings .room-options.manage-members').click(function(e) {
  * Populate edit-room modal
  */
 ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
-  $('.edit-room-modal [name="name"]').val(data.name);
-  $('.edit-room-modal [name="group"]').val(data.group);
-  $('.edit-room-modal [name="topic"]').val(data.topic);
-  $('.edit-room-modal [name="encryption-scheme"]').val(data.encryptionScheme);
-  $('.edit-room-modal .keep-history').dropdown('set selected', data.keepHistory);
-  $('.edit-room-modal .membership-required').dropdown('set selected', data.membershipRequired);
+  $('.modal.editroom [name="id"]').val(data.id);
+  $('.modal.editroom [name="name"]').val(data.name);
+  $('.modal.editroom [name="group"]').val(data.group);
+  $('.modal.editroom [name="topic"]').val(data.topic);
+  $('.modal.editroom [name="encryptionscheme"]').val(data.encryptionScheme);
+  $('.modal.editroom .keephistory').dropdown('set selected', data.keepHistory);
+  $('.modal.editroom .membershiprequired').dropdown('set selected', data.membershipRequired);
 };
 
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
@@ -423,7 +487,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
   console.log("Adding room " + room.name + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
   console.log("Room is : ",room);
-  self.chats[room.name] = { name: room.name, type: 'room', topic: room.topic, group: room.group, messages: "", encryptionScheme: room.encryptionScheme, keepHistory: room.keepHistory, membershipRequired: room.membershipRequired, members: room.members, admins: room.admins, owner: room.owner };
+  self.chats[room.name] = { id: room.id, name: room.name, type: 'room', topic: room.topic, group: room.group, messages: "", encryptionScheme: room.encryptionScheme, keepHistory: room.keepHistory, membershipRequired: room.membershipRequired, members: room.members, admins: room.admins, owner: room.owner };
 
   console.log("About to set room focus to " + room.name);
   self.focusChat({ id: room.name }, function(err) {
@@ -914,9 +978,9 @@ ChatManager.sendMessage = function sendMessage() {
       });
     }
     else if (splitCommand[0] == "part") {
-      var roomName = splitCommand[1];
-      socketClient.partRoom({ roomName: roomName }, function(err) {
-        console.log("Sent request to part room " + roomName);
+      var name = splitCommand[1];
+      socketClient.partRoom({ name: name }, function(err) {
+        console.log("Sent request to part room " + name);
       })
     }
     else if (splitCommand[0] == "help") {

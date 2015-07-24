@@ -306,6 +306,25 @@ $('.chat-header__settings .room-options.edit-room').click(function(e) {
   $('.edit-room-modal').modal('show');
 });
 
+var buildEditRoomModal = function() {
+  $('.edit-room-modal').modal({
+    detachable: true,
+    //By default, if click outside of modal, modal will close
+    //Set closable to false to prevent this
+    closable: false,
+    transition: 'fade up',
+    //Callback function for the submit button, which has the class of "ok"
+    onApprove : function() {
+      //Submits the semantic ui form
+      //And pass the handling responsibilities to the form handlers, e.g. on form validation success
+      $('.ui.form.edit-room-form').submit();
+      //Return false as to not close modal dialog
+      return false;
+    }
+  });
+};
+
+
 $('.chat-header__settings .room-options.manage-members').click(function(e) {
   var chatName = ChatManager.activeChat.name;
   var populateData = {

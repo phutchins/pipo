@@ -151,31 +151,73 @@ roomSchema.statics.part = function part(data, callback) {
 };
 
 roomSchema.statics.addMember = function addMember(data, callback) {
-  var requestingUser = data.requestingUser;
-  var memberToAdd = data.memberToAdd;
-  var name = data.name;
-  mongoose.model('User').findOne({ userName: requestingUser }, function(err, requestingUserObj) {
-    mongoose.model('Room').findOne({ name: name }, function(err, room) {
+  var userName = data.userName;
+  var member = data.member;
+  var roomName = data.roomName;
+  var membership = data.membership;
+
+  logger.debug("[ADD MEMBER] Finding user '" + userName + "' who is adding member '" + member + "' to '" + roomName + "'");
+  mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+    if (err) {
+      return callback(err, false);
+    }
+
+    if (!user) {
+      return callback(null, false);
+    }
+
+    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner').exec( function(err, room) {
       if (err) {
         return callback(err, false);
       }
+
       if (!room) {
-        return logger.error("No room found when trying to part for user " + userName);
+        return logger.error("No room found trying to add member to room " + userName);
       }
-      var isRoomAdmin = room.admins.some(function(admin) {
-        return admin.equals(requestingUserObj._id);
-      });
-      var isRoomOwner = room.owner.equals(requestingUserObj._id);
+
+      var isRoomAdmin = null;
+      var isRoomOwner = null;
+
+      logger.debug("room._owner.userName:", room._owner.userName);
+
+      var adminsArray = [];
+      logger.debug("room._admins.length: ", room._admins.length);
+      if (room._admins) {
+        Object.keys(room._admins).forEach(function(key) {
+          adminsArray.push(room._admins[key].userName);
+        })
+        isRoomAdmin = room._admins.some(function(admin) {
+          return admin.equals(user);
+        });
+      }
+
+      if (room._owner) {
+        isRoomOwner = room._owner.equals(user);
+      }
       logger.debug("Attempting to add member to room - isRoomOwner: " + isRoomOwner + " isRoomAdmin: " + isRoomAdmin);
       if (isRoomAdmin || isRoomOwner) {
-        mongoose.model('User').findOne({ userName: memberToAdd }, function(err, memberToAddObj) {
-          logger.debug("Requesting user " + requestingUser + " is an admin of room " + room.name + " so adding " + memberToAdd);
-          room._members.push(memberToAddObj);
-          room.save();
-          return callback(null, true);
+        mongoose.model('User').findOne({ userName: member }, function(err, memberObj) {
+          logger.debug("Requesting user " + userName + " is an admin of room " + room.name + " so adding " + member + " as a " + membership);
+
+          if (!memberObj) {
+            return callback(null, { success: false, message: "Unable to find member to add to room" } );
+          }
+
+          var isInArray = room._members.some(function (member) {
+            return member.equals(memberObj._id);
+          });
+
+          if (!isInArray) {
+            room._members.push(memberObj);
+            room.save();
+            return callback(null, { success: true });
+          } else {
+            return callback(null, { success: false, message: "User is already a member of this room" } );
+          }
         })
       } else {
-        return callback(null, false);
+        var message = "Unable to add member becuase you are not an owner or admin";
+        return callback(null, { success: false, message: message });
       }
     })
   })

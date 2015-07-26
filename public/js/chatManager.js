@@ -399,8 +399,6 @@ $('.chat-header__settings .room-options.manage-members').click(function(e) {
     owner: ChatManager.roomlist[roomName].owner
   };
 
-  debugger;
-
   ChatManager.populateManageMembersModal(populateData);
 
   $('.manage-members-modal').modal('show');
@@ -425,33 +423,65 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
   var owner = data.owner;
   var roomName = data.roomName;
 
-  debugger;
+  // Clear notifications
+  $('.manage-members-modal #manageMembersError').text('');
+  $('.manage-members-modal #manageMembersMessage').text('');
 
   var manageMembersList = $('.manage-members-modal .manage-members-list');
   $('.manage-members-modal .roomname').val(roomName);
 
   manageMembersList.empty();
 
-  if (members) {
-    members.forEach(function(member) {
+  var memberDropdownTypes = ['admin', 'member'];
 
-      var li = $('<li/>')
-        .addClass('manage-members-list-item')
-        .appendTo(manageMembersList);
+  var allMembers = {
+    "owner": [ owner ],
+    "admin": admins,
+    "member": members
+  };
 
-      var member = $('<span/>')
-        .addClass('manage-members-list-member')
-        .text(member)
-        .appendTo(li);
+  Object.keys(allMembers).forEach(function(key) {
+    var memberSet = allMembers[key];
 
-      var membershipDropdown = $('<select/>')
-        .addClass('ui')
-        .addClass('dropdown')
-        .addClass('manage-members-list-membership-dropdown')
-        .html('<option value="member">member</option><option class="admin">admin</option>')
-        .appendTo(li);
-    })
-  }
+    if (memberSet) {
+      memberSet.forEach(function(member) {
+
+        var dropdownHtml = '';
+
+        var li = $('<li/>')
+          .addClass('manage-members-list-item')
+          .addClass(member)
+          .appendTo(manageMembersList);
+
+        var memberSpan = $('<span/>')
+          .addClass('manage-members-list-member')
+          .text(member)
+          .appendTo(li);
+
+        var optionsDiv = $('<div/>')
+          .addClass('manage-members-list-options')
+          .appendTo(li);
+
+        var membershipDropdown = $('<select/>')
+          .addClass('ui')
+          .addClass('dropdown')
+          .addClass('manage-members-list-membership-dropdown')
+          .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option>')
+          .appendTo(optionsDiv);
+
+        var membershipChangeSave = $('<button/>')
+          .addClass('ui')
+          .addClass('primary')
+          .addClass('button')
+          .addClass('save')
+          .addClass(member.id)
+          .text('Save')
+          .appendTo(optionsDiv);
+
+        $('.manage-members-list-item.' + member + ' .' + key).prop('selected', 'true');
+      })
+    }
+  })
 };
 
 // Catch click on .button.addmember
@@ -1071,6 +1101,9 @@ ChatManager.membershipUpdateError = function membershipUpdateError(message) {
   var errorDisplay = $('.manage-members-modal #manageMembersError');
   console.log("[MEMBERSHIP UPDATE ERROR] Displaying error message");
 
+  if (errorDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
   if (errorDisplay.transition('is visible')) {
     errorDisplay.transition({
       animation: 'fade up',
@@ -1084,26 +1117,45 @@ ChatManager.membershipUpdateError = function membershipUpdateError(message) {
       animation: 'fade up',
       duration: '1s'
     });
+
+  } else {
+    errorDisplay.text(message);
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
   }
+  return false;
 };
 
 ChatManager.membershipUpdateMessage = function membershipUpdateMessage(message) {
   var messageDisplay = $('.manage-members-modal #manageMembersMessage');
 
-  if (errorDisplay.transition('is visible')) {
+  if (messageDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
+  if (messageDisplay.transition('is visible')) {
     errorDisplay.transition({
       animation: 'fade up',
       duration: '0.5s',
       onComplete: function() {
-        errorDisplay.text(message);
+        messageDisplay.text(message);
       }
     });
 
-    errorDisplay.transition({
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+
+  } else {
+    messageDisplay.text(message);
+    messageDisplay.transition({
       animation: 'fade up',
       duration: '1s'
     });
   }
+  return false;
 };
 
 ChatManager.initialPromptForCredentials = function initialPromptForCredentials() {

@@ -23,27 +23,55 @@ var roomSchema = new Schema({
 
 roomSchema.statics.create = function create(data, callback) {
   var self = this;
-  mongoose.model('User').findOne({ userName: data.userName }, function(err, user) {
+
+  var ownerName = data.userName;
+  var roomName = data.name;
+  var topic = data.topic;
+  var encryptionScheme = data.encryptionScheme;
+  var keepHistory = data.keepHistory;
+  var membershipRequired = data.membershipRequired;
+
+  mongoose.model('User').findOne({ userName: ownerName }, function(err, owner) {
     if (err) {
       return callback(err);
     }
-    if (!user) {
-      return logger.error("Could not find user " + data.userName + " while creating room " + data.name);
+
+    if (!owner) {
+      return logger.error("Could not find user " + ownerName + " while creating room " + roomName);
     }
+
     // TODO: Add conditional to check if user is allowed to create rooms
     var newRoom = new self({
-      name: data.name,
-      topic: data.topic,
-      encryptionScheme: data.encryptionScheme,
-      keepHistory: (data.keepHistory === 'keep'),
-      membershipRequired: (data.membershipRequired === 'private'),
+      name: roomName,
+      topic: topic,
+      encryptionScheme: encryptionScheme,
+      keepHistory: (keepHistory === 'keep'),
+      membershipRequired: (membershipRequired === 'private'),
       createDate: Date.now(),
-      _owner: user,
-      _admins: [ user ],
+      _owner: owner,
+      _admins: [],
       _members: []
     })
-    newRoom._members.push(user);
+    //newRoom._members.push(user);
     newRoom.save(callback(null, newRoom));
+  })
+};
+
+roomSchema.statics.getByName = function getByName(name, callback) {
+  var self = this;
+
+  mongoose.model('Room').findOne({ name: name })
+    .populate('_members _owner _admins')
+    .exec(function(err, room) {
+    if (err) {
+      return logger.error("[ROOM] (getByName) Error getting room:",err);
+    }
+
+    if (!room) {
+      return callback(null);
+    }
+
+    return callback(room);
   })
 };
 
@@ -94,7 +122,7 @@ roomSchema.statics.join = function join(data, callback) {
   var userName = data.userName;
   var name = data.name;
   mongoose.model('User').findOne({ userName: userName }, function(err, user) {
-    mongoose.model('Room').findOne({ name: name }).populate('_members').exec(function(err, room) {
+    mongoose.model('Room').findOne({ name: name }).populate('_members _owner _admins').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
@@ -107,7 +135,7 @@ roomSchema.statics.join = function join(data, callback) {
           return self.join(data, callback);
         })
       }
-      logger.debug("[ROOM] room._members is: ",room._members);
+      //logger.debug("[ROOM] room._members is: ",room._members);
       var isMember = room._members.some(function(member) {
         return member._id.equals(user._id);
       });
@@ -200,7 +228,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
           logger.debug("Requesting user " + userName + " is an admin of room " + room.name + " so adding " + member + " as a " + membership);
 
           if (!memberObj) {
-            return callback(null, { success: false, message: "Unable to find member to add to room" } );
+            return callback(null, { success: false, message: "I cannot find the user '" + member + "' so I am unable to add them to #" + room.name } );
           }
 
           var isInArray = room._members.some(function (member) {
@@ -210,13 +238,13 @@ roomSchema.statics.addMember = function addMember(data, callback) {
           if (!isInArray) {
             room._members.push(memberObj);
             room.save();
-            return callback(null, { success: true });
+            return callback(null, { success: true, message: member + " has been added as a member of #" + room.name });
           } else {
-            return callback(null, { success: false, message: "User is already a member of this room" } );
+            return callback(null, { success: false, message: "User '" + member + "' is already a member of this room" } );
           }
         })
       } else {
-        var message = "Unable to add member becuase you are not an owner or admin";
+        var message = "You must be a room admin or owner to add a member";
         return callback(null, { success: false, message: message });
       }
     })

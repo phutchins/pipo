@@ -98,33 +98,50 @@ initServer();
 
 function initServer() {
   var socketServer = null;
-  switch (configPipo.encryptionStrategy) {
-    // Use master shared key encryption (faster but slightly less secure possibly)
-    case 'masterKey':
-      logger.info("[START] Starting in MASTER KEY mode");
-      ioMain.on('connection', function(socket) {
-        logger.debug("Connection to ioMain");
-        socket.emit('certificate', AdminCertificate);
-        socketServer = new SocketServer(ioMain);
-        socketServer.onSocket(socket);
-        //socketServer.start();
-      });
-      //new SocketServer(ioMain).start();
-      break;
-      // Use multi client key encryption (slower but a tad more secure)
-    case 'clientKey':
-      logger.info("[START] Starting in CLIENT KEY mode");
-      ioMain.on('connection', function(socket) {
-        logger.debug("Connection to ioMain");
-        socket.emit('certificate', AdminCertificate);
-        socketServer = new SocketServer(ioMain).onSocket(socket);
-      });
-      break;
-    default:
-      logger.info("Default not set up yet");
-      break;
-  }
+
+  createSystemUser(function() {
+    switch (configPipo.encryptionStrategy) {
+      // Use master shared key encryption (faster but slightly less secure possibly)
+      case 'masterKey':
+        logger.info("[START] Starting in MASTER KEY mode");
+        ioMain.on('connection', function(socket) {
+          logger.debug("Connection to ioMain");
+          socket.emit('certificate', AdminCertificate);
+          socketServer = new SocketServer(ioMain);
+          socketServer.onSocket(socket);
+          //socketServer.start();
+        });
+        //new SocketServer(ioMain).start();
+        break;
+        // Use multi client key encryption (slower but a tad more secure)
+      case 'clientKey':
+        logger.info("[START] Starting in CLIENT KEY mode");
+        ioMain.on('connection', function(socket) {
+          logger.debug("Connection to ioMain");
+          socket.emit('certificate', AdminCertificate);
+          socketServer = new SocketServer(ioMain).onSocket(socket);
+        });
+        break;
+      default:
+        logger.info("Default not set up yet");
+        break;
+    }
+  })
 }
+
+function createSystemUser(callback) {
+  User.create({
+    userName: 'pipo',
+    email: 'pipo@pipo.chat',
+    publicKey: 'pipo'
+  }, function(err, data) {
+    if (err) {
+      return logger.error("[SERVER] Error creating system user: ",err);
+    }
+    callback();
+  })
+};
+
 
 /**
  * Handle server errors

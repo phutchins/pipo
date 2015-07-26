@@ -448,12 +448,13 @@ SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
 
   if (!success) {
     // display error on membership editor modal
-    return console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Failed to add member: ", message);
     ChatManager.membershipUpdateError(data.message);
+    return console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Failed to add member: ", message);
   }
 
    // Show OK on membership editor modal
-  ChatManager.membershipUpdateMessage("Member added.");
+  console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Member added! Displaying message in modal");
+  ChatManager.membershipUpdateMessage(message);
 
 }
 

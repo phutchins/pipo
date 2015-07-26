@@ -939,6 +939,19 @@ button, input, select, textarea {
   list-style-type: none;
 }
 
+.manage-members-list-item {
+  height: 42px;
+}
+
+.manage-members-list-item .save {
+  float:right;
+}
+
 .manage-members-list-membership-dropdown {
+  float: left;
+}
+
+.manage-members-list-options {
+  width: 200px;
   float: right;
 }

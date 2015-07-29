@@ -178,6 +178,10 @@ roomSchema.statics.part = function part(data, callback) {
   })
 };
 
+/*
+ * Add a member to a channel
+ * TODO: Need to move the auth checking for ability to add, change or delete a member to its own method
+ */
 roomSchema.statics.addMember = function addMember(data, callback) {
   var userName = data.userName;
   var member = data.member;
@@ -250,5 +254,72 @@ roomSchema.statics.addMember = function addMember(data, callback) {
     })
   })
 };
+
+roomSchema.statics.modifyMember = function modifyMember(data, callback) {
+  var self = this;
+
+  var username = data.username;
+  var member = data.member;
+  var membership = data.membership;
+  var roomName = data.roomName;
+
+  mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+    if (err) {
+      return callback(err, false);
+    }
+
+    if (!user) {
+      return callback(null, false);
+    }
+
+    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner').exec( function(err, room) {
+      if (err) {
+        return callback(err, false);
+      }
+
+      if (!room) {
+        return logger.error("No room found trying to modify membership for",member,"in room",roomName);
+      }
+
+      if (self.isAdmin({ room: room, username: username })) {
+        if (membership == 'member') {
+
+        }
+        if (membership == 'admin') {
+
+        }
+        if (membership == 'owner') {
+
+        }
+      }
+    })
+  })
+};
+
+var isAdmin = function isAdminOrOwner(data) {
+  var room = data.room;
+  var username = data.username;
+  var userid = data.userid;
+
+  var isRoomAdmin = null;
+  var isRoomOwner = null;
+
+  logger.debug("room._owner.userName:", room._owner.userName);
+
+  var adminsArray = [];
+  logger.debug("room._admins.length: ", room._admins.length);
+  if (room._admins) {
+    Object.keys(room._admins).forEach(function(key) {
+      adminsArray.push(room._admins[key].userName);
+    })
+    isRoomAdmin = room._admins.some(function(admin) {
+      return admin.equals(user);
+    });
+  }
+  if (isRoomAdmin || isRoomOwner) {
+    return true;
+  }
+};
+
 
 module.exports = mongoose.model('Room', roomSchema);

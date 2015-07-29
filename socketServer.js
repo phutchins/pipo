@@ -620,6 +620,34 @@ SocketServer.prototype.membership = function membership(data) {
       })
     })
   }
+  if (type == 'modify') {
+    modifyData = ({
+      member: data.member,
+      roomName: data.roomName,
+      membership: data.membership,
+      username: userName
+    });
+
+    Room.modifyMember(modifyData, function(resultData) {
+      var success = resultData.success;
+      var message = resultData.message;
+      var roomName = resultData.roomName;
+
+      self.socket.emit('membershipUpdateComplete', resultData);
+
+      if (!success) {
+        return logger.warn("Failed to add member:", message);
+      }
+
+      Room.findOne({ name: roomName }, function(err, room) {
+        var rooms = {};
+        rooms[room.name] = room;
+        resultData.rooms = rooms;
+
+        self.namespace.emit('roomUpdate', resultData);
+      })
+    })
+  }
 }
 
 

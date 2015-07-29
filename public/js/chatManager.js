@@ -466,19 +466,42 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
           .addClass('ui')
           .addClass('dropdown')
           .addClass('manage-members-list-membership-dropdown')
-          .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option>')
+          .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option><option class="remove">remove</option>')
           .appendTo(optionsDiv);
 
         var membershipChangeSave = $('<button/>')
+          .attr('id', member)
           .addClass('ui')
           .addClass('primary')
           .addClass('button')
           .addClass('save')
-          .addClass(member.id)
+          .addClass(member)
           .text('Save')
           .appendTo(optionsDiv);
 
         $('.manage-members-list-item.' + member + ' .' + key).prop('selected', 'true');
+
+        /*
+         * Catch click on membership save button
+         */
+        // TODO: Need to add the users ID to the userlist object
+        $('.manage-members-list .button.save.' + member).click(function(e) {
+          console.log("[ADD MEMBER] Caught membership save button click");
+
+          var roomName = $('.manage-members-modal .roomname').val();
+          var modifyMember = e.currentTarget.id;
+          var newMembership = e.currentTarget.previousSibling.value;
+
+          var membershipData = ({
+            type: 'modify',
+            member: modifyMember,
+            roomName: roomName,
+            membership: newMembership
+          });
+
+          socketClient.membersip(membershipData);
+          // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
+        })
       })
     }
   })
@@ -503,6 +526,7 @@ $('.manage-members-modal .button.addmember').click(function(e) {
 
   $('.manage-members-modal .membername').val('');
 })
+
 
 /*
  * Show an error to the user

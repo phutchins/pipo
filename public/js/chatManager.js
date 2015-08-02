@@ -391,18 +391,11 @@ $('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
 
 
 $('.chat-header__settings .room-options.manage-members').click(function(e) {
-  var roomName = ChatManager.activeChat.name;
-  var populateData = {
-    roomName: roomName,
-    members: ChatManager.roomlist[roomName].members,
-    admins: ChatManager.roomlist[roomName].admins,
-    owner: ChatManager.roomlist[roomName].owner
-  };
-
-  ChatManager.populateManageMembersModal(populateData);
+  ChatManager.populateManageMembersModal({ roomName: ChatManager.activeChat.name, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
 });
+
 
 /*
  * Populate edit-room modal
@@ -418,14 +411,21 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
 };
 
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
-  var members = data.members;
-  var admins = data.admins;
-  var owner = data.owner;
-  var roomName = data.roomName;
+  if (!data) { data = {} }
+
+  var roomName = (typeof data.roomName === 'undefined') ? ChatManager.activeChat.name : data.roomName;
+  var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
+
+  var members = ChatManager.roomlist[roomName].members;
+  var admins = ChatManager.roomlist[roomName].admins;
+  var owner = ChatManager.roomlist[roomName].owner;
+
 
   // Clear notifications
-  $('.manage-members-modal #manageMembersError').text('');
-  $('.manage-members-modal #manageMembersMessage').text('');
+  if (clearMessages) {
+    $('.manage-members-modal #manageMembersError').text('');
+    $('.manage-members-modal #manageMembersMessage').text('');
+  }
 
   var manageMembersList = $('.manage-members-modal .manage-members-list');
   $('.manage-members-modal .roomname').val(roomName);
@@ -499,7 +499,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
             membership: newMembership
           });
 
-          socketClient.membersip(membershipData);
+          socketClient.membership(membershipData);
           // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
         })
       })
@@ -1123,12 +1123,18 @@ ChatManager.showHelp = function showHelp() {
 
 ChatManager.membershipUpdateError = function membershipUpdateError(message) {
   var errorDisplay = $('.manage-members-modal #manageMembersError');
+  var messageDisplay = $('.manage-members-modal #manageMembersMessage');
   console.log("[MEMBERSHIP UPDATE ERROR] Displaying error message");
 
   if (errorDisplay.text().toLowerCase().indexOf(message) !== -1) {
     return false;
   }
   if (errorDisplay.transition('is visible')) {
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
+    });
+
     errorDisplay.transition({
       animation: 'fade up',
       duration: '0.5s',
@@ -1154,17 +1160,23 @@ ChatManager.membershipUpdateError = function membershipUpdateError(message) {
 
 ChatManager.membershipUpdateMessage = function membershipUpdateMessage(message) {
   var messageDisplay = $('.manage-members-modal #manageMembersMessage');
+  var errorDisplay = $('.manage-members-modal #manageMembersError');
 
   if (messageDisplay.text().toLowerCase().indexOf(message) !== -1) {
     return false;
   }
   if (messageDisplay.transition('is visible')) {
-    errorDisplay.transition({
+    messageDisplay.transition({
       animation: 'fade up',
       duration: '0.5s',
       onComplete: function() {
         messageDisplay.text(message);
       }
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
     });
 
     messageDisplay.transition({

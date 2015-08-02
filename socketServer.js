@@ -351,10 +351,9 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
       logger.info("Got member sub command");
       if (splitCommand[3] == "add") {
         logger.info("Got add sub sub command");
-        Room.addMember({ member: splitCommand[4], roomName: splitCommand[1] }, function(err, success) {
-          if (err) {
-            return logger.info("Error adding member to room: " + err);
-          }
+        Room.addMember({ member: splitCommand[4], roomName: splitCommand[1] }, function(data) {
+          var success = data.success;
+
           if (!success) {
             return logger.info("Was not successful when adding membe to room");
           }
@@ -401,11 +400,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
-              Room.join({userName: userName, name: room}, function(err, success) {
+              Room.join({userName: userName, name: room}, function(err, data) {
+                var auth = data.auth;
                 if (err) {
                   return logger.info("Error joining room " + room + " with error: " + err);
                 }
-                if (!success) {
+                if (!auth) {
                   return logger.warning("Failed to join room " + room);
                 }
               })
@@ -416,7 +416,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         } else {
           //logger.info("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
-
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
           logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name + " with member list of ", membersArray);
@@ -589,62 +588,84 @@ SocketServer.prototype.membership = function membership(data) {
 
   var type = data.type;
   var roomName = data.roomName;
+  var member = data.member;
+  var membership = data.membership;
   var userName = self.socket.user.userName;
 
-  data.userName = userName;
-
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
-  logger.debug("[MEMBERSHIP] membership data is:", data);
+  logger.debug("[MEMBERSHIP] membership data is:", addData);
 
   if (type == 'add') {
-    Room.addMember(data, function(err, data) {
-      var success = data.success;
-      var message = data.message;
+    var addData = ({
+      userName: userName,
+      member: member,
+      membership: membership,
+      roomName: roomName,
+      userName: userName
+    })
 
-      if (err) {
-        return logger.error("Error adding member:", err);
-      }
+    Room.addMember(addData, function(addResultData) {
+      var success = addResultData.success;
+      var message = addResultData.message;
 
       if (!success) {
-        self.socket.emit('membershipUpdateComplete', data);
+        self.socket.emit('membershipUpdateComplete', addResultData);
         return logger.warn("Failed to add member:", message);
       }
 
-      self.socket.emit('membershipUpdateComplete', data);
-      Room.findOne({ name: roomName }, function(err, room) {
-        var rooms = {};
-        rooms[room.name] = room;
-        data.rooms = rooms;
+      logger.debug("[MEMBERSHIP] Member added successfully. Emitting membershipUpdateComplete");
 
-        self.namespace.emit('roomUpdate', data);
+      self.socket.emit('membershipUpdateComplete', addResultData);
+      Room.findOne({ name: roomName }).populate('_members _admins _owner').exec(function(err, room) {
+        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+          var rooms = {};
+          rooms[room.name] = sanatizedRoom;
+          addResultData.rooms = rooms;
+
+          logger.debug("[MEMBERSHIP] Found room, emitting roomUpdate to namespace for ",room.name);
+          return self.namespace.emit('roomUpdate', addResultData);
+        })
       })
     })
   }
   if (type == 'modify') {
     modifyData = ({
-      member: data.member,
+      memberName: data.member,
       roomName: data.roomName,
       membership: data.membership,
       username: userName
     });
 
+    logger.debug("[MEMBERSHIP] Attempting to modify member");
     Room.modifyMember(modifyData, function(resultData) {
       var success = resultData.success;
       var message = resultData.message;
       var roomName = resultData.roomName;
+      logger.debug("[MEMBERSHIP] Member modification complete and success is ",success);
 
       self.socket.emit('membershipUpdateComplete', resultData);
 
       if (!success) {
-        return logger.warn("Failed to add member:", message);
+        return logger.warn("Failed to modify member:", message);
       }
 
-      Room.findOne({ name: roomName }, function(err, room) {
+      logger.debug("[MEMBERSHIP] Finding room to send back to the user");
+      Room.findOne({ name: roomName }).populate('_members _admins _owner').exec(function(err, room) {
+        //logger.debug("[SOCKET SERVER] (membership) Room members: ",room._members);
+        //logger.debug("[SOCKET SERVER] (membership) Room admins: ",room._admins);
+        logger.debug("[SOCKET SERVER] (membership) Room owner: ",room._owner.userName);
         var rooms = {};
-        rooms[room.name] = room;
-        resultData.rooms = rooms;
+        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+          logger.debug("[SOCKET SERVER] (membership) Room sanatized. Adding to rooms list and sending roomUpdate to namespace");
+          rooms[room.name] = sanatizedRoom;
 
-        self.namespace.emit('roomUpdate', resultData);
+          var roomData = {
+            rooms: rooms
+          };
+
+          logger.debug("[SOCKET SERVER] (membership) Emitting roomUpdate to namespace with roomData:",roomData)
+          return self.namespace.emit('roomUpdate', roomData);
+        })
       })
     })
   }

@@ -440,6 +440,11 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
     console.log("[HANDLE ROOM UPDATE] Refreshing active chat '" + activeChatName + "'");
     ChatManager.refreshChatContent(activeChatName);
   }
+  ChatManager.buildRoomListModal;
+  // should only update the modal if it is open in this case as some other user has made a change
+
+  // if manageMembersModal is currently visible don't clear any error or ok messages
+  ChatManager.populateManageMembersModal({ clearMessages: false });
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
@@ -453,10 +458,12 @@ SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
   }
 
    // Show OK on membership editor modal
-  console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Member added! Displaying message in modal");
-  ChatManager.membershipUpdateMessage(message);
+  console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Member added! Displaying message in modal. Message:", message);
 
-}
+  // This doesn't actually do anything becuase the room update has not been received by roomUpdate yet
+  ChatManager.populateManageMembersModal({ clearMessages: false });
+  ChatManager.membershipUpdateMessage(message);
+};
 
 SocketClient.prototype.sendServerCommand = function(data) {
   var self = this;

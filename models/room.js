@@ -75,6 +75,7 @@ roomSchema.statics.getByName = function getByName(name, callback) {
   })
 };
 
+// TODO: This needs to be renamed so we can use the built in update function
 roomSchema.statics.update = function update(data, callback) {
   var self = this;
   mongoose.model('User').findOne({ userName: data.userName }, function(err, user) {
@@ -82,7 +83,7 @@ roomSchema.statics.update = function update(data, callback) {
       return callback(err);
     }
     if (!user) {
-      return logger.error("Could not find user " + data.userName + " while creating room " + data.name);
+      return logger.error("Could not find user " + data.userName + " while updating creating room " + data.name);
     }
     logger.debug("Looking for room '" + data.name + "' with id '" + data.id + "'");
     mongoose.model('Room').findOne({ _id: data.id }, function(err, room) {
@@ -140,7 +141,7 @@ roomSchema.statics.join = function join(data, callback) {
         return member._id.equals(user._id);
       });
       if (isMember || !self.membershipRequired || room.name == 'pipo') {
-        self.populate(room, { path: '_owner _admins messages._user' });
+        //self.populate(room, { path: '_owner _admins messages._user' });
         logger.debug("User " + userName + " has joined #" + data.name);
         user.membership._currentRooms.push(room);
         user.save();
@@ -163,19 +164,24 @@ roomSchema.statics.part = function part(data, callback) {
       if (!room) {
         return logger.error("No room found when trying to part for user " + data.userName);
       }
-      var isMember = room._members.some(function(member) {
-        return member.equals(user._id);
-      });
-      if (isMember || room.name == 'pipo') {
+      logger.debug("[ROOM] room._members:",room._members);
+      var isMember = null;
+      //if (room._members) {
+      //  // TODO: Get current rooms joined from sockets?
+      //  isMember = room._members.some(function(member) {
+      //    return member.equals(user._id);
+      //  });
+     // }
+     // if (isMember) {
         user.membership._currentRooms.pull(room);
-        logger.debug("User " + data.userName + " is a member of ", user.membership._currentRooms);
+     //   logger.debug("User " + data.userName + " is a member of ", user.membership._currentRooms);
         user.save(function(err) {
           logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");
           return callback(null, true);
         });
-      } else {
-        return callback(null, false);
-      }
+      //} else {
+      //  return callback(null, false);
+      //}
     })
   })
 };
@@ -329,19 +335,60 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
           if (membership == 'owner') {
             // Add the member as owner
             logger.debug("[ROOM] (modifyMember) Pushing room._owner:",room._owner.userName,"to room._admins");
-            room._admins.push(room._owner);
+
+            logger.debug("[ROOM] room._owner._id: ", room._owner._id);
+            // This swap of owner works if the new owner is currently a member not an admin
+            room._admins.push({ _id: room._owner._id });
+
             logger.debug("[ROOM] (modifyMember) Setting room._owner which is currently",room._owner.userName,"to",member.userName);
+
             room._owner = member;
 
+            logger.debug("[ROOM] (modifyMember) room._members.length:",room._members.length);
             logger.debug("[ROOM] (modifyMember) Pulling",member.userName,"from room._members");
-            room._members.pull(member);
-            logger.debug("[ROOM] (modifyMember) Pulling",member.userName,"from room._admins");
-            room._admins.pull(member);
 
-            logger.debug("[ROOM] (modifyMember) Sating room");
-            room.save(function(err) {
-              return callback({ success: true, message: "Membership change saved", roomName: roomName });
+            room._members.pull(member);
+
+            logger.debug("[ROOM] (modifyMember) room._members.length:",room._members.length);
+            logger.debug("[ROOM] (modifyMember) Pulling",member.userName,"from room._admins");
+            logger.debug("[ROOM] (modifyMember) room._admins.length:",room._admins.length);
+            //logger.debug("[ROOM] (modifyMember) Member is:",member);
+            var indexOfAdmin1 = room._admins.indexOf(member);
+            var indexOfAdmin2 = room._admins.indexOf(member._id.toString());
+            var indexOfAdmin3 = room._admins.indexOf(member.userName);
+            var indexOfAdmin4 = room._admins.indexOf(member._id);
+            logger.debug("[ROOM] member._id.toString():",member._id.toString());
+            logger.debug("[ROOM] indexOfAdmin1: ",indexOfAdmin1,"indexOfAdmin2:",indexOfAdmin2,"indexOfAdmin3:",indexOfAdmin3,"indexOfAdmin4",indexOfAdmin4);
+
+            var adminsArray = [];
+            room._admins.forEach(function(admin) {
+              //if (admin.userName == member.userName) {
+              //  room._admins[
+              //adminsArray[room._admins.indexOf(admin)] = admin.userName;
             })
+
+            logger.debug("[ROOM] Index of",member.userName,"is",adminsArray.indexOf(member.userName));
+
+            logger.debug("[ROOM] _admins keys:",Object.keys(room._admins));
+
+
+            // This does not actually pull the member for some reason
+            //room._admins.pull(member);
+            //room._admins.pull(member._id.toString());
+
+            logger.debug("[ROOM] (modifyMember) pulled member");
+            logger.debug("[ROOM] (modifyMember) room._admins.length:",room._admins.length);
+            room.save(function(err) {
+              mongoose.model('Room').findOneAndUpdate({ name: room.name }, { $pull: { _admins: member._id.toString() } }, function(err, pulledRoom) {
+                logger.debug("[ROOM] (modifyMember) pulledRoom._admins.length:",pulledRoom._admins.length);
+                return callback({ success: true, message: "Membership change saved", roomName: roomName });
+              })
+            })
+            //room.update({ name: roomName }, { $pull: { _admins: { _id: member._id } } }, { safe: true }, function(err, obj) {
+            //  logger.debug("[ROOM] (modifyMember) pulled member");
+            //  logger.debug("[ROOM] (modifyMember) room._admins.length:",obj._admins.length);
+            //  return callback({ success: true, message: "Membership change saved", roomName: roomName });
+            //})
           }
 
           // Add the user to admins of this room

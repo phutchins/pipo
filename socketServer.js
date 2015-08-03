@@ -654,6 +654,12 @@ SocketServer.prototype.membership = function membership(data) {
         //logger.debug("[SOCKET SERVER] (membership) Room members: ",room._members);
         //logger.debug("[SOCKET SERVER] (membership) Room admins: ",room._admins);
         logger.debug("[SOCKET SERVER] (membership) Room owner: ",room._owner.userName);
+        //var adminKeys = Object.keys(room._admins);
+        var adminsArray = [];
+        room._admins.forEach(function(admin) {
+          adminsArray.push(admin.userName);
+        })
+        logger.debug("[SOCKET SERVER] (membership) Room admins: ",adminsArray);
         var rooms = {};
         self.sanatizeRoomForClient(room, function(sanatizedRoom) {
           logger.debug("[SOCKET SERVER] (membership) Room sanatized. Adding to rooms list and sending roomUpdate to namespace");

@@ -65,17 +65,23 @@ userSchema.statics.create = function createUser(userData, callback) {
     publicKey: publicKey
   });
 
-  logger.debug("[USER] Saving user...");
-  newUser.save(function(err) {
-    logger.debug("[USER] Saved user!");
-    if (err) {
-      return callback("error saving new user", null);
+  mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+    if (!user) {
+      logger.debug("[USER] Saving user...");
+      newUser.save(function(err) {
+        logger.debug("[USER] Saved user!");
+        if (err) {
+          return callback("error saving new user", null);
+        }
+        logger.debug("[USER] saved new user");
+        mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+          logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
+          return callback(err, {user: user, newUser: true});
+        })
+      })
+    } else {
+      return callback(null, {user: user, newUser: false});
     }
-    logger.debug("[USER] saved new user");
-    mongoose.model('User').findOne({ userName: userName }, function(err, user) {
-      logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
-      return callback(err, {user: user, newUser: true});
-    })
   })
 };
 
@@ -172,7 +178,7 @@ userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
   var userName = data.userName;
   this.findOne({ userName: userName }).populate('_members').exec(function(err, user) {
     logger.debug("Found user ",userName," for which we are building the room list");
-    Room.find({ $or: [ { _members: user }, { membershipRequired: false } ] }, function(err, rooms) {
+    Room.find({ $or: [ { _members: user }, { _admins: user }, { _owner: user }, { membershipRequired: false } ] }).populate('_members _admins _owner').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }

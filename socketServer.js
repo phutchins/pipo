@@ -4,6 +4,7 @@ var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var config = require('./config/pipo');
 var logger = require('./config/logger');
+var AdminCertificate = require('./adminData/adminCertificate');
 
 /**
  * Handles all socket traffic
@@ -39,6 +40,9 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('part', self.partRoom.bind(self));
 
   socket.on('createRoom', self.createRoom.bind(self));
+  socket.on('updateRoom', self.updateRoom.bind(self));
+
+  socket.on('membership', self.membership.bind(self));
 
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
@@ -79,29 +83,33 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   var defaultRoomName = 'pipo';
 
   var defaultRoomData = {
+    userName: 'pipo',
     name: 'pipo',
     topic: "Welcome to PiPo.",
     group: "default",
     membershipRequired: false,
     keepHistory: true,
     encryptionScheme: 'clientkey',
-    messages: [],
-    _owner: null,
-    _admins: [],
-    _members: []
   };
 
   // create the default room object
-  Room.findOneAndUpdate({ name: defaultRoomName }, defaultRoomData, { upsert: true, new: true }).populate('_members _owner _admins').exec(function(err, defaultRoom) {
-    if (err) { return logger.error("[getDefaultRoom] ERROR - Problem creating or finding default room:",err) }
-    if (defaultRoom == null) {
-      logger.error("[getDefaultRoom] ERROR - Default room is NULL");
-      return callback(null);
-    } else {
-      logger.debug("Found default room: #",defaultRoom.name);
-      return callback(defaultRoom);
+  Room.getByName(defaultRoomName, function(defaultRoom) {
+    if (!defaultRoom) {
+      Room.create(defaultRoomData, function(defaultRoom) {
+
+        if (defaultRoom == null) {
+          logger.error("[getDefaultRoom] ERROR - Default room is NULL");
+          return callback(null);
+        }
+
+        logger.debug("Found default room: #",defaultRoom.name);
+
+        return callback(defaultRoom);
+      });
     }
-  });
+
+    return callback(defaultRoom);
+  })
 };
 
 /**
@@ -119,12 +127,12 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     var newUser = authData.newUser;
 
     if (err) {
-      logger.warning('Authentication error', err);
+      logger.warn('Authentication error', err);
       return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
     if (!user) {
-      logger.warning("[INIT] Problem initializing connection, no error, but no user");
+      logger.warn("[INIT] Problem initializing connection, no error, but no user");
       return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
 
@@ -166,25 +174,33 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         })
 
         logger.debug("[INIT] getting available room list");
-        User.availableRooms({ userName: user.userName }, function(err, roomData) {
-          logger.debug("[INIT] done getting available room list");
-          if (err) {
-            return self.socket.emit('membershipUpdate', { err: "Membership update failed: " + err });
-          }
-          var rooms = {};
-          Object.keys(roomData.rooms).forEach(function(key) {
-            logger.debug("Adding room " + roomData.rooms[key].name + " to array");
-            rooms[roomData.rooms[key].name] = roomData.rooms[key];
-          })
-          //logger.info("Rooms is: " + JSON.stringify(rooms));
-          logger.debug("Sending membership update to user " + user.userName);
-          self.socket.emit('membershipUpdate', { rooms: rooms });
-        })
 
-        logger.info("[INIT] Emitting user connect for",user.userName);
-        return self.namespace.emit('user connect', {
-          userName: user.userName,
-          publicKey: user.publicKey
+        User.availableRooms({ userName: user.userName }, function(err, roomData) {
+          if (err) {
+            return self.socket.emit('roomUpdate', { err: "Room update failed: " + err });
+          }
+
+          var rooms = {};
+          roomData.rooms.forEach(function(room) {
+            logger.debug("[INIT] done getting available room list");
+
+
+            self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+              //Object.keys(roomData.rooms).forEach(function(key) {
+              logger.debug("Adding room " + sanatizedRoom.name + " to array");
+              rooms[sanatizedRoom.name] = sanatizedRoom;
+            })
+
+            logger.debug("Sending membership update to user " + user.userName);
+            logger.debug("[AUTHENTICATE] Membership update rooms is:",rooms);
+            self.socket.emit('roomUpdate', { rooms: rooms });
+
+            logger.info("[INIT] Emitting user connect for",user.userName);
+            return self.namespace.emit('user connect', {
+              userName: user.userName,
+              publicKey: user.publicKey
+            })
+          })
         })
       })
     })
@@ -335,10 +351,9 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
       logger.info("Got member sub command");
       if (splitCommand[3] == "add") {
         logger.info("Got add sub sub command");
-        Room.addMember({ requestingUser: userName, memberToAdd: splitCommand[4], roomName: splitCommand[1] }, function(err, success) {
-          if (err) {
-            return logger.info("Error adding member to room: " + err);
-          }
+        Room.addMember({ member: splitCommand[4], roomName: splitCommand[1] }, function(data) {
+          var success = data.success;
+
           if (!success) {
             return logger.info("Was not successful when adding membe to room");
           }
@@ -385,11 +400,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
               self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
               self.socket.join(room);
-              Room.join({userName: userName, name: room}, function(err, success) {
+              Room.join({userName: userName, name: room}, function(err, data) {
+                var auth = data.auth;
                 if (err) {
                   return logger.info("Error joining room " + room + " with error: " + err);
                 }
-                if (!success) {
+                if (!auth) {
                   return logger.warning("Failed to join room " + room);
                 }
               })
@@ -400,7 +416,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         } else {
           //logger.info("[JOIN ROOM] Clients master key is up to date");
           self.socket.join(room);
-
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
           logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name + " with member list of ", membersArray);
@@ -415,6 +430,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       var auth = data.auth;
       var room = data.room;
 
+      //logger.debug("[SOCKET SERVER] (joinRoom) Joined room and received data:",data);
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
         //logger.info("Member trying to join room and room is: " + JSON.stringify(room));
         if (err) {
@@ -423,6 +439,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         if (!auth) {
           return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
         }
+        logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
         self.socket.join(room.name);
         logger.debug("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
@@ -439,8 +456,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
   if (room._owner) {
+    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner userName is",room._owner.userName);
     var ownerUserName = room._owner.userName;
   } else {
+    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
     var ownerUserName = null;
   }
 
@@ -451,9 +470,10 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var adminsArray = [];
 
   if (membersLength > 0) {
-    //logger.info("room members is: ",room._members);
+    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Room #" + room.name + " has",room._members.length,"members");
 
     room._members.forEach(function(member) {
+      logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Adding member " + member.userName + " to member array");
       membersArray.push(member.userName);
     })
   }
@@ -475,6 +495,8 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   // TODO: Sanatize messages? Or make sure populated?
 
   var sanatizedRoom = {
+    id: room._id.toString(),
+    type: 'room',
     name: room.name,
     topic: room.topic,
     group: room.group,
@@ -497,32 +519,164 @@ SocketServer.prototype.createRoom = function createRoom(data) {
   var self = this;
   var roomData = {
     userName: self.socket.user.userName,
-    roomName: data.roomName,
+    name: data.name,
     topic: data.topic,
     encryptionScheme: data.encryptionScheme,
     keepHistory: data.keepHistory,
     membershipRequired: data.membershipRequired
   }
 
-  logger.info("User " + self.socket.user.userName + " is trying to create room " + data.roomName);
+  logger.info("User " + self.socket.user.userName + " is trying to create room " + data.name);
   Room.create(roomData, function(err, newRoom) {
     if (err) {
       return logger.info("Error creating room: " + err);
     }
-    self.socket.emit('createRoomComplete', { roomName: data.roomName });
-    logger.info("Room created - roomData.membershipRequired: ",roomData.membershipRequired);
-    logger.debug("Room is : " + JSON.stringify(newRoom));
+    self.socket.emit('createRoomComplete', { name: data.name });
+    logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
-    rooms[newRoom.name] = newRoom;
+    self.sanatizeRoomForClient(newRoom, function(sanatizedRoom) {
+      rooms[newRoom.name] = sanatizedRoom;
+      if (roomData.membershipRequired) {
+        // Emit membership update to user who created private room
+        self.socket.emit('roomUpdate', { rooms: rooms });
+      } else {
+        // Emit membership update to all users
+        self.namespace.emit('roomUpdate', { rooms: rooms });
+      }
+    })
+  })
+}
+
+/*
+ * Update a room if user has permission
+ */
+SocketServer.prototype.updateRoom = function updateRoom(data) {
+  var self = this;
+  var roomData = {
+    id: data.id,
+    userName: self.socket.user.userName,
+    name: data.name,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  }
+
+  logger.info("User " + self.socket.user.userName + " is trying to update room " + data.name);
+  Room.update(roomData, function(err, updatedRoom) {
+    if (err) {
+      return logger.info("Error creating room: " + err);
+    }
+    // TODO: This needs to emit room update with ID instead of name
+    self.socket.emit('updateRoomComplete', { name: data.name });
+    logger.debug("Room updated : " + JSON.stringify(updatedRoom));
+    var rooms = {};
+    rooms[updatedRoom.name] = updatedRoom;
+    // TODO: Need to emit to members, not just the one who created the room
     if (roomData.membershipRequired) {
       // Emit membership update to user who created private room
-      self.socket.emit('membershipUpdate', { rooms: rooms });
+      self.socket.emit('roomUpdate', { rooms: rooms });
     } else {
       // Emit membership update to all users
-      self.namespace.emit('membershipUpdate', { rooms: rooms });
+      self.namespace.emit('roomUpdate', { rooms: rooms });
     }
   })
 }
+
+SocketServer.prototype.membership = function membership(data) {
+  var self = this;
+
+  var type = data.type;
+  var roomName = data.roomName;
+  var member = data.member;
+  var membership = data.membership;
+  var userName = self.socket.user.userName;
+
+  logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
+  logger.debug("[MEMBERSHIP] membership data is:", addData);
+
+  if (type == 'add') {
+    var addData = ({
+      userName: userName,
+      member: member,
+      membership: membership,
+      roomName: roomName,
+      userName: userName
+    })
+
+    Room.addMember(addData, function(addResultData) {
+      var success = addResultData.success;
+      var message = addResultData.message;
+
+      if (!success) {
+        self.socket.emit('membershipUpdateComplete', addResultData);
+        return logger.warn("Failed to add member:", message);
+      }
+
+      logger.debug("[MEMBERSHIP] Member added successfully. Emitting membershipUpdateComplete");
+
+      self.socket.emit('membershipUpdateComplete', addResultData);
+      Room.findOne({ name: roomName }).populate('_members _admins _owner').exec(function(err, room) {
+        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+          var rooms = {};
+          rooms[room.name] = sanatizedRoom;
+          addResultData.rooms = rooms;
+
+          logger.debug("[MEMBERSHIP] Found room, emitting roomUpdate to namespace for ",room.name);
+          return self.namespace.emit('roomUpdate', addResultData);
+        })
+      })
+    })
+  }
+  if (type == 'modify') {
+    modifyData = ({
+      memberName: data.member,
+      roomName: data.roomName,
+      membership: data.membership,
+      username: userName
+    });
+
+    logger.debug("[MEMBERSHIP] Attempting to modify member");
+    Room.modifyMember(modifyData, function(resultData) {
+      var success = resultData.success;
+      var message = resultData.message;
+      var roomName = resultData.roomName;
+      logger.debug("[MEMBERSHIP] Member modification complete and success is ",success);
+
+      self.socket.emit('membershipUpdateComplete', resultData);
+
+      if (!success) {
+        return logger.warn("Failed to modify member:", message);
+      }
+
+      logger.debug("[MEMBERSHIP] Finding room to send back to the user");
+      Room.findOne({ name: roomName }).populate('_members _admins _owner').exec(function(err, room) {
+        //logger.debug("[SOCKET SERVER] (membership) Room members: ",room._members);
+        //logger.debug("[SOCKET SERVER] (membership) Room admins: ",room._admins);
+        logger.debug("[SOCKET SERVER] (membership) Room owner: ",room._owner.userName);
+        //var adminKeys = Object.keys(room._admins);
+        var adminsArray = [];
+        room._admins.forEach(function(admin) {
+          adminsArray.push(admin.userName);
+        })
+        logger.debug("[SOCKET SERVER] (membership) Room admins: ",adminsArray);
+        var rooms = {};
+        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+          logger.debug("[SOCKET SERVER] (membership) Room sanatized. Adding to rooms list and sending roomUpdate to namespace");
+          rooms[room.name] = sanatizedRoom;
+
+          var roomData = {
+            rooms: rooms
+          };
+
+          logger.debug("[SOCKET SERVER] (membership) Emitting roomUpdate to namespace with roomData:",roomData)
+          return self.namespace.emit('roomUpdate', roomData);
+        })
+      })
+    })
+  }
+}
+
 
 /*
  * Client part room
@@ -541,23 +695,23 @@ SocketServer.prototype.partRoom = function partRoom(data) {
   }
 
   var userName = self.socket.user.userName;
-  var roomName = data.roomName
-  logger.info("[PART ROOM] User " + userName + " parting room " + roomName);
+  var name = data.name
+  logger.info("[PART ROOM] User " + userName + " parting room " + name);
 
-  Room.part({ userName: userName, roomName: roomName }, function(err, success) {
+  Room.part({ userName: userName, name: name }, function(err, success) {
     if (err) {
-      return logger.info("Error parting room " + roomName + " with error: " + err);
+      return logger.info("Error parting room " + name + " with error: " + err);
     }
     if (!success) {
-      return logger.info("Failed to part room " + roomName);
+      return logger.info("Failed to part room " + name);
     }
-    logger.info("User " + userName + " parted room " + roomName);
-    self.updateRoomUsers(roomName);
+    logger.info("User " + userName + " parted room " + name);
+    self.updateRoomUsers(name);
 
     // Update user status
     //
 
-    self.socket.emit('partComplete', { room: roomName });
+    self.socket.emit('partComplete', { room: name });
   })
 };
 
@@ -641,7 +795,7 @@ SocketServer.prototype.disconnect = function disconnect() {
       logger.info("[DISCONNECT] Found user, disconnecting...");
       user.membership._currentRooms.forEach(function(currentRoom) {
         logger.info("User " + userName + " parting room " + currentRoom.name);
-        Room.part({ userName: userName, roomName: currentRoom.name }, function(err, success) {
+        Room.part({ userName: userName, name: currentRoom.name }, function(err, success) {
           if (err) {
             return logger.info("ERROR parting room: " + err);
           }

@@ -3,11 +3,12 @@ var roomUsers = {};
 
 var ChatManager = {};
 
-// Chats are rooms that the user has currently joined
-ChatManager.chats = [];
+// Chats are rooms or private chats that the user is currently participating in
+// chats['chatname'] = { type: 'room', name: 'chatname', messages: [ { fromuser: 'username', message: 'hi there' } ] }
+ChatManager.chats = {};
 // Rooms are all available for user to join
-ChatManager.rooms = {};
-// Users is a list of all users that exist on the server
+ChatManager.roomlist = {};
+// userlist is a list of all users that exist on the server
 //   This will be paginated and populated as needed in the future
 ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
@@ -202,7 +203,7 @@ var createRoomFormSettings = {
     $('.modal.createroom').modal('hide');
 
     var data = {
-      roomName: $('.ui.form.createroom input[name="name"]').val(),
+      name: $('.ui.form.createroom input[name="name"]').val(),
       topic: $('.ui.form.createroom input[name="topic"]').val(),
       encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
       keepHistory: ($('.dropdown.messagehistory .selected').data().value === 'keep'),
@@ -213,7 +214,7 @@ var createRoomFormSettings = {
       if (err) {
         return console.log("Error creating room: " + err);
       }
-      console.log("Sent request to create room " + data.roomName);
+      console.log("Sent request to create room " + data.name);
     })
     return false;
   }
@@ -230,30 +231,32 @@ var buildRoomListModal = function() {
   })
   $('#room-list-button').click(function(e) {
     var roomListModalHtml = '';
-    Object.keys(ChatManager.rooms).forEach(function(roomName) {
+    Object.keys(ChatManager.roomlist).forEach(function(roomName) {
       roomListModalHtml += "<div class='item'>\n";
-      if (ChatManager.rooms[roomName].membershipRequired) {
+      if (ChatManager.roomlist[roomName].membershipRequired) {
         roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
       } else {
         roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
       }
       roomListModalHtml += "  <div class='content'>\n";
       roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
-      roomListModalHtml += "    <div class='description'>" + ChatManager.rooms[roomName].topic + "</div>\n";
+      roomListModalHtml += "    <div class='description'>" + ChatManager.roomlist[roomName].topic + "</div>\n";
       roomListModalHtml += "  </div>\n";
       roomListModalHtml += "</div>\n";
     })
     $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
-    Object.keys(ChatManager.rooms).forEach(function(roomName) {
-      $('.modal.join-room-list-modal a[id="' + roomName + '"]').click(function() {
-        socketClient.joinRoom(roomName, function(err) {
-          $('.modal.join-room-list-modal').modal('hide');
-          if (err) {
-            return console.log("Error joining room: " + err);
-          }
-          console.log("Joined room " + roomName);
+    Object.keys(ChatManager.roomlist).forEach(function(roomName) {
+      if (ChatManager.roomlist[roomName].type == 'room') {
+        $('.modal.join-room-list-modal a[id="' + roomName + '"]').click(function() {
+          socketClient.joinRoom(roomName, function(err) {
+            $('.modal.join-room-list-modal').modal('hide');
+            if (err) {
+              return console.log("Error joining room: " + err);
+            }
+            console.log("Joined room " + roomName);
+          })
         })
-      })
+      }
     })
     $('.modal.join-room-list-modal').modal('show');
   })
@@ -283,93 +286,266 @@ $('.chat-header__settings .room-options.leave-room').click(function(e) {
 
   } else {
 
-    socketClient.partRoom({ roomName: chatName }, function(err) {
+    socketClient.partRoom({ name: chatName }, function(err) {
       console.log("Sent request to part room " + chatName);
     })
 
   }
 });
 
-$('.chat-header__settings .room-options.edit-room').click(function(e) {
-  var chatName = ChatManager.activeChat.name;
-  var populateFormData = {
-    name: chatName,
-    group: ChatManager.chats[chatName].group,
-    topic: ChatManager.chats[chatName].topic,
-    encryptionScheme: ChatManager.chats[chatName].encryptionScheme,
-    keepHistory: ChatManager.chats[chatName].keepHistory,
-    membershipRequired: ChatManager.chats[chatName].membershipRequired
-  };
 
-  $('.edit-room-modal .edit-room-form').trigger('reset');
+/*
+ * Builds the edit room modal
+ */
+var buildEditRoomModal = function() {
+  $('.modal.editroom').modal({
+    detachable: true,
+    //By default, if click outside of modal, modal will close
+    //Set closable to false to prevent this
+    closable: false,
+    transition: 'fade up',
+    //Callback function for the submit button, which has the class of "ok"
+    onApprove : function() {
+      //Submits the semantic ui form
+      //And pass the handling responsibilities to the form handlers, e.g. on form validation success
+      $('.ui.form.editroom').submit();
+      //Return false as to not close modal dialog
+      return false;
+    }
+  });
 
-  ChatManager.populateEditRoomModal(populateFormData);
+  // Opens the edit room modal when edit room is clicked
+  $('.chat-header__settings .room-options.edit-room').click(function(e) {
+    var roomName = ChatManager.activeChat.name;
+    var populateFormData = {
+      id: ChatManager.roomlist[roomName].id,
+      name: roomName,
+      group: ChatManager.roomlist[roomName].group,
+      topic: ChatManager.roomlist[roomName].topic,
+      encryptionScheme: ChatManager.roomlist[roomName].encryptionScheme,
+      keepHistory: ChatManager.roomlist[roomName].keepHistory,
+      membershipRequired: ChatManager.roomlist[roomName].membershipRequired
+    };
 
-  $('.edit-room-modal').modal('show');
-});
+    // Reset the form before we show it
+    $('.modal.editroom .form').trigger('reset');
+
+    // Populate the fields of the form
+    ChatManager.populateEditRoomModal(populateFormData);
+
+    // Show modal
+    $('.modal.editroom').modal('show');
+  });
+};
+
+$(document).ready( buildEditRoomModal );
+
+var editRoomFormSettings = {
+  onSuccess : function()
+  {
+    //Hides modal on validation success
+    $('.modal.editroom').modal('hide');
+    var data = {
+      id: $('.ui.form.editroom input[name="id"]').val(),
+      name: $('.ui.form.editroom input[name="name"]').val(),
+      topic: $('.ui.form.editroom input[name="topic"]').val(),
+      encryptionScheme: $('.ui.form.editroom .dropdown.encryptionscheme .selected').data().value,
+      keepHistory: $('.ui.form.editroom .dropdown.keephistory .selected').data().value,
+      membershipRequired: $('.ui.form.editroom .dropdown.membershiprequired .selected').data().value
+    };
+    console.log("Sending room update socket request with data:", data);
+    socketClient.updateRoom(data, function(err) { if (err) {
+        return console.log("Error creating room: " + err);
+      }
+      console.log("Sent request to update room " + data.name);
+    })
+    return false;
+  }
+}
+
+var editRoomFormValidationRules = {
+  name: {
+    identifier : 'name',
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room name'
+    }
+    ]
+  },
+  topic: {
+    identifier : 'topic',
+    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
+    optional   : true,
+    rules: [
+    {
+      type   : 'empty',
+      prompt : 'Please enter a valid room topic'
+    }
+    ]
+  },
+}
+
+// Binds the validation rules and form settings to the form
+$('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
+
+
+
 
 $('.chat-header__settings .room-options.manage-members').click(function(e) {
-  var chatName = ChatManager.activeChat.name;
-  var populateData = {
-    name: chatName,
-    members: ChatManager.chats[chatName].members
-  };
-
-  ChatManager.populateManageMembersModal(populateData);
+  ChatManager.populateManageMembersModal({ roomName: ChatManager.activeChat.name, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
 });
+
 
 /*
  * Populate edit-room modal
  */
 ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
-  $('.edit-room-modal [name="name"]').val(data.name);
-  $('.edit-room-modal [name="group"]').val(data.group);
-  $('.edit-room-modal [name="topic"]').val(data.topic);
-  $('.edit-room-modal [name="encryption-scheme"]').val(data.encryptionScheme);
-  $('.edit-room-modal .keep-history').dropdown('set selected', data.keepHistory);
-  $('.edit-room-modal .membership-required').dropdown('set selected', data.membershipRequired);
+  $('.modal.editroom [name="id"]').val(data.id);
+  $('.modal.editroom [name="name"]').val(data.name);
+  $('.modal.editroom [name="group"]').val(data.group);
+  $('.modal.editroom [name="topic"]').val(data.topic);
+  $('.modal.editroom [name="encryptionscheme"]').val(data.encryptionScheme);
+  $('.modal.editroom .keephistory').dropdown('set selected', data.keepHistory);
+  $('.modal.editroom .membershiprequired').dropdown('set selected', data.membershipRequired);
 };
 
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
-  var members = data.members;
-  var admins = data.admins;
-  var owner = data.owner;
+  if (!data) { data = {} }
+
+  var roomName = (typeof data.roomName === 'undefined') ? ChatManager.activeChat.name : data.roomName;
+  var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
+
+  var members = ChatManager.roomlist[roomName].members;
+  var admins = ChatManager.roomlist[roomName].admins;
+  var owner = ChatManager.roomlist[roomName].owner;
+
+
+  // Clear notifications
+  if (clearMessages) {
+    $('.manage-members-modal #manageMembersError').text('');
+    $('.manage-members-modal #manageMembersMessage').text('');
+  }
 
   var manageMembersList = $('.manage-members-modal .manage-members-list');
+  $('.manage-members-modal .roomname').val(roomName);
 
   manageMembersList.empty();
 
-  members.forEach(function(member) {
+  var memberDropdownTypes = ['admin', 'member'];
 
-    var li = $('<li/>')
-      .addClass('manage-members-list-item')
-      .appendTo(manageMembersList);
+  var allMembers = {
+    "owner": [ owner ],
+    "admin": admins,
+    "member": members
+  };
 
-    var member = $('<span/>')
-      .addClass('manage-members-list-member')
-      .text(member)
-      .appendTo(li);
+  Object.keys(allMembers).forEach(function(key) {
+    var memberSet = allMembers[key];
 
-    var membershipDropdown = $('<select/>')
-      .addClass('ui')
-      .addClass('dropdown')
-      .addClass('manage-members-list-membership-dropdown')
-      .html('<option value="member">member</option><option class="admin">admin</option>')
-      .appendTo(li);
+    if (memberSet) {
+      memberSet.forEach(function(member) {
+
+        var dropdownHtml = '';
+
+        var li = $('<li/>')
+          .addClass('manage-members-list-item')
+          .addClass(member)
+          .appendTo(manageMembersList);
+
+        var memberSpan = $('<span/>')
+          .addClass('manage-members-list-member')
+          .text(member)
+          .appendTo(li);
+
+        var optionsDiv = $('<div/>')
+          .addClass('manage-members-list-options')
+          .appendTo(li);
+
+        var membershipDropdown = $('<select/>')
+          .addClass('ui')
+          .addClass('dropdown')
+          .addClass('manage-members-list-membership-dropdown')
+          .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option><option class="remove">remove</option>')
+          .appendTo(optionsDiv);
+
+        var membershipChangeSave = $('<button/>')
+          .attr('id', member)
+          .addClass('ui')
+          .addClass('primary')
+          .addClass('button')
+          .addClass('save')
+          .addClass(member)
+          .text('Save')
+          .appendTo(optionsDiv);
+
+        $('.manage-members-list-item.' + member + ' .' + key).prop('selected', 'true');
+
+        /*
+         * Catch click on membership save button
+         */
+        // TODO: Need to add the users ID to the userlist object
+        $('.manage-members-list .button.save.' + member).click(function(e) {
+          console.log("[ADD MEMBER] Caught membership save button click");
+
+          var roomName = $('.manage-members-modal .roomname').val();
+          var modifyMember = e.currentTarget.id;
+          var newMembership = e.currentTarget.previousSibling.value;
+
+          var membershipData = ({
+            type: 'modify',
+            member: modifyMember,
+            roomName: roomName,
+            membership: newMembership
+          });
+
+          socketClient.membership(membershipData);
+          // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
+        })
+      })
+    }
   })
 };
+
+// Catch click on .button.addmember
+$('.manage-members-modal .button.addmember').click(function(e) {
+  console.log("[ADD MEMBER] Caught add member button click");
+  var member = $('.manage-members-modal .membername').val();
+  var roomName = $('.manage-members-modal .roomname').val();
+  var membership = $('.manage-members-modal .membership .selected').text();
+
+  var membershipData = ({
+    type: 'add',
+    member: member,
+    roomName: roomName,
+    membership: membership
+  });
+
+  console.log("[ADD MEMBER] Sending membership data to socketClient");
+  socketClient.membership(membershipData);
+
+  $('.manage-members-modal .membername').val('');
+})
+
 
 /*
  * Show an error to the user
  */
 ChatManager.showError = function showError(message) {
+  // TODO: Add property for which modal to show error on
   $(".ui.modal.error")
     .modal('setting', 'closable', false)
     .modal("show");
 
   $(".ui.modal.error .content").text(message);
+};
+
+ChatManager.showErrorOnModal = function showErrorOnModal(data) {
+  var message = data.message;
+  var modal = data.modal;
+
 };
 
 ChatManager.userSignedIn = function userSignedIn() {
@@ -406,7 +582,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
   console.log("Adding room " + room.name + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
   console.log("Room is : ",room);
-  self.chats[room.name] = { name: room.name, type: 'room', topic: room.topic, group: room.group, messages: "", encryptionScheme: room.encryptionScheme, keepHistory: room.keepHistory, membershipRequired: room.membershipRequired, members: room.members, admins: room.admins, owner: room.owner };
+  self.chats[room.name] = { id: room.id, name: room.name, type: 'room', topic: room.topic, group: room.group, messages: "", encryptionScheme: room.encryptionScheme, keepHistory: room.keepHistory, membershipRequired: room.membershipRequired, members: room.members, admins: room.admins, owner: room.owner };
 
   console.log("About to set room focus to " + room.name);
   self.focusChat({ id: room.name }, function(err) {
@@ -418,21 +594,26 @@ ChatManager.initRoom = function initRoom(room, callback) {
   });
 };
 
-ChatManager.updateChatHeader = function updateChatHeader(room) {
+ChatManager.updateChatHeader = function updateChatHeader(chatName) {
   var self = this;
-  // update p chat-header__title
-  var chat = ChatManager.chats[room];
+  var chat = ChatManager.chats[chatName];
   var headerAvatarHtml = '';
+  var chatTopic = '';
+  var chatHeaderTitle = '';
 
   if (chat.type == 'privatechat') {
     headerAvatarHtml = '<i class="huge spy icon"></i>';
+    chatTopic = 'One to one encrypted chat with ' + chat.name;
+    chatHeaderTitle = 'pm' + '/' + chat.name;
   } else {
     headerAvatarHtml = '<i class="huge comments outline icon"></i>';
+    chatTopic = ChatManager.roomlist[chatName].topic;
+    chatHeaderTitle = ChatManager.roomlist[chatName].group + '/' + chat.name;
   }
+
+  $('.chat-topic').text(chatTopic);
+  $('.chat-header__title').text(chatHeaderTitle);
   $('.chat-header__avatar').html(headerAvatarHtml);
-  $('.chat-header__title').text(chat.group + '/' + chat.name);
-  // update p chat-topic
-  $('.chat-topic').text(chat.topic);
 }
 
 /*
@@ -470,8 +651,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
     messages[0].scrollTop = messages[0].scrollHeight;
 
     ChatManager.updateRoomUsers({ room: id });
-  }
-  else if (ChatManager.chats[id].type == 'privatechat') {
+  } else if (ChatManager.chats[id].type == 'privatechat') {
 
     ChatManager.activeChat = { name: id, type: 'privatechat' };
 
@@ -897,9 +1077,9 @@ ChatManager.sendMessage = function sendMessage() {
       });
     }
     else if (splitCommand[0] == "part") {
-      var roomName = splitCommand[1];
-      socketClient.partRoom({ roomName: roomName }, function(err) {
-        console.log("Sent request to part room " + roomName);
+      var name = splitCommand[1];
+      socketClient.partRoom({ name: name }, function(err) {
+        console.log("Sent request to part room " + name);
       })
     }
     else if (splitCommand[0] == "help") {
@@ -943,6 +1123,78 @@ ChatManager.showHelp = function showHelp() {
   })
 };
 
+ChatManager.membershipUpdateError = function membershipUpdateError(message) {
+  var errorDisplay = $('.manage-members-modal #manageMembersError');
+  var messageDisplay = $('.manage-members-modal #manageMembersMessage');
+  console.log("[MEMBERSHIP UPDATE ERROR] Displaying error message");
+
+  if (errorDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
+  if (errorDisplay.transition('is visible')) {
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s',
+      onComplete: function() {
+        errorDisplay.text(message);
+      }
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+
+  } else {
+    errorDisplay.text(message);
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+  }
+  return false;
+};
+
+ChatManager.membershipUpdateMessage = function membershipUpdateMessage(message) {
+  var messageDisplay = $('.manage-members-modal #manageMembersMessage');
+  var errorDisplay = $('.manage-members-modal #manageMembersError');
+
+  if (messageDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
+  if (messageDisplay.transition('is visible')) {
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s',
+      onComplete: function() {
+        messageDisplay.text(message);
+      }
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
+    });
+
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+
+  } else {
+    messageDisplay.text(message);
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+  }
+  return false;
+};
 
 ChatManager.initialPromptForCredentials = function initialPromptForCredentials() {
   var self = this;

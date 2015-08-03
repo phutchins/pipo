@@ -34,7 +34,7 @@
     "kbpgp": "^2.0.11",
     "marked": "^0.3.3",
     "md5": "^1.0.0",
-    "mongoose": "^4.0.2",
+    "mongoose": "^4.1.0",
     "morgan": "^1.5.3",
     "node-notifier": "^4.2.1",
     "openpgp": "^1.0.1",

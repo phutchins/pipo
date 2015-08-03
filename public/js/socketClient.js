@@ -25,60 +25,6 @@ function SocketClient() {
   });
 }
 
-SocketClient.prototype.init = function() {
-  var self = this;
-  console.log("[INIT] Loading client keypair...");
-  window.encryptionManager.loadClientKeyPair(function (err, loaded) {
-    if (err) {
-      //Show error somewhere
-      return console.log("[INIT] Error loading client key pair: "+err);
-    }
-    if (!loaded) {
-      console.log("[INIT] Prompting for credentials");
-      return ChatManager.initialPromptForCredentials();
-    } else {
-      console.log("[INIT] Client credentials loaded");
-    }
-    if (!self.listeners) {
-      self.addListeners();
-    }
-    console.log("[INIT] Authenticating");
-    return self.authenticate();
-  });
-};
-
-SocketClient.prototype.joinRoom = function(room, callback) {
-  var self = this;
-  if (room && typeof room !== 'undefined') {
-    console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
-    self.socket.emit('join', { room: room } );
-    return callback(null);
-  } else {
-    return console.log("[JOIN ROOM] room was null  !");
-  }
-};
-
-SocketClient.prototype.createRoom = function(data, callback) {
-  var self = this;
-  console.log("[CREATE ROOM] Creating room");
-  var data = {
-    roomName: data.roomName,
-    topic: data.topic,
-    encryptionScheme: data.encryptionScheme,
-    keepHistory: data.keepHistory,
-    membershipRequired: data.membershipRequired
-  };
-  self.socket.emit('createRoom', data);
-  callback(null);
-};
-
-SocketClient.prototype.partRoom = function(data, callback) {
-  var self = this;
-  var roomName = data.roomName;
-  console.log("[PART ROOM] Parting room #" + roomName);
-  self.socket.emit('part', { roomName: roomName } );
-  callback(null);
-};
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
@@ -152,9 +98,9 @@ SocketClient.prototype.addListeners = function() {
     });
   });
 
-  this.socket.on('membershipUpdate', function(data) {
-    console.log("[SOCKET] membershipUpdate");
-    self.handleMembershipUpdate(data);
+  this.socket.on('roomUpdate', function(data) {
+    console.log("[SOCKET] roomUpdate");
+    self.handleRoomUpdate(data);
   });
 
   this.socket.on('joinComplete', function(data) {
@@ -172,6 +118,10 @@ SocketClient.prototype.addListeners = function() {
     self.createRoomComplete(data);
   });
 
+  this.socket.on('updateRoomComplete', function(data) {
+    self.updateRoomComplete(data);
+  });
+
   this.socket.on('serverCommandComplete', function(data) {
     console.log("[SOCKET] serverCommandComplete");
     self.serverCommandComplete(data);
@@ -183,6 +133,10 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('user connect', function(data) {
     //console.log('user connect', data);
+  });
+
+  this.socket.on('membershipUpdateComplete', function(data) {
+    self.handleMembershipUpdateComplete(data);
   });
 
   this.socket.on('roomMessage', function(data) {
@@ -319,6 +273,28 @@ SocketClient.prototype.addListeners = function() {
 
 };
 
+SocketClient.prototype.init = function() {
+  var self = this;
+  console.log("[INIT] Loading client keypair...");
+  window.encryptionManager.loadClientKeyPair(function (err, loaded) {
+    if (err) {
+      //Show error somewhere
+      return console.log("[INIT] Error loading client key pair: "+err);
+    }
+    if (!loaded) {
+      console.log("[INIT] Prompting for credentials");
+      return ChatManager.initialPromptForCredentials();
+    } else {
+      console.log("[INIT] Client credentials loaded");
+    }
+    if (!self.listeners) {
+      self.addListeners();
+    }
+    console.log("[INIT] Authenticating");
+    return self.authenticate();
+  });
+};
+
 SocketClient.prototype.authenticate = function() {
   var self = this;
   console.log("[AUTH] Authenticating with server with userName: '"+window.userName+"'");
@@ -327,6 +303,55 @@ SocketClient.prototype.authenticate = function() {
       self.socket.emit('authenticate', {userName: window.userName, publicKey: publicKey, email: window.email});
     });
   });
+};
+
+SocketClient.prototype.joinRoom = function(room, callback) {
+  var self = this;
+  if (room && typeof room !== 'undefined') {
+    console.log("[JOIN ROOM] Joining room #"+room+" as "+window.userName);
+    self.socket.emit('join', { room: room } );
+    return callback(null);
+  } else {
+    return console.log("[JOIN ROOM] room was null  !");
+  }
+};
+
+SocketClient.prototype.createRoom = function(data, callback) {
+  var self = this;
+  console.log("[CREATE ROOM] Creating room");
+  var data = {
+    name: data.name,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  };
+  self.socket.emit('createRoom', data);
+  callback(null);
+};
+
+SocketClient.prototype.updateRoom = function(data, callback) {
+  var self = this;
+  console.log("[UPDATE ROOM] Updating room");
+  var data = {
+    id: data.id,
+    name: data.name,
+    topic: data.topic,
+    encryptionScheme: data.encryptionScheme,
+    keepHistory: data.keepHistory,
+    membershipRequired: data.membershipRequired
+  };
+  console.log("[UPDATE ROOM] Updating with data:",data);
+  self.socket.emit('updateRoom', data);
+  callback(null);
+};
+
+SocketClient.prototype.partRoom = function(data, callback) {
+  var self = this;
+  var name = data.name;
+  console.log("[PART ROOM] Parting room #" + name);
+  self.socket.emit('part', { name: name } );
+  callback(null);
 };
 
 SocketClient.prototype.sendMessage = function(room, message) {
@@ -383,8 +408,8 @@ SocketClient.prototype.partComplete = function(data) {
 
 SocketClient.prototype.createRoomComplete = function(data) {
   var self = this;
-  var roomName = data.roomName;
-  self.joinRoom(roomName, function(err) {
+  var name = data.name;
+  self.joinRoom(name, function(err) {
     if (err) {
       return console.log("Error joining room after creating: " + err);
     }
@@ -392,17 +417,52 @@ SocketClient.prototype.createRoomComplete = function(data) {
   })
 };
 
+SocketClient.prototype.updateRoomComplete = function(data) {
+  var self = this;
+  var name = data.name;
+  console.log("[UPDATE ROOM COMPLETE] Done updating room...");
+};
+
 /*
  * Get all rooms that user is a member of or is public
  */
-SocketClient.prototype.handleMembershipUpdate = function(data) {
+SocketClient.prototype.handleRoomUpdate = function(data) {
   var self = this;
   var rooms = data.rooms;
+  var activeChatName = null;
   // We want to update one at a time in case we only receive an update for select room(s)
-  Object.keys(rooms).forEach(function(roomName) {
-    console.log("Adding room",roomName,"to array with data:",rooms[roomName]);
-    ChatManager.rooms[roomName] = rooms[roomName];
+  Object.keys(rooms).forEach(function(name) {
+    console.log("Adding room",name,"to array with data:",rooms[name]);
+    ChatManager.roomlist[name] = rooms[name];
   })
+  if (ChatManager.activeChat) {
+    activeChatName = ChatManager.activeChat.name;
+    console.log("[HANDLE ROOM UPDATE] Refreshing active chat '" + activeChatName + "'");
+    ChatManager.refreshChatContent(activeChatName);
+  }
+  ChatManager.buildRoomListModal;
+  // should only update the modal if it is open in this case as some other user has made a change
+
+  // if manageMembersModal is currently visible don't clear any error or ok messages
+  ChatManager.populateManageMembersModal({ clearMessages: false });
+};
+
+SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
+  var success = data.success;
+  var message = data.message;
+
+  if (!success) {
+    // display error on membership editor modal
+    ChatManager.membershipUpdateError(data.message);
+    return console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Failed to add member: ", message);
+  }
+
+   // Show OK on membership editor modal
+  console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Member added! Displaying message in modal. Message:", message);
+
+  // This doesn't actually do anything becuase the room update has not been received by roomUpdate yet
+  ChatManager.populateManageMembersModal({ clearMessages: false });
+  ChatManager.membershipUpdateMessage(message);
 };
 
 SocketClient.prototype.sendServerCommand = function(data) {
@@ -417,6 +477,13 @@ SocketClient.prototype.serverCommandComplete = function(data) {
   var response = data.response;
   console.log("Displaying response from server command in chat '" + ChatManager.activeChat.name + "'");
   ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: response, chat: ChatManager.activeChat.name });
+};
+
+SocketClient.prototype.membership = function(data) {
+  var self = this;
+
+  console.log("[MEMBERSHIP] Emitting membership");
+  self.socket.emit('membership', data);
 };
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {

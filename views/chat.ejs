@@ -467,21 +467,22 @@
       </div>
     </div>
 
-    <div class="ui form basic modal edit-room-modal">
+    <div class="ui form basic modal editroom">
       <i class="close icon"></i>
       <div class="header">
         Editing Room
       </div>
       <div class="content">
-        <form class="ui form edit-room-form">
+        <form class="ui form editroom">
           <div class="ui segment">
+            <input name="id" type="hidden">
             <div class="wide field">
               <label>Name</label>
               <input type="text" name="name">
             </div>
 
             <div class="wide field">
-              <label>Name</label>
+              <label>Group</label>
               <input type="text" name="group">
             </div>
 
@@ -493,7 +494,7 @@
             <div class="field encryptionscheme">
               <label>Encryption scheme</label>
               <input name="encryptionscheme" type="hidden">
-              <select class="ui search dropdown encryption-scheme">
+              <select class="ui search dropdown encryptionscheme">
                 <option value="clientkey">Client Key</option>
                 <option value="masterkey">Master Key</option>
               </select>
@@ -502,7 +503,7 @@
             <div class="field">
               <label>Message History</label>
               <input name="keep-history" type="hidden">
-              <select class="ui search dropdown keep-history">
+              <select class="ui search dropdown keephistory">
                 <option value="true">Keep</option>
                 <option value="false">Don't Keep</option>
               </select>
@@ -511,7 +512,7 @@
             <div class="field">
               <label>Privacy</label>
               <input name="membership-required" type="hidden">
-              <select class="ui search dropdown membership-required">
+              <select class="ui search dropdown membershiprequired">
                 <option value="true">Private</option>
                 <option value="false">Public</option>
               </select>
@@ -542,6 +543,27 @@
         Manage Members
       </div>
       <div class="content">
+        <input class="roomname" type="hidden">
+        <div class="field" style="display: none; color: red" id="manageMembersError"></div>
+        <div class="field" style="display: none; color: green" id="manageMembersMessage"></div>
+        <div class="add-member-header">
+          Add Member
+        </div>
+        <div class="ui right labeled input">
+          <input class="membername" type="text" placeholder="Add member">
+          <div class="ui dropdown label addmember">
+            <div class="text">member</div>
+            <i class="dropdown icon"></i>
+            <div class="menu membership">
+              <div class="item">member</div>
+              <div class="item">admin</div>
+              <div class="item">owner</div>
+            </div>
+          </div>
+        </div>
+        <button class="ui primary button addmember">
+          Add
+        </button>
         <div class="manage-members-header">
           Members
         </div>

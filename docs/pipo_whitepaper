@@ -1,0 +1,49 @@
+# PiPo Protocol
+
+
+
+## Trust Chain
+
+### Initial chain of trust certificate creation
+
+### Server sitnature
+
+### Signing an action as a level 0 chain member
+
+### Signing an action as a level 1+ chain member
+
+### Confirming authenticity as a client
+
+
+
+## Membership Authenticity Confirmation
+
+### Member gets a notification that a new user has been added to a room. This member needs to confirm that the user was actually added by someone in the chain of trust
+- Level 0 member adds user and signs a block of JSON confirming that this user is authorized to be a member of a specific room
+- Message is relayed by the server to all appropriate users
+- Receiving user uses the level 0 member's public key to confirm the signature of that data
+- User then locally signs the transaction to add that member to their local chain so that the chain integrity can be confirmed when signing in again?
+
+## Issues to solve
+
+### New user signs up after server has been compromised
+#### New user checks with majority of aged clients for concensus
+
+
+
+## Room Protocol
+
+## Ad Hoc Room Protocol
+
+## One to One Protocol
+
+## Client to Server Command Protocol
+
+## Server to Client Protocol
+
+
+## Chat history retention
+
+### When enabled
+
+### When disabled

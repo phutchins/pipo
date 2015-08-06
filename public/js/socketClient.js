@@ -188,11 +188,11 @@ SocketClient.prototype.addListeners = function() {
 
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
-    var room = data.room;
+    var roomName = data.room;
     var roomUsers = data.userlist;
 
-    if (window.roomUsers[room]) {
-      var currentRoomUsersArray = Object.keys(window.roomUsers[room]);
+    if (window.roomUsers[roomName]) {
+      var currentRoomUsersArray = Object.keys(window.roomUsers[roomName]);
       Object.keys(roomUsers).forEach(function(key) {
         console.log("Found new user '" + roomUsers[key].userName);
         newRoomUsersArray.push(roomUsers[key].userName);
@@ -203,12 +203,12 @@ SocketClient.prototype.addListeners = function() {
       //Don't notify us about ourselves
       uniqueRoomUsersArray.forEach(function(joinUserName) {
         if (window.userName !== joinUserName) {
-          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + room, 3000);
+          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + roomName, 3000);
         }
       })
     }
 
-    window.roomUsers[room] = {};
+    window.roomUsers[roomName] = {};
 
     roomUsers.forEach(function(user) {
       if (user) {
@@ -223,13 +223,13 @@ SocketClient.prototype.addListeners = function() {
     });
 
     function addToRoomUsers(user) {
-      if (!window.roomUsers[data.room][user.userName]) {
-        window.roomUsers[data.room][user.userName] = {
+      if (!window.roomUsers[roomName][user.userName]) {
+        window.roomUsers[roomName][user.userName] = {
           connections: 1
         };
       }
       else {
-        window.roomUsers[data.room][user.userName].connections++;
+        window.roomUsers[roomName][user.userName].connections++;
       }
     }
     function addToGlobalUsers(user) {
@@ -255,11 +255,11 @@ SocketClient.prototype.addListeners = function() {
     }
 
     console.log("[USERLIST UPDATE] Updating userlist");
-    // TODO: Should have members and users differ
-    // Members are users that have access to a room
-    // Users are members that have actually joined the room (even if they are not currently connected)
-    ChatManager.chats[data.room].members = Object.keys(window.roomUsers[data.room]);
-    ChatManager.updateRoomUsers({ room: data.room });
+    ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
+    debugger;
+    if (ChatManager.activeChat.name == roomName) {
+      ChatManager.updateRoomUsers({ room: roomName });
+    }
   });
 
   this.socket.on('chatStatus', function(data) {

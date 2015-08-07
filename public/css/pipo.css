@@ -772,11 +772,10 @@ h1, h2, h3, h4, h5 {
 }
 
 #message-input {
-  overflow-y: hidden;
+  overflow-y: scroll;
   padding: 7px 30px 9px 8px;
   background: padding-box #fff;
   border: 2px solid #E0E0E0;
-  resize: none!important;
   border-radius: 0 .2rem .2rem 0;
   height: 38px;
   width: 100%;

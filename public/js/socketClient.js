@@ -256,7 +256,6 @@ SocketClient.prototype.addListeners = function() {
 
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
-    debugger;
     if (ChatManager.activeChat.name == roomName) {
       ChatManager.updateRoomUsers({ room: roomName });
     }

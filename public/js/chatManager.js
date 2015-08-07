@@ -50,19 +50,44 @@ marked.setOptions({
   }
 });
 
-$('#message-input').keydown(function (event) {
+
+function fitToContent(id, maxHeight) {
+  var text = id && id.style ? id : document.getElementById(id);
+  if ( !text )
+    return;
+
+  /* Accounts for rows being deleted, pixel value may need adjusting */
+  if (text.clientHeight == text.scrollHeight) {
+    text.style.height = "30px";
+  }
+
+  var adjustedHeight = text.clientHeight;
+  if ( !maxHeight || maxHeight > adjustedHeight ) {
+    adjustedHeight = Math.max(text.scrollHeight, adjustedHeight);
+    if ( maxHeight )
+      adjustedHeight = Math.min(maxHeight, adjustedHeight);
+    if ( adjustedHeight > text.clientHeight )
+      text.style.height = adjustedHeight + "px";
+  }
+}
+
+
+$('#message-input').keyup(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
     var caret = ChatManager.getCaret(this);
-    this.value = content.substring(0,caret)+"\n"+content.substring(caret,content.length);
+    this.value = content.substring(0,caret)+content.substring(caret,content.length);
     event.stopPropagation();
     console.log("got shift+enter");
     var $messageInput = $('#message-input');
+    fitToContent('message-input', 156);
     $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     return false;
   } else if(event.keyCode == 13) {
-    ChatManager.sendMessage();
-    return false;
+    ChatManager.sendMessage(function() {
+      fitToContent('message-input', 156);
+      return false;
+    })
   }
 });
 
@@ -1052,7 +1077,7 @@ ChatManager.refreshChatContent = function refreshChatContent(room) {
   ChatManager.updateChatHeader(room);
 }
 
-ChatManager.sendMessage = function sendMessage() {
+ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();
   console.log("1 sendMessage input: " + input);
   //input = input.replace(/(<p>|<\/p>)/g, '');
@@ -1061,7 +1086,7 @@ ChatManager.sendMessage = function sendMessage() {
   var regexResult = input.match(commandRegex);
 
   if (input === "") {
-    return false;
+    return callback();
   }
   else if (regexResult !== null) {
     // Catch commands here and encrypt data to users as needed
@@ -1095,6 +1120,7 @@ ChatManager.sendMessage = function sendMessage() {
       console.log("Sending command '" + regexResult[1] + "' to server");
     }
     $('#message-input').val('');
+    return callback();
   }
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {
@@ -1102,12 +1128,16 @@ ChatManager.sendMessage = function sendMessage() {
       if (ChatManager.activeChat.type == 'room') {
         console.log("Sending message to room #"+ChatManager.activeChat.name);
         window.socketClient.sendMessage(ChatManager.activeChat.name, preparedInput);
+        $('#message-input').val('');
+        return callback();
       }
       else if (ChatManager.activeChat.type == 'privatechat') {
         var userName = ChatManager.activeChat.name;
         console.log("Sending private mesage to '" + userName + "' with message '" + preparedInput + "'");
         ChatManager.handlePrivateMessage(preparedInput, window.userName, userName);
         socketClient.sendPrivateMessage(userName, preparedInput);
+        $('#message-input').val('');
+        return callback();
       }
       else {
         return console.log("ERROR: No activeChatType!");

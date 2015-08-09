@@ -147,7 +147,10 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       publicKey: user.publicKey
     };
 
-    self.namespace.userMap[user.userName] = self.socket.id;
+    if (!self.namespace.userMap[user.userName])
+      self.namespace.userMap[user.userName] = [];
+
+    self.namespace.userMap[user.userName].push(self.socket.id);
 
     self.socket.user = user;
     logger.debug("[INIT] Init'd user " + user.userName);
@@ -296,19 +299,21 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
   var fromUser = self.socket.user.userName;
   var targetUsername = data.toUser;
-  var targetSocket = self.namespace.userMap[targetUsername];
+  var targetSockets = self.namespace.userMap[targetUsername];
 
-  if (!targetSocket) {
+  if (!targetSockets) {
     logger.info("[MSG] Ignoring private message to offline user");
     return self.socket.emit('errorMessage', {message: "User is not online"});
   }
 
-  self.socket.broadcast.to(targetSocket).emit('privateMessage', {
-    from: self.socket.user.userName,
-    to: targetUsername,
-    message: data.pgpMessage,
-    signature: data.signature
-  });
+  targetSockets.forEach(function(targetSocket) {
+    self.socket.broadcast.to(targetSocket).emit('privateMessage', {
+      from: self.socket.user.userName,
+      to: targetUsername,
+      message: data.pgpMessage,
+      signature: data.signature
+    });
+  })
 };
 
 /*
@@ -316,12 +321,14 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
  */
 SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(userName, room, masterKeyPair) {
   var self = this;
-  var targetSocket = self.namespace.userMap[userName];
-  if (targetSocket) {
-    self.socket.broadcast.to(targetSocket).emit('newMasterKey', {
-      room: room,
-      masterKeyPair: masterKeyPair
-    });
+  var targetSockets = self.namespace.userMap[userName];
+  if (targetSockets) {
+    targetSockets.forEach(function(targetSocket) {
+      self.socket.broadcast.to(targetSocket).emit('newMasterKey', {
+        room: room,
+        masterKeyPair: masterKeyPair
+      });
+    })
   };
 };
 
@@ -810,7 +817,14 @@ SocketServer.prototype.disconnect = function disconnect() {
         })
       })
     })
-    delete self.namespace.userMap[self.socket.user.userName];
+
+    // Delete disconnecting users socket from socket array
+    delete self.namespace.userMap[self.socket.user.userName][self.socket.id];
+
+    // If there are no more sockets in the array, delete the usermap entry for that user
+    if (Object.keys(self.namespace.userMap[self.socket.user.userName]).length == 0) {
+      delete self.namespace.userMap[self.socket.user.userName];
+    }
   } else {
     logger.info("WARNING! Someone left the channel and we don't know who it was...");
   }

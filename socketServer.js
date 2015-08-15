@@ -2,6 +2,7 @@ var User = require('./models/user');
 var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
+var Message = require('./models/message');
 var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
@@ -275,12 +276,25 @@ SocketServer.prototype.onMessage = function onMessage(data) {
   logger.info("[MSG] Server got chat message from " + self.socket.user.userName);
 
   //TODO: Log messages
-  //TODO: Room specific messages
-  self.namespace.emit('roomMessage', {
-    user: self.socket.user.userName,
-    room: data.room,
-    message: data.pgpMessage
-  });
+  Room.findOne({ name: data.room }, function(err, room) {
+    // Confirm that user has permission to send message to this room
+
+    User.findOne({ userName: self.socket.user.userName }, function(err, user) {
+      // Add message to room.messages
+      message = new Message({
+        _user: user,
+        encryptedMessage: data.pgpMessage
+      });
+
+      room.messages.push(message);
+
+      self.namespace.emit('roomMessage', {
+        user: self.socket.user.userName,
+        room: data.room,
+        message: data.pgpMessage
+      });
+    });
+  })
 
   logger.info("[MSG] Server emitted chat message to users");
 };

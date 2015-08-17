@@ -281,17 +281,19 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
     User.findOne({ userName: self.socket.user.userName }, function(err, user) {
       // Add message to room.messages
-      var message = new Message({
-        _fromUser: user,
-        fromUser: user.userName,
-        encryptedMessage: data.pgpMessage
-      });
+      if (room.keepHistory) {
+        var message = new Message({
+          _fromUser: user,
+          fromUser: user.userName,
+          encryptedMessage: data.pgpMessage
+        });
 
-      message.save(function(err) {
-        logger.debug("[MSG] Pushing message to room message history");
-        room._messages.push(message);
-        room.save();
-      })
+        message.save(function(err) {
+          logger.debug("[MSG] Pushing message to room message history");
+          room._messages.push(message);
+          room.save();
+        })
+      }
 
       self.namespace.emit('roomMessage', {
         user: self.socket.user.userName,
@@ -456,12 +458,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       var auth = data.auth;
       var room = data.room;
 
-      logger.debug("[SOCKET SERVER] (joinRoom) Room messages for #"+room.name+" is: ",room._messages);
-
-      //logger.debug("[SOCKET SERVER] (joinRoom) Joined room and received data:",data);
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
-        //logger.info("Member trying to join room and room is: " + JSON.stringify(room));
-        logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room messages for #"+room.name+" is: "+room.messages);
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
@@ -556,6 +553,7 @@ SocketServer.prototype.createRoom = function createRoom(data) {
   }
 
   logger.info("User " + self.socket.user.userName + " is trying to create room " + data.name);
+  logger.info("New room data: ",data);
   Room.create(roomData, function(err, newRoom) {
     if (err) {
       return logger.info("Error creating room: " + err);

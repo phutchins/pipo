@@ -316,6 +316,7 @@ SocketClient.prototype.createRoom = function(data, callback) {
     keepHistory: data.keepHistory,
     membershipRequired: data.membershipRequired
   };
+  debugger;
   self.socket.emit('createRoom', data);
   callback(null);
 };

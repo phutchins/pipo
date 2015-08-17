@@ -13,12 +13,7 @@ var roomSchema = new Schema({
   _owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User", default: null },
   _admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   _members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: []  }],
-  messages: [{
-    date: { type: Date },
-    _user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-    message: { Type: String },
-    default: []
-  }]
+  _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message", default: [] }]
 });
 
 roomSchema.statics.create = function create(data, callback) {
@@ -123,7 +118,7 @@ roomSchema.statics.join = function join(data, callback) {
   var userName = data.userName;
   var name = data.name;
   mongoose.model('User').findOne({ userName: userName }, function(err, user) {
-    mongoose.model('Room').findOne({ name: name }).populate('_members _owner _admins').exec(function(err, room) {
+    mongoose.model('Room').findOne({ name: name }).populate('_members _owner _admins _messages').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
@@ -137,6 +132,7 @@ roomSchema.statics.join = function join(data, callback) {
         })
       }
       //logger.debug("[ROOM] room._members is: ",room._members);
+      logger.debug("[ROOM] room._messages for #"+room.name+" is: ",room._messages);
       var isMember = room._members.some(function(member) {
         return member._id.equals(user._id);
       });

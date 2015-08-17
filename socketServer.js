@@ -281,12 +281,17 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
     User.findOne({ userName: self.socket.user.userName }, function(err, user) {
       // Add message to room.messages
-      message = new Message({
-        _user: user,
+      var message = new Message({
+        _fromUser: user,
+        fromUser: user.userName,
         encryptedMessage: data.pgpMessage
       });
 
-      room.messages.push(message);
+      message.save(function(err) {
+        logger.debug("[MSG] Pushing message to room message history");
+        room._messages.push(message);
+        room.save();
+      })
 
       self.namespace.emit('roomMessage', {
         user: self.socket.user.userName,
@@ -405,38 +410,38 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   }
 
   var userName = self.socket.user.userName;
-  var room = data.room;
+  var roomName = data.room;
 
-  logger.info("[JOIN ROOM] User '" + userName + "' joining room #"+room);
+  logger.info("[JOIN ROOM] User '" + userName + "' joining room #"+roomName);
 
   // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
     logger.debug("[JOIN ROOM] encryptionScheme: masterKey - checking masterKey");
-    KeyId.getMasterKeyId(room, function(err, currentKeyId) {
-      User.getMasterKeyPair(userName, room, function(err, masterKeyPair) {
+    KeyId.getMasterKeyId(roomName, function(err, currentKeyId) {
+      User.getMasterKeyPair(userName, roomName, function(err, masterKeyPair) {
         if (masterKeyPair.id !== currentKeyId) {
           self.initMasterKeyPair(function(err) {
             // Should probably return and call self here
-            User.getMasterKeyPair(userName, room, function(err, newMasterKeyPair) {
-              self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: room, masterKeyPair: newMasterKeyPair });
-              self.namespace.to(root).emit('newMasterKey', { room: room, keyId: currentKeyId });
-              self.socket.join(room);
-              Room.join({userName: userName, name: room}, function(err, data) {
+            User.getMasterKeyPair(userName, roomName, function(err, newMasterKeyPair) {
+              self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: roomName, masterKeyPair: newMasterKeyPair });
+              self.namespace.to(root).emit('newMasterKey', { room: roomName, keyId: currentKeyId });
+              self.socket.join(roomName);
+              Room.join({userName: userName, name: roomName}, function(err, data) {
                 var auth = data.auth;
                 if (err) {
-                  return logger.info("Error joining room " + room + " with error: " + err);
+                  return logger.info("Error joining room " + roomName + " with error: " + err);
                 }
                 if (!auth) {
-                  return logger.warning("Failed to join room " + room);
+                  return logger.warning("Failed to join room " + roomName);
                 }
               })
-              logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
-              self.updateRoomUsers(room.name);
+              logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + roomName);
+              self.updateRoomUsers(roomName);
             });
           });
         } else {
           //logger.info("[JOIN ROOM] Clients master key is up to date");
-          self.socket.join(room);
+          self.socket.join(roomName);
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
           logger.info("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name + " with member list of ", membersArray);
@@ -447,20 +452,23 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   } else {
     // Using client key encryption scheme
     // Move this to its own function (sanatizeRoomForClient)
-    Room.join({name: room, userName: userName}, function(err, data) {
+    Room.join({name: roomName, userName: userName}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
+
+      logger.debug("[SOCKET SERVER] (joinRoom) Room messages for #"+room.name+" is: ",room._messages);
 
       //logger.debug("[SOCKET SERVER] (joinRoom) Joined room and received data:",data);
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
         //logger.info("Member trying to join room and room is: " + JSON.stringify(room));
+        logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room messages for #"+room.name+" is: "+room.messages);
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
         if (!auth) {
           return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
         }
-        logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
+        //logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
         self.socket.join(room.name);
         logger.debug("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
@@ -521,7 +529,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
     name: room.name,
     topic: room.topic,
     group: room.group,
-    messages: room.messages,
+    messages: room._messages,
     encryptionScheme: room.encryptionScheme,
     keepHistory: room.keepHistory,
     membershipRequired: room.membershipRequired,

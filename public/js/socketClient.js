@@ -140,22 +140,13 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    if (window.encryptionManager.encryptionScheme[data.room] == 'masterKey') {
-      window.encryptionManager.decryptMasterKeyMessage(data.message, function(err, message) {
-        if (err) {
-          console.log(err);
-        }
-        ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
-      });
-    } else if (window.encryptionManager.encryptionScheme[data.room] == 'clientKey') {
-      window.encryptionManager.decryptMessage(data.message, function(err, message) {
-        if (err) {
-          console.log(err);
-        }
-        console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
-        ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
-      });
-    };
+    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+      if (err) {
+        console.log(err);
+      }
+      console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
+      ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
+    });
   });
 
   this.socket.on('privateMessage', function(data) {
@@ -325,6 +316,7 @@ SocketClient.prototype.createRoom = function(data, callback) {
     keepHistory: data.keepHistory,
     membershipRequired: data.membershipRequired
   };
+  debugger;
   self.socket.emit('createRoom', data);
   callback(null);
 };

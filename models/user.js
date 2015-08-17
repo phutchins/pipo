@@ -262,6 +262,7 @@ userSchema.statics.findBySocketId = function findUserBySocketId(socketId, callba
   });
 };
 
+
 userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
   findUserBySocketId(socketId, function(err, user) {
     if (err) {

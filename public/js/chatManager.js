@@ -607,9 +607,39 @@ ChatManager.initRoom = function initRoom(room, callback) {
   console.log("Adding room " + room.name + " to the room list");
   // TODO: Should store online status for members and messages in an object or array also
   console.log("Room is : ",room);
-  self.chats[room.name] = { id: room.id, name: room.name, type: 'room', topic: room.topic, group: room.group, messages: "", encryptionScheme: room.encryptionScheme, keepHistory: room.keepHistory, membershipRequired: room.membershipRequired, members: room.members, admins: room.admins, owner: room.owner };
+
+  // Decrypt room messages
+
+  // Format room messages
+  self.chats[room.name] = { id: room.id,
+    name: room.name,
+    type: 'room',
+    topic: room.topic,
+    group: room.group,
+    messages: room.messages,
+    decryptedMessages: '',
+    messageCache: '',
+    encryptionScheme: room.encryptionScheme,
+    keepHistory: room.keepHistory,
+    membershipRequired: room.membershipRequired,
+    members: room.members,
+    admins: room.admins,
+    owner: room.owner
+  };
 
   console.log("About to set room focus to " + room.name);
+
+  // Decrypt messages and HTMLize them
+  Object.keys(self.chats[room.name].messages).forEach(function(key) {
+  //self.chats[room.name].messages.forEach(function(message, index) {
+    var message = self.chats[room.name].messages[key];
+    window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
+      // Cache the decrypted message
+      self.chats[room.name].messages[key].decryptedMessage = decryptedMessage.toString();
+      ChatManager.addMessageToChat({ type: 'room', message: decryptedMessage.toString(), fromUser: message.fromUser, chat: room.name });
+    })
+  })
+
   self.focusChat({ id: room.name }, function(err) {
     console.log("Room focus for " + room.name + " done");
     self.updateRoomList(function(err) {
@@ -1042,13 +1072,13 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   var time = new Date().toISOString();
   //message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
-  ChatManager.formatChatMessage({ message: message, fromUser: fromUser }, function(messageHtml) {
+  ChatManager.formatChatMessage({ message: message, fromUser: fromUser }, function(formattedMessage) {
+    // This should never happen
     if (ChatManager.chats[chat] == null) {
-      ChatManager.chats[chat] = { name: chat, messages: '' };
+      ChatManager.chats[chat] = { name: chat, messageCache: '' };
     }
 
-    //ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat("<li>" + message + "</li>");
-    ChatManager.chats[chat].messages = ChatManager.chats[chat].messages.concat(messageHtml);
+    ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
 
     if (ChatManager.activeChat.name == chat) {
       ChatManager.refreshChatContent(chat);
@@ -1071,11 +1101,15 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
 /*
  * Displays room messages in the chat window
  */
-ChatManager.refreshChatContent = function refreshChatContent(room) {
-  console.log("Refreshing room content for ", room);
-  $('#chat').html(ChatManager.chats[room].messages);
-  ChatManager.updateChatHeader(room);
+ChatManager.refreshChatContent = function refreshChatContent(roomName) {
+  console.log("Refreshing room content for ", roomName);
+
+  var messageCache = ChatManager.chats[roomName].messageCache;
+
+  $('#chat').html(messageCache);
+  ChatManager.updateChatHeader(roomName);
 }
+
 
 ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();

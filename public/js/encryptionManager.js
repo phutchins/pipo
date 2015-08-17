@@ -349,21 +349,22 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
  * @param encryptedMessage
  * @param callback
  */
+
  //TODO: Should name this appropriately for client key decryption
 EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMessage, callback) {
   console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message");
-  window.kbpgp.unbox({
-    keyfetch: this.keyRing,
-    armored: encryptedMessage
-  }, callback);
+
+  window.kbpgp.unbox({ keyfetch: this.keyRing, armored: encryptedMessage }, function(err, literals) {
+    if (err != null) {
+      return console.log("Error decrypting message: ",err);
+    }
+
+    return callback(err, literals);
+  });
 };
 
-//TODO: Should name this appropriately for master key decryption
+
 EncryptionManager.prototype.decryptMasterKeyMessage = function decryptMasterKeyMessage(pgpMessage, callback) {
-  window.kbpgp.unbox({
-    keyfetch: this.keyRing,
-    armored: pgpMessage
-  }, callback);
 };
 
 //TODO: Determine if these are needed

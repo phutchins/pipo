@@ -164,11 +164,12 @@ roomSchema.statics.part = function part(data, callback) {
 
       var isMember = null;
 
-      logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
-
-      user.membership._currentRooms.pull(room._id);
-
-      logger.debug("[ROOM] (AFTER) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+      if (user.membership._currentRooms !== null) {
+        logger.debug("[ROOM} user.membership._currentrooms: ", user.membership._currentRooms);
+        logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+        user.membership._currentRooms.pull(room._id);
+        logger.debug("[ROOM] (AFTER) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+      }
 
       user.save(function(err) {
         logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");

@@ -14,6 +14,16 @@ var userSchema = new Schema({
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
+  chats: {
+    privateChats: [{
+      _user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
+      _privateChat: { type: mongoose.SchemaTypes.ObjectId, ref: "PrivateChat" }
+    }],
+    groupChats: [{
+      _users: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+      _groupChat: { type: mongoose.SchemaTypes.ObjectId, ref: "GroupChat" }
+    }]
+  },
   membership: {
     rooms: [{
       _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },

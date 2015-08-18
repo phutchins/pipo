@@ -172,7 +172,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
-            logger.debug("Sending userlist to user...", userlist);
             self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
           })
         })
@@ -186,24 +185,17 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           var rooms = {};
           roomData.rooms.forEach(function(room) {
-            logger.debug("[INIT] done getting available room list");
-
-
             self.sanatizeRoomForClient(room, function(sanatizedRoom) {
-              //Object.keys(roomData.rooms).forEach(function(key) {
-              logger.debug("Adding room " + sanatizedRoom.name + " to array");
               rooms[sanatizedRoom.name] = sanatizedRoom;
             })
 
-            logger.debug("Sending membership update to user " + user.userName);
-            logger.debug("[AUTHENTICATE] Membership update rooms is:",rooms);
             self.socket.emit('roomUpdate', { rooms: rooms });
+          })
 
-            logger.info("[INIT] Emitting user connect for",user.userName);
-            return self.namespace.emit('user connect', {
-              userName: user.userName,
-              publicKey: user.publicKey
-            })
+          logger.debug("[INIT] Emitting user connect for",user.userName);
+          return self.namespace.emit('user connect', {
+            userName: user.userName,
+            publicKey: user.publicKey
           })
         })
       })
@@ -326,6 +318,20 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     logger.info("[MSG] Ignoring private message to offline user");
     return self.socket.emit('errorMessage', {message: "User is not online"});
   }
+
+  // Where should we store private message chats?
+  var message = new Message({
+    _fromUser: self.socket.user,
+    fromUser: self.socket.user.userName,
+    toUsers: [ data.toUser ],
+    encryptedMessage: data.pgpMessage
+  });
+
+  message.save(function(err) {
+    logger.debug("[MSG] Pushing message to room message history");
+    room._messages.push(message);
+    room.save();
+  })
 
   targetSockets.forEach(function(targetSocket) {
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
@@ -482,7 +488,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
   if (room._owner) {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner userName is",room._owner.userName);
     var ownerUserName = room._owner.userName;
   } else {
     logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
@@ -496,10 +501,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var adminsArray = [];
 
   if (membersLength > 0) {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Room #" + room.name + " has",room._members.length,"members");
-
     room._members.forEach(function(member) {
-      logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Adding member " + member.userName + " to member array");
       membersArray.push(member.userName);
     })
   }
@@ -509,16 +511,6 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
       adminsArray.push(admin.userName);
     })
   }
-
-  //logger.info("[sanatizeRoomForClient] Members array: ", membersArray);
-  //logger.info("[sanatizeRoomForClient] Admins array: ", adminsArray);
-  //var membersArray = room.members.map(function(member) {
-  //  return member.userName;
-  //});
-  //var adminsArray = room.admins.map(function(member) {
-  //  return member.userName;
-  //});
-  // TODO: Sanatize messages? Or make sure populated?
 
   var sanatizedRoom = {
     id: room._id.toString(),

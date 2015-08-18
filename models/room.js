@@ -131,8 +131,6 @@ roomSchema.statics.join = function join(data, callback) {
           return self.join(data, callback);
         })
       }
-      //logger.debug("[ROOM] room._members is: ",room._members);
-      logger.debug("[ROOM] room._messages for #"+room.name+" is: ",room._messages);
       var isMember = room._members.some(function(member) {
         return member._id.equals(user._id);
       });
@@ -157,27 +155,25 @@ roomSchema.statics.part = function part(data, callback) {
       if (err) {
         return callback(err, false);
       }
+
       if (!room) {
         return logger.error("No room found when trying to part for user " + data.userName);
       }
+
       logger.debug("[ROOM] room._members:",room._members);
+
       var isMember = null;
-      //if (room._members) {
-      //  // TODO: Get current rooms joined from sockets?
-      //  isMember = room._members.some(function(member) {
-      //    return member.equals(user._id);
-      //  });
-     // }
-     // if (isMember) {
-        user.membership._currentRooms.pull(room);
-     //   logger.debug("User " + data.userName + " is a member of ", user.membership._currentRooms);
-        user.save(function(err) {
-          logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");
-          return callback(null, true);
-        });
-      //} else {
-      //  return callback(null, false);
-      //}
+
+      logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+
+      user.membership._currentRooms.pull(room._id);
+
+      logger.debug("[ROOM] (AFTER) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+
+      user.save(function(err) {
+        logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");
+        return callback(null, true);
+      });
     })
   })
 };

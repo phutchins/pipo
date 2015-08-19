@@ -89,7 +89,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   }
 
   User.findOne({ userName: systemUserName }, function(err, systemUser) {
-    logger.debug("[getDefaultRoom] systemUser is: ", systemUser);
+    logger.debug("[getDefaultRoom] systemUser is: ", systemUser.name);
     if (!systemUser) {
       logger.debug("[getDefaultRoom] NO system user found!")
       User.create(systemUserData, function(data) {
@@ -106,7 +106,6 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
     var defaultRoomData = {
       userName: 'pipo',
       name: 'pipo',
-      _owner: systemUser._id,
       topic: "Welcome to PiPo.",
       group: "default",
       membershipRequired: false,
@@ -115,24 +114,27 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
     };
 
     // create the default room object
+    logger.debug("[getDefaultRoom] Getting default room #" + defaultRoomName);
     Room.getByName(defaultRoomName, function(defaultRoom) {
       if (!defaultRoom) {
+        logger.debug("[getDefaultRoom) No default room on initial run, creating default room...");
         Room.create(defaultRoomData, function(defaultRoom) {
+          logger.debug("Created default room, result was: ", defaultRoom.name);
           Room.getByName(defaultRoomName, function(savedDefaultRoom) {
-            logger.debug("[getDefaultRoom] Saved default room is: ", savedDefaultRoom);
+            logger.debug("[getDefaultRoom] Saved default room is: ", savedDefaultRoom.name);
 
             if (savedDefaultRoom == null) {
               return logger.error("[getDefaultRoom] ERROR - Default room is NULL");
             }
 
-            logger.debug("Found default room: #",defaultRoom.name);
+            logger.debug("Found default room: #",savedDefaultRoom.name);
 
             return callback(savedDefaultRoom);
           })
         });
+      } else {
+        return callback(defaultRoom);
       }
-
-      return callback(defaultRoom);
     })
   })
 };
@@ -192,7 +194,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       // Get complete userlist to send to client on initial connection
       logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
-        logger.debug("Got default room: ", defaultRoom);
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {

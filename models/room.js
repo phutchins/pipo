@@ -48,13 +48,16 @@ roomSchema.statics.create = function create(data, callback) {
       _members: []
     })
     //newRoom._members.push(user);
-    newRoom.save(callback(null, newRoom));
+    newRoom.save(function(err) {
+      callback(null, newRoom);
+    })
   })
 };
 
 roomSchema.statics.getByName = function getByName(name, callback) {
   var self = this;
 
+  logger.debug("[ROOM] (getByName) Finding room #" + name + " by name");
   mongoose.model('Room').findOne({ name: name })
     .populate('_members _owner _admins')
     .exec(function(err, room) {
@@ -164,11 +167,11 @@ roomSchema.statics.part = function part(data, callback) {
 
       var isMember = null;
 
-      if (user.membership._currentRooms !== null) {
+      if (typeof user.membership._currentRooms == 'Object') {
         logger.debug("[ROOM} user.membership._currentrooms: ", user.membership._currentRooms);
-        logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+        logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", Object.keys(user.membership._currentRooms).length());
         user.membership._currentRooms.pull(room._id);
-        logger.debug("[ROOM] (AFTER) User " + data.userName + " is a member of ", user.membership._currentRooms.length());
+        logger.debug("[ROOM] (AFTER) user.membership._currentRooms: ", user.membership._currentRooms);
       }
 
       user.save(function(err) {

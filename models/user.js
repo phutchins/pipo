@@ -14,6 +14,16 @@ var userSchema = new Schema({
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
+  chats: {
+    privateChats: [{
+      _user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
+      _privateChat: { type: mongoose.SchemaTypes.ObjectId, ref: "PrivateChat" }
+    }],
+    groupChats: [{
+      _users: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
+      _groupChat: { type: mongoose.SchemaTypes.ObjectId, ref: "GroupChat" }
+    }]
+  },
   membership: {
     rooms: [{
       _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
@@ -76,7 +86,7 @@ userSchema.statics.create = function createUser(userData, callback) {
         logger.debug("[USER] saved new user");
         mongoose.model('User').findOne({ userName: userName }, function(err, user) {
           logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
-          return callback(err, {user: user, newUser: true});
+          return callback(null, {user: user, newUser: true});
         })
       })
     } else {

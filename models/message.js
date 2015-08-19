@@ -18,6 +18,7 @@ var messageSchema = new Schema({
   _fromUser: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   fromUser: { type: String },
   _toUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
+  toUsers: [{ type: String }],
   encryptedMessage: { type: String }
 });
 

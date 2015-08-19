@@ -48,13 +48,16 @@ roomSchema.statics.create = function create(data, callback) {
       _members: []
     })
     //newRoom._members.push(user);
-    newRoom.save(callback(null, newRoom));
+    newRoom.save(function(err) {
+      callback(null, newRoom);
+    })
   })
 };
 
 roomSchema.statics.getByName = function getByName(name, callback) {
   var self = this;
 
+  logger.debug("[ROOM] (getByName) Finding room #" + name + " by name");
   mongoose.model('Room').findOne({ name: name })
     .populate('_members _owner _admins')
     .exec(function(err, room) {
@@ -131,8 +134,6 @@ roomSchema.statics.join = function join(data, callback) {
           return self.join(data, callback);
         })
       }
-      //logger.debug("[ROOM] room._members is: ",room._members);
-      logger.debug("[ROOM] room._messages for #"+room.name+" is: ",room._messages);
       var isMember = room._members.some(function(member) {
         return member._id.equals(user._id);
       });
@@ -157,27 +158,26 @@ roomSchema.statics.part = function part(data, callback) {
       if (err) {
         return callback(err, false);
       }
+
       if (!room) {
         return logger.error("No room found when trying to part for user " + data.userName);
       }
+
       logger.debug("[ROOM] room._members:",room._members);
+
       var isMember = null;
-      //if (room._members) {
-      //  // TODO: Get current rooms joined from sockets?
-      //  isMember = room._members.some(function(member) {
-      //    return member.equals(user._id);
-      //  });
-     // }
-     // if (isMember) {
-        user.membership._currentRooms.pull(room);
-     //   logger.debug("User " + data.userName + " is a member of ", user.membership._currentRooms);
-        user.save(function(err) {
-          logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");
-          return callback(null, true);
-        });
-      //} else {
-      //  return callback(null, false);
-      //}
+
+      if (typeof user.membership._currentRooms == 'Object') {
+        logger.debug("[ROOM} user.membership._currentrooms: ", user.membership._currentRooms);
+        logger.debug("[ROOM] (BEFORE) User " + data.userName + " is a member of ", Object.keys(user.membership._currentRooms).length());
+        user.membership._currentRooms.pull(room._id);
+        logger.debug("[ROOM] (AFTER) user.membership._currentRooms: ", user.membership._currentRooms);
+      }
+
+      user.save(function(err) {
+        logger.debug("User " + data.userName + " has parted #" + data.name + " successfully");
+        return callback(null, true);
+      });
     })
   })
 };

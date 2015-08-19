@@ -16,6 +16,7 @@ ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
 
+var systemUsername = 'pipo';
 var host = window.location.host;
 var socket = io(host+'/main');
 var clientKeyPassword = null;
@@ -640,13 +641,17 @@ ChatManager.initRoom = function initRoom(room, callback) {
     })
   })
 
-  self.focusChat({ id: room.name }, function(err) {
-    console.log("Room focus for " + room.name + " done");
-    self.updateRoomList(function(err) {
-      console.log("Update room list done...");
-      callback(null);
+  // This should be moved or wrapped in a conditional
+  // BOOKMARK
+  if (ChatManager.activeChat && ChatManager.activeChat.name == room.name) {
+    self.focusChat({ id: room.name }, function(err) {
+      console.log("Room focus for " + room.name + " done");
+      self.updateRoomList(function(err) {
+        console.log("Update room list done...");
+        callback(null);
+      });
     });
-  });
+  }
 };
 
 ChatManager.updateChatHeader = function updateChatHeader(chatName) {
@@ -697,6 +702,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
 
     console.log("Setting activeChat to room: " + id + " type: room");
     ChatManager.activeChat = { name: id, type: 'room' };
+    window.activeChat = ChatManager.activeChat;
 
     // Update the content in the room for the desired room to be in focus
     ChatManager.refreshChatContent(id);
@@ -817,7 +823,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
       if ( !ChatManager.chats[username] ) {
         console.log("chat for ",username," was empty so initializing");
-        ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
+        ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", messageCache: "", topic: "One to one encrypted chat with " + username };
         ChatManager.updatePrivateChats();
       }
 
@@ -1073,11 +1079,6 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   //message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
   ChatManager.formatChatMessage({ message: message, fromUser: fromUser }, function(formattedMessage) {
-    // This should never happen
-    if (ChatManager.chats[chat] == null) {
-      ChatManager.chats[chat] = { name: chat, messageCache: '' };
-    }
-
     ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
 
     if (ChatManager.activeChat.name == chat) {
@@ -1085,6 +1086,23 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
     // BOOKMARK
+  })
+};
+
+
+/*
+ * Take the message array obtained from the server and add them to the cache for the appropriate chat
+ * This is instead of using addMessageToChat to add them one by one
+ * TODO: Should pass messages around the same way everywhere instead of a string some places and object others
+ */
+ChatManager.populateMessageCache = function populateMessageCache(data) {
+  var chat = data.chat;
+  var messages = data.messages;
+
+  messages.forEach(function(message) {
+    ChatManager.formatChatMessage({ message: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
+      ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
+    })
   })
 };
 
@@ -1101,13 +1119,19 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
 /*
  * Displays room messages in the chat window
  */
-ChatManager.refreshChatContent = function refreshChatContent(roomName) {
-  console.log("Refreshing room content for ", roomName);
+ChatManager.refreshChatContent = function refreshChatContent(chatName) {
+  var messageCache;
 
-  var messageCache = ChatManager.chats[roomName].messageCache;
+  console.log("Refreshing room content for ", chatName);
+
+  if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
+    ChatManager.chats[chatName].messageCache = '';
+  }
+
+  messageCache = ChatManager.chats[chatName].messageCache;
 
   $('#chat').html(messageCache);
-  ChatManager.updateChatHeader(roomName);
+  ChatManager.updateChatHeader(chatName);
 }
 
 

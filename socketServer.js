@@ -81,35 +81,61 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   var self = this;
   // get the default room name
   // This needs to be set in the config somewhere and passed to the client in a config block
-  var defaultRoomName = 'pipo';
+  var systemUserName = 'pipo';
 
-  var defaultRoomData = {
+  var systemUserData = {
     userName: 'pipo',
-    name: 'pipo',
-    topic: "Welcome to PiPo.",
-    group: "default",
-    membershipRequired: false,
-    keepHistory: true,
-    encryptionScheme: 'clientkey',
-  };
+    email: 'pipo@pipo.chat',
+  }
 
-  // create the default room object
-  Room.getByName(defaultRoomName, function(defaultRoom) {
-    if (!defaultRoom) {
-      Room.create(defaultRoomData, function(defaultRoom) {
-
-        if (defaultRoom == null) {
-          logger.error("[getDefaultRoom] ERROR - Default room is NULL");
-          return callback(null);
-        }
-
-        logger.debug("Found default room: #",defaultRoom.name);
-
-        return callback(defaultRoom);
-      });
+  User.findOne({ userName: systemUserName }, function(err, systemUser) {
+    logger.debug("[getDefaultRoom] systemUser is: ", systemUser.name);
+    if (!systemUser) {
+      logger.debug("[getDefaultRoom] NO system user found!")
+      User.create(systemUserData, function(data) {
+        self.getDefaultRoom(function(newDefaultRoom) {
+          logger.debug("[getDefaultRoom] Created new DEFAULT room '" + newDefaultRoom.name + "'");
+          return callback(newDefaultRoom);
+        })
+      })
     }
+    logger.debug("[getDefaultRoom] System user found!");
 
-    return callback(defaultRoom);
+    var defaultRoomName = 'pipo';
+
+    var defaultRoomData = {
+      userName: 'pipo',
+      name: 'pipo',
+      topic: "Welcome to PiPo.",
+      group: "default",
+      membershipRequired: false,
+      keepHistory: true,
+      encryptionScheme: 'clientkey',
+    };
+
+    // create the default room object
+    logger.debug("[getDefaultRoom] Getting default room #" + defaultRoomName);
+    Room.getByName(defaultRoomName, function(defaultRoom) {
+      if (!defaultRoom) {
+        logger.debug("[getDefaultRoom) No default room on initial run, creating default room...");
+        Room.create(defaultRoomData, function(defaultRoom) {
+          logger.debug("Created default room, result was: ", defaultRoom.name);
+          Room.getByName(defaultRoomName, function(savedDefaultRoom) {
+            logger.debug("[getDefaultRoom] Saved default room is: ", savedDefaultRoom.name);
+
+            if (savedDefaultRoom == null) {
+              return logger.error("[getDefaultRoom] ERROR - Default room is NULL");
+            }
+
+            logger.debug("Found default room: #",savedDefaultRoom.name);
+
+            return callback(savedDefaultRoom);
+          })
+        });
+      } else {
+        return callback(defaultRoom);
+      }
+    })
   })
 };
 
@@ -168,11 +194,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       // Get complete userlist to send to client on initial connection
       logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
-        if (defaultRoom == null) { return logger.info("[AUTHENTICATE] ERROR - default room is null") }
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
-            logger.debug("Sending userlist to user...", userlist);
             self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
           })
         })
@@ -186,24 +210,17 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           var rooms = {};
           roomData.rooms.forEach(function(room) {
-            logger.debug("[INIT] done getting available room list");
-
-
             self.sanatizeRoomForClient(room, function(sanatizedRoom) {
-              //Object.keys(roomData.rooms).forEach(function(key) {
-              logger.debug("Adding room " + sanatizedRoom.name + " to array");
               rooms[sanatizedRoom.name] = sanatizedRoom;
             })
 
-            logger.debug("Sending membership update to user " + user.userName);
-            logger.debug("[AUTHENTICATE] Membership update rooms is:",rooms);
             self.socket.emit('roomUpdate', { rooms: rooms });
+          })
 
-            logger.info("[INIT] Emitting user connect for",user.userName);
-            return self.namespace.emit('user connect', {
-              userName: user.userName,
-              publicKey: user.publicKey
-            })
+          logger.debug("[INIT] Emitting user connect for",user.userName);
+          return self.namespace.emit('user connect', {
+            userName: user.userName,
+            publicKey: user.publicKey
           })
         })
       })
@@ -326,6 +343,20 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     logger.info("[MSG] Ignoring private message to offline user");
     return self.socket.emit('errorMessage', {message: "User is not online"});
   }
+
+  // Where should we store private message chats?
+  var message = new Message({
+    _fromUser: self.socket.user,
+    fromUser: self.socket.user.userName,
+    toUsers: [ data.toUser ],
+    encryptedMessage: data.pgpMessage
+  });
+
+  message.save(function(err) {
+    logger.debug("[MSG] Pushing message to room message history");
+    room._messages.push(message);
+    room.save();
+  })
 
   targetSockets.forEach(function(targetSocket) {
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
@@ -482,7 +513,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
  */
 SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
   if (room._owner) {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner userName is",room._owner.userName);
     var ownerUserName = room._owner.userName;
   } else {
     logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
@@ -496,10 +526,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var adminsArray = [];
 
   if (membersLength > 0) {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Room #" + room.name + " has",room._members.length,"members");
-
     room._members.forEach(function(member) {
-      logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) Adding member " + member.userName + " to member array");
       membersArray.push(member.userName);
     })
   }
@@ -509,16 +536,6 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
       adminsArray.push(admin.userName);
     })
   }
-
-  //logger.info("[sanatizeRoomForClient] Members array: ", membersArray);
-  //logger.info("[sanatizeRoomForClient] Admins array: ", adminsArray);
-  //var membersArray = room.members.map(function(member) {
-  //  return member.userName;
-  //});
-  //var adminsArray = room.admins.map(function(member) {
-  //  return member.userName;
-  //});
-  // TODO: Sanatize messages? Or make sure populated?
 
   var sanatizedRoom = {
     id: room._id.toString(),

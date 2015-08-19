@@ -317,16 +317,33 @@ EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyM
 
 EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {
   var self = this;
-  //Build array of all users' keyManagers
-  var keys = Object.keys(window.roomUsers[room]).map(function(userName) {
-    return window.userMap[userName].keyInstance;
-  }).filter(function(key) {
-    return !!key;
-  });
+  var keys;
 
-  //Add our own key to the mix so that we can read the message as well
-  //TODO: Should have a meyManager for each room
-  keys.push(self.keyManager);
+  // If the room has membershipRequired enabled only encrypt messages to the members
+  if (room.membershipRequired) {
+    //Build array of all users' keyManagers
+    keys = Object.keys(window.roomUsers[room]).map(function(userName) {
+      return window.userMap[userName].keyInstance;
+    }).filter(function(key) {
+      return !!key;
+    });
+
+    //Add our own key to the mix so that we can read the message as well
+    //TODO: Should have a meyManager for each room
+    keys.push(self.keyManager);
+  }
+
+  // If the room does not require membership, encrypt to all users
+  if (!room.membershipRequired) {
+    keys = Object.keys(ChatManager.userlist).map(function(username) {
+      if (window.userMap[username]) {
+        return window.userMap[username].keyInstance;
+      }
+    }).filter(function(key) {
+      return !!key;
+    });
+    keys.push(self.keyManager);
+  }
 
   window.kbpgp.box({
     msg: message,

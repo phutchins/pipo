@@ -42,10 +42,19 @@ SocketClient.prototype.addListeners = function() {
       return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication")
     };
 
+    if (window.activeChat) {
+      ChatManager.activeChat = window.activeChat;
+    }
+
     var autoJoinRooms = data.autoJoin;
     var defaultRoomName = data.defaultRoomName;
 
     ChatManager.defaultRoomName = data.defaultRoomName;
+
+    if (!ChatManager.activeChat) {
+      ChatManager.activeChat = { name: defaultRoomName, type: 'room' };
+    }
+
     ChatManager.userlist = data.userlist;
 
     ChatManager.userSignedIn();
@@ -247,7 +256,7 @@ SocketClient.prototype.addListeners = function() {
 
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
-    if (ChatManager.activeChat.name == roomName) {
+    if (ChatManager.activeChat && ChatManager.activeChat.name == roomName) {
       ChatManager.updateRoomUsers({ room: roomName });
     }
   });
@@ -316,7 +325,6 @@ SocketClient.prototype.createRoom = function(data, callback) {
     keepHistory: data.keepHistory,
     membershipRequired: data.membershipRequired
   };
-  debugger;
   self.socket.emit('createRoom', data);
   callback(null);
 };

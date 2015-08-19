@@ -4,3 +4,4 @@ node_modules
 adminData/
 pipo*.log
 log/pipo*.log
+npm-debug.log

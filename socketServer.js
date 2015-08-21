@@ -119,7 +119,6 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
       if (!defaultRoom) {
         logger.debug("[getDefaultRoom) No default room on initial run, creating default room...");
         Room.create(defaultRoomData, function(defaultRoom) {
-          logger.debug("Created default room, result was: ", defaultRoom.name);
           Room.getByName(defaultRoomName, function(savedDefaultRoom) {
             logger.debug("[getDefaultRoom] Saved default room is: ", savedDefaultRoom.name);
 

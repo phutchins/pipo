@@ -374,6 +374,11 @@ SocketClient.prototype.joinComplete = function(data) {
 
   if (err) {
     console.log("Cannot join channel due to permissions");
+
+    if (ChatManager.lastActiveChat) {
+      ChatManager.activeChat = ChatManager.lastActiveChat;
+    }
+
     return ChatManager.showError(err);
   } else {
     console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);

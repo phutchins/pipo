@@ -15,6 +15,7 @@ ChatManager.userlist = {};
 ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
+ChatManager.lastActiveChat = null;
 
 var systemUsername = 'pipo';
 var host = window.location.host;
@@ -279,6 +280,10 @@ var buildRoomListModal = function() {
             if (err) {
               return console.log("Error joining room: " + err);
             }
+            // Set the active chat to the currently joined room so that it is displayed when the join is complete
+            ChatManager.lastActiveChat = activeChat;
+            ChatManager.activeChat = ({ type: 'room', name: roomName });
+
             console.log("Joined room " + roomName);
           })
         })
@@ -650,16 +655,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
     })
   })
 
+  self.updateRoomList(function(err) {
+    console.log("Update room list done...");
+    callback(null);
+  });
 
-  // This should be moved or wrapped in a conditional
-  // BOOKMARK
   if (ChatManager.activeChat && ChatManager.activeChat.name == room.name) {
     self.focusChat({ id: room.name }, function(err) {
       console.log("Room focus for " + room.name + " done");
-      self.updateRoomList(function(err) {
-        console.log("Update room list done...");
-        callback(null);
-      });
     });
   }
 };

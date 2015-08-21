@@ -631,15 +631,25 @@ ChatManager.initRoom = function initRoom(room, callback) {
   console.log("About to set room focus to " + room.name);
 
   // Decrypt messages and HTMLize them
-  Object.keys(self.chats[room.name].messages).forEach(function(key) {
-  //self.chats[room.name].messages.forEach(function(message, index) {
-    var message = self.chats[room.name].messages[key];
+  var messages = self.chats[room.name].messages.sort(dynamicSort("date"));
+  var count = 0;
+  var messageArray = Array(messages.length);
+
+  messages.forEach(function(message, key) {
+    console.log("Foreach for messges count: " + count);
     window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
       // Cache the decrypted message
-      self.chats[room.name].messages[key].decryptedMessage = decryptedMessage.toString();
-      ChatManager.addMessageToChat({ type: 'room', message: decryptedMessage.toString(), fromUser: message.fromUser, chat: room.name });
+      messageArray[key] = decryptedMessage.toString();
+      count++;
+      if (messages.length === count) {
+        messageArray.forEach(function(decryptedMessageString, key) {
+          self.chats[room.name].messages[key].decryptedMessage = decryptedMessageString;
+          ChatManager.addMessageToChat({ type: 'room', message: decryptedMessageString, fromUser: message.fromUser, chat: room.name });
+        });
+      };
     })
   })
+
 
   // This should be moved or wrapped in a conditional
   // BOOKMARK
@@ -653,6 +663,18 @@ ChatManager.initRoom = function initRoom(room, callback) {
     });
   }
 };
+
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a,b) {
+        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        return result * sortOrder;
+    }
+}
 
 ChatManager.updateChatHeader = function updateChatHeader(chatName) {
   var self = this;

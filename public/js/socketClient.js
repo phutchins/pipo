@@ -149,22 +149,28 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+    var message = data.message;
+    window.encryptionManager.decryptMessage(data.message, function(err, messageString) {
       if (err) {
         console.log(err);
       }
       console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
-      ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
+      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, user: data.user, room: data.room });
     });
   });
 
   this.socket.on('privateMessage', function(data) {
+    var message = data.message;
+    var from = data.from;
+    var to = data.to;
+    var date = data.date;
+
     console.log('privateMessage', data);
-    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+    window.encryptionManager.decryptMessage(message, function(err, messageString) {
       if (err) {
         console.log(err);
       }
-      ChatManager.handlePrivateMessage(message, data.from, data.to);
+      ChatManager.handlePrivateMessage({ messageString: messageString, fromUser: from, toUser: to, date: date });
     });
   });
 

@@ -649,7 +649,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
           self.chats[room.name].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'room', message: decryptedMessageString, fromUser: message.fromUser, chat: room.name });
+          ChatManager.addMessageToChat({ type: 'room', messageString: decryptedMessageString, date: message.date, fromUser: message.fromUser, chat: room.name });
         });
       };
     })
@@ -1052,22 +1052,29 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
 
 ChatManager.handleMessage = function handleMessage(data) {
   var fromUser = data.user;
-  var message = data.message;
+  var messageString = data.messageString;
   var room = data.room;
   var messages = $('#chat');
+  var date = data.date || new Date().toISOString();
 
   var mentionRegexString = '.*@' + window.userName + '.*';
   var mentionRegex = new RegExp(mentionRegexString);
-  console.log("Running mention regex: " + message.match(mentionRegex));
-  if (message.match(mentionRegex)) {
-    ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, message, 3000);
+  console.log("Running mention regex: " + messageString.match(mentionRegex));
+  if (messageString.match(mentionRegex)) {
+    ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, messageString, 3000);
   };
 
-  this.addMessageToChat({ type: 'room', message: message, fromUser: fromUser, chat: room });
+  debugger;
+  this.addMessageToChat({ type: 'room', messageString: messageString, fromUser: fromUser, chat: room, date: date });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
-ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUser, toUser) {
+ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
+  var messageString = data.messageString;
+  var fromUser = data.fromUser;
+  var toUser = data.toUser;
+  var date = data.date;
+
   // If we're the ones sending the message we should add it to the correct place
   if (fromUser == window.userName) {
     var chat = toUser;
@@ -1079,11 +1086,13 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
     }
     var chat = fromUser;
   }
+
   if (ChatManager.activeChat.name !== fromUser) {
-    ChatManager.sendNotification(null, 'Private message from ' + fromUser, message, 3000);
+    ChatManager.sendNotification(null, 'Private message from ' + fromUser, messageString, 3000);
   }
 
-  ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, message: message });
+  debugger;
+  ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });
   // TODO: Show chat here and add to chat list if it does not exist there already
   // BOOKMARK
   //
@@ -1093,24 +1102,24 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(message, fromUs
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
   var type = data.type;
-  var message = data.message;
+  var messageString = data.messageString;
   var id = data.id;
+  var date = data.date;
   var fromUser = data.fromUser;
   var chat = data.chat;
   var chatContainer = $('#chat');
 
   //Add timestamp
-  var time = new Date().toISOString();
+  var time = date || new Date().toISOString();
   //message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
-  ChatManager.formatChatMessage({ message: message, fromUser: fromUser }, function(formattedMessage) {
+  ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUser, date: date }, function(formattedMessage) {
     ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
 
     if (ChatManager.activeChat.name == chat) {
       ChatManager.refreshChatContent(chat);
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
-    // BOOKMARK
   })
 };
 
@@ -1125,19 +1134,21 @@ ChatManager.populateMessageCache = function populateMessageCache(data) {
   var messages = data.messages;
 
   messages.forEach(function(message) {
-    ChatManager.formatChatMessage({ message: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
+    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
       ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
     })
   })
 };
 
 ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
-  var message = data.message;
+  var messageString = data.messageString;
   var fromUser = data.fromUser;
+  var date = data.date;
+  debugger;
   var emailHash = ChatManager.userlist[fromUser].emailHash || "00000000000";
 
-  var time = new Date().toISOString();
-  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + message + '</div> </div> </div></div>';
+  var time = date || new Date().toISOString();
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
   return callback(messageHtml);
 };
 
@@ -1208,6 +1219,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
   else {
     ChatManager.prepareMessage(input, function(err, preparedInput) {
       console.log("Active chat type is: " + ChatManager.activeChat.type);
+      var date = new Date().toISOString();
       if (ChatManager.activeChat.type == 'room') {
         console.log("Sending message to room #"+ChatManager.activeChat.name);
         window.socketClient.sendMessage(ChatManager.activeChat.name, preparedInput);
@@ -1217,7 +1229,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
       else if (ChatManager.activeChat.type == 'privatechat') {
         var userName = ChatManager.activeChat.name;
         console.log("Sending private mesage to '" + userName + "' with message '" + preparedInput + "'");
-        ChatManager.handlePrivateMessage(preparedInput, window.userName, userName);
+        ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.userName, toUser: userName, date: date });
         socketClient.sendPrivateMessage(userName, preparedInput);
         $('#message-input').val('');
         return callback();
@@ -1232,7 +1244,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
 ChatManager.showHelp = function showHelp() {
   var helpTextArray = [ "** ROOM Commands **", "/room [room] member add [member]" ];
   helpTextArray.forEach(function(msg) {
-    ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: msg, chat: ChatManager.activeChat.name });
+    ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, messageString: msg, chat: ChatManager.activeChat.name });
   })
 };
 

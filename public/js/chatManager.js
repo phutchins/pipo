@@ -658,7 +658,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   messages.forEach(function(message, key) {
     console.log("Foreach for messges count: " + count);
-    debugger;
     window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
       // Cache the decrypted message
       messageArray[key] = decryptedMessage.toString();
@@ -1081,7 +1080,6 @@ ChatManager.handleMessage = function handleMessage(data) {
     ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, messageString, 3000);
   };
 
-  debugger;
   this.addMessageToChat({ type: 'room', messageString: messageString, fromUser: fromUser, chat: room, date: date });
   messages[0].scrollTop = messages[0].scrollHeight;
 };
@@ -1108,7 +1106,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.sendNotification(null, 'Private message from ' + fromUser, messageString, 3000);
   }
 
-  debugger;
   ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });
   // TODO: Show chat here and add to chat list if it does not exist there already
   // BOOKMARK
@@ -1161,7 +1158,6 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var messageString = data.messageString;
   var fromUser = data.fromUser;
   var date = data.date;
-  debugger;
   var emailHash = ChatManager.userlist[fromUser].emailHash || "00000000000";
 
   var time = date || new Date().toISOString();

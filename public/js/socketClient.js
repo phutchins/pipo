@@ -57,7 +57,7 @@ SocketClient.prototype.addListeners = function() {
 
     ChatManager.userlist = data.userlist;
 
-    ChatManager.userSignedIn();
+    ChatManager.updateProfileHeader();
 
     window.encryptionManager.keyManager.sign({}, function(err) {
       window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
@@ -281,6 +281,7 @@ SocketClient.prototype.addListeners = function() {
 SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
+  ChatManager.init();
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere

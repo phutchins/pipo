@@ -168,6 +168,7 @@ $('#export-keypair-button').on('click', function() {
 
 });
 
+
 /*
  * Create Room Modal Setup
  */
@@ -561,6 +562,15 @@ $('.manage-members-modal .button.addmember').click(function(e) {
 })
 
 
+ChatManager.init = function() {
+  if (window.userName) {
+    ChatManager.updateProfileHeader();
+  };
+};
+
+
+
+
 /*
  * Show an error to the user
  */
@@ -579,9 +589,15 @@ ChatManager.showErrorOnModal = function showErrorOnModal(data) {
 
 };
 
-ChatManager.userSignedIn = function userSignedIn() {
+
+ChatManager.updateProfileHeader = function updateProfileHeader() {
   // TODO: This should be smarter and have a sane default in the DB as well as a better default image
-  var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
+  var emailHash = "0";
+
+  if (ChatManager.userlist[window.userName]) {
+    emailHash = ChatManager.userlist[window.userName].emailHash || "0";
+  }
+
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
   $('#menu-header-profile .ui.dropdown .text.username').text(window.userName);
 };
@@ -642,6 +658,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   messages.forEach(function(message, key) {
     console.log("Foreach for messges count: " + count);
+    debugger;
     window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
       // Cache the decrypted message
       messageArray[key] = decryptedMessage.toString();
@@ -1586,6 +1603,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 }
 
 ChatManager.promptForPassphrase = function(callback) {
+  $('.ui.modal.unlock .username').text(window.userName);
   $('.ui.modal.unlock')
     .modal('setting', 'closable', false)
     .modal('setting', {

@@ -163,8 +163,6 @@ roomSchema.statics.part = function part(data, callback) {
         return logger.error("No room found when trying to part for user " + data.userName);
       }
 
-      logger.debug("[ROOM] room._members:",room._members);
-
       var isMember = null;
 
       if (typeof user.membership._currentRooms == 'Object') {

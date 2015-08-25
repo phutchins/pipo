@@ -349,19 +349,22 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     _fromUser: self.socket.user,
     fromUser: self.socket.user.userName,
     toUsers: [ data.toUser ],
+    date: new Date(),
     encryptedMessage: data.pgpMessage
   });
 
   message.save(function(err) {
     logger.debug("[MSG] Pushing message to room message history");
-    room._messages.push(message);
-    room.save();
+    // TODO: link the private message to both users instead of saving to the room ?
+    //room._messages.push(message);
+    //room.save();
   })
 
   targetSockets.forEach(function(targetSocket) {
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
       from: self.socket.user.userName,
       to: targetUsername,
+      date: message.date,
       message: data.pgpMessage,
       signature: data.signature
     });

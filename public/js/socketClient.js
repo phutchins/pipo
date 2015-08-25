@@ -57,7 +57,7 @@ SocketClient.prototype.addListeners = function() {
 
     ChatManager.userlist = data.userlist;
 
-    ChatManager.userSignedIn();
+    ChatManager.updateProfileHeader();
 
     window.encryptionManager.keyManager.sign({}, function(err) {
       window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
@@ -149,22 +149,28 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+    var message = data.message;
+    window.encryptionManager.decryptMessage(data.message, function(err, messageString) {
       if (err) {
         console.log(err);
       }
       console.log("[SOCKET] (roomMessage) Handling message: "+message+" from: "+data.user);
-      ChatManager.handleMessage({ message: message.toString(), user: data.user, room: data.room });
+      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, user: data.user, room: data.room });
     });
   });
 
   this.socket.on('privateMessage', function(data) {
+    var message = data.message;
+    var from = data.from;
+    var to = data.to;
+    var date = data.date;
+
     console.log('privateMessage', data);
-    window.encryptionManager.decryptMessage(data.message, function(err, message) {
+    window.encryptionManager.decryptMessage(message, function(err, messageString) {
       if (err) {
         console.log(err);
       }
-      ChatManager.handlePrivateMessage(message, data.from, data.to);
+      ChatManager.handlePrivateMessage({ messageString: messageString, fromUser: from, toUser: to, date: date });
     });
   });
 
@@ -193,17 +199,27 @@ SocketClient.prototype.addListeners = function() {
 
     if (window.roomUsers[roomName]) {
       var currentRoomUsersArray = Object.keys(window.roomUsers[roomName]);
+
       Object.keys(roomUsers).forEach(function(key) {
         console.log("Found new user '" + roomUsers[key].userName);
         newRoomUsersArray.push(roomUsers[key].userName);
       });
+
       uniqueRoomUsersArray = newRoomUsersArray.filter(function(user) {
         return !currentRoomUsersArray.indexOf(user);
       });
+
       //Don't notify us about ourselves
+      // Also should not notify when initially getting the room users update
       uniqueRoomUsersArray.forEach(function(joinUserName) {
         if (window.userName !== joinUserName) {
-          ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined channel #' + roomName, 3000);
+          if (currentRoomUsersArray.indexOf(joinUserName)) {
+            console.log("User " + joinUserName + " has joined #" + roomName);
+            ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined #' + roomName, 3000);
+          } else {
+            console.log("User " + joinUserName + " has left #" + roomName);
+            ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has left #' + roomName, 3000);
+          }
         }
       })
     }
@@ -275,6 +291,7 @@ SocketClient.prototype.addListeners = function() {
 SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
+  ChatManager.init();
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere

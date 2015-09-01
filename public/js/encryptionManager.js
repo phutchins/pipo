@@ -372,9 +372,9 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMe
   console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message");
 
   window.kbpgp.unbox({ keyfetch: this.keyRing, armored: encryptedMessage }, function(err, literals) {
-    if (err != null) {
-      return console.log("Error decrypting message: ",err);
-    }
+    //if (err != null) {
+    //  return console.log("Error decrypting message: ",err);
+    //}
 
     return callback(err, literals);
   });

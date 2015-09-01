@@ -656,16 +656,33 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var count = 0;
   var messageArray = Array(messages.length);
 
+  /*
+   * Need a better way to detect when done decrypting all messages
+   * and add them to the chat after done
+   * Also we should only send messages to each user starting at their join date or
+   * the date/time that they were added to a room
+   */
   messages.forEach(function(message, key) {
-    console.log("Foreach for messges count: " + count);
     window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
+      var encryptedMessage = message.encryptedMessage;
+      var decryptedMessage = decryptedMessage;
+      var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
+      if (err) {
+        debugger;
+        decryptedMessage = 'Unable to decrypt...\n';
+        console.log("Error decrypting message : ");
+      }
+
       // Cache the decrypted message
       messageArray[key] = decryptedMessage.toString();
       count++;
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
+          var fromUser = self.chats[room.name].messages[key].fromUser;
+          var date = self.chats[room.name].messages[key].date;
+
           self.chats[room.name].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'room', messageString: decryptedMessageString, date: message.date, fromUser: message.fromUser, chat: room.name });
+          ChatManager.addMessageToChat({ type: 'room', messageString: decryptedMessageString, date: date, fromUser: fromUser, chat: room.name });
         });
       };
     })

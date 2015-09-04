@@ -131,6 +131,10 @@ SocketClient.prototype.addListeners = function() {
     self.updateRoomComplete(data);
   });
 
+  this.socket.on('chatUpdate', function(data) {
+    ChatManager.handleChatUpdate(data);
+  });
+
   this.socket.on('serverCommandComplete', function(data) {
     console.log("[SOCKET] serverCommandComplete");
     self.serverCommandComplete(data);

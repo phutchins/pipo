@@ -371,6 +371,23 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   })
 };
 
+
+/*
+ * Handle request from client to get chat history between two or more users
+ */
+SocketServer.prototype.getChat = function getChat(data) {
+  var self = this;
+
+  // How do we find the chat using the participants (or some other thing)?
+  var chatId = data.chatId;
+
+  // Get the chat
+
+  // Sanatize the chat
+
+  self.socket.emit('chatUpdate', chats);
+};
+
 /*
  * Send masterKeyPair to user
  */

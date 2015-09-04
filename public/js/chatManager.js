@@ -1186,11 +1186,16 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
  * Displays room messages in the chat window
  */
 ChatManager.refreshChatContent = function refreshChatContent(chatName) {
+  var self = this;
   var messageCache;
 
-  console.log("Refreshing room content for ", chatName);
+  console.log("Refreshing chat content for ", chatName);
 
   if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
+    if (ChatManager.chats[chatName].type == 'privateMessage') {
+      return self.socket.emit('getChat', chatData);
+    };
+
     ChatManager.chats[chatName].messageCache = '';
   }
 
@@ -1199,6 +1204,22 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
   $('#chat').html(messageCache);
   ChatManager.updateChatHeader(chatName);
 }
+
+ChatManager.handleChatUpdate = function handleChatUpdate(data) {
+  var chat = data.chat;
+  var participants = chat.participants;
+  var messages = chat.messages;
+
+  messages.forEach(function(message) {
+    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
+      ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
+    });
+  });
+
+  // When done looping messages, refreshChatContent again
+  //
+
+};
 
 
 ChatManager.sendMessage = function sendMessage(callback) {

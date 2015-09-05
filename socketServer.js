@@ -3,6 +3,7 @@ var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var Message = require('./models/message');
+var Chat = require('./models/chat');
 var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
@@ -196,7 +197,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
-            self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
+            User.buildSocketMap({ userlist: userlist}, function(socketMap) {
+              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, socketMap: socketMap, defaultRoomName: sanatizedRoom.name });
+            })
           })
         })
 
@@ -338,6 +341,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var fromUser = self.socket.user.userName;
   var targetUsername = data.toUser;
   var targetSockets = self.namespace.userMap[targetUsername];
+  var participantIds = data.participantIds;
 
   if (!targetSockets) {
     logger.info("[MSG] Ignoring private message to offline user");
@@ -353,11 +357,46 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
+  var participants = [];
+
+  // Populate participants
+  participantIds.forEach(function(participantId) {
+    User.findOne({ _id: participantId }, function(err, participant) {
+      participants.push(BSON:ObjectId(participant));
+    });
+  });
+
+  // Do I need to wait until all participants are populated? Or is forEach blocking?
+
+
+  // Add a reference to this chat from the users object if it does not exist there already
+  // Get the user object
+  // Check to see if the chat exists in the _chats array
+  // Add it if not
+  // Add the chat to the users _chats array
+
   message.save(function(err) {
-    logger.debug("[MSG] Pushing message to room message history");
-    // TODO: link the private message to both users instead of saving to the room ?
-    //room._messages.push(message);
-    //room.save();
+    logger.debug("[onPrivateMessage] Saved private message");
+    if (err) {
+      return logger.error("[ERROR] Error saving message: ", err);
+    }
+
+    // Add this message to the appropriate chat
+    Chat.findOne({ type: 'privatechat', _participants: { $in: [  }}, function(err, chat) {
+      // If there is not a chat with these participants create one
+      logger.debug("Finding chat with participants ", participantIds, " and found ", chat);
+      if (!chat) {
+        var chat = new Chat({
+          type: "privatechat",
+          _participants: participants,
+        });
+      }
+
+      // TODO: Need to make sure to handle adding users to chats before a message goes through for
+      // a chat with a new user and it creates a new chat
+      chat._messages.push(message);
+      chat.save();
+    });
   })
 
   targetSockets.forEach(function(targetSocket) {
@@ -377,6 +416,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
  */
 SocketServer.prototype.getChat = function getChat(data) {
   var self = this;
+  // BOOKMARK
 
   // How do we find the chat using the participants (or some other thing)?
   var chatId = data.chatId;
@@ -796,15 +836,19 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   var scope = data.scope;
   User.getAllUsers({}, function(userlist) {
     logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
-    if (scope == 'all') {
-      self.namespace.emit("userlistUpdate", {
-        userlist: userlist
-      })
-    } else if (scope == 'self') {
-      self.socket.emit("userlistUpdate", {
-        userlist: userlist
-      })
-    }
+    User.buildSocketMap({userlist: userlist}, function(socketMap) {
+      if (scope == 'all') {
+        self.namespace.emit("userlistUpdate", {
+          userlist: userlist,
+          socketMap: socketMap
+        })
+      } else if (scope == 'self') {
+        self.socket.emit("userlistUpdate", {
+          userlist: userlist,
+          socketMap: socketMap
+        })
+      }
+    });
   })
 };
 

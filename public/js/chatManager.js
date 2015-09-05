@@ -12,6 +12,8 @@ ChatManager.roomlist = {};
 //   This will be paginated and populated as needed in the future
 ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
+ChatManager.socketMap  = {};
+
 ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
@@ -668,7 +670,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
       var decryptedMessage = decryptedMessage;
       var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
       if (err) {
-        debugger;
         decryptedMessage = 'Unable to decrypt...\n';
         console.log("Error decrypting message : ");
       }
@@ -1193,6 +1194,7 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
 
   if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
     if (ChatManager.chats[chatName].type == 'privateMessage') {
+      // Get the cached chat history for this chat
       return self.socket.emit('getChat', chatData);
     };
 
@@ -1279,7 +1281,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
       }
       else if (ChatManager.activeChat.type == 'privatechat') {
         var userName = ChatManager.activeChat.name;
-        console.log("Sending private mesage to '" + userName + "' with message '" + preparedInput + "'");
+        console.log("Sending private message to '" + userName + "' with message '" + preparedInput + "'");
         ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.userName, toUser: userName, date: date });
         socketClient.sendPrivateMessage(userName, preparedInput);
         $('#message-input').val('');

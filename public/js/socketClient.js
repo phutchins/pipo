@@ -31,6 +31,10 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
 
   this.socket.on('authenticated', function(data) {
+    var autoJoinRooms = data.autoJoin;
+    var defaultRoomName = data.defaultRoomName;
+    var socketMap = data.socketMap;
+    var userlist = data.userlist;
 
     ChatManager.getNotifyPermissions(function(permission) {
       if (permission) {
@@ -46,16 +50,14 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.activeChat = window.activeChat;
     }
 
-    var autoJoinRooms = data.autoJoin;
-    var defaultRoomName = data.defaultRoomName;
-
     ChatManager.defaultRoomName = data.defaultRoomName;
 
     if (!ChatManager.activeChat) {
       ChatManager.activeChat = { name: defaultRoomName, type: 'room' };
     }
 
-    ChatManager.userlist = data.userlist;
+    ChatManager.userlist = userlist;
+    ChatManager.socketMap = socketMap;
 
     ChatManager.updateProfileHeader();
 
@@ -189,8 +191,14 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('userlistUpdate', function(data) {
     var userlist = data.userlist;
+    var socketMap = data.socketMap;
+
+    debugger;
+
     console.log("[SOCKET] 'userlistUpdate'");
+
     ChatManager.userlist = userlist;
+    ChatManager.socketMap = socketMap;
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
@@ -513,13 +521,25 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {
   var self = this;
+
+  // These should be sent as an array of ID's
+  var participantUsernames = [ userName, window.userName ];
+  var participantIds = [];
+
+  participantUsernames.forEach(function(username) {
+    participantIds.push(ChatManager.socketMap[username]);
+  });
+
+  debugger;
+
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
     window.encryptionManager.encryptPrivateMessage(userName, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
+
       else {
-        self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage});
+        self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage, participantIds: participantIds });
         $('#message-input').val('');
       }
     });

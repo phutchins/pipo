@@ -3,6 +3,7 @@ var Schema = mongoose.Schema;
 var bcrypt = require('bcrypt-nodejs');
 var crypto = require('crypto');
 var Room = require('./room');
+var Chat = require('./chat');
 var logger = require('../config/logger');
 
 var userSchema = new Schema({
@@ -14,16 +15,7 @@ var userSchema = new Schema({
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
-  chats: {
-    privateChats: [{
-      _user: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-      _privateChat: { type: mongoose.SchemaTypes.ObjectId, ref: "PrivateChat" }
-    }],
-    groupChats: [{
-      _users: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
-      _groupChat: { type: mongoose.SchemaTypes.ObjectId, ref: "GroupChat" }
-    }]
-  },
+  _chats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat" }],
   membership: {
     rooms: [{
       _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
@@ -219,10 +211,21 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user.userName] = { userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      userlist[user.userName] = { id: user._id.toString(), userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(userlist);
   })
+};
+
+userSchema.statics.buildSocketMap = function getUserMap(data, callback) {
+  var userlist = data.userlist;
+  var socketMap = {};
+  Object.keys(userlist).forEach(function(key) {
+    var user = userlist[key];
+    logger.debug("Looping user for socketMap: ",user);
+    socketMap[user.userName] = user.id;
+  });
+  return callback(socketMap);
 };
 
 // TODO: Decide if these are needed still

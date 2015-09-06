@@ -44,6 +44,8 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('createRoom', self.createRoom.bind(self));
   socket.on('updateRoom', self.updateRoom.bind(self));
 
+  socket.on('getChat', self.getChat.bind(self));
+
   socket.on('membership', self.membership.bind(self));
 
   socket.on('roomMessage', self.onMessage.bind(self));
@@ -362,7 +364,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // Populate participants
   participantIds.forEach(function(participantId) {
     User.findOne({ _id: participantId }, function(err, participant) {
-      participants.push(BSON:ObjectId(participant));
+      participants.push(participant);
     });
   });
 
@@ -382,9 +384,9 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     }
 
     // Add this message to the appropriate chat
-    Chat.findOne({ type: 'privatechat', _participants: { $in: [  }}, function(err, chat) {
+    Chat.findOne({ type: 'privatechat', _participants: { $in: participantIds }}, function(err, chat) {
       // If there is not a chat with these participants create one
-      logger.debug("Finding chat with participants ", participantIds, " and found ", chat);
+      logger.debug("Finding chat with participants ", participantIds, " and found ", chat._id);
       if (!chat) {
         var chat = new Chat({
           type: "privatechat",
@@ -420,13 +422,73 @@ SocketServer.prototype.getChat = function getChat(data) {
 
   // How do we find the chat using the participants (or some other thing)?
   var chatId = data.chatId;
+  var participantIds = data.participantIds;
 
-  // Get the chat
+  logger.debug("[getChat] Got socket 'getChat' request");
 
-  // Sanatize the chat
+  if (participantIds) {
+    // Get the chat
+    logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
 
-  self.socket.emit('chatUpdate', chats);
+    Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
+      //logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat.id);
+      if (err) {
+        self.socket.emit('chatUpdate', null);
+        return logger.debug("Error finding chat by participants: " + err);
+      };
+
+      logger.debug("[getChat] Finishing...");
+      finish(chat);
+    });
+  };
+
+  if (chatId) {
+    // Get the chat by id
+    logger.debug("[getChat] Getting chat for client - ", chatId);
+
+    Chat.findOne({ _id: chatId}, function(err, chat) {
+      if (err) {
+        self.socket.emit('chatUpdate', null);
+        return logger.debug("Error finding chat by participants: " + err);
+      };
+
+      finish(chat);
+    });
+  };
+
+  var finish = function finish(chat) {
+    // Sanatize the chat
+    if (chat) {
+      Chat.sanatize(chat, function(sanatizedChat) {
+        logger.debug("[getChat finish] Finishing with a valid chat");
+        return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+      })
+    } else {
+      logger.debug("[getChat finish] Finishing without a chat");
+
+      // TODO...
+      // Create a new chat
+      // Save it
+      // Get the new chat object
+      // Sanatize the chat object
+      // Emit chatUpdate with the new chat object
+
+      var newChat = new Chat({
+        participants: sanatizedParticipants,
+        messages: [],
+        type: 'chat',
+      });
+
+      newChat.save(function(err) {
+        return SocketServer.getChat(data);
+      });
+
+      // TODO: Need to send back some data about what chat we were searching for here
+      //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
+    };
+  };
 };
+
 
 /*
  * Send masterKeyPair to user

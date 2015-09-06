@@ -193,8 +193,6 @@ SocketClient.prototype.addListeners = function() {
     var userlist = data.userlist;
     var socketMap = data.socketMap;
 
-    debugger;
-
     console.log("[SOCKET] 'userlistUpdate'");
 
     ChatManager.userlist = userlist;
@@ -285,7 +283,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
     if (ChatManager.activeChat && ChatManager.activeChat.name == roomName) {
-      ChatManager.updateRoomUsers({ room: roomName });
+      ChatManager.updateRoomUsers({ room: roomName, socket: self.socket });
     }
   });
 
@@ -529,8 +527,6 @@ SocketClient.prototype.sendPrivateMessage = function(userName, message) {
   participantUsernames.forEach(function(username) {
     participantIds.push(ChatManager.socketMap[username]);
   });
-
-  debugger;
 
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
     window.encryptionManager.encryptPrivateMessage(userName, preparedMessage, function(err, pgpMessage) {

@@ -199,8 +199,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
-            User.buildSocketMap({ userlist: userlist}, function(socketMap) {
-              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, socketMap: socketMap, defaultRoomName: sanatizedRoom.name });
+            User.buildUserIdMap({ userlist: userlist}, function(userIdMap) {
+              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, userIdMap: userIdMap, defaultRoomName: sanatizedRoom.name });
             })
           })
         })
@@ -378,18 +378,24 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // Add the chat to the users _chats array
 
   message.save(function(err) {
-    logger.debug("[onPrivateMessage] Saved private message");
     if (err) {
       return logger.error("[ERROR] Error saving message: ", err);
     }
 
+    logger.debug("[onPrivateMessage] Saved private message");
+
     // Add this message to the appropriate chat
-    Chat.findOne({ type: 'privatechat', _participants: { $in: participantIds }}, function(err, chat) {
+    logger.debug("Finding chat with participants ", participantIds);
+    Chat.findOne({ type: 'chat', _participants: { $in: participantIds }}, function(err, chat) {
       // If there is not a chat with these participants create one
-      logger.debug("Finding chat with participants ", participantIds, " and found ", chat._id);
+      if (err) {
+        return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ",participantIds);
+      };
+
+
       if (!chat) {
         var chat = new Chat({
-          type: "privatechat",
+          type: "chat",
           _participants: participants,
         });
       }
@@ -418,6 +424,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
  */
 SocketServer.prototype.getChat = function getChat(data) {
   var self = this;
+  var data = data;
   // BOOKMARK
 
   // How do we find the chat using the participants (or some other thing)?
@@ -431,13 +438,16 @@ SocketServer.prototype.getChat = function getChat(data) {
     logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
 
     Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
-      //logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat.id);
+      if (chat) {
+        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id);
+      }
+
       if (err) {
         self.socket.emit('chatUpdate', null);
         return logger.debug("Error finding chat by participants: " + err);
       };
 
-      logger.debug("[getChat] Finishing...");
+      logger.debug("[getChat] Finishing (participantIds)...");
       finish(chat);
     });
   };
@@ -452,13 +462,18 @@ SocketServer.prototype.getChat = function getChat(data) {
         return logger.debug("Error finding chat by participants: " + err);
       };
 
+      logger.debug("[getChat] Finishing (chatId)...");
       finish(chat);
     });
   };
 
   var finish = function finish(chat) {
     // Sanatize the chat
+    var chat = chat;
+
+    logger.debug("[getChat finish] Starting to finish...");
     if (chat) {
+      logger.debug("[getChat finish] Have a chat, sanatizing now...");
       Chat.sanatize(chat, function(sanatizedChat) {
         logger.debug("[getChat finish] Finishing with a valid chat");
         return self.socket.emit('chatUpdate', { chat: sanatizedChat });
@@ -466,21 +481,27 @@ SocketServer.prototype.getChat = function getChat(data) {
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
 
-      // TODO...
       // Create a new chat
-      // Save it
-      // Get the new chat object
-      // Sanatize the chat object
-      // Emit chatUpdate with the new chat object
-
       var newChat = new Chat({
-        participants: sanatizedParticipants,
-        messages: [],
+        _participants: participantIds,
+        _messages: [],
         type: 'chat',
       });
 
-      newChat.save(function(err) {
-        return SocketServer.getChat(data);
+      // Save it
+      newChat.save(function(err, savedChat) {
+        logger.debug("[getChat] saved chat: ",savedChat._id);
+        Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
+          logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
+          Chat.sanatize(populatedChat, function(sanatizedChat) {
+            logger.debug("[getChat] Sending 'chatUpdate' to client");
+            return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+          });
+        });
+        // Get the new chat object
+        //Chat.findOne({ _id: chat._id}, function(err, new
+        // Sanatize the chat object
+        // Emit chatUpdate with the new chat object
       });
 
       // TODO: Need to send back some data about what chat we were searching for here
@@ -898,16 +919,16 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   var scope = data.scope;
   User.getAllUsers({}, function(userlist) {
     logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
-    User.buildSocketMap({userlist: userlist}, function(socketMap) {
+    User.buildUserIdMap({userlist: userlist}, function(userIdMap) {
       if (scope == 'all') {
         self.namespace.emit("userlistUpdate", {
           userlist: userlist,
-          socketMap: socketMap
+          userIdMap: userIdMap
         })
       } else if (scope == 'self') {
         self.socket.emit("userlistUpdate", {
           userlist: userlist,
-          socketMap: socketMap
+          userIdMap: userIdMap
         })
       }
     });

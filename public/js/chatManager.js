@@ -12,7 +12,7 @@ ChatManager.roomlist = {};
 //   This will be paginated and populated as needed in the future
 ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
-ChatManager.socketMap  = {};
+ChatManager.userIdMap  = {};
 
 ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
@@ -304,7 +304,7 @@ $(document).ready( buildRoomListModal );
 $('.chat-header__settings .room-options.leave-room').click(function(e) {
   var chatName = ChatManager.activeChat.name;
 
-  if (ChatManager.activeChat.type == 'privatechat') {
+  if (ChatManager.activeChat.type == 'chat') {
     var privateChatIndex = ChatManager.activePrivateChats.indexOf(chatName);
 
     if (privateChatIndex > -1) {
@@ -703,19 +703,38 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
 ChatManager.initChat = function initChat(chat, callback) {
   var self = this;
-  var messages = [];
-  var participants = [];
+  var messages = new Array();
+  var participants = new Array();
+  var chatName = '';
   var id = '';
 
   if (chat !== null) {
-    messages = chat.messages;
-    participants = chat.participants;
+    messages = chat.messages || [];
+    participants = chat.participants || [];
     id = chat.id;
   };
 
   console.log("Running init on chat '" + chat.id);
 
-  self.chats[chat.id] = {
+  // Private chat between two users
+  if (participants.length == 2) {
+    participants.forEach(function(participantId) {
+      // If the participant id is equal to our userid, keep going
+      if  (participantId == ChatManager.userlist[window.userName].id) {
+        return;
+      }
+      // Otherwise set the chatName to the name of the user with this userid
+      chatName = ChatManager.userIdMap[participantId];
+      console.log("[initChat] Set chatName to '" + chatName + "'");
+    });
+  }
+
+  // Group chat between 3 or more users
+  if (participants.length > 2) {
+
+  }
+
+  self.chats[chatName] = {
     id: chat.id,
     type: 'chat',
     participants: participants,
@@ -733,18 +752,19 @@ ChatManager.initChat = function initChat(chat, callback) {
 
       if (err) {
         decryptedMessage = 'Unable to decrypt...\n';
-        console.log("Error decrypteing message: ");
+        console.log("Error decrypteing message: ", err);
       }
 
       messageArray[key] = decryptedMessage.toString();
       count++;
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
-          var fromUser = self.chats[chat.id].messages[key].fromUser;
-          var date = self.chats[chat.id].messages[key].date;
 
-          self.chats[chat.id].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'chat', messageString: decryptedMessageString, date: date, fromUser: fromUser, chat: chat.id });
+          var fromUser = messages[key].fromUser;
+          var date = messages[key].date;
+
+          self.chats[chatName].messages[key].decryptedMessage = decryptedMessageString;
+          ChatManager.addMessageToChat({ type: 'chat', messageString: decryptedMessageString, date: date, fromUser: fromUser, chat: chatName });
         });
       };
     })
@@ -782,7 +802,7 @@ ChatManager.updateChatHeader = function updateChatHeader(chatName) {
   var chatTopic = '';
   var chatHeaderTitle = '';
 
-  if (chat.type == 'privatechat') {
+  if (chat.type == 'chat') {
     headerAvatarHtml = '<i class="huge spy icon"></i>';
     chatTopic = 'One to one encrypted chat with ' + chat.name;
     chatHeaderTitle = 'pm' + '/' + chat.name;
@@ -818,6 +838,8 @@ ChatManager.destroyChat = function destroyChat(chat, callback) {
  */
 ChatManager.focusChat = function focusChat(data, callback) {
   var id = data.id;
+  var type = ChatManager.chats[id].type;
+
   if (ChatManager.chats[id].type == 'room') {
     var messages = $('#chat');
 
@@ -833,14 +855,14 @@ ChatManager.focusChat = function focusChat(data, callback) {
     messages[0].scrollTop = messages[0].scrollHeight;
 
     ChatManager.updateRoomUsers({ room: id });
-  } else if (ChatManager.chats[id].type == 'privatechat') {
+  } else if (type == 'chat') {
 
-    ChatManager.activeChat = { name: id, type: 'privatechat' };
+    ChatManager.activeChat = { name: id, type: 'chat' };
 
     // Init private message for user if it does not exist
     if (ChatManager.chats[id] == null) {
       console.log("WARNING!! Shouldn't be init'ing chat here!");
-      ChatManager.chats[id] = { name: user, type: 'privatechat', messages: "", topic: 'Private conversation...', group: 'PM' };
+      ChatManager.chats[id] = { name: user, type: 'chat', messages: "", topic: 'Private conversation...', group: 'PM' };
     }
 
     // Display private messages for user in the room element
@@ -947,8 +969,8 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
       if ( !ChatManager.chats[username] ) {
         console.log("chat for ",username," was empty so initializing");
-        socket.emit('getChat', { participantIds: [ ChatManager.socketMap[username], ChatManager.socketMap[window.userName] ]});
-        ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", messageCache: "", topic: "One to one encrypted chat with " + username };
+        socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ]});
+        ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", messageCache: "", topic: "One to one encrypted chat with " + username };
         ChatManager.updatePrivateChats();
       }
 
@@ -976,7 +998,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       $('.user-list-li').click(function() {
         var username = $( this ).attr('name');
         console.log("Populating user popup for", username);
-        ChatManager.populateUserPopup(username);
+        ChatManager.populateUserPopup({ username: username, socket: socket });
         $('.userPopup').removeClass('popover-hidden').addClass('popover');
         $(document).mouseup(function (e)
         {
@@ -996,8 +1018,10 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 /*
  * Populates the popup when mousing over a users name or avatar on the user list
  */
-ChatManager.populateUserPopup = function populateUserPopup(username) {
+ChatManager.populateUserPopup = function populateUserPopup(data) {
   var self = this;
+  var username = data.username;
+  var socket = data.socket;
 
   // Get full name from users object here
   var fullName = 'Default Name';
@@ -1016,21 +1040,19 @@ ChatManager.populateUserPopup = function populateUserPopup(username) {
       ChatManager.activePrivateChats.push(username);
       $('.userPopup').removeClass('popover').addClass('popover-hidden');
 
-      console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.socketMap[username] + "' and '" + ChatManager.socketMap[window.userName] + "'");
+      console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.userName].id + "'");
 
-      socket.emit('getChat', { participants: [ ChatManager.socketMap[username], ChatManager.socketMap[window.userName] ] });
+      socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ] });
 
-      /*
       ChatManager.focusChat({ id: username }, function(err) {
         if ( !ChatManager.chats[username] ) {
           console.log("chat for " + username + " was empty so initializing");
 
-          ChatManager.chats[username] = { name: username, type: 'privatechat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
+          ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
         }
         ChatManager.updatePrivateChats();
         // Done
       });
-      */
     }
   })
 };
@@ -1205,7 +1227,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.sendNotification(null, 'Private message from ' + fromUser, messageString, 3000);
   }
 
-  ChatManager.addMessageToChat({ type: 'privatechat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });
+  ChatManager.addMessageToChat({ type: 'chat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });
   // TODO: Show chat here and add to chat list if it does not exist there already
   // BOOKMARK
   //
@@ -1224,7 +1246,6 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 
   //Add timestamp
   var time = date || new Date().toISOString();
-  //message += ' <span style="float:right;" title="' + time + '" data-livestamp="' + time + '"></span>';
 
   ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUser, date: date }, function(formattedMessage) {
     ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
@@ -1369,7 +1390,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
         $('#message-input').val('');
         return callback();
       }
-      else if (ChatManager.activeChat.type == 'privatechat') {
+      else if (ChatManager.activeChat.type == 'chat') {
         var userName = ChatManager.activeChat.name;
         console.log("Sending private message to '" + userName + "' with message '" + preparedInput + "'");
         ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.userName, toUser: userName, date: date });

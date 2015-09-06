@@ -22,4 +22,24 @@ var messageSchema = new Schema({
   encryptedMessage: { type: String }
 });
 
+messageSchema.statics.sanatize = function sanatize(message, callback) {
+  var toUsersArray = [];
+
+  if (message._toUsers.length > 0) {
+    message._toUsers.forEach(function(toUser) {
+      toUsersArray.push(toUser._id.toString());
+    });
+  }
+
+  var sanatizedMessage = {
+    date: message.date,
+    _fromUser: message._fromUser,
+    fromUser: message.fromUser,
+    _toUsers: toUsersArray,
+    encryptedMessage: message.encryptedMessage
+  };
+
+  return callback(sanatizedMessage);
+};
+
 module.exports = mongoose.model('Message', messageSchema);

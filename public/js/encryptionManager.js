@@ -319,6 +319,8 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var self = this;
   var keys;
 
+  console.log("[encryptClientKeyMessage] Encrypting client key message");
+
   // If the room has membershipRequired enabled only encrypt messages to the members
   if (room.membershipRequired) {
     //Build array of all users' keyManagers
@@ -354,9 +356,16 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
 
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
   var self = this;
+  var keys = [];
+
+  keys.push(window.userMap[username].keyInstance);
+  keys.push(self.keyManager);
+
+  console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);
+
   window.kbpgp.box({
     msg: message,
-    encrypt_for: window.userMap[username].keyInstance,
+    encrypt_for: keys,
     sign_with: self.keyManager
   }, callback);
 };

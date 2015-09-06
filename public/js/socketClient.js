@@ -33,7 +33,7 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('authenticated', function(data) {
     var autoJoinRooms = data.autoJoin;
     var defaultRoomName = data.defaultRoomName;
-    var socketMap = data.socketMap;
+    var userIdMap = data.userIdMap;
     var userlist = data.userlist;
 
     ChatManager.getNotifyPermissions(function(permission) {
@@ -57,7 +57,7 @@ SocketClient.prototype.addListeners = function() {
     }
 
     ChatManager.userlist = userlist;
-    ChatManager.socketMap = socketMap;
+    ChatManager.userIdMap = userIdMap;
 
     ChatManager.updateProfileHeader();
 
@@ -191,12 +191,12 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('userlistUpdate', function(data) {
     var userlist = data.userlist;
-    var socketMap = data.socketMap;
+    var userIdMap = data.userIdMap;
 
     console.log("[SOCKET] 'userlistUpdate'");
 
     ChatManager.userlist = userlist;
-    ChatManager.socketMap = socketMap;
+    ChatManager.userIdMap = uesrIdMap;
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
@@ -525,7 +525,7 @@ SocketClient.prototype.sendPrivateMessage = function(userName, message) {
   var participantIds = [];
 
   participantUsernames.forEach(function(username) {
-    participantIds.push(ChatManager.socketMap[username]);
+    participantIds.push(ChatManager.userlist[username].id);
   });
 
   ChatManager.prepareMessage(message, function(err, preparedMessage) {

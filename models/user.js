@@ -217,15 +217,15 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   })
 };
 
-userSchema.statics.buildSocketMap = function getUserMap(data, callback) {
+userSchema.statics.buildUserIdMap = function getUserIdMap(data, callback) {
   var userlist = data.userlist;
-  var socketMap = {};
+  var userIdMap = {};
   Object.keys(userlist).forEach(function(key) {
     var user = userlist[key];
-    logger.debug("Looping user for socketMap: ",user);
-    socketMap[user.userName] = user.id;
+    logger.debug("Looping user for userIdMap: ",user);
+    userIdMap[user.id] = user.userName;
   });
-  return callback(socketMap);
+  return callback(userIdMap);
 };
 
 // TODO: Decide if these are needed still

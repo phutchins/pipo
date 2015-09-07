@@ -717,15 +717,13 @@ ChatManager.initChat = function initChat(chat, callback) {
   console.log("Running init on chat '" + chat.id);
 
   // Private chat between two users
-  if (participants.length == 2) {
-    participants.forEach(function(participantId) {
-      // If the participant id is equal to our userid, keep going
-      if  (participantId == ChatManager.userlist[window.userName].id) {
-        return;
+  if (chat.participants.length == 2) {
+    chat.participants.forEach(function(participantId) {
+      // Set the chatName to the name of the user with this userid
+      if  (participantId !== ChatManager.userlist[window.userName].id) {
+        console.log("[initChat] Set chatName to '" + chatName + "'");
+        chatName = ChatManager.userIdMap[participantId];
       }
-      // Otherwise set the chatName to the name of the user with this userid
-      chatName = ChatManager.userIdMap[participantId];
-      console.log("[initChat] Set chatName to '" + chatName + "'");
     });
   }
 
@@ -733,6 +731,8 @@ ChatManager.initChat = function initChat(chat, callback) {
   if (participants.length > 2) {
 
   }
+
+  debugger;
 
   self.chats[chatName] = {
     id: chat.id,
@@ -750,13 +750,15 @@ ChatManager.initChat = function initChat(chat, callback) {
       var encryptedMessage = message.encryptedMessage;
       var decryptedMessage = decryptedMessage;
 
+      count++;
+
       if (err) {
         decryptedMessage = 'Unable to decrypt...\n';
         console.log("Error decrypteing message: ", err);
       }
 
       messageArray[key] = decryptedMessage.toString();
-      count++;
+      console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
 
@@ -776,6 +778,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   })
 
   if (ChatManager.activeChat && ChatManager.activeChat.name == chat.id) {
+    debugger;
     self.focusChat({ id: chat.id }, function(err) {
       console.log("Room focus for " + chat.id + " done");
     });
@@ -967,10 +970,15 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
       var user = ChatManager.userlist[username];
 
-      if ( !ChatManager.chats[username] ) {
+      if ( !ChatManager.chats[username] && username != window.userName ) {
         console.log("chat for ",username," was empty so initializing");
+        console.log("[updateRoomUsers] GETCHAT - calling getChat from updateRoomUsers");
+
         socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ]});
+
+        // Create the chat so that is iready for the new data we are getting from getChat
         ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", messageCache: "", topic: "One to one encrypted chat with " + username };
+
         ChatManager.updatePrivateChats();
       }
 
@@ -1042,12 +1050,13 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 
       console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.userName].id + "'");
 
-      socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ] });
+      // BOOKMARK
+      //socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ] });
 
       ChatManager.focusChat({ id: username }, function(err) {
         if ( !ChatManager.chats[username] ) {
           console.log("chat for " + username + " was empty so initializing");
-
+          debugger;
           ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
         }
         ChatManager.updatePrivateChats();
@@ -1295,9 +1304,10 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
   console.log("Refreshing chat content for ", chatName);
 
   if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
-    if (ChatManager.chats[chatName].type == 'privateMessage') {
+    if (ChatManager.chats[chatName].type == 'chat') {
       // Get the cached chat history for this chat
-      return socket.emit('getChat', chatData);
+      debugger;
+      socket.emit('getChat', chatData);
     };
 
     ChatManager.chats[chatName].messageCache = '';
@@ -1315,8 +1325,10 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
   var messages = [];
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
+  debugger;
 
   // Init the chat
+
   ChatManager.initChat(chat, function() {
      return console.log("[handleChatUpdate] initChat done.");
   });

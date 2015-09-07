@@ -361,6 +361,8 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
   keys.push(window.userMap[username].keyInstance);
   keys.push(self.keyManager);
 
+  debugger;
+
   console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);
 
   window.kbpgp.box({

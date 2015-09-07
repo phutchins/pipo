@@ -469,6 +469,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   if (ChatManager.activeChat) {
     activeChatName = ChatManager.activeChat.name;
     console.log("[HANDLE ROOM UPDATE] Refreshing active chat '" + activeChatName + "'");
+    debugger;
     ChatManager.refreshChatContent(activeChatName);
   }
   ChatManager.buildRoomListModal;

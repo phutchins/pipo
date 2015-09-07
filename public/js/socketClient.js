@@ -31,6 +31,10 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
 
   this.socket.on('authenticated', function(data) {
+    var autoJoinRooms = data.autoJoin;
+    var defaultRoomName = data.defaultRoomName;
+    var userIdMap = data.userIdMap;
+    var userlist = data.userlist;
 
     ChatManager.getNotifyPermissions(function(permission) {
       if (permission) {
@@ -46,16 +50,14 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.activeChat = window.activeChat;
     }
 
-    var autoJoinRooms = data.autoJoin;
-    var defaultRoomName = data.defaultRoomName;
-
     ChatManager.defaultRoomName = data.defaultRoomName;
 
     if (!ChatManager.activeChat) {
       ChatManager.activeChat = { name: defaultRoomName, type: 'room' };
     }
 
-    ChatManager.userlist = data.userlist;
+    ChatManager.userlist = userlist;
+    ChatManager.userIdMap = userIdMap;
 
     ChatManager.updateProfileHeader();
 
@@ -131,6 +133,10 @@ SocketClient.prototype.addListeners = function() {
     self.updateRoomComplete(data);
   });
 
+  this.socket.on('chatUpdate', function(data) {
+    ChatManager.handleChatUpdate(data);
+  });
+
   this.socket.on('serverCommandComplete', function(data) {
     console.log("[SOCKET] serverCommandComplete");
     self.serverCommandComplete(data);
@@ -185,8 +191,12 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('userlistUpdate', function(data) {
     var userlist = data.userlist;
+    var userIdMap = data.userIdMap;
+
     console.log("[SOCKET] 'userlistUpdate'");
+
     ChatManager.userlist = userlist;
+    ChatManager.userIdMap = uesrIdMap;
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
@@ -273,7 +283,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("[USERLIST UPDATE] Updating userlist");
     ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
     if (ChatManager.activeChat && ChatManager.activeChat.name == roomName) {
-      ChatManager.updateRoomUsers({ room: roomName });
+      ChatManager.updateRoomUsers({ room: roomName, socket: self.socket });
     }
   });
 
@@ -451,16 +461,23 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   var self = this;
   var rooms = data.rooms;
   var activeChatName = null;
+
+  if (data.err) {
+    return console.log("Room update failed: ",data.err);
+  };
+
   // We want to update one at a time in case we only receive an update for select room(s)
   Object.keys(rooms).forEach(function(name) {
     console.log("Adding room",name,"to array with data:",rooms[name]);
-    ChatManager.roomlist[name] = rooms[name];
+    ChatManager.chats[name] = rooms[name];
   })
+
   if (ChatManager.activeChat) {
     activeChatName = ChatManager.activeChat.name;
-    console.log("[HANDLE ROOM UPDATE] Refreshing active chat '" + activeChatName + "'");
+    console.log("[handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
     ChatManager.refreshChatContent(activeChatName);
   }
+
   ChatManager.buildRoomListModal;
   // should only update the modal if it is open in this case as some other user has made a change
 
@@ -509,13 +526,23 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(userName, message) {
   var self = this;
+
+  // These should be sent as an array of ID's
+  var participantUsernames = [ userName, window.userName ];
+  var participantIds = [];
+
+  participantUsernames.forEach(function(username) {
+    participantIds.push(ChatManager.userlist[username].id);
+  });
+
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
     window.encryptionManager.encryptPrivateMessage(userName, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
+
       else {
-        self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage});
+        self.socket.emit('privateMessage', {toUser: userName, pgpMessage: pgpMessage, participantIds: participantIds });
         $('#message-input').val('');
       }
     });

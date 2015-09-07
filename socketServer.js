@@ -3,6 +3,7 @@ var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var Message = require('./models/message');
+var Chat = require('./models/chat');
 var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
@@ -42,6 +43,8 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('createRoom', self.createRoom.bind(self));
   socket.on('updateRoom', self.updateRoom.bind(self));
+
+  socket.on('getChat', self.getChat.bind(self));
 
   socket.on('membership', self.membership.bind(self));
 
@@ -196,7 +199,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
-            self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, defaultRoomName: sanatizedRoom.name });
+            User.buildUserIdMap({ userlist: userlist}, function(userIdMap) {
+              self.socket.emit('authenticated', {message: 'ok', autoJoin: autoJoin, userlist: userlist, userIdMap: userIdMap, defaultRoomName: sanatizedRoom.name });
+            })
           })
         })
 
@@ -338,6 +343,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var fromUser = self.socket.user.userName;
   var targetUsername = data.toUser;
   var targetSockets = self.namespace.userMap[targetUsername];
+  var participantIds = data.participantIds;
 
   if (!targetSockets) {
     logger.info("[MSG] Ignoring private message to offline user");
@@ -353,11 +359,52 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
+  var participants = [];
+
+  // Populate participants
+  participantIds.forEach(function(participantId) {
+    User.findOne({ _id: participantId }, function(err, participant) {
+      participants.push(participant);
+    });
+  });
+
+  // Do I need to wait until all participants are populated? Or is forEach blocking?
+
+
+  // Add a reference to this chat from the users object if it does not exist there already
+  // Get the user object
+  // Check to see if the chat exists in the _chats array
+  // Add it if not
+  // Add the chat to the users _chats array
+
   message.save(function(err) {
-    logger.debug("[MSG] Pushing message to room message history");
-    // TODO: link the private message to both users instead of saving to the room ?
-    //room._messages.push(message);
-    //room.save();
+    if (err) {
+      return logger.error("[ERROR] Error saving message: ", err);
+    }
+
+    logger.debug("[onPrivateMessage] Saved private message");
+
+    // Add this message to the appropriate chat
+    logger.debug("Finding chat with participants ", participantIds);
+    Chat.findOne({ type: 'chat', _participants: { $in: participantIds }}, function(err, chat) {
+      // If there is not a chat with these participants create one
+      if (err) {
+        return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ",participantIds);
+      };
+
+
+      if (!chat) {
+        var chat = new Chat({
+          type: "chat",
+          _participants: participants,
+        });
+      }
+
+      // TODO: Need to make sure to handle adding users to chats before a message goes through for
+      // a chat with a new user and it creates a new chat
+      chat._messages.push(message);
+      chat.save();
+    });
   })
 
   targetSockets.forEach(function(targetSocket) {
@@ -370,6 +417,99 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     });
   })
 };
+
+
+/*
+ * Handle request from client to get chat history between two or more users
+ */
+SocketServer.prototype.getChat = function getChat(data) {
+  var self = this;
+  var data = data;
+  // BOOKMARK
+
+  // How do we find the chat using the participants (or some other thing)?
+  var chatId = data.chatId;
+  var participantIds = data.participantIds;
+
+  logger.debug("[getChat] Got socket 'getChat' request");
+
+  if (participantIds) {
+    // Get the chat
+    logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
+
+    Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
+      if (chat) {
+        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id);
+      }
+
+      if (err) {
+        self.socket.emit('chatUpdate', null);
+        return logger.debug("Error finding chat by participants: " + err);
+      };
+
+      logger.debug("[getChat] Finishing (participantIds)...");
+      finish(chat);
+    });
+  };
+
+  if (chatId) {
+    // Get the chat by id
+    logger.debug("[getChat] Getting chat for client - ", chatId);
+
+    Chat.findOne({ _id: chatId}, function(err, chat) {
+      if (err) {
+        self.socket.emit('chatUpdate', null);
+        return logger.debug("Error finding chat by participants: " + err);
+      };
+
+      logger.debug("[getChat] Finishing (chatId)...");
+      finish(chat);
+    });
+  };
+
+  var finish = function finish(chat) {
+    // Sanatize the chat
+    var chat = chat;
+
+    logger.debug("[getChat finish] Starting to finish...");
+    if (chat) {
+      logger.debug("[getChat finish] Have a chat, sanatizing now...");
+      Chat.sanatize(chat, function(sanatizedChat) {
+        logger.debug("[getChat finish] Finishing with a valid chat");
+        return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+      })
+    } else {
+      logger.debug("[getChat finish] Finishing without a chat");
+
+      // Create a new chat
+      var newChat = new Chat({
+        _participants: participantIds,
+        _messages: [],
+        type: 'chat',
+      });
+
+      // Save it
+      newChat.save(function(err, savedChat) {
+        logger.debug("[getChat] saved chat: ",savedChat._id);
+        Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
+          logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
+          Chat.sanatize(populatedChat, function(sanatizedChat) {
+            logger.debug("[getChat] Sending 'chatUpdate' to client");
+            return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+          });
+        });
+        // Get the new chat object
+        //Chat.findOne({ _id: chat._id}, function(err, new
+        // Sanatize the chat object
+        // Emit chatUpdate with the new chat object
+      });
+
+      // TODO: Need to send back some data about what chat we were searching for here
+      //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
+    };
+  };
+};
+
 
 /*
  * Send masterKeyPair to user
@@ -779,15 +919,20 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   var scope = data.scope;
   User.getAllUsers({}, function(userlist) {
     logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
-    if (scope == 'all') {
-      self.namespace.emit("userlistUpdate", {
-        userlist: userlist
-      })
-    } else if (scope == 'self') {
-      self.socket.emit("userlistUpdate", {
-        userlist: userlist
-      })
-    }
+    User.buildUserIdMap({userlist: userlist}, function(userIdMap) {
+      var userIdMap = userIdMap || {};
+      if (scope == 'all') {
+        self.namespace.emit("userlistUpdate", {
+          userlist: userlist,
+          userIdMap: userIdMap
+        })
+      } else if (scope == 'self') {
+        self.socket.emit("userlistUpdate", {
+          userlist: userlist,
+          userIdMap: userIdMap
+        })
+      }
+    });
   })
 };
 

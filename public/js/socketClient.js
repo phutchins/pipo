@@ -469,7 +469,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   // We want to update one at a time in case we only receive an update for select room(s)
   Object.keys(rooms).forEach(function(name) {
     console.log("Adding room",name,"to array with data:",rooms[name]);
-    ChatManager.roomlist[name] = rooms[name];
+    ChatManager.chats[name] = rooms[name];
   })
 
   if (ChatManager.activeChat) {

@@ -6,8 +6,7 @@ var ChatManager = {};
 // Chats are rooms or private chats that the user is currently participating in
 // chats['chatname'] = { type: 'room', name: 'chatname', messages: [ { fromuser: 'username', message: 'hi there' } ] }
 ChatManager.chats = {};
-// Rooms are all available for user to join
-ChatManager.roomlist = {};
+
 // userlist is a list of all users that exist on the server
 //   This will be paginated and populated as needed in the future
 ChatManager.userlist = {};
@@ -261,22 +260,22 @@ var buildRoomListModal = function() {
   })
   $('#room-list-button').click(function(e) {
     var roomListModalHtml = '';
-    Object.keys(ChatManager.roomlist).forEach(function(roomName) {
+    Object.keys(ChatManager.chats).forEach(function(roomName) {
       roomListModalHtml += "<div class='item'>\n";
-      if (ChatManager.roomlist[roomName].membershipRequired) {
+      if (ChatManager.chats[roomName].type == 'room' && ChatManager.chats[roomName].membershipRequired) {
         roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
       } else {
         roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
       }
       roomListModalHtml += "  <div class='content'>\n";
       roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
-      roomListModalHtml += "    <div class='description'>" + ChatManager.roomlist[roomName].topic + "</div>\n";
+      roomListModalHtml += "    <div class='description'>" + ChatManager.chats[roomName].topic + "</div>\n";
       roomListModalHtml += "  </div>\n";
       roomListModalHtml += "</div>\n";
     })
     $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
-    Object.keys(ChatManager.roomlist).forEach(function(roomName) {
-      if (ChatManager.roomlist[roomName].type == 'room') {
+    Object.keys(ChatManager.chats).forEach(function(roomName) {
+      if (ChatManager.chats[roomName].type == 'room') {
         $('.modal.join-room-list-modal a[id="' + roomName + '"]').click(function() {
           socketClient.joinRoom(roomName, function(err) {
             $('.modal.join-room-list-modal').modal('hide');
@@ -352,13 +351,13 @@ var buildEditRoomModal = function() {
   $('.chat-header__settings .room-options.edit-room').click(function(e) {
     var roomName = ChatManager.activeChat.name;
     var populateFormData = {
-      id: ChatManager.roomlist[roomName].id,
+      id: ChatManager.chats[roomName].id,
       name: roomName,
-      group: ChatManager.roomlist[roomName].group,
-      topic: ChatManager.roomlist[roomName].topic,
-      encryptionScheme: ChatManager.roomlist[roomName].encryptionScheme,
-      keepHistory: ChatManager.roomlist[roomName].keepHistory,
-      membershipRequired: ChatManager.roomlist[roomName].membershipRequired
+      group: ChatManager.chats[roomName].group,
+      topic: ChatManager.chats[roomName].topic,
+      encryptionScheme: ChatManager.chats[roomName].encryptionScheme,
+      keepHistory: ChatManager.chats[roomName].keepHistory,
+      membershipRequired: ChatManager.chats[roomName].membershipRequired
     };
 
     // Reset the form before we show it
@@ -452,9 +451,9 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
   var roomName = (typeof data.roomName === 'undefined') ? ChatManager.activeChat.name : data.roomName;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 
-  var members = ChatManager.roomlist[roomName].members;
-  var admins = ChatManager.roomlist[roomName].admins;
-  var owner = ChatManager.roomlist[roomName].owner;
+  var members = ChatManager.chats[roomName].members;
+  var admins = ChatManager.chats[roomName].admins;
+  var owner = ChatManager.chats[roomName].owner;
 
 
   // Clear notifications
@@ -808,8 +807,8 @@ ChatManager.updateChatHeader = function updateChatHeader(chatName) {
     chatHeaderTitle = 'pm' + '/' + chat.name;
   } else {
     headerAvatarHtml = '<i class="huge comments outline icon"></i>';
-    chatTopic = ChatManager.roomlist[chatName].topic;
-    chatHeaderTitle = ChatManager.roomlist[chatName].group + '/' + chat.name;
+    chatTopic = ChatManager.chats[chatName].topic;
+    chatHeaderTitle = ChatManager.chats[chatName].group + '/' + chat.name;
   }
 
   $('.chat-topic').text(chatTopic);
@@ -1298,8 +1297,6 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
   var messageCache;
 
   console.log("Refreshing chat content for ", chatName);
-
-  debugger;
 
   if (typeof ChatManager.chats[chatName] == 'undefined' || typeof ChatManager.chats[chatName].messageCache == 'undefined') {
     if (ChatManager.chats[chatName].type == 'chat') {

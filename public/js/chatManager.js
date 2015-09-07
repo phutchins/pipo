@@ -732,8 +732,6 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   }
 
-  debugger;
-
   self.chats[chatName] = {
     id: chat.id,
     type: 'chat',
@@ -778,7 +776,6 @@ ChatManager.initChat = function initChat(chat, callback) {
   })
 
   if (ChatManager.activeChat && ChatManager.activeChat.name == chat.id) {
-    debugger;
     self.focusChat({ id: chat.id }, function(err) {
       console.log("Room focus for " + chat.id + " done");
     });
@@ -1056,7 +1053,6 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
       ChatManager.focusChat({ id: username }, function(err) {
         if ( !ChatManager.chats[username] ) {
           console.log("chat for " + username + " was empty so initializing");
-          debugger;
           ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
         }
         ChatManager.updatePrivateChats();
@@ -1303,10 +1299,11 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
 
   console.log("Refreshing chat content for ", chatName);
 
-  if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
+  debugger;
+
+  if (typeof ChatManager.chats[chatName] == 'undefined' || typeof ChatManager.chats[chatName].messageCache == 'undefined') {
     if (ChatManager.chats[chatName].type == 'chat') {
       // Get the cached chat history for this chat
-      debugger;
       socket.emit('getChat', chatData);
     };
 
@@ -1325,24 +1322,12 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
   var messages = [];
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
-  debugger;
 
   // Init the chat
 
   ChatManager.initChat(chat, function() {
      return console.log("[handleChatUpdate] initChat done.");
   });
-
-  /*
-  messages.forEach(function(message) {
-    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
-      ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
-    });
-  });
-  */
-
-  // When done looping messages, refreshChatContent again
-  //
 
 };
 
@@ -1762,6 +1747,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 }
 
 ChatManager.promptForPassphrase = function(callback) {
+  console.log("[promptForPassphrase] Prompting for passphrase");
   $('.ui.modal.unlock .username').text(window.userName);
   $('.ui.modal.unlock')
     .modal('setting', 'closable', false)

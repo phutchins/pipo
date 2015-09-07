@@ -461,17 +461,23 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   var self = this;
   var rooms = data.rooms;
   var activeChatName = null;
+
+  if (data.err) {
+    return console.log("Room update failed: ",data.err);
+  };
+
   // We want to update one at a time in case we only receive an update for select room(s)
   Object.keys(rooms).forEach(function(name) {
     console.log("Adding room",name,"to array with data:",rooms[name]);
     ChatManager.roomlist[name] = rooms[name];
   })
+
   if (ChatManager.activeChat) {
     activeChatName = ChatManager.activeChat.name;
-    console.log("[HANDLE ROOM UPDATE] Refreshing active chat '" + activeChatName + "'");
-    debugger;
+    console.log("[handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
     ChatManager.refreshChatContent(activeChatName);
   }
+
   ChatManager.buildRoomListModal;
   // should only update the modal if it is open in this case as some other user has made a change
 

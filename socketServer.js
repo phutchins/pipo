@@ -920,6 +920,7 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   User.getAllUsers({}, function(userlist) {
     logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
     User.buildUserIdMap({userlist: userlist}, function(userIdMap) {
+      var userIdMap = userIdMap || {};
       if (scope == 'all') {
         self.namespace.emit("userlistUpdate", {
           userlist: userlist,

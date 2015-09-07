@@ -205,8 +205,9 @@ EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback)
     var tries = 3;
 
     function promptAndDecrypt() {
-      console.log("[ENCRYPTION MANAGER] (unlockClientKey) Prompting for password to decrypt client key...");
+      console.log("[unlockClientKey] Key manager is locked and you have " + tries + " tries left to unlock");
       ChatManager.promptForPassphrase(function (passphrase) {
+        console.log("[unlockClientKey] Got passphase, unlocking client key!");
         self.keyManager.unlock_pgp({
           passphrase: passphrase
         }, function (err) {
@@ -229,6 +230,7 @@ EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback)
       });
     }
 
+    console.log("[ENCRYPTION MANAGER] (unlockClientKey) Prompting for password to decrypt client key...");
     promptAndDecrypt();
   }
   else {

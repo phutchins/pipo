@@ -1,6 +1,6 @@
-var Notification = {};
+var clientNotification = {};
 
-Notification.init = function init() {
+clientNotification.init = function init() {
   this.getPermission(function(permission) {
     if (permission) {
       console.log("Have notification permissions!");
@@ -8,7 +8,7 @@ Notification.init = function init() {
   })
 }
 
-Notification.getPermission = function getPermission(callback) {
+clientNotification.getPermission = function getPermission(callback) {
   // check for notification compatibility
   if(!window.Notification) {
     // if browser version is unsupported, be silent
@@ -34,8 +34,8 @@ Notification.getPermission = function getPermission(callback) {
 };
 
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
-Notification.send = function send(image, title, message, timeout, showOnFocus) {
-  this.getNotifyPermissions(function(permission) {
+clientNotification.send = function send(image, title, message, timeout, showOnFocus) {
+  this.getPermission(function(permission) {
     if (permission) {
       console.log("[NOTIFICATION] Attempting to display notification");
       // Default values for optional params

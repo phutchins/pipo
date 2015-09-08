@@ -1148,7 +1148,7 @@ ChatManager.handleMessage = function handleMessage(data) {
   var mentionRegex = new RegExp(mentionRegexString);
   console.log("Running mention regex: " + messageString.match(mentionRegex));
   if (messageString.match(mentionRegex)) {
-    ChatManager.sendNotification(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, messageString, 3000);
+    clientNotification.send(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, messageString, 3000);
   };
 
   this.addMessageToChat({ type: 'room', messageString: messageString, fromUser: fromUser, chat: room, date: date });
@@ -1174,7 +1174,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   }
 
   if (ChatManager.activeChat.name !== fromUser) {
-    ChatManager.sendNotification(null, 'Private message from ' + fromUser, messageString, 3000);
+    clientNotification.send(null, 'Private message from ' + fromUser, messageString, 3000);
   }
 
   ChatManager.addMessageToChat({ type: 'chat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });

@@ -317,16 +317,17 @@ EncryptionManager.prototype.encryptMasterKeyMessage = function encryptMasterKeyM
   }, callback);
 };
 
-EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(room, message, callback) {
+EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyMessage(roomName, message, callback) {
   var self = this;
   var keys;
 
   console.log("[encryptClientKeyMessage] Encrypting client key message");
 
+  debugger;
   // If the room has membershipRequired enabled only encrypt messages to the members
-  if (room.membershipRequired) {
+  if (ChatManager.chats[roomName].membershipRequired) {
     //Build array of all users' keyManagers
-    keys = Object.keys(window.roomUsers[room]).map(function(userName) {
+    keys = Object.keys(window.roomUsers[roomName]).map(function(userName) {
       return window.userMap[userName].keyInstance;
     }).filter(function(key) {
       return !!key;
@@ -337,6 +338,7 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
     keys.push(self.keyManager);
   }
 
+  // BOOKMARK
   // If the room does not require membership, encrypt to all users
   if (!room.membershipRequired) {
     keys = Object.keys(ChatManager.userlist).map(function(username) {

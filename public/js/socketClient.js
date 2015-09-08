@@ -421,7 +421,10 @@ SocketClient.prototype.joinComplete = function(data) {
       console.log("[INIT] Enabling chat in clientKey mode");
     }
     ChatManager.initRoom(room, function(err) {
-      ChatManager.enableChat(room, data.encryptionScheme);
+      ChatManager.chats[room.name].joined = true;
+      ChatManager.updateRoomList(function() {
+        ChatManager.enableChat(room, data.encryptionScheme);
+      });
     });
   }
 };

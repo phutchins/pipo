@@ -886,21 +886,28 @@ ChatManager.focusChat = function focusChat(data, callback) {
 ChatManager.updateRoomList = function updateRoomList(callback) {
   $('#room-list').empty();
   console.log("Updating room list!");
+
   var chatNames = Object.keys(ChatManager.chats)
+
   chatNames.forEach(function(chatName) {
-    if (ChatManager.chats[chatName].type == 'room') {
-      // Catch clicks on the room list to update room focus
+    if (ChatManager.chats[chatName].type == 'room' && ChatManager.chats[chatName].joined) {
+
       if ( !$('#room-list #' + chatName).length ) {
+
         if ( ChatManager.activeChat.name && ChatManager.activeChat.name == chatName ) {
           console.log("Active chat is " + ChatManager.activeChat.name);
+
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';
         } else {
           var roomListHtml = '<li class="room chat-list-item" id="' + chatName + '">' + chatName + '</li>';
         }
+
         $('#room-list').append(roomListHtml);
         console.log("Added " + chatName + " to room-list");
       }
+
       $("#" + chatName).click(function() {
+        // Catch clicks on the room list to update room focus
         ChatManager.focusChat({ id: chatName }, function(err) {
           // Room focus complete
         });
@@ -1245,17 +1252,18 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   var id = data.id;
   var date = data.date;
   var fromUser = data.fromUser;
-  var chat = data.chat;
+  var chatName = data.chat;
   var chatContainer = $('#chat');
 
   //Add timestamp
   var time = date || new Date().toISOString();
 
   ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUser, date: date }, function(formattedMessage) {
-    ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
+    ChatManager.chats[chatName].messageCache = ChatManager.chats[chatName].messageCache.concat(formattedMessage);
 
-    if (ChatManager.activeChat.name == chat) {
-      ChatManager.refreshChatContent(chat);
+    // Shoudl this be comparing to a name and not a chat object?
+    if (ChatManager.activeChat.name == chatName) {
+      ChatManager.refreshChatContent(chatName);
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
   })
@@ -1298,11 +1306,15 @@ ChatManager.refreshChatContent = function refreshChatContent(chatName) {
 
   console.log("Refreshing chat content for ", chatName);
 
-  if (typeof ChatManager.chats[chatName] == 'undefined' || typeof ChatManager.chats[chatName].messageCache == 'undefined') {
-    if (ChatManager.chats[chatName].type == 'chat') {
-      // Get the cached chat history for this chat
-      socket.emit('getChat', chatData);
-    };
+  if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
+    // Get the cached chat history for this chat
+    if (ChatManager.chats[chatName].type == 'room') {
+      console.log("[refreshChatContent] Didn't have a chat for " + chatName + " so semitting getChat");
+      //socket.emit('getChat', { chatId: chatName });
+    }
+    //if (ChatManager.chats[chatName].type == 'chat') {
+    //  socket.emit('getChat', participantIds);
+    //}
 
     ChatManager.chats[chatName].messageCache = '';
   }

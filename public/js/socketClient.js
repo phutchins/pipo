@@ -36,11 +36,8 @@ SocketClient.prototype.addListeners = function() {
     var userIdMap = data.userIdMap;
     var userlist = data.userlist;
 
-    ChatManager.getNotifyPermissions(function(permission) {
-      if (permission) {
-        console.log("Have notification permission");
-      }
-    })
+    // Ensure that we have permission to show notifications and prompt if we don't
+    clientNotification.init();
 
     if (data.message !== 'ok') {
       return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication")
@@ -225,10 +222,10 @@ SocketClient.prototype.addListeners = function() {
         if (window.userName !== joinUserName) {
           if (currentRoomUsersArray.indexOf(joinUserName)) {
             console.log("User " + joinUserName + " has joined #" + roomName);
-            ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has joined #' + roomName, 3000);
+            clientNotification.send(null, 'PiPo', joinUserName + ' has joined #' + roomName, 3000);
           } else {
             console.log("User " + joinUserName + " has left #" + roomName);
-            ChatManager.sendNotification(null, 'PiPo', joinUserName + ' has left #' + roomName, 3000);
+            clientNotification.send(null, 'PiPo', joinUserName + ' has left #' + roomName, 3000);
           }
         }
       })

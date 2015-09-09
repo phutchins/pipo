@@ -76,7 +76,6 @@ userSchema.statics.create = function createUser(userData, callback) {
         }
         logger.debug("[USER] saved new user");
         mongoose.model('User').findOne({ username: username }, function(err, user) {
-          logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
           return callback(null, {user: user, newUser: true});
         })
       })

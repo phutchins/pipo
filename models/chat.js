@@ -43,11 +43,8 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
       messages: messagesArray
     };
 
-    logger.debug("[Chat.sanatize] Sanatized chat is: ", sanatizedChat);
-
     logger.debug("[Chat.sanatize] Returning sanatized Chat: ", sanatizedChat.id.toString());
 
-    // BUG: This callback isn't getting called for some reason. Probably scope related...
     return callback(sanatizedChat);
   };
 
@@ -57,9 +54,7 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
       Message.sanatize(message, function(sanatizedMessage) {
         messagesArray.push(sanatizedMessage);
         messageCount++;
-        logger.debug("[Chat.sanatize] messageCount = " + messageCount);
         if (chat._messages.length == messageCount) {
-          logger.debug("[Chat.sanatize] running finish...");
           finish(callback);
         }
       })

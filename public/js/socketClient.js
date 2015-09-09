@@ -31,79 +31,10 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
 
   this.socket.on('authenticated', function(data) {
-    var favoriteRooms = data.favoriteRooms;
-    var defaultRoomName = data.defaultRoomName;
-    var userIdMap = data.userIdMap;
-    var userlist = data.userlist;
+    console.log("[SOCKET] authenticated");
+    data.socket = this;
 
-    // Ensure that we have permission to show notifications and prompt if we don't
-    clientNotification.init();
-
-    if (data.message !== 'ok') {
-      return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication")
-    };
-
-    if (window.activeChat) {
-      ChatManager.activeChat = window.activeChat;
-    }
-
-    ChatManager.defaultRoomName = data.defaultRoomName;
-
-    if (!ChatManager.activeChat) {
-      ChatManager.activeChat = { name: defaultRoomName, type: 'room' };
-    }
-
-    ChatManager.userlist = userlist;
-    ChatManager.userIdMap = userIdMap;
-
-    ChatManager.updateProfileHeader();
-
-    window.encryptionManager.keyManager.sign({}, function(err) {
-      window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-        window.encryptionManager.verifyRemotePublicKey(window.username, publicKey, function(err, upToDate) {
-          if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
-
-          if (upToDate) {
-            console.log("[INIT] Your public key matches what is on the server");
-            console.log("[AUTHENTICATED] Authenticated successfully");
-            // Use cilent keys and enable chat for each room user is currently in
-            if (favoriteRooms.length > 0) {
-              console.log("[SOCKET] (authenticated) Joining room ",room);
-              favoriteRooms.forEach(function(room) {
-                if (room && typeof room !== 'undefined') {
-                  self.joinRoom(room, function(err) {
-                    console.log("[SOCKET] (authenticated) Sent join request for room "+room);
-                  });
-                }
-              });
-            } else {
-              // Join the default room
-              // Get default room name
-              var defaultRoomName = ChatManager.defaultRoomName;
-              // Join default room
-              console.log("[SOCKET] (authenticated) Joining room ",defaultRoomName);
-              self.joinRoom(defaultRoomName, function(err) {
-                console.log("[SOCKET] (authenticated) Joined default room becuase favoriteRooms was empty");
-              })
-            }
-          } else {
-            // TODO: Prompt to confirm update remote key
-            console.log("[INIT] Remote public key is not up to date so updating!");
-            window.encryptionManager.updatePublicKeyOnRemote(window.username, publicKey, function(err) {
-              if (err) { return console.log("[INIT] ERROR updating public key on server: "+err) };
-              console.log("[AUTHENTICATED] Authenticated successfully");
-              // Use cilent keys and enable chat for each room user is currently in
-              favoriteRooms.forEach(function(room) {
-                console.log("[SOCKET] (authenticated) Joining room ",room);
-                self.joinRoom(room, function(err) {
-                  console.log("[SOCKET] (authenticated) Sent join request for room "+room);
-                });
-              });
-            });
-          }
-        });
-      });
-    });
+    Authentication.authenticated(data);
   });
 
   this.socket.on('roomUpdate', function(data) {
@@ -314,19 +245,11 @@ SocketClient.prototype.init = function() {
       self.addListeners();
     }
     console.log("[INIT] Authenticating");
-    return self.authenticate();
+    return Authentication.authenticate({ socket: self.socket });
   });
 };
 
-SocketClient.prototype.authenticate = function() {
-  var self = this;
-  console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
-  window.encryptionManager.keyManager.sign({}, function(err) {
-    window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      self.socket.emit('authenticate', {username: window.username, publicKey: publicKey, email: window.email});
-    });
-  });
-};
+
 
 SocketClient.prototype.joinRoom = function(room, callback) {
   var self = this;
@@ -399,27 +322,35 @@ SocketClient.prototype.joinComplete = function(data) {
   if (err) {
     console.log("Cannot join channel due to permissions");
 
-    if (ChatManager.lastActiveChat) {
-      ChatManager.activeChat = ChatManager.lastActiveChat;
-    }
+    //if (ChatManager.lastActiveChat) {
+    //  ChatManager.activeChat = ChatManager.lastActiveChat;
+    //}
 
     return ChatManager.showError(err);
   } else {
     console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
+
     window.encryptionManager.encryptionScheme[room.name] = data.encryptionScheme;
+
     console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
+
     if (data.encryptionScheme == 'masterKey') {
       var masterKeyPair = data.masterKeyPair;
+
       console.log("[SOCKET] (joinComplete) Loading master key pair...");
+
       // TODO: Need to make sure clientKeyManager is decrypted here
       window.encryptionManager.loadMasterKeyPair(room.name, masterKeyPair, function(err, loaded) {
         if (err) { return console.log("[INIT] ERROR loading master key pair") };
+
         if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
+
         console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
       });
     } else {
       console.log("[INIT] Enabling chat in clientKey mode");
     }
+
     ChatManager.initRoom(room, function(err) {
       ChatManager.chats[room.name].joined = true;
       ChatManager.updateRoomList(function() {

@@ -651,8 +651,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
     owner: room.owner
   };
 
-  console.log("About to set room focus to " + room.name);
-
   // Decrypt messages and HTMLize them
   var messages = self.chats[room.name].messages.sort(dynamicSort("date"));
   var count = 0;
@@ -689,16 +687,21 @@ ChatManager.initRoom = function initRoom(room, callback) {
     })
   })
 
-  self.updateRoomList(function(err) {
-    console.log("Update room list done...");
-    callback(null);
-  });
+  debugger;
 
-  if (ChatManager.activeChat && ChatManager.activeChat.name == room.name) {
+  if (ChatManager.activeChat && ChatManager.activeChat.name == room.name && !ChatManager.activeChat.focused) {
+    debugger;
+    self.updateRoomList(function(err) {
+      console.log("Update room list done...");
+      callback(null);
+    });
+
     self.focusChat({ id: room.name }, function(err) {
       console.log("Room focus for " + room.name + " done");
     });
   }
+
+  debugger;
 };
 
 ChatManager.initChat = function initChat(chat, callback) {
@@ -735,6 +738,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   self.chats[chatName] = {
     id: chat.id,
     type: 'chat',
+    name: chatName,
     participants: participants,
     messages: messages,
     messageCache: ''
@@ -878,6 +882,8 @@ ChatManager.focusChat = function focusChat(data, callback) {
     .removeClass('chat-list-item')
     .addClass('chat-list-item-selected');
 
+  ChatManager.activeChat.focused = true;
+
   callback(null);
 };
 
@@ -965,6 +971,8 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
   var members = ChatManager.chats[room].members;
   var userListHtml = "";
+
+  debugger;
 
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
@@ -1163,7 +1171,6 @@ ChatManager.handleMessage = function handleMessage(data) {
   };
 
   this.addMessageToChat({ type: 'room', messageString: messageString, fromUser: fromUser, chat: room, date: date });
-  messages[0].scrollTop = messages[0].scrollHeight;
 };
 
 
@@ -1225,13 +1232,13 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 
   ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUser, date: date }, function(formattedMessage) {
     ChatManager.chats[chatName].messageCache = ChatManager.chats[chatName].messageCache.concat(formattedMessage);
+  });
 
-    // Shoudl this be comparing to a name and not a chat object?
-    if (ChatManager.activeChat.name == chatName) {
-      ChatManager.refreshChatContent(chatName);
-      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
-    }
-  })
+  // Shoudl this be comparing to a name and not a chat object?
+  if (ChatManager.activeChat.name == chatName) {
+    ChatManager.refreshChatContent(chatName);
+    chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+  }
 };
 
 

@@ -65,9 +65,9 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
   }
   console.log("[LOAD CLIENT KEY PAIR] Loading client key pair from local storage");
   var keyPairData = localStorage.getItem('keyPair');
-  var userName = localStorage.getItem('userName');
+  var username = localStorage.getItem('username');
   // If we have a local client keypair, load it and try to parse from JSON
-  if (keyPairData && userName) {
+  if (keyPairData && username) {
     console.log("[LOAD CLIENT KEY PAIR] Loaded client key pair from local storage!");
     try {
       keyPairData = JSON.parse(keyPairData);
@@ -321,14 +321,12 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var self = this;
   var keys;
 
-  console.log("[encryptClientKeyMessage] Encrypting client key message");
-
-  debugger;
   // If the room has membershipRequired enabled only encrypt messages to the members
   if (ChatManager.chats[roomName].membershipRequired) {
+    console.log("[encryptClientKeyMessage] Encrypting client key message for private room to #" + roomName + " members");
     //Build array of all users' keyManagers
-    keys = Object.keys(window.roomUsers[roomName]).map(function(userName) {
-      return window.userMap[userName].keyInstance;
+    keys = Object.keys(window.roomUsers[roomName]).map(function(username) {
+      return window.userMap[username].keyInstance;
     }).filter(function(key) {
       return !!key;
     });
@@ -338,9 +336,9 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
     keys.push(self.keyManager);
   }
 
-  // BOOKMARK
   // If the room does not require membership, encrypt to all users
-  if (!room.membershipRequired) {
+  if (!ChatManager.chats[roomName].membershipRequired) {
+    console.log("[encryptClientKeyMessage] Encrypting client key message for public room to ALL users");
     keys = Object.keys(ChatManager.userlist).map(function(username) {
       if (window.userMap[username]) {
         return window.userMap[username].keyInstance;
@@ -364,8 +362,6 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 
   keys.push(window.userMap[username].keyInstance);
   keys.push(self.keyManager);
-
-  debugger;
 
   console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);
 
@@ -429,11 +425,11 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
 
 EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
   var keyPair = data.keyPair;
-  var userName = data.userName;
-  console.log("Saving client keyPair with userName: " + userName);
+  var username = data.username;
+  console.log("Saving client keyPair with username: " + username);
   // TODO: Save with username in namespace of key name?
-  window.userName = userName;
-  localStorage.setItem('userName', userName);
+  window.username = username;
+  localStorage.setItem('username', username);
   localStorage.setItem('keyPair', JSON.stringify(keyPair));
   callback(null);
 }
@@ -501,15 +497,15 @@ EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(encrypt
   });
 };
 
-EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userName, callback) {
+EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(username, callback) {
   var timestamp = new Date().toString();
-  console.log("["+timestamp+"] Getting master keyPair for "+userName);
+  console.log("["+timestamp+"] Getting master keyPair for "+username);
   $.ajax({
     type: "GET",
     url: "/key/masterKeyPair",
     dataType: "json",
     data: {
-      userName: userName
+      username: username
     },
     statusCode: {
       404: function(err) {
@@ -554,14 +550,14 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(userNam
 };
 
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
-EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(userName, publicKey, callback) {
-  console.log("Verifying remote public key for user '"+userName+"'");
+EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(username, publicKey, callback) {
+  console.log("Verifying remote public key for user '"+username+"'");
   $.ajax({
     type: "GET",
     url: "/key/publickey",
     dataType: "json",
     data: {
-      userName: userName
+      username: username
     },
     statusCode: {
       404: function(data) {
@@ -594,14 +590,14 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
 };
 
 //TODO: Yes... I know this is a duplicate. Will deal with it later.
-EncryptionManager.prototype.updatePublicKeyOnRemote = function updatePublicKeyOnRemote(userName, publicKey, callback) {
+EncryptionManager.prototype.updatePublicKeyOnRemote = function updatePublicKeyOnRemote(username, publicKey, callback) {
   console.log("Updating public key on remote");
   $.ajax({
     type: "POST",
     url: "/key/publickey",
     dataType: "json",
     data: {
-      userName: userName,
+      username: username,
       publicKey: publicKey
     },
     success: function(data, textStatus, xhr) {

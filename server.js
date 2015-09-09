@@ -30,7 +30,6 @@ var configHttps = require('./config/https');
 //Models
 var KeyPair = require('./models/keypair');
 var User = require('./models/user');
-var Channel = require('./models/channel');
 var KeyId = require('./models/keyid');
 
 //Globals
@@ -131,7 +130,7 @@ function initServer() {
 
 function createSystemUser(callback) {
   User.create({
-    userName: 'pipo',
+    username: 'pipo',
     email: 'pipo@pipo.chat',
     publicKey: 'pipo'
   }, function(err, data) {

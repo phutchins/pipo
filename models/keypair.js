@@ -11,7 +11,7 @@ var masterKeyManager = null;
 var keyPairSchema = new Schema({
   type: { type: String },
   encryptedTo: { type: mongoose.SchemaTypes.ObjectId,ref: "User" },
-  userName: { type: String },
+  username: { type: String },
   privateKey: { type: String },
   publicKey: { type: String },
   version: { type: Number, default: 0 }
@@ -68,7 +68,7 @@ keyPairSchema.statics.updateMasterKeyPairForAllUsers = function updateMasterKeyP
     async.each(users, function(user, asyncCallback) {
       self.updateMasterKeyPairForUser(user, masterKeyPair, id, function(err) {
         if (err) { return asyncCallback(err); }
-        //console.log("Update master key process for "+user.userName+" done...");
+        //console.log("Update master key process for "+user.username+" done...");
         asyncCallback(err);
       });
     }, function(err) {
@@ -91,7 +91,7 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
           } else if (user.publicKey == null) {
             console.log("[KEYPAIR] checkMasterKeyPairForAllUsers - user.publicKey is null");
           } else {
-            console.log("User '"+user.userName+"' has key id "+user.masterKeyPair.id+" and current keyId is "+currentKeyId);
+            console.log("User '"+user.username+"' has key id "+user.masterKeyPair.id+" and current keyId is "+currentKeyId);
             response = 'update';
           };
         });
@@ -102,29 +102,29 @@ keyPairSchema.statics.checkMasterKeyPairForAllUsers = function checkMasterKeyPai
 };
 
 keyPairSchema.statics.updateMasterKeyPairForUser = function updateMasterKeyPairForUser(user, masterKeyPair, keyId, callback) {
-  //console.log("Updating master keyPair for "+user.userName);
+  //console.log("Updating master keyPair for "+user.username);
   //console.log("[DEBUG] (updateMasterKeyPairForUser) user.publicKey: "+user.publicKey);
   //console.log("[DEBUG] (updateMasterKeyPairForUser) masterKeyPair.privateKey: "+masterKeyPair.privateKey);
   if (user.publicKey) {
     var publicKey = openpgp.key.readArmored(user.publicKey).keys[0];
     var masterPrivateKey = openpgp.key.readArmored(masterKeyPair.privateKey).keys[0];
     masterPrivateKey.decrypt('pipo');
-    //console.log("Encrypting master key with id "+keyId+" to "+user.userName);
+    //console.log("Encrypting master key with id "+keyId+" to "+user.username);
     openpgp.encryptMessage(publicKey, masterKeyPair.privateKey).then(function(encKey) {
-      User.findOne({ userName: user.userName }, function(err, user, count) {
+      User.findOne({ username: user.username }, function(err, user, count) {
         user.masterKeyPair.encryptedPrivateKey = encKey;
         user.masterKeyPair.publicKey = masterKeyPair.publicKey;
         user.masterKeyPair.id = keyId;
         user.save( function( err, user ) {
-          //if (err) { return callback("Error saving encrypted master key for user "+user.userName) };
-          //console.log("Saved encrypted master key for user "+user.userName);
+          //if (err) { return callback("Error saving encrypted master key for user "+user.username) };
+          //console.log("Saved encrypted master key for user "+user.username);
           //console.log("[DEBUG] (updateMaseterKeyPairForUser) user.masterKey.encryptedMasterKey: "+user.masterKey.encryptedMasterKey);
           callback(null);
         });
       });
     });
   } else {
-    console.log("User "+user.userName+" does not have a publicKey so cannot create master key for them");
+    console.log("User "+user.username+" does not have a publicKey so cannot create master key for them");
     callback(null);
   }
 }

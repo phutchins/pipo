@@ -18,7 +18,6 @@ ChatManager.activePrivateChats = [];
 ChatManager.activeChat = null;
 ChatManager.lastActiveChat = null;
 
-var systemUsername = 'pipo';
 var host = window.location.host;
 var socket = io(host+'/main');
 var clientKeyPassword = null;
@@ -37,7 +36,7 @@ var masterKeyPair = ({
   publicKey: null,
   privateKey: null
 });
-var userName = null;
+var username = null;
 
 marked.setOptions({
   renderer: new marked.Renderer(),
@@ -118,8 +117,8 @@ $('#import-keypair-button').on('click', function() {
       privateKey: data.privateKey,
       publicKey: data.publicKey
     };
-    var userName = data.userName;
-    window.encryptionManager.saveClientKeyPair({ userName: userName, keyPair: keyPair }, function(err) {
+    var username = data.username;
+    window.encryptionManager.saveClientKeyPair({ username: username, keyPair: keyPair }, function(err) {
       if (err) {
         return console.log("Error saving client keyPair");
       };
@@ -155,7 +154,7 @@ $('#export-keypair-button').on('click', function() {
         [keyPair.publicKey.toString()]
       , {type: "text/plain;charset=" + document.characterSet}
     )
-    , (window.userName + ".pub")
+    , (window.username + ".pub")
   );
 
   var BB = get_blob();
@@ -164,7 +163,7 @@ $('#export-keypair-button').on('click', function() {
         [keyPair.privateKey.toString()]
       , {type: "text/plain;charset=" + document.characterSet}
     )
-    , (window.userName + ".key")
+    , (window.username + ".key")
   );
 
 });
@@ -261,17 +260,19 @@ var buildRoomListModal = function() {
   $('#room-list-button').click(function(e) {
     var roomListModalHtml = '';
     Object.keys(ChatManager.chats).forEach(function(roomName) {
-      roomListModalHtml += "<div class='item'>\n";
-      if (ChatManager.chats[roomName].type == 'room' && ChatManager.chats[roomName].membershipRequired) {
-        roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
-      } else {
-        roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
+      if (ChatManager.chats[roomName].type == 'room') {
+        roomListModalHtml += "<div class='item'>\n";
+        if (ChatManager.chats[roomName].membershipRequired) {
+          roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
+        } else {
+          roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
+        }
+        roomListModalHtml += "  <div class='content'>\n";
+        roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
+        roomListModalHtml += "    <div class='description'>" + ChatManager.chats[roomName].topic + "</div>\n";
+        roomListModalHtml += "  </div>\n";
+        roomListModalHtml += "</div>\n";
       }
-      roomListModalHtml += "  <div class='content'>\n";
-      roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
-      roomListModalHtml += "    <div class='description'>" + ChatManager.chats[roomName].topic + "</div>\n";
-      roomListModalHtml += "  </div>\n";
-      roomListModalHtml += "</div>\n";
     })
     $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
     Object.keys(ChatManager.chats).forEach(function(roomName) {
@@ -564,7 +565,7 @@ $('.manage-members-modal .button.addmember').click(function(e) {
 
 
 ChatManager.init = function() {
-  if (window.userName) {
+  if (window.username) {
     ChatManager.updateProfileHeader();
   };
 };
@@ -595,12 +596,12 @@ ChatManager.updateProfileHeader = function updateProfileHeader() {
   // TODO: This should be smarter and have a sane default in the DB as well as a better default image
   var emailHash = "0";
 
-  if (ChatManager.userlist[window.userName]) {
-    emailHash = ChatManager.userlist[window.userName].emailHash || "0";
+  if (ChatManager.userlist[window.username]) {
+    emailHash = ChatManager.userlist[window.username].emailHash || "0";
   }
 
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
-  $('#menu-header-profile .ui.dropdown .text.username').text(window.userName);
+  $('#menu-header-profile .ui.dropdown .text.username').text(window.username);
 };
 
 // Assists in splitting line in the case of shift+enter
@@ -719,7 +720,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   if (chat.participants.length == 2) {
     chat.participants.forEach(function(participantId) {
       // Set the chatName to the name of the user with this userid
-      if  (participantId !== ChatManager.userlist[window.userName].id) {
+      if  (participantId !== ChatManager.userlist[window.username].id) {
         console.log("[initChat] Set chatName to '" + chatName + "'");
         chatName = ChatManager.userIdMap[participantId];
       }
@@ -929,23 +930,23 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
   //  }
   //})
 
-  ChatManager.activePrivateChats.forEach(function(userName) {
-    var privateChat = ChatManager.chats[userName];
-    var emailHash = ChatManager.userlist[window.userName].emailHash || "00000000000";
+  ChatManager.activePrivateChats.forEach(function(username) {
+    var privateChat = ChatManager.chats[username];
+    var emailHash = ChatManager.userlist[window.username].emailHash || "00000000000";
 
-    if ( ChatManager.activeChat.name && ChatManager.activeChat.name == userName ) {
-      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+    if ( ChatManager.activeChat.name && ChatManager.activeChat.name == username ) {
+      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + username + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + username + "</li>\n";
     } else {
-      userListHtml += "<li class='private-chat chat-list-item' id='" + userName + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + userName + "</li>\n";
+      userListHtml += "<li class='private-chat chat-list-item' id='" + username + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + username + "</li>\n";
     }
   });
 
   $('#chat-list').html(userListHtml);
 
-  ChatManager.activePrivateChats.forEach(function(userName) {
-    if (userName !== window.userName) {
-      $('#' + userName).unbind().click(function() {
-        ChatManager.focusChat({ id: userName }, function(err) {
+  ChatManager.activePrivateChats.forEach(function(username) {
+    if (username !== window.username) {
+      $('#' + username).unbind().click(function() {
+        ChatManager.focusChat({ id: username }, function(err) {
           // Done
         });
       });
@@ -954,7 +955,7 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
 }
 
 /*
- * Update the user list on the left bar
+ * Update the user list on the right bar
  */
 ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var self = this;
@@ -973,14 +974,14 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
       var user = ChatManager.userlist[username];
 
-      if ( !ChatManager.chats[username] && username != window.userName ) {
+      if ( !ChatManager.chats[username] && username != window.username ) {
         console.log("chat for ",username," was empty so initializing");
-        console.log("[updateRoomUsers] GETCHAT - calling getChat from updateRoomUsers");
+        //console.log("[updateRoomUsers] GETCHAT - calling getChat from updateRoomUsers");
 
-        socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ]});
+        //socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ]});
 
         // Create the chat so that is iready for the new data we are getting from getChat
-        ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", messageCache: "", topic: "One to one encrypted chat with " + username };
+        ChatManager.chats[username] = { name: username, type: 'chat', group: 'pm', messages: "", messageCache: null, topic: "One to one encrypted chat with " + username };
 
         ChatManager.updatePrivateChats();
       }
@@ -1047,14 +1048,17 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
   $('.userPopup .username').html(usernameHtml);
 
   $('.userPopup .privateChatButton').unbind().click(function() {
-    if (username !== window.userName) {
-      ChatManager.activePrivateChats.push(username);
+    if (username !== window.username) {
+      // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
+      if (ChatManager.activePrivateChats.indexOf(username) == -1) {
+        ChatManager.activePrivateChats.push(username);
+
+        console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.username].id + "'");
+
+        socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ] });
+      };
+
       $('.userPopup').removeClass('popover').addClass('popover-hidden');
-
-      console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.userName].id + "'");
-
-      // BOOKMARK
-      //socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.userName].id ] });
 
       ChatManager.focusChat({ id: username }, function(err) {
         if ( !ChatManager.chats[username] ) {
@@ -1151,7 +1155,7 @@ ChatManager.handleMessage = function handleMessage(data) {
   var messages = $('#chat');
   var date = data.date || new Date().toISOString();
 
-  var mentionRegexString = '.*@' + window.userName + '.*';
+  var mentionRegexString = '.*@' + window.username + '.*';
   var mentionRegex = new RegExp(mentionRegexString);
   console.log("Running mention regex: " + messageString.match(mentionRegex));
   if (messageString.match(mentionRegex)) {
@@ -1162,35 +1166,50 @@ ChatManager.handleMessage = function handleMessage(data) {
   messages[0].scrollTop = messages[0].scrollHeight;
 };
 
+
+
+/*
+ * Handle an incoming one to one message (privateMessage)
+ *
+ * When receiving a message that we sent, we should change the message that we already
+ * added to our local chat from grey to black to show that it has been sent or received
+ * by the other user
+ */
 ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
+  var self = this;
+  var socket = data.socket;
   var messageString = data.messageString;
-  var fromUser = data.fromUser;
-  var toUser = data.toUser;
+  var fromUsername = data.fromUser;
+  var toUsername = data.toUser;
   var date = data.date;
+  var chatName;
 
   // If we're the ones sending the message we should add it to the correct place
-  if (fromUser == window.userName) {
-    var chat = toUser;
+  if (fromUsername == window.username) {
+    chatName = toUsername;
   // If we're receiving the message...
   } else {
-    var privateChatIndex = ChatManager.activePrivateChats.indexOf(fromUser);
+    var privateChatIndex = ChatManager.activePrivateChats.indexOf(fromUsername);
+    chatName = fromUsername;
+
     if (privateChatIndex == -1) {
-      ChatManager.activePrivateChats.push(fromUser);
+      ChatManager.activePrivateChats.push(fromUsername);
+      ChatManager.chats[chatName] = { type: 'chat', name: chatName, messageCache: '', messages: [] };
+      socket.emit('getChat', { participantIds: [ ChatManager.userlist[fromUsername].id, ChatManager.userlist[window.username].id ]});
     }
-    var chat = fromUser;
+
+    if (ChatManager.activeChat.name !== fromUsername) {
+      clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
+    }
   }
 
-  if (ChatManager.activeChat.name !== fromUser) {
-    clientNotification.send(null, 'Private message from ' + fromUser, messageString, 3000);
-  }
+  ChatManager.addMessageToChat({ type: 'chat', fromUser: fromUsername, chat: chatName, messageString: messageString, date: date });
 
-  ChatManager.addMessageToChat({ type: 'chat', fromUser: fromUser, chat: chat, messageString: messageString, date: date });
-  // TODO: Show chat here and add to chat list if it does not exist there already
-  // BOOKMARK
-  //
   console.log("Updating private chats");
   ChatManager.updatePrivateChats();
 };
+
+
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
   var type = data.type;
@@ -1243,33 +1262,22 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   return callback(messageHtml);
 };
 
+
+
 /*
  * Displays room messages in the chat window
  */
 ChatManager.refreshChatContent = function refreshChatContent(chatName) {
   var self = this;
-  var messageCache;
+  var messageCache = ChatManager.chats[chatName].messageCache;
 
   console.log("Refreshing chat content for ", chatName);
-
-  if (typeof ChatManager.chats[chatName].messageCache == 'undefined') {
-    // Get the cached chat history for this chat
-    if (ChatManager.chats[chatName].type == 'room') {
-      console.log("[refreshChatContent] Didn't have a chat for " + chatName + " so semitting getChat");
-      //socket.emit('getChat', { chatId: chatName });
-    }
-    //if (ChatManager.chats[chatName].type == 'chat') {
-    //  socket.emit('getChat', participantIds);
-    //}
-
-    ChatManager.chats[chatName].messageCache = '';
-  }
-
-  messageCache = ChatManager.chats[chatName].messageCache;
 
   $('#chat').html(messageCache);
   ChatManager.updateChatHeader(chatName);
 }
+
+
 
 ChatManager.handleChatUpdate = function handleChatUpdate(data) {
   var chat = data.chat;
@@ -1343,10 +1351,10 @@ ChatManager.sendMessage = function sendMessage(callback) {
         return callback();
       }
       else if (ChatManager.activeChat.type == 'chat') {
-        var userName = ChatManager.activeChat.name;
-        console.log("Sending private message to '" + userName + "' with message '" + preparedInput + "'");
-        ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.userName, toUser: userName, date: date });
-        socketClient.sendPrivateMessage(userName, preparedInput);
+        var username = ChatManager.activeChat.name;
+        console.log("Sending private message to '" + username + "' with message '" + preparedInput + "'");
+        ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.username, toUser: username, date: date });
+        socketClient.sendPrivateMessage(username, preparedInput);
         $('#message-input').val('');
         return callback();
       }
@@ -1458,7 +1466,7 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
   $('.ui.form.create').form('setting', {
     onSuccess: function() {
       var errorDisplay = $('.create #createError');
-      var userName = $('.create.form #username').val().toString();
+      var username = $('.create.form #username').val().toString();
       var password = $('.create.form #password').val().toString();
       var email = $('.create.form #email').val().toString();
       var confirmPassword = $('.create #confirmPassword').val().toString();
@@ -1481,7 +1489,7 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
           });
         }
         else {
-          errorDisplay.text("Username is required");
+          errorDisplay.text("username is required");
           errorDisplay.transition({
             animation: 'fade up',
             duration: '1s'
@@ -1546,18 +1554,18 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
 
       $('.ui.modal.generate').modal('show');
       ChatManager.disableChat();
-      window.encryptionManager.generateClientKeyPair(2048, userName, password, function(err, generatedKeypair) {
+      window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
         if (err) {
           console.log("Error generating client keypair: "+err);
         } else {
           //console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
 
-          window.userName = userName;
+          window.username = username;
           window.email = email;
           window.fullName = fullName;
 
-          //console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
-          localStorage.setItem('userName', userName);
+          //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
+          localStorage.setItem('username', username);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           localStorage.setItem('email', email);
           //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
@@ -1591,7 +1599,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
   $('.ui.form.create').form('setting', {
     onSuccess: function() {
       var errorDisplay = $('.create #createError');
-      var userName = $('.create.form #username').val();
+      var username = $('.create.form #username').val();
       var password = $('.create.form #password').val();
       var confirmPassword = $('.create #confirmPassword').val();
 
@@ -1613,7 +1621,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
           });
         }
         else {
-          errorDisplay.text("Username is required");
+          errorDisplay.text("username is required");
           errorDisplay.transition({
             animation: 'fade up',
             duration: '1s'
@@ -1678,15 +1686,15 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 
       $('.ui.modal.generate').modal('show');
       ChatManager.disableChat();
-      window.encryptionManager.generateClientKeyPair(2048, userName, password, function(err, generatedKeypair) {
+      window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
         if (err) {
           console.log("Error generating client keypair: "+err);
         } else {
           console.log("[CHAT MANAGER] (promptForCredentials) Generated client key pair.");
-          window.userName = userName;
-          console.log("[CHAT MANAGER] (promptForCredentials) userName: "+userName+" window.userName: "+window.userName);
+          window.username = username;
+          console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
 
-          localStorage.setItem('userName', userName);
+          localStorage.setItem('username', username);
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
           $('.ui.modal.generate').modal('hide');
@@ -1703,7 +1711,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 
 ChatManager.promptForPassphrase = function(callback) {
   console.log("[promptForPassphrase] Prompting for passphrase");
-  $('.ui.modal.unlock .username').text(window.userName);
+  $('.ui.modal.unlock .username').text(window.username);
   $('.ui.modal.unlock')
     .modal('setting', 'closable', false)
     .modal('setting', {
@@ -1772,7 +1780,7 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
     var publicKeyContents = null;
     var privateKeyFile = document.getElementById('privatekey-file-input').files[0];
     var privateKeyContents = null;
-    var userName = document.getElementById('username-input').value;
+    var username = document.getElementById('username-input').value;
 
     if (publicKeyFile && privateKeyFile) {
       var regex = /\r?\n|\r/g
@@ -1787,7 +1795,7 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
           var data = ({
             publicKey: publicKeyContents,
             privateKey: privateKeyContents,
-            userName: userName,
+            username: username,
           });
           callback(null, data);
         };

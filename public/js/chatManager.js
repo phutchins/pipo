@@ -888,7 +888,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
   console.log("Updating room list!");
   var chatNames = Object.keys(ChatManager.chats)
   chatNames.forEach(function(chatName) {
-    if (ChatManager.chats[chatName].type == 'room') {
+    if (ChatManager.chats[chatName].type == 'room' && ChatManager.chats[chatName].joined) {
       // Catch clicks on the room list to update room focus
       if ( !$('#room-list #' + chatName).length ) {
         if ( ChatManager.activeChat.name && ChatManager.activeChat.name == chatName ) {

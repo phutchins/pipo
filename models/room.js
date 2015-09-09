@@ -143,18 +143,24 @@ roomSchema.statics.join = function join(data, callback) {
         user.membership._currentRooms.push(room);
         user.save();
         return callback(null, { auth: true, room: room });
-      } else {
-        logger.debug("User " + userName + " unable to join #" + name + " due to incorrect membership");
-        // Should not return room name? Should catch error...
-        return callback(null, { auth: false, room: { name: name } });
       }
+
+      logger.debug("User " + userName + " unable to join #" + name + " due to incorrect membership");
+
+      // Should not return room name? Should catch error...
+      if (!user.membership._currentRooms.includes(room)) {
+        user.membership._currentRooms.push(room);
+        user.save();
+      }
+
+      return callback(null, { auth: false, room: { name: name } });
     })
   })
 };
 
 roomSchema.statics.part = function part(data, callback) {
   mongoose.model('User').findOne({ userName: data.userName }).populate('membership._currentRooms').exec(function(err, user) {
-    mongoose.model('Room').findOne({ name: data.name }).populate('_members _admins _owner').exec(function(err, room) {
+    mongoose.model('Room').findOne({ name: data.name }).populate('_members _admins _owner membership._currentRooms').exec(function(err, room) {
       if (err) {
         return callback(err, false);
       }

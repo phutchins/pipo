@@ -211,7 +211,16 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user.userName] = { id: user._id.toString(), userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      // Should move this to its own sanatize method
+      var currentRoomsArray = [];
+
+      if (user.membership._currentRooms.length > 0) {
+        user.membership._currentRooms.forEach(function(room) {
+          currentRoomsArray.push(room.name);
+        });
+      };
+
+      userlist[user.userName] = { id: user._id.toString(), userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title, membership: { currentRooms: currentRoomsArray } };
     })
     return callback(userlist);
   })

@@ -627,7 +627,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     });
   } else {
     // Using client key encryption scheme
-    // Move this to its own function (sanatizeRoomForClient)
     Room.join({name: roomName, userName: userName}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
@@ -636,14 +635,17 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
+
         if (!auth) {
           return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
         }
-        //logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
+
         self.socket.join(room.name);
-        logger.debug("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
+
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
+
         logger.debug("[SOCKET SERVER] (joinRoom) Sending updateRoomUsers for room " + room.name);
+
         self.updateRoomUsers(room.name);
       })
     })
@@ -696,7 +698,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   };
 
   return callback(sanatizedRoom);
-}
+};
 
 function dynamicSort(property) {
     var sortOrder = 1;

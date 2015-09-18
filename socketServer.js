@@ -90,6 +90,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   var systemUserData = {
     username: 'pipo',
     email: 'pipo@pipo.chat',
+    publicKey: ''
   }
 
   // Move this to User.getSystemUser
@@ -204,6 +205,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       // Get complete userlist to send to client on initial connection
       logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
+        logger.debug("[socketServer.authenticateOrCreate] sanatizeRoomForClient 1");
         self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
           //logger.info("Sanatized default room #",sanatizedRoom.name," with data: ",sanatizedRoom);
           User.getAllUsers({}, function(userlist) {
@@ -225,12 +227,14 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           var rooms = {};
           roomData.rooms.forEach(function(room) {
+            logger.debug("[socketServer.authenticateOrCreate] sanatizeRoomForClient 2");
             self.sanatizeRoomForClient(room, function(sanatizedRoom) {
               rooms[sanatizedRoom.name] = sanatizedRoom;
             })
 
-            self.socket.emit('roomUpdate', { rooms: rooms });
           })
+
+          self.socket.emit('roomUpdate', { rooms: rooms });
 
           logger.debug("[INIT] Emitting user connect for",user.username);
           return self.namespace.emit('user connect', {
@@ -644,6 +648,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       var auth = data.auth;
       var room = data.room;
 
+      room.members.forEach(function(member) {
+        logger.debug("[socketServer.joinRoom] Room has member: ",member._member.username);
+      });
+      logger.debug("[socketServer.joinRoom] sanatizeRoomForClient 3");
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
@@ -653,7 +661,11 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         }
         //logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
         self.socket.join(room.name);
-        logger.debug("[SOCKET SERVER] (joinRoom) Sending joinRoom in clientKey mode");
+        logger.debug("[SOCKET SERVER] (joinRoom) Sending joinComplete in clientKey mode");
+        var rooms = {};
+        rooms[room.name] = sanatizedRoom;
+        logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete with rooms: ",rooms);
+        //self.socket.emit('roomUpdate', { rooms: rooms } );
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
         logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveMembers for room " + room.name);
         self.updateActiveMembers(room.name);
@@ -674,20 +686,24 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
     var ownerusername = null;
   }
 
-  var membersLength = room._members.length;
+  var membersLength = room.members.length;
   var adminsLength = room._admins.length;
 
   var membersArray = [];
+  var memberStatus = {};
   var adminsArray = [];
 
   if (membersLength > 0) {
-    room._members.forEach(function(member) {
-      membersArray.push(member.username);
+    room.members.forEach(function(member) {
+      logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", member._member.username," to membersArray");
+      membersArray.push(member._member.username);
+      memberStatus[member._member.username] = member.active;
     })
   }
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
+      logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", admin.username," to adminsArray");
       adminsArray.push(admin.username);
     })
   }
@@ -698,15 +714,18 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
     name: room.name,
     topic: room.topic,
     group: room.group,
+    messageCache: '',
     messages: room._messages.sort(dynamicSort("date")),
     encryptionScheme: room.encryptionScheme,
     keepHistory: room.keepHistory,
     membershipRequired: room.membershipRequired,
     members: membersArray,
+    memberStatus: memberStatus,
     admins: adminsArray,
     owner: ownerusername
   };
 
+  logger.debug("[socketServer.sanatizeRoomForClient] Returning sanatizedRoom:",sanatizedRoom);
   return callback(sanatizedRoom);
 }
 
@@ -745,6 +764,7 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     self.socket.emit('createRoomComplete', { name: data.name });
     logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
+    logger.debug("[socketServer.createRoom] sanatizeRoomForClient 4");
     self.sanatizeRoomForClient(newRoom, function(sanatizedRoom) {
       rooms[newRoom.name] = sanatizedRoom;
       if (roomData.membershipRequired) {
@@ -828,6 +848,7 @@ SocketServer.prototype.membership = function membership(data) {
 
       self.socket.emit('membershipUpdateComplete', addResultData);
       Room.findOne({ name: roomName }).populate('_members _admins _owner').exec(function(err, room) {
+        logger.debug("[socketServer.membership] sanatizeRoomForClient 5");
         self.sanatizeRoomForClient(room, function(sanatizedRoom) {
           var rooms = {};
           rooms[room.name] = sanatizedRoom;
@@ -872,6 +893,7 @@ SocketServer.prototype.membership = function membership(data) {
         })
         logger.debug("[SOCKET SERVER] (membership) Room admins: ",adminsArray);
         var rooms = {};
+        logger.debug("[socketServer.membership] sanatizeRoomForClient 6");
         self.sanatizeRoomForClient(room, function(sanatizedRoom) {
           logger.debug("[SOCKET SERVER] (membership) Room sanatized. Adding to rooms list and sending roomUpdate to namespace");
           rooms[room.name] = sanatizedRoom;
@@ -937,9 +959,9 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   var self = this;
   var scope = data.scope;
   User.getAllUsers({}, function(userlist) {
-    logger.debug("[UPDATE USER LIST] Got data for userlist update with scope '"+scope+"' :",userlist);
+    logger.debug("[socketServer.updateUserList] Got data for userlist update with scope '"+scope);
     User.buildUserIdMap({userlist: userlist}, function(userIdMap) {
-      var userIdMap = userIdMap || {};
+      logger.debug("[socketServer.updateUserList] Returning userIdMap");
       if (scope == 'all') {
         self.namespace.emit("userlistUpdate", {
           userlist: userlist,

@@ -124,7 +124,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("[SOCKET] 'userlistUpdate'");
 
     ChatManager.userlist = userlist;
-    ChatManager.userIdMap = uesrIdMap;
+    ChatManager.userIdMap = userIdMap;
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
@@ -209,7 +209,13 @@ SocketClient.prototype.addListeners = function() {
     }
 
     console.log("[USERLIST UPDATE] Updating userlist");
-    ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
+
+    //
+    // Need to hash out using active to update the room users list
+    // Should probably do this in roomUpdate or chatUpdate instead
+    // Break this up into roomUpdate, chatUpdate and key add/remove methods
+    //
+    //ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
     if (ChatManager.activeChat && ChatManager.activeChat.name == roomName) {
       ChatManager.updateRoomUsers({ room: roomName, socket: self.socket });
     }
@@ -327,37 +333,37 @@ SocketClient.prototype.joinComplete = function(data) {
     //}
 
     return ChatManager.showError(err);
-  } else {
-    console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
-
-    window.encryptionManager.encryptionScheme[room.name] = data.encryptionScheme;
-
-    console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
-
-    if (data.encryptionScheme == 'masterKey') {
-      var masterKeyPair = data.masterKeyPair;
-
-      console.log("[SOCKET] (joinComplete) Loading master key pair...");
-
-      // TODO: Need to make sure clientKeyManager is decrypted here
-      window.encryptionManager.loadMasterKeyPair(room.name, masterKeyPair, function(err, loaded) {
-        if (err) { return console.log("[INIT] ERROR loading master key pair") };
-
-        if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
-
-        console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
-      });
-    } else {
-      console.log("[INIT] Enabling chat in clientKey mode");
-    }
-
-    ChatManager.initRoom(room, function(err) {
-      ChatManager.chats[room.name].joined = true;
-      ChatManager.updateRoomList(function() {
-        ChatManager.enableChat(room, data.encryptionScheme);
-      });
-    });
   }
+
+  console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
+
+  window.encryptionManager.encryptionScheme[room.name] = data.encryptionScheme;
+
+  console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
+
+  if (data.encryptionScheme == 'masterKey') {
+    var masterKeyPair = data.masterKeyPair;
+
+    console.log("[SOCKET] (joinComplete) Loading master key pair...");
+
+    // TODO: Need to make sure clientKeyManager is decrypted here
+    window.encryptionManager.loadMasterKeyPair(room.name, masterKeyPair, function(err, loaded) {
+      if (err) { return console.log("[INIT] ERROR loading master key pair") };
+
+      if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
+
+      console.log("[INIT] Done decrypting master and client credentials - ENABLEING CHAT");
+    });
+  } else {
+    console.log("[INIT] Enabling chat in clientKey mode");
+  }
+
+  ChatManager.initRoom(room, function(err) {
+    ChatManager.chats[room.name].joined = true;
+    ChatManager.updateRoomList(function() {
+      ChatManager.enableChat(room, data.encryptionScheme);
+    });
+  });
 };
 
 SocketClient.prototype.partComplete = function(data) {

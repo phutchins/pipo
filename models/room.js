@@ -12,8 +12,8 @@ var roomSchema = new Schema({
   createDate: { type: Date },
   _owner: { type: mongoose.SchemaTypes.ObjectId, ref: "User", default: null },
   _admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _members: [{
-    member: { type: mongoose.SchemaTypes.ObjectId, ref: "User", default: []  },
+  members: [{
+    _member: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
     active: { type: Boolean, default: false }
   }],
   _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message", default: [] }]
@@ -28,6 +28,8 @@ roomSchema.statics.create = function create(data, callback) {
   var encryptionScheme = data.encryptionScheme;
   var keepHistory = data.keepHistory;
   var membershipRequired = data.membershipRequired;
+
+  logger.debug("[room.create] Creating room #" + roomName + " with owner ", ownerName);
 
   mongoose.model('User').findOne({ username: ownerName }, function(err, owner) {
     if (err) {
@@ -48,9 +50,10 @@ roomSchema.statics.create = function create(data, callback) {
       createDate: Date.now(),
       _owner: owner,
       _admins: [],
-      _members: []
+      members: []
     })
     //newRoom._members.push(user);
+    newRoom.members.push({ _member: owner });
     newRoom.save(function(err) {
       callback(null, newRoom);
     })
@@ -62,7 +65,7 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 
   logger.debug("[ROOM] (getByName) Finding room #" + name + " by name");
   mongoose.model('Room').findOne({ name: name })
-    .populate('_members _owner _admins')
+    .populate('_members _owner _admins members._member')
     .exec(function(err, room) {
     if (err) {
       return logger.error("[ROOM] (getByName) Error getting room:",err);
@@ -129,7 +132,7 @@ roomSchema.statics.join = function join(data, callback) {
   var name = data.name;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     var user = user;
-    mongoose.model('Room').findOne({ name: name }).populate('_members _owner _admins _messages').exec(function(err, room) {
+    mongoose.model('Room').findOne({ name: name }).populate('members._member _owner _admins _messages').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
@@ -142,15 +145,24 @@ roomSchema.statics.join = function join(data, callback) {
           return self.join(data, callback);
         })
       }
-      var isMember = room._members.some(function(member) {
-        return member._id.equals(user._id);
+      var isMember = room.members.some(function(member) {
+        return member._member._id.equals(user._id);
       });
       if (isMember || !self.membershipRequired || room.name == 'pipo') {
-        //self.populate(room, { path: '_owner _admins messages._user' });
         logger.debug("User " + username + " has joined #" + data.name);
+
         mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
-        user.save();
-        return callback(null, { auth: true, room: room });
+
+        self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
+          var updatedRoom = data.room;
+          if (data.err) {
+            return logger.error("[room.join] Error: data.err");
+          }
+
+          user.save();
+          // Should get the updated room to return in callback
+          return callback(null, { auth: true, room: updatedRoom });
+        });
       } else {
         logger.debug("User " + username + " unable to join #" + name + " due to incorrect membership");
         // Should not return room name? Should catch error...
@@ -158,6 +170,44 @@ roomSchema.statics.join = function join(data, callback) {
       }
     })
   })
+};
+
+/*
+ * Add a user as a member of a public room so that they get notifications and appear in the userlist
+ */
+roomSchema.statics.subscribe = function subscribe(data, callback) {
+  var self = this;
+  var userId = data.userId;
+  var roomId = data.roomId;
+
+  mongoose.model('User').findOne({ _id: userId }, function(err, user) {
+    mongoose.model('Room').findOne({ _id: roomId }).populate('_owner _admins members._member _messages').exec(function(err, room) {
+      // If the room is public allow to proceede
+      if (err) {
+        return callback({ err: err });
+      }
+
+      if (room.membershipRequired) {
+        return callback({ status: 'fail', message: "Membership is required to subscribe to this room" });
+      };
+
+      if (room.members.map(function(e) { return e._member._id.toString(); }).indexOf(user._id.toString()) == -1) {
+        room.members.push({ _member: user });
+        room.save(function(err) {
+          return callback({ status: 'success', room: room });
+        });
+      };
+
+      return callback({ status: 'success', room: room });
+    });
+  });
+};
+
+/*
+ * Remove a users membership to a public room so that they do not show up in the userlist and do not get notifications
+ */
+roomSchema.statics.unsubscribe = function subscribe(data, callback) {
+
 };
 
 roomSchema.statics.part = function part(data, callback) {
@@ -212,7 +262,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
       return callback({ success: false, message: "No user '" + username + "' found." });
     }
 
-    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner').exec( function(err, room) {
+    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner members._member').exec( function(err, room) {
       if (err) {
         logger.error("[ROOM] (addMember) Error while trying to find room");
         return callback({ success: false, message: "Error finding room" });
@@ -225,11 +275,11 @@ roomSchema.statics.addMember = function addMember(data, callback) {
 
       var isRoomAdmin = null;
       var isRoomOwner = null;
+      var adminsArray = [];
 
       logger.debug("room._owner.username:", room._owner.username);
-
-      var adminsArray = [];
       logger.debug("room._admins.length: ", room._admins.length);
+
       if (room._admins) {
         Object.keys(room._admins).forEach(function(key) {
           adminsArray.push(room._admins[key].username);
@@ -240,11 +290,14 @@ roomSchema.statics.addMember = function addMember(data, callback) {
       }
 
       logger.debug("[ROOM] room._owner._id: ",room._owner._id," user._id: ",user._id.toString());
+
       if (room._owner) {
         isRoomOwner = room._owner._id.equals(user._id);
         logger.debug("[ROOM] user is owner...");
       }
+
       logger.debug("Attempting to add member to room - isRoomOwner: " + isRoomOwner + " isRoomAdmin: " + isRoomAdmin);
+
       if (isRoomAdmin || isRoomOwner) {
         logger.debug("[ROOM] User is admin or owner");
         mongoose.model('User').findOne({ username: member }, function(err, memberObj) {
@@ -254,11 +307,13 @@ roomSchema.statics.addMember = function addMember(data, callback) {
             return callback({ success: false, message: "I cannot find the user '" + member + "' so I am unable to add them to #" + room.name } );
           }
 
-          var isInArray = room._members.some(function (member) {
-            return member.equals(memberObj._id);
+          logger.debug("[room.addMember] Room members is: ",room.members);
+          var isInArray = room.members.some(function (member) {
+            return member._member.equals(memberObj._id);
           });
 
           // Dying somewhere around here and not calling callback
+
           logger.debug("[ROOM] isInArray: ",isInArray);
           if (isInArray) {
             return callback({ success: false, message: "User '" + member + "' is already a member of this room" } );
@@ -267,7 +322,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
           logger.debug("[ROOM] pushing member",memberObj.username,"to room",room.name,"as a",membership);
 
           if (membership == 'member') {
-            room._members.push(memberObj);
+            room.members.push({ _member: memberObj });
             pushed = true;
           }
 

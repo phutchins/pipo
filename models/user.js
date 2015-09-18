@@ -173,20 +173,20 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
 /*
  * Get the list of rooms that a user is a member of or able to join
  */
-userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
-  logger.debug("Building available rooms list...");
+userSchema.statics.availableRooms = function availableRooms(data, callback) {
+  logger.debug("[user.availableRooms] Building available rooms list...");
   var username = data.username;
-  this.findOne({ username: username }).populate('_members').exec(function(err, user) {
-    logger.debug("Found user ",username," for which we are building the room list");
-    Room.find({ $or: [ { _members: user }, { _admins: user }, { _owner: user }, { membershipRequired: false } ] }).populate('_members _admins _owner').exec(function(err, rooms) {
+  this.findOne({ username: username }).exec(function(err, user) {
+    logger.debug("[user.availableRooms] Found user ",username," for which we are building the room list");
+    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('members._member _admins _owner').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }
       if (!rooms) {
-        logger.debug("No rooms found for member");
+        logger.debug("[user.availableRooms] No rooms found for member");
         return callback(null, { rooms: null });
       }
-      logger.debug("Found rooms for member " + username + " : " + Object.keys(rooms).toString());
+      logger.debug("[user.availableRooms] Found rooms for member " + username + " : " + Object.keys(rooms).toString());
       return callback(null, { rooms: rooms });
     })
   })

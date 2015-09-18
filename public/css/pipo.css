@@ -954,3 +954,11 @@ button, input, select, textarea {
   width: 200px;
   float: right;
 }
+
+.user-active {
+  opacity: 0;
+}
+
+.user-inactive {
+  opacity: 0.5;
+}

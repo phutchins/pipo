@@ -470,76 +470,76 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var memberDropdownTypes = ['admin', 'member'];
 
-  var allMembers = {
-    "owner": [ owner ],
-    "admin": admins,
-    "member": members
-  };
+  var memberList = {};
 
-  Object.keys(allMembers).forEach(function(key) {
-    var memberSet = allMembers[key];
+  members.forEach(function(memberName) {
+    memberList[memberName] = 'member';
+  });
 
-    if (memberSet) {
-      memberSet.forEach(function(member) {
+  memberList[owner] = 'owner';
 
-        var dropdownHtml = '';
+  admins.forEach(function(adminName) {
+    memberList[adminName] = 'admin';
+  });
 
-        var li = $('<li/>')
-          .addClass('manage-members-list-item')
-          .addClass(member)
-          .appendTo(manageMembersList);
+  Object.keys(memberList).forEach(function(memberName) {
+    var membershipType = memberList[memberName];
+    var dropdownHtml = '';
 
-        var memberSpan = $('<span/>')
-          .addClass('manage-members-list-member')
-          .text(member)
-          .appendTo(li);
+    var li = $('<li/>')
+      .addClass('manage-members-list-item')
+      .addClass(memberName)
+      .appendTo(manageMembersList);
 
-        var optionsDiv = $('<div/>')
-          .addClass('manage-members-list-options')
-          .appendTo(li);
+    var memberSpan = $('<span/>')
+      .addClass('manage-members-list-member')
+      .text(memberName)
+      .appendTo(li);
 
-        var membershipDropdown = $('<select/>')
-          .addClass('ui')
-          .addClass('dropdown')
-          .addClass('manage-members-list-membership-dropdown')
-          .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option><option class="remove">remove</option>')
-          .appendTo(optionsDiv);
+    var optionsDiv = $('<div/>')
+      .addClass('manage-members-list-options')
+      .appendTo(li);
 
-        var membershipChangeSave = $('<button/>')
-          .attr('id', member)
-          .addClass('ui')
-          .addClass('primary')
-          .addClass('button')
-          .addClass('save')
-          .addClass(member)
-          .text('Save')
-          .appendTo(optionsDiv);
+    var membershipDropdown = $('<select/>')
+      .addClass('ui')
+      .addClass('dropdown')
+      .addClass('manage-members-list-membership-dropdown')
+      .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option><option class="remove">remove</option>')
+      .appendTo(optionsDiv);
 
-        $('.manage-members-list-item.' + member + ' .' + key).prop('selected', 'true');
+    var membershipChangeSave = $('<button/>')
+      .attr('id', memberName)
+      .addClass('ui')
+      .addClass('primary')
+      .addClass('button')
+      .addClass('save')
+      .addClass(memberName)
+      .text('Save')
+      .appendTo(optionsDiv);
 
-        /*
-         * Catch click on membership save button
-         */
-        // TODO: Need to add the users ID to the userlist object
-        $('.manage-members-list .button.save.' + member).click(function(e) {
-          console.log("[ADD MEMBER] Caught membership save button click");
+    $('.manage-members-list-item.' + memberName + ' .' + membershipType).prop('selected', 'true');
 
-          var roomName = $('.manage-members-modal .roomname').val();
-          var modifyMember = e.currentTarget.id;
-          var newMembership = e.currentTarget.previousSibling.value;
+    /*
+     * Catch click on membership save button
+     */
+    // TODO: Need to add the users ID to the userlist object
+    $('.manage-members-list .button.save.' + memberName).click(function(e) {
+      console.log("[ADD MEMBER] Caught membership save button click");
 
-          var membershipData = ({
-            type: 'modify',
-            member: modifyMember,
-            roomName: roomName,
-            membership: newMembership
-          });
+      var roomName = $('.manage-members-modal .roomname').val();
+      var modifyMember = e.currentTarget.id;
+      var newMembership = e.currentTarget.previousSibling.value;
 
-          socketClient.membership(membershipData);
-          // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
-        })
-      })
-    }
+      var membershipData = ({
+        type: 'modify',
+        member: modifyMember,
+        roomName: roomName,
+        membership: newMembership
+      });
+
+      socketClient.membership(membershipData);
+      // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
+    })
   })
 };
 
@@ -628,13 +628,10 @@ ChatManager.getCaret = function getCaret(el) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
-  console.log("Adding room " + room.name + " to the room list");
+  console.log("Running initRoom for " + room.name);
+
   // TODO: Should store online status for members and messages in an object or array also
-  console.log("Room is : ",room);
 
-  // Decrypt room messages
-
-  // Format room messages
   self.chats[room.name] = { id: room.id,
     name: room.name,
     type: 'room',
@@ -650,6 +647,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
     admins: room.admins,
     owner: room.owner
   };
+
+  self.chats[room.name] = room;
 
   // Decrypt messages and HTMLize them
   var messages = self.chats[room.name].messages.sort(dynamicSort("date"));
@@ -687,21 +686,16 @@ ChatManager.initRoom = function initRoom(room, callback) {
     })
   })
 
-  debugger;
-
   if (ChatManager.activeChat && ChatManager.activeChat.name == room.name && !ChatManager.activeChat.focused) {
-    debugger;
-    self.updateRoomList(function(err) {
-      console.log("Update room list done...");
-      callback(null);
-    });
-
     self.focusChat({ id: room.name }, function(err) {
       console.log("Room focus for " + room.name + " done");
     });
   }
 
-  debugger;
+  self.updateRoomList(function(err) {
+    console.log("Update room list done...");
+    callback(null);
+  });
 };
 
 ChatManager.initChat = function initChat(chat, callback) {
@@ -774,16 +768,16 @@ ChatManager.initChat = function initChat(chat, callback) {
     })
   });
 
-  self.updateRoomList(function(err) {
-    console.log("Update room list for initChat done...");
-    callback(null);
-  })
-
   if (ChatManager.activeChat && ChatManager.activeChat.name == chat.id) {
     self.focusChat({ id: chat.id }, function(err) {
       console.log("Room focus for " + chat.id + " done");
     });
   }
+
+  self.updateRoomList(function(err) {
+    console.log("Update room list for initChat done...");
+    callback(null);
+  })
 };
 
 
@@ -972,15 +966,20 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var members = ChatManager.chats[room].members;
   var userListHtml = "";
 
-  debugger;
-
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
 
+  debugger;
+
+
   if (members.length > 0) {
     members.forEach(function(username) {
-      console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
+      debugger;
+
+      var active = ChatManager.chats[room].memberStatus[username];
       var user = ChatManager.userlist[username];
+
+      console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
 
       if ( !ChatManager.chats[username] && username != window.username ) {
         console.log("chat for ",username," was empty so initializing");
@@ -1000,7 +999,13 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
         var emailHash = user.emailHash;
       }
 
-      userListHtml += "<li class='user-list-li' id='userlist-" + username + "' name='" + username + "' data-content='" + username + "'>\n";
+      // If user is active class = active
+      if (active) {
+        userListHtml += "<li class='user-list-li user-active' id='userlist-" + username + "' name='" + username + "' data-content='" + username + "'>\n";
+      } else {
+        // If user is not active class = inactive
+        userListHtml += "<li class='user-list-li user-inactive' id='userlist-" + username + "' name='" + username + "' data-content='" + username + "'>\n";
+      }
       userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=''>\n";
       userListHtml += "  </div>\n";
       userListHtml += "</li>\n";
@@ -1063,6 +1068,7 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 
         console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.username].id + "'");
 
+        // This emit is null
         socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ] });
       };
 

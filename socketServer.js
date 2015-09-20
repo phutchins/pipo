@@ -79,7 +79,7 @@ SocketServer.prototype.init = function init() {
 
 
 /*
- * Create the default room if it does not exist
+ * Get the default room or create it if it does not exist
  */
 SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   var self = this;
@@ -189,6 +189,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
     // Push the current socket to the users socketMap arary
     self.namespace.userMap[user.username].push(self.socket.id);
+
+    logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user.username]);
 
     self.socket.user = user;
     logger.debug("[INIT] Init'd user " + user.username);
@@ -644,30 +646,50 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   } else {
     // Using client key encryption scheme
     // Move this to its own function (sanatizeRoomForClient)
+    // BOOKMARK
     Room.join({name: roomName, username: username}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
 
+      if (!room) {
+        if (err) {
+          return self.socket.emit('joinComplete', { err: "Error joining room:" + err });
+        }
+
+        if (!auth) {
+          return self.socket.emit('joinComplete', { err: "Sorry, you are not authorized to join this room" });
+        }
+      }
+
+      // BUG: room is undefined after creating a room
+      if (room.members) {
+        logger.debug("[socketServer.joinRoom] room.members[0]._member.username: ", room.members[0]._member.username);
+        logger.debug("[socketServer.joinRoom] room.members.length: " + room.members.length);
+      }
+
       room.members.forEach(function(member) {
         logger.debug("[socketServer.joinRoom] Room has member: ",member._member.username);
       });
+
       logger.debug("[socketServer.joinRoom] sanatizeRoomForClient 3");
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
-        if (!auth) {
-          return self.socket.emit('joinComplete', { err: "Sorry, you are not a member of room " + room.name });
-        }
+
         //logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
         self.socket.join(room.name);
         logger.debug("[SOCKET SERVER] (joinRoom) Sending joinComplete in clientKey mode");
         var rooms = {};
         rooms[room.name] = sanatizedRoom;
-        logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete with rooms: ",rooms);
-        //self.socket.emit('roomUpdate', { rooms: rooms } );
+        logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete");
+
+        // TODO: Should only do one of these probably
+        self.socket.emit('roomUpdate', { rooms: rooms } );
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
+
         logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveMembers for room " + room.name);
+
         self.updateActiveMembers(room.name);
       })
     })
@@ -688,45 +710,102 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
 
   var membersLength = room.members.length;
   var adminsLength = room._admins.length;
+  var activeUsersLength = room._activeUsers.length;
+  var subscribersLength = room._subscribers.length;
 
   var membersArray = [];
-  var memberStatus = {};
   var adminsArray = [];
+  var subscribersArray = [];
+  var activeUsersArray = [];
+  var messagesArray = [];
+
+  logger.debug("[sockerServer.sanatizeRoomForClient] room.members.length: ", room.members.length);
+  logger.debug("[socketServer.sanatizeRoomForClient] room.members[0].username: " + room.members[0]._member.username);
 
   if (membersLength > 0) {
     room.members.forEach(function(member) {
       logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", member._member.username," to membersArray");
-      membersArray.push(member._member.username);
-      memberStatus[member._member.username] = member.active;
-    })
-  }
+      logger.debug("[socketServer.sanatizeRoomForClient] Looping member: ",member._member._id);
+      membersArray.push(member._member._id.toString());
+    });
+  };
+
+  if (subscribersLength > 0) {
+    room._subscribers.forEach(function(subscriber) {
+      logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", subscriber.id, " to subscribersArray");
+      subscribersArray.push(subscriber._id.toString());
+    });
+  };
+
+  if (activeUsersLength > 0) {
+    room._activeUsers.forEach(function(activeUser) {
+      logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", activeUser.username, " to activeUsers");
+      activeUsersArray.push(activeUser._id.toString());
+    });
+  };
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
       logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", admin.username," to adminsArray");
-      adminsArray.push(admin.username);
-    })
-  }
-
-  var sanatizedRoom = {
-    id: room._id.toString(),
-    type: 'room',
-    name: room.name,
-    topic: room.topic,
-    group: room.group,
-    messageCache: '',
-    messages: room._messages.sort(dynamicSort("date")),
-    encryptionScheme: room.encryptionScheme,
-    keepHistory: room.keepHistory,
-    membershipRequired: room.membershipRequired,
-    members: membersArray,
-    memberStatus: memberStatus,
-    admins: adminsArray,
-    owner: ownerusername
+      adminsArray.push(admin._id.toString());
+    });
   };
 
-  logger.debug("[socketServer.sanatizeRoomForClient] Returning sanatizedRoom:",sanatizedRoom);
-  return callback(sanatizedRoom);
+  if (room._messages.length > 0) {
+    var processedMessages = 0;
+    room._messages.forEach(function(message) {
+      var toUsersArray = [];
+
+      message._toUsers.forEach(function(toUser) {
+        logger.debug("[socketServer.sanatizeRoomForClient] Looping toUsers, _toUser._id is: " + toUser._id.toString());
+        toUsersArray.push(toUser._id.toString());
+      });
+
+      message.populate('_fromUser', function() {
+
+        logger.debug("[socketServer.sanatizeRoomForClient] Looping messages, from user is : " + message._fromUser._id.toString());
+
+        var sanatizedMessage = {
+          date: message.date,
+          fromUser: message._fromUser.id.toString(),
+          toUsers: toUsersArray,
+          encryptedMessage: message.encryptedMessage
+        };
+
+        messagesArray.push(sanatizedMessage);
+        processedMessages++;
+
+        if (processedMessages == room._messages.length) {
+          finish();
+        };
+      });
+    })
+  };
+
+  var finish = function finish() {
+    logger.debug("[socketServer.sanatizeRoomForClient] Finishing...");
+
+    var sanatizedRoom = {
+      id: room._id.toString(),
+      type: 'room',
+      name: room.name,
+      topic: room.topic,
+      group: room.group,
+      messageCache: '',
+      messages: messagesArray.sort(dynamicSort("date")),
+      encryptionScheme: room.encryptionScheme,
+      keepHistory: room.keepHistory,
+      membershipRequired: room.membershipRequired,
+      members: membersArray,
+      activeUsers: activeUsersArray,
+      subscribers: subscribersArray,
+      admins: adminsArray,
+      owner: room._owner._id.toString()
+    };
+
+    logger.debug("[socketServer.sanatizeRoomForClient] Returning sanatizedRoom:",sanatizedRoom);
+    return callback(sanatizedRoom);
+  }
 }
 
 function dynamicSort(property) {
@@ -765,6 +844,8 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
     logger.debug("[socketServer.createRoom] sanatizeRoomForClient 4");
+    logger.debug("[sockerServer.createRoom] newRoom.members.length: " + newRoom.members.length);
+    logger.debug("[socketServer.createRoom] newRoom.members[0]: " + newRoom.members[0]);
     self.sanatizeRoomForClient(newRoom, function(sanatizedRoom) {
       rooms[newRoom.name] = sanatizedRoom;
       if (roomData.membershipRequired) {
@@ -1060,7 +1141,13 @@ SocketServer.prototype.disconnect = function disconnect() {
     })
 
     // Delete disconnecting users socket from socket array
-    delete self.namespace.userMap[self.socket.user.username][self.socket.id];
+    // TODO: May be better to find a way to use socketIO's namespace and the users username to check all active sockets
+    if (self.namespace.userMap && self.namespace.userMap[self.socket.user.username]) {
+      var indexOfSocketId = self.namespace.userMap[self.socket.user.username].indexOf(self.socket.id);
+      if (indexOfSocketId > -1) {
+        self.namespace.userMap[self.socket.user.username].splice(indexOfSocketId, 1);
+      };
+    };
 
     // If there are no more sockets in the array, delete the usermap entry for that user
     if (Object.keys(self.namespace.userMap[self.socket.user.username]).length == 0) {

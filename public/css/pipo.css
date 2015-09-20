@@ -956,7 +956,7 @@ button, input, select, textarea {
 }
 
 .user-active {
-  opacity: 0;
+  opacity: 1;
 }
 
 .user-inactive {

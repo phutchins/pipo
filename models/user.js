@@ -176,9 +176,10 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
 userSchema.statics.availableRooms = function availableRooms(data, callback) {
   logger.debug("[user.availableRooms] Building available rooms list...");
   var username = data.username;
+  // TODO: This may should just return room ids
   this.findOne({ username: username }).exec(function(err, user) {
     logger.debug("[user.availableRooms] Found user ",username," for which we are building the room list");
-    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('members._member _admins _owner').exec(function(err, rooms) {
+    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('members._member _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }

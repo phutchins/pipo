@@ -472,13 +472,15 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var memberList = {};
 
-  members.forEach(function(memberName) {
+  members.forEach(function(userId) {
+    var memberName = ChatManager.userIdMap[userId];
     memberList[memberName] = 'member';
   });
 
-  memberList[owner] = 'owner';
+  memberList[ChatManager.userIdMap[owner]] = 'owner';
 
-  admins.forEach(function(adminName) {
+  admins.forEach(function(userId) {
+    var adminName = ChatManager.userIdMap[userId];
     memberList[adminName] = 'admin';
   });
 
@@ -964,19 +966,23 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var socket = data.socket;
 
   var members = ChatManager.chats[room].members;
+  var subscribers = ChatManager.chats[room].subscribers;
+
   var userListHtml = "";
 
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
 
-  debugger;
+  if (subscribers.length > 0) {
+    subscribers.forEach(function(userId) {
+      var username = ChatManager.userIdMap[userId];
 
+      var active = function() {
+        if (ChatManager.chats[room].activeUsers.indexOf(userId) > -1)
+          return true;
+        return false;
+      };
 
-  if (members.length > 0) {
-    members.forEach(function(username) {
-      debugger;
-
-      var active = ChatManager.chats[room].memberStatus[username];
       var user = ChatManager.userlist[username];
 
       console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
@@ -1230,13 +1236,14 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   var id = data.id;
   var date = data.date;
   var fromUser = data.fromUser;
+  var fromUserUsername = ChatManager.userIdMap[fromUser];
   var chatName = data.chat;
   var chatContainer = $('#chat');
 
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUser, date: date }, function(formattedMessage) {
+  ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUserUsername, date: date }, function(formattedMessage) {
     ChatManager.chats[chatName].messageCache = ChatManager.chats[chatName].messageCache.concat(formattedMessage);
   });
 

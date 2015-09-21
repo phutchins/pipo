@@ -449,6 +449,7 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
   if (!data) { data = {} }
 
+  debugger;
   var roomName = (typeof data.roomName === 'undefined') ? ChatManager.activeChat.name : data.roomName;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 

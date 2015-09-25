@@ -19,7 +19,7 @@ var connect = function(env) {
 };
 
 var retry = function(env) {
-  setTimeout(connect(env), 5000);
+  setTimeout(connect.bind(null, env), 5000);
 };
 
 module.exports = {

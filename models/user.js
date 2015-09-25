@@ -174,7 +174,7 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
  * Get the list of rooms that a user is a member of or able to join
  */
 userSchema.statics.availableRooms = function availableRooms(data, callback) {
-  logger.debug("[user.availableRooms] Building available rooms list...");
+  logger.debug("[user.availableRooms] Building available rooms list for user '" + data.username + "'...");
   var username = data.username;
   // TODO: This may should just return room ids
   this.findOne({ username: username }).exec(function(err, user) {
@@ -239,6 +239,7 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
     username: user.username,
   };
 
+  logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
   return callback(profile);
 };
 

@@ -132,24 +132,24 @@ roomSchema.statics.update = function update(data, callback) {
 roomSchema.statics.join = function join(data, callback) {
   var self = this;
   var username = data.username;
-  var name = data.name;
+  var id = data.id;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     var user = user;
-    mongoose.model('Room').findOne({ name: name }).populate('members._member _owner _admins _messages').exec(function(err, room) {
+    mongoose.model('Room').findOne({ _id: id }).populate('members._member _owner _admins _messages').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
 
       if (!room) {
-        logger.debug("Room " + name + " does not exist so creating...");
+        logger.debug("Room with id " + id + " does not exist...");
 
-        return self.create(data, function(err) {
-          if (err) {
-            return logger.error("Failed to create room " + data.name);
-          }
+        //return self.create(data, function(err) {
+        //  if (err) {
+        //    return logger.error("Failed to create room " + data.name);
+        //  }
 
-          return self.join(data, callback);
-        })
+        //  return self.join(data, callback);
+        //})
       }
 
       // Set isMember to true if the user is a member of this room
@@ -178,9 +178,9 @@ roomSchema.statics.join = function join(data, callback) {
           return callback(null, { auth: true, room: updatedRoom });
         });
       } else {
-        logger.debug("User " + username + " unable to join #" + name + " due to incorrect membership");
+        logger.debug("User " + username + " unable to join #" + room.name + " due to incorrect membership");
         // Should not return room name? Should catch error...
-        return callback(null, { auth: false, room: { name: name } });
+        return callback(null, { auth: false, room: { name: room.name } });
       }
     })
   })
@@ -258,11 +258,11 @@ roomSchema.statics.part = function part(data, callback) {
 roomSchema.statics.addMember = function addMember(data, callback) {
   var username = data.username;
   var member = data.member;
-  var roomName = data.roomName;
+  var chatId = data.chatId;
   var membership = data.membership;
   var pushed = false;
 
-  logger.debug("[ADD MEMBER] Finding user '" + username + "' who is adding member '" + member + "' to '" + roomName + "'");
+  logger.debug("[ADD MEMBER] Finding user '" + username + "' who is adding member '" + member + "' to '" + chatId + "'");
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     if (err) {
       logger.debug("[ROOM] (addMember) Database error while finding user " + username);
@@ -273,7 +273,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
       return callback({ success: false, message: "No user '" + username + "' found." });
     }
 
-    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner members._member').exec( function(err, room) {
+    mongoose.model('Room').findOne({ _id: chatId }).populate('_admins _owner members._member').exec( function(err, room) {
       if (err) {
         logger.error("[ROOM] (addMember) Error while trying to find room");
         return callback({ success: false, message: "Error finding room" });
@@ -368,32 +368,32 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
   // Desired membership to add the member to
   var membership = data.membership;
   // Name of the room that membership is for
-  var roomName = data.roomName;
+  var chatId = data.chatId;
   var isRoomOwner = false;
 
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     if (err) {
-      return callback({ success: false, message: err, roomName: roomName });
+      return callback({ success: false, message: err, chatId: chatId });
     }
 
     if (!user) {
-      return callback({ success: false, message: "No user found with username " + username, roomName: roomName });
+      return callback({ success: false, message: "No user found with username " + username, chatId: chatId });
     }
 
-    logger.debug("[ROOM] (modifyMember) Found user " + user.username + ", looking up room " + roomName);
+    logger.debug("[ROOM] (modifyMember) Found user " + user.username + ", looking up room " + chatId);
 
-    mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner _members').exec( function(err, room) {
+    mongoose.model('Room').findOne({ _id: chatId }).populate('_admins _owner _members').exec( function(err, room) {
       if (err) {
-        logger.error("[ROOM] (modifyMember) Error while finding room trying to modify member ",member,"in room",roomName);
-        return callback({ success: false, message: err, roomName: roomName });
+        logger.error("[ROOM] (modifyMember) Error while finding room trying to modify member ",member,"in room",chatId);
+        return callback({ success: false, message: err, chatId: chatId });
       }
 
       if (!room) {
-        logger.error("No room found trying to modify membership for",member,"in room",roomName);
-        return callback({ success: false, message: "No room found, trying to modify membership for " + member + "in room"+roomName, roomName: roomName });
+        logger.error("No room found trying to modify membership for",member,"in room",chatId);
+        return callback({ success: false, message: "No room found, trying to modify membership for " + member + "in room"+chatId, chatId: chatId });
       }
 
-      logger.debug("[ROOM] (modifyMember) Found room ", roomName);
+      logger.debug("[ROOM] (modifyMember) Found room ", chatId);
       if (room._owner) {
         isRoomOwner = room._owner._id.equals(user._id);
       }
@@ -411,7 +411,7 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
 
             room.save(function(err) {
               mongoose.model('Room').findOneAndUpdate({ name: room.name }, { $pull: { _admins: member._id.toString() } }, function(err, pulledRoom) {
-                return callback({ success: true, message: "Membership change saved", roomName: roomName });
+                return callback({ success: true, message: "Membership change saved", chatId: chatId });
               })
             })
           }
@@ -423,7 +423,7 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
             // Remove the member from members if they are a member
             room._members.pull(member);
             room.save(function(err) {
-              return callback({ success: true, message: "Membership change saved", roomName: roomName });
+              return callback({ success: true, message: "Membership change saved", chatId: chatId });
             })
           }
 
@@ -435,14 +435,14 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
             room._admins.pull(member);
 
             room.save(function(err) {
-              return callback({ success: true, message: "Membership change saved", roomName: roomName });
+              return callback({ success: true, message: "Membership change saved", chatId: chatId });
             })
           }
 
           // Remove the user from the room
           if (membership == 'remove') {
             if (room._owner.username == member.username) {
-              return callback({ success: false, message: "You cannot remove the owner. You must choose a different owner, then remove the member", roomName: roomName });
+              return callback({ success: false, message: "You cannot remove the owner. You must choose a different owner, then remove the member", chatId: chatId });
             }
 
             // Add user to members
@@ -451,7 +451,7 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
             room._admins.pull(member);
 
             room.save(function(err) {
-              return callback({ success: true, message: "Member removed", roomName: roomName });
+              return callback({ success: true, message: "Member removed", chatId: chatId });
             })
           }
         })
@@ -460,7 +460,7 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
         logger.debug("[ROOM] (modifyMember) User " + username + " is an admin of " + room.name);
         mongoose.model('User').findOne({ username: memberName }, function(err, member) {
           // determine if member is currently an admin or member
-          var currentMembership = getMembership({ roomName: room.name, memberName: member });
+          var currentMembership = getMembership({ chatId: room._id, memberName: member });
 
           // Add the user to members of room
           if (membership == 'member') {
@@ -470,7 +470,7 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
             room._admins.pull(member);
 
             room.save(function(err) {
-              return callback({ success: true, message: "Membership change saved", roomName: roomName });
+              return callback({ success: true, message: "Membership change saved", chatId: chatId });
             })
           }
 
@@ -478,25 +478,25 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
           if (membership == 'remove') {
             // check if user we're trying to remove is an admin or owner
             if (isAdmin({ room: room, username: member.username})) {
-              return callback({ success: false, message: "You must be the owner to remove an admin", roomName: roomName });
+              return callback({ success: false, message: "You must be the owner to remove an admin", chatId: chatId });
             }
             if (room._owner.username == member.username) {
-              return callback({ success: false, message: "You must be the owner to remove an admin", roomName: roomName });
+              return callback({ success: false, message: "You must be the owner to remove an admin", chatId: chatId });
             }
 
             // if not, remove the user
             room._members.pull(member);
 
             room.save(function(err) {
-              return callback({ success: true, message: "Membership change saved", roomName: roomName });
+              return callback({ success: true, message: "Membership change saved", chatId: chatId });
             })
           }
 
           if (membership == 'admin') {
-            return callback({ success: false, message: "You must be the owner of a room to add an admin", roomName: roomName });
+            return callback({ success: false, message: "You must be the owner of a room to add an admin", chatId: chatId });
           }
           if (membership == 'owner') {
-            return callback({ success: false, message: "You must be the current owner of a room to change its owner", roomName: roomName });
+            return callback({ success: false, message: "You must be the current owner of a room to change its owner", chatId: chatId });
           }
         })
       }
@@ -505,14 +505,14 @@ roomSchema.statics.modifyMember = function modifyMember(data, callback) {
 };
 
 var getMembership = function getMembership(data) {
-  var roomName = data.roomName;
+  var chatId = data.chatId;
   var memberName = data.memberName;
   var membership = [];
   var isAdmin = false;
   var isMember = false;
   var isOwner = false;
 
-  mongoose.model('Room').findOne({ name: roomName }).populate('_admins _owner _members').exec( function(err, room) {
+  mongoose.model('Room').findOne({ _id: chatId }).populate('_admins _owner _members').exec( function(err, room) {
     var adminsArray = [];
     var membersArray = [];
 

@@ -257,14 +257,14 @@ SocketClient.prototype.init = function() {
 
 
 
-SocketClient.prototype.joinRoom = function(room, callback) {
+SocketClient.prototype.joinRoom = function(roomId, callback) {
   var self = this;
-  if (room && typeof room !== 'undefined') {
-    console.log("[JOIN ROOM] Joining room #"+room+" as "+window.username);
-    self.socket.emit('join', { room: room } );
+  if (roomId && typeof roomId !== 'undefined') {
+    console.log("[JOIN ROOM] Joining room #"+roomId+" as "+window.username);
+    self.socket.emit('join', { roomId: roomId } );
     return callback(null);
   } else {
-    return console.log("[JOIN ROOM] room was null  !");
+    return console.log("[JOIN ROOM] roomId was null  !");
   }
 };
 
@@ -400,26 +400,30 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   var activeChatName = null;
 
   if (data.err) {
-    return console.log("Room update failed: ",data.err);
+    return console.log("[socketClient.handleRoomUpdate] Room update failed: ",data.err);
   };
 
   // We want to update one at a time in case we only receive an update for select room(s)
-  Object.keys(rooms).forEach(function(name) {
-    console.log("Adding room",name,"to array with data:",rooms[name]);
-    ChatManager.chats[name] = rooms[name];
+  debugger;
+  Object.keys(rooms).forEach(function(id) {
+    console.log("[socketClient.handleRoomUpdate] Adding room",id,"to array with data:",rooms[id]);
+    ChatManager.chats[id] = rooms[id];
   })
+  debugger;
 
   if (ChatManager.activeChat) {
     activeChatName = ChatManager.activeChat.name;
-    console.log("[handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
+    console.log("[socketClient.handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
     ChatManager.refreshChatContent(activeChatName);
+    debugger;
+
+    // if manageMembersModal is currently visible don't clear any error or ok messages
+    ChatManager.populateManageMembersModal({ clearMessages: false });
+    debugger;
   }
 
   ChatManager.buildRoomListModal;
-  // should only update the modal if it is open in this case as some other user has made a change
-
-  // if manageMembersModal is currently visible don't clear any error or ok messages
-  ChatManager.populateManageMembersModal({ clearMessages: false });
+  debugger;
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
@@ -436,6 +440,7 @@ SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
   console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Member added! Displaying message in modal. Message:", message);
 
   // This doesn't actually do anything becuase the room update has not been received by roomUpdate yet
+  console.log("[socketClient.handleMembershipUpdateComplete] Running populateManageMembersModal");
   ChatManager.populateManageMembersModal({ clearMessages: false });
   ChatManager.membershipUpdateMessage(message);
 };

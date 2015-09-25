@@ -15,7 +15,7 @@ Authentication.authenticate = function authenticate(data) {
 
 Authentication.authenticated = function authenticated(data) {
   var favoriteRooms = data.favoriteRooms;
-  var defaultRoomName = data.defaultRoomName;
+  var defaultRoomId = data.defaultRoomId;
   var userIdMap = data.userIdMap;
   var userlist = data.userlist;
 
@@ -30,10 +30,10 @@ Authentication.authenticated = function authenticated(data) {
     ChatManager.activeChat = window.activeChat;
   }
 
-  ChatManager.defaultRoomName = data.defaultRoomName;
+  ChatManager.defaultRoomId = data.defaultRoomId;
 
   if (!ChatManager.activeChat) {
-    ChatManager.activeChat = { name: defaultRoomName, type: 'room' };
+    ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
   }
 
   ChatManager.userlist = userlist;
@@ -62,11 +62,11 @@ Authentication.authenticated = function authenticated(data) {
               }
             });
           } else {
-            var defaultRoomName = ChatManager.defaultRoomName;
+            var defaultRoomId = ChatManager.defaultRoomId;
 
-            console.log("[SOCKET] (authenticated) Joining room ",defaultRoomName);
+            console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
 
-            socketClient.joinRoom(defaultRoomName, function(err) {
+            socketClient.joinRoom(defaultRoomId, function(err) {
               console.log("[SOCKET] (authenticated) Joined default room becuase favoriteRooms was empty");
             })
           }

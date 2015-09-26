@@ -88,7 +88,7 @@ SocketClient.prototype.addListeners = function() {
       if (err) {
         console.log(err);
       }
-      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, user: data.user, room: data.room });
+      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: data.chatId });
     });
   });
 
@@ -119,24 +119,25 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('userlistUpdate', function(data) {
     var userlist = data.userlist;
-    var userIdMap = data.userIdMap;
+    var userNameMap = data.userNameMap;
 
     console.log("[SOCKET] 'userlistUpdate'");
 
     ChatManager.userlist = userlist;
-    ChatManager.userIdMap = userIdMap;
+    ChatManager.userNameMap = userNameMap;
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
-    console.log("Got roomUsersUpdate for room #"+data.room);
-
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
-    var roomName = data.room;
+    var chatId = data.chatId;
+    var chatName = ChatManager.chats[chatId].name;
     var roomUsers = data.userlist;
 
-    if (window.roomUsers[roomName]) {
-      var currentRoomUsersArray = Object.keys(window.roomUsers[roomName]);
+    console.log("Got roomUsersUpdate for room #" + chatName);
+
+    if (window.roomUsers[chatId]) {
+      var currentRoomUsersArray = Object.keys(window.roomUsers[chatId]);
 
       Object.keys(roomUsers).forEach(function(key) {
         console.log("Found new user '" + roomUsers[key].username);
@@ -152,23 +153,24 @@ SocketClient.prototype.addListeners = function() {
       uniqueRoomUsersArray.forEach(function(joinusername) {
         if (window.username !== joinusername) {
           if (currentRoomUsersArray.indexOf(joinusername)) {
-            console.log("User " + joinusername + " has joined #" + roomName);
-            clientNotification.send(null, 'PiPo', joinusername + ' has joined #' + roomName, 3000);
+            console.log("User " + joinusername + " has joined #" + chatName);
+            clientNotification.send(null, 'PiPo', joinusername + ' has joined #' + chatName, 3000);
           } else {
-            console.log("User " + joinusername + " has left #" + roomName);
-            clientNotification.send(null, 'PiPo', joinusername + ' has left #' + roomName, 3000);
+            console.log("User " + joinusername + " has left #" + chatName);
+            clientNotification.send(null, 'PiPo', joinusername + ' has left #' + chatName, 3000);
           }
         }
       })
     }
 
-    window.roomUsers[roomName] = {};
+    window.roomUsers[chatId] = {};
 
     roomUsers.forEach(function(user) {
       if (user) {
+        debugger;
         addToRoomUsers(user);
-        if (window.userMap[user.username]) {
-          if (window.userMap[user.username].publicKey === user.publicKey) {
+        if (window.userMap[user.userId]) {
+          if (window.userMap[user.userId].publicKey === user.publicKey) {
             return;
           }
         }
@@ -177,17 +179,17 @@ SocketClient.prototype.addListeners = function() {
     });
 
     function addToRoomUsers(user) {
-      if (!window.roomUsers[roomName][user.username]) {
-        window.roomUsers[roomName][user.username] = {
+      if (!window.roomUsers[chatId][user.userId]) {
+        window.roomUsers[chatId][user.userId] = {
           connections: 1
         };
       }
       else {
-        window.roomUsers[roomName][user.username].connections++;
+        window.roomUsers[chatId][user.userId].connections++;
       }
     }
     function addToGlobalUsers(user) {
-      window.userMap[user.username] = {
+      window.userMap[user.userId] = {
         publicKey: user.publicKey
       };
 
@@ -202,7 +204,7 @@ SocketClient.prototype.addListeners = function() {
             console.log("Error importing user key", err);
           }
           console.log("imported key", user.username);
-          window.userMap[user.username].keyInstance = keyInstance;
+          window.userMap[user.userId].keyInstance = keyInstance;
           encryptionManager.keyRing.add_key_manager(keyInstance);
         });
       }
@@ -215,9 +217,9 @@ SocketClient.prototype.addListeners = function() {
     // Should probably do this in roomUpdate or chatUpdate instead
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
-    //ChatManager.chats[roomName].members = Object.keys(window.roomUsers[roomName]);
-    if (ChatManager.activeChat && ChatManager.activeChat.name == roomName) {
-      ChatManager.updateRoomUsers({ room: roomName, socket: self.socket });
+
+    if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
+      ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });
     }
   });
 
@@ -300,21 +302,25 @@ SocketClient.prototype.updateRoom = function(data, callback) {
 
 SocketClient.prototype.partRoom = function(data, callback) {
   var self = this;
-  var name = data.name;
-  console.log("[PART ROOM] Parting room #" + name);
-  self.socket.emit('part', { name: name } );
+  var chatId = data.chatId;
+  console.log("[PART ROOM] Parting room #" + ChatManager.chats[chatId].name);
+  self.socket.emit('part', { chatId: chatId } );
   callback(null);
 };
 
-SocketClient.prototype.sendMessage = function(room, message) {
+SocketClient.prototype.sendMessage = function(data) {
   var self = this;
+  var chatId = data.chatId;
+  var message = data.message;
+
   console.log("Encrypting message: " + message);
-  window.encryptionManager.encryptRoomMessage({ room: room, message: message }, function(err, pgpMessage) {
+  window.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
     else {
-      self.socket.emit('roomMessage', {room: room, pgpMessage: pgpMessage});
+      console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
+      self.socket.emit('roomMessage', {chatId: chatId, pgpMessage: pgpMessage});
       $('#message-input').val('');
     }
   });
@@ -359,7 +365,7 @@ SocketClient.prototype.joinComplete = function(data) {
   }
 
   ChatManager.initRoom(room, function(err) {
-    ChatManager.chats[room.name].joined = true;
+    ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
       ChatManager.enableChat(room, data.encryptionScheme);
     });
@@ -397,6 +403,7 @@ SocketClient.prototype.updateRoomComplete = function(data) {
 SocketClient.prototype.handleRoomUpdate = function(data) {
   var self = this;
   var rooms = data.rooms;
+  var activeChatId = null;
   var activeChatName = null;
 
   if (data.err) {
@@ -404,26 +411,22 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   };
 
   // We want to update one at a time in case we only receive an update for select room(s)
-  debugger;
   Object.keys(rooms).forEach(function(id) {
     console.log("[socketClient.handleRoomUpdate] Adding room",id,"to array with data:",rooms[id]);
     ChatManager.chats[id] = rooms[id];
   })
-  debugger;
 
   if (ChatManager.activeChat) {
-    activeChatName = ChatManager.activeChat.name;
+    activeChatId = ChatManager.activeChat.id;
+    activeChatName = ChatManager.chats[activeChatId].name;
     console.log("[socketClient.handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
-    ChatManager.refreshChatContent(activeChatName);
-    debugger;
+    ChatManager.refreshChatContent(activeChatId);
 
     // if manageMembersModal is currently visible don't clear any error or ok messages
     ChatManager.populateManageMembersModal({ clearMessages: false });
-    debugger;
   }
 
   ChatManager.buildRoomListModal;
-  debugger;
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
@@ -466,8 +469,10 @@ SocketClient.prototype.membership = function(data) {
   self.socket.emit('membership', data);
 };
 
-SocketClient.prototype.sendPrivateMessage = function(username, message) {
+SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
+  var id = data.id;
+  var message = data.message;
 
   // These should be sent as an array of ID's
   var participantusernames = [ username, window.username ];

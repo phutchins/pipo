@@ -210,25 +210,25 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user.username] = { id: user._id.toString(), username: user.username, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(userlist);
   })
 };
 
-userSchema.statics.buildUserIdMap = function getUserIdMap(data, callback) {
+userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) {
   var userlist = data.userlist;
-  var userIdMap = {};
+  var userNameMap = {};
   if (!userlist) {
-    return callback(userIdMap);
+    return callback(userNameMap);
   }
 
   Object.keys(userlist).forEach(function(key) {
     var user = userlist[key];
-    userIdMap[user.id] = user.username;
+    userNameMap[user.username] = user.id;
   });
 
-  return callback(userIdMap);
+  return callback(userNameMap);
 };
 
 

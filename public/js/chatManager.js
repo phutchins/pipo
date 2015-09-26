@@ -11,7 +11,7 @@ ChatManager.chats = {};
 //   This will be paginated and populated as needed in the future
 ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
-ChatManager.userIdMap  = {};
+ChatManager.userNameMap  = {};
 
 ChatManager.activePrivateChats = [];
 // activeChat is data on the currently focused chat which would be a room or private message
@@ -259,7 +259,10 @@ var buildRoomListModal = function() {
   })
   $('#room-list-button').click(function(e) {
     var roomListModalHtml = '';
+    var roomName;
+
     Object.keys(ChatManager.chats).forEach(function(chatId) {
+      roomName = ChatManager.chats[chatId].name;
       if (ChatManager.chats[chatId].type == 'room') {
         roomListModalHtml += "<div class='item'>\n";
         if (ChatManager.chats[chatId].membershipRequired) {
@@ -268,7 +271,7 @@ var buildRoomListModal = function() {
           roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
         }
         roomListModalHtml += "  <div class='content'>\n";
-        roomListModalHtml += "    <a id='" + roomName + "' class='header'>" + roomName + "</a>\n";
+        roomListModalHtml += "    <a id='" + chatId + "' class='header'>" + roomName + "</a>\n";
         roomListModalHtml += "    <div class='description'>" + ChatManager.chats[chatId].topic + "</div>\n";
         roomListModalHtml += "  </div>\n";
         roomListModalHtml += "</div>\n";
@@ -277,14 +280,15 @@ var buildRoomListModal = function() {
     $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
     Object.keys(ChatManager.chats).forEach(function(chatId) {
       if (ChatManager.chats[chatId].type == 'room') {
-        $('.modal.join-room-list-modal a[id="' + ChatManager.chats[chatId].name + '"]').click(function() {
+        $('.modal.join-room-list-modal a[id="' + chatId + '"]').click(function() {
           socketClient.joinRoom(chatId, function(err) {
             $('.modal.join-room-list-modal').modal('hide');
             if (err) {
               return console.log("Error joining room: " + err);
             }
             // Set the active chat to the currently joined room so that it is displayed when the join is complete
-            ChatManager.lastActiveChat = activeChat;
+            debugger;
+            ChatManager.lastActiveChat = ChatManager.activeChat;
             ChatManager.activeChat = ({ type: 'room', id: chatId });
 
             console.log("Joined room " + ChatManager.chats[chatId].name);
@@ -303,9 +307,10 @@ $(document).ready( buildRoomListModal );
  */
 $('.chat-header__settings .room-options.leave-room').click(function(e) {
   var chatName = ChatManager.activeChat.name;
+  var chatId = ChatManager.activeChat.id;
 
   if (ChatManager.activeChat.type == 'chat') {
-    var privateChatIndex = ChatManager.activePrivateChats.indexOf(chatName);
+    var privateChatIndex = ChatManager.activePrivateChats.indexOf(chatId);
 
     if (privateChatIndex > -1) {
       ChatManager.activePrivateChats.splice(privateChatIndex, 1);
@@ -320,7 +325,7 @@ $('.chat-header__settings .room-options.leave-room').click(function(e) {
 
   } else {
 
-    socketClient.partRoom({ name: chatName }, function(err) {
+    socketClient.partRoom({ chatId: chatId }, function(err) {
       console.log("Sent request to part room " + chatName);
     })
 
@@ -455,7 +460,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var members = ChatManager.chats[chatId].members;
   var admins = ChatManager.chats[chatId].admins;
-  var owner = ChatManager.chats[chatId].owner;
+  var ownerId = ChatManager.chats[chatId].owner;
 
 
   // Clear notifications
@@ -474,20 +479,19 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var memberList = {};
 
-  members.forEach(function(userId) {
-    var memberName = ChatManager.userIdMap[userId];
-    memberList[memberName] = 'member';
+  members.forEach(function(memberId) {
+    memberList[memberId] = 'member';
   });
 
-  memberList[ChatManager.userIdMap[owner]] = 'owner';
+  memberList[ownerId] = 'owner';
 
-  admins.forEach(function(userId) {
-    var adminName = ChatManager.userIdMap[userId];
-    memberList[adminName] = 'admin';
+  admins.forEach(function(adminId) {
+    memberList[adminId] = 'admin';
   });
 
-  Object.keys(memberList).forEach(function(memberName) {
-    var membershipType = memberList[memberName];
+  Object.keys(memberList).forEach(function(memberId) {
+    var membershipType = memberList[memberId];
+    var memberName = ChatManager.userlist[memberId].username;
     var dropdownHtml = '';
 
     var li = $('<li/>')
@@ -512,12 +516,12 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
       .appendTo(optionsDiv);
 
     var membershipChangeSave = $('<button/>')
-      .attr('id', memberName)
+      .attr('id', memberId)
       .addClass('ui')
       .addClass('primary')
       .addClass('button')
       .addClass('save')
-      .addClass(memberName)
+      .addClass(memberId)
       .text('Save')
       .appendTo(optionsDiv);
 
@@ -527,7 +531,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
      * Catch click on membership save button
      */
     // TODO: Need to add the users ID to the userlist object
-    $('.manage-members-list .button.save.' + memberName).click(function(e) {
+    $('.manage-members-list .button.save.' + memberId).click(function(e) {
       console.log("[ADD MEMBER] Caught membership save button click");
 
       // TODO: need to allow for change of room name
@@ -552,13 +556,13 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 // Catch click on .button.addmember
 $('.manage-members-modal .button.addmember').click(function(e) {
   console.log("[ADD MEMBER] Caught add member button click");
-  var member = $('.manage-members-modal .membername').val();
+  var memberName = $('.manage-members-modal .membername').val();
   var roomId = $('.manage-members-modal .roomid').val();
   var membership = $('.manage-members-modal .membership .selected').text();
 
   var membershipData = ({
     type: 'add',
-    member: member,
+    memberName: memberName,
     roomId: roomId,
     membership: membership
   });
@@ -638,7 +642,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   // TODO: Should store online status for members and messages in an object or array also
 
-  self.chats[room.name] = { id: room.id,
+  self.chats[room.id] = { id: room.id,
     name: room.name,
     type: 'room',
     topic: room.topic,
@@ -654,10 +658,10 @@ ChatManager.initRoom = function initRoom(room, callback) {
     owner: room.owner
   };
 
-  self.chats[room.name] = room;
+  self.chats[room.id] = room;
 
   // Decrypt messages and HTMLize them
-  var messages = self.chats[room.name].messages.sort(dynamicSort("date"));
+  var messages = self.chats[room.id].messages.sort(dynamicSort("date"));
   var count = 0;
   var messageArray = Array(messages.length);
 
@@ -682,11 +686,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
       count++;
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
-          var fromUser = self.chats[room.name].messages[key].fromUser;
-          var date = self.chats[room.name].messages[key].date;
+          var fromUserId = self.chats[room.id].messages[key].fromUser;
+          var date = self.chats[room.id].messages[key].date;
 
-          self.chats[room.name].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'room', messageString: decryptedMessageString, date: date, fromUser: fromUser, chat: room.name });
+          self.chats[room.id].messages[key].decryptedMessage = decryptedMessageString;
+          ChatManager.addMessageToChat({ type: 'room', chatId: room.id, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
         });
       };
     })
@@ -710,18 +714,12 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
 ChatManager.initChat = function initChat(chat, callback) {
   var self = this;
-  var messages = new Array();
-  var participants = new Array();
-  var chatName = '';
-  var id = '';
+  var chatId = chat.id;
+  var chatName = chat.name;
+  var messages = chat.messages || [];
+  var participants = chat.participants || [];
 
-  if (chat !== null) {
-    messages = chat.messages || [];
-    participants = chat.participants || [];
-    id = chat.id;
-  };
-
-  console.log("Running init on chat '" + chat.id);
+  console.log("Running init on chat '" + chatId);
 
   // Private chat between two users
   if (chat.participants.length == 2) {
@@ -729,7 +727,7 @@ ChatManager.initChat = function initChat(chat, callback) {
       // Set the chatName to the name of the user with this userid
       if  (participantId !== ChatManager.userlist[window.username].id) {
         console.log("[initChat] Set chatName to '" + chatName + "'");
-        chatName = ChatManager.userIdMap[participantId];
+        chatName = ChatManager.userlist[participantId];
       }
     });
   }
@@ -739,8 +737,8 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   }
 
-  self.chats[chatName] = {
-    id: chat.id,
+  self.chats[id] = {
+    id: chatId,
     type: 'chat',
     name: chatName,
     participants: participants,
@@ -768,11 +766,11 @@ ChatManager.initChat = function initChat(chat, callback) {
       if (messages.length === count) {
         messageArray.forEach(function(decryptedMessageString, key) {
 
-          var fromUser = messages[key].fromUser;
+          var fromUserId = messages[key].fromUser;
           var date = messages[key].date;
 
-          self.chats[chatName].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'chat', messageString: decryptedMessageString, date: date, fromUser: fromUser, chat: chatName });
+          self.chats[id].messages[key].decryptedMessage = decryptedMessageString;
+          ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
         });
       };
     })
@@ -782,9 +780,9 @@ ChatManager.initChat = function initChat(chat, callback) {
   //  ChatManager.activeChat = window.activeChat;
   //};
 
-  if (ChatManager.activeChat && ChatManager.activeChat.name == chat.id) {
-    self.focusChat({ id: chat.id }, function(err) {
-      console.log("Room focus for " + chat.id + " done");
+  if (ChatManager.activeChat && ChatManager.activeChat.name == id) {
+    self.focusChat({ id: id }, function(err) {
+      console.log("Room focus for " + id + " done");
     });
   }
 
@@ -851,12 +849,13 @@ ChatManager.destroyChat = function destroyChat(chat, callback) {
 ChatManager.focusChat = function focusChat(data, callback) {
   var id = data.id;
   var type = ChatManager.chats[id].type;
+  var chatName = ChatManager.chats[id].name;
 
   if (ChatManager.chats[id].type == 'room') {
     var messages = $('#chat');
 
     console.log("Setting activeChat to room: " + id + " type: room");
-    ChatManager.activeChat = { name: id, type: 'room' };
+    ChatManager.activeChat = { id: id, name: chatName, type: 'room' };
     window.activeChat = ChatManager.activeChat;
 
     // Update the content in the room for the desired room to be in focus
@@ -866,7 +865,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
     // TODO: This should remember the last position the window was scrolled to
     messages[0].scrollTop = messages[0].scrollHeight;
 
-    ChatManager.updateRoomUsers({ room: id });
+    ChatManager.updateRoomUsers({ chatId: id });
   } else if (type == 'chat') {
 
     ChatManager.activeChat = { name: id, type: 'chat' };
@@ -902,28 +901,29 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
   $('#room-list').empty();
   console.log("Updating room list!");
 
-  var chatNames = Object.keys(ChatManager.chats)
+  var chatIds = Object.keys(ChatManager.chats)
 
-  chatNames.forEach(function(chatName) {
-    if (ChatManager.chats[chatName].type == 'room' && ChatManager.chats[chatName].joined) {
+  chatIds.forEach(function(id) {
+    if (ChatManager.chats[id].type == 'room' && ChatManager.chats[id].joined) {
+      var roomName = ChatManager.chats[id].name;
 
-      if ( !$('#room-list #' + chatName).length ) {
+      if ( !$('#room-list #' + id).length ) {
 
-        if ( ChatManager.activeChat.name && ChatManager.activeChat.name == chatName ) {
+        if ( ChatManager.activeChat.id && ChatManager.activeChat.id == id ) {
           console.log("Active chat is " + ChatManager.activeChat.name);
 
-          var roomListHtml = '<li class="room chat-list-item-selected" id="' + chatName + '">' + chatName + '</li>';
+          var roomListHtml = '<li class="room chat-list-item-selected" id="' + id + '">' + roomName + '</li>';
         } else {
-          var roomListHtml = '<li class="room chat-list-item" id="' + chatName + '">' + chatName + '</li>';
+          var roomListHtml = '<li class="room chat-list-item" id="' + id + '">' + roomName + '</li>';
         }
 
         $('#room-list').append(roomListHtml);
-        console.log("Added " + chatName + " to room-list");
+        console.log("Added " + roomName + " to room-list");
       }
 
-      $("#" + chatName).click(function() {
+      $("#" + id).click(function() {
         // Catch clicks on the room list to update room focus
-        ChatManager.focusChat({ id: chatName }, function(err) {
+        ChatManager.focusChat({ id: id }, function(err) {
           // Room focus complete
         });
       });
@@ -944,9 +944,9 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
   //  }
   //})
 
-  ChatManager.activePrivateChats.forEach(function(username) {
-    var privateChat = ChatManager.chats[username];
-    var emailHash = ChatManager.userlist[window.username].emailHash || "00000000000";
+  ChatManager.activePrivateChats.forEach(function(chatId) {
+    var privateChat = ChatManager.chats[chatId];
+    var emailHash = ChatManager.userlist[chatId].emailHash || "00000000000";
 
     if ( ChatManager.activeChat.name && ChatManager.activeChat.name == username ) {
       userListHtml += "<li class='private-chat chat-list-item-selected' id='" + username + "'><div class='private-chat-list-avatar' style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=\"\"></div>" + username + "</li>\n";
@@ -974,11 +974,11 @@ ChatManager.updatePrivateChats = function updatePrivateChats() {
 ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   var self = this;
 
-  var room = data.room;
+  var chatId = data.chatId;
   var socket = data.socket;
 
-  var members = ChatManager.chats[room].members;
-  var subscribers = ChatManager.chats[room].subscribers;
+  var members = ChatManager.chats[chatId].members;
+  var subscribers = ChatManager.chats[chatId].subscribers;
 
   var userListHtml = "";
 
@@ -987,10 +987,10 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
   if (subscribers.length > 0) {
     subscribers.forEach(function(userId) {
-      var username = ChatManager.userIdMap[userId];
+      var username = ChatManager.userlist[userId].username;
 
       var active = function() {
-        if (ChatManager.chats[room].activeUsers.indexOf(userId) > -1)
+        if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1)
           return true;
         return false;
       };
@@ -1039,6 +1039,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       })
 
       $('.user-list-li').click(function() {
+        debugger;
         var username = $( this ).attr('name');
         console.log("Populating user popup for", username);
         ChatManager.populateUserPopup({ username: username, socket: socket });
@@ -1064,6 +1065,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 ChatManager.populateUserPopup = function populateUserPopup(data) {
   var self = this;
   var username = data.username;
+  var userId = data.userId;
   var socket = data.socket;
 
   // Get full name from users object here
@@ -1081,10 +1083,11 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
   $('.userPopup .privateChatButton').unbind().click(function() {
     if (username !== window.username) {
       // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
-      if (ChatManager.activePrivateChats.indexOf(username) == -1) {
-        ChatManager.activePrivateChats.push(username);
+      // BOOKMARK
+      if (ChatManager.activePrivateChats.indexOf(userId) == -1) {
+        ChatManager.activePrivateChats.push(userId);
 
-        console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[username].id + "' and '" + ChatManager.userlist[window.username].id + "'");
+        console.log("[DEBUG] Emitting 'getChat' to get chat with '" + ChatManager.userlist[userId].username + "' and '" + window.username + "'");
 
         // This emit is null
         socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ] });
@@ -1169,6 +1172,7 @@ ChatManager.getCaret = function getCaret(el) {
   return 0;
 };
 
+
 ChatManager.prepareMessage = function prepareMessage(message, callback) {
   var parsedMessage = window.marked(message).replace(/(<p>|<\/p>)/g, '');
   var container = $('<div>').html(parsedMessage);
@@ -1180,10 +1184,11 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
   callback(null, container.html());
 };
 
+
 ChatManager.handleMessage = function handleMessage(data) {
-  var fromUserId = ChatManager.userlist[data.user].id;
+  var fromUserId = data.fromUserId;
   var messageString = data.messageString;
-  var room = data.room;
+  var chatId = data.chatId;
   var messages = $('#chat');
   var date = data.date || new Date().toISOString();
 
@@ -1191,10 +1196,10 @@ ChatManager.handleMessage = function handleMessage(data) {
   var mentionRegex = new RegExp(mentionRegexString);
   console.log("Running mention regex: " + messageString.match(mentionRegex));
   if (messageString.match(mentionRegex)) {
-    clientNotification.send(null, 'You were just mentioned by ' + fromUser + ' in room #' + room, messageString, 3000);
+    clientNotification.send(null, 'You were just mentioned by ' + fromUser + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
   };
 
-  this.addMessageToChat({ type: 'room', messageString: messageString, fromUser: fromUserId, chat: room, date: date });
+  this.addMessageToChat({ type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
 };
 
 
@@ -1210,6 +1215,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   var socket = data.socket;
   var messageString = data.messageString;
+  var chatId = data.chatId;
   var fromUserId = data.fromUser;
   var toUsername = data.toUser;
   var date = data.date;
@@ -1234,7 +1240,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     }
   }
 
-  ChatManager.addMessageToChat({ type: 'chat', fromUser: fromUserId, chat: chatName, messageString: messageString, date: date });
+  ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 
   console.log("Updating private chats");
   ChatManager.updatePrivateChats();
@@ -1246,19 +1252,19 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   var type = data.type;
   var messageString = data.messageString;
   var date = data.date;
-  var fromUser = data.fromUser;
-  var fromUserUsername = ChatManager.userIdMap[fromUser];
-  var chatId = data.id;
+  var fromUserId = data.fromUserId;
+  var fromUsername = ChatManager.userlist[fromUserId].username;
+  var chatId = data.chatId;
   var chatContainer = $('#chat');
 
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  ChatManager.formatChatMessage({ messageString: messageString, fromUser: fromUserUsername, date: date }, function(formattedMessage) {
+
+  ChatManager.formatChatMessage({ messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
     ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
   });
 
-  // Shoudl this be comparing to a name and not a chat object?
   if (ChatManager.activeChat.id == chatId) {
     ChatManager.refreshChatContent(chatId);
     chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
@@ -1276,7 +1282,8 @@ ChatManager.populateMessageCache = function populateMessageCache(data) {
   var messages = data.messages;
 
   messages.forEach(function(message) {
-    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUser: message.fromUser }, function(formattedMessage) {
+    var fromUsername = ChatManager.chats[message.fromUser].username;
+    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUsername: message.fromUser }, function(formattedMessage) {
       ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
     })
   })
@@ -1284,12 +1291,13 @@ ChatManager.populateMessageCache = function populateMessageCache(data) {
 
 ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var messageString = data.messageString;
-  var fromUser = data.fromUser;
+  var fromUserId = data.fromUserId;
+  var fromUsername = data.fromUsername;
   var date = data.date;
-  var emailHash = ChatManager.userlist[fromUser].emailHash || "00000000000";
+  var emailHash = ChatManager.userlist[fromUserId].emailHash || "00000000000";
 
   var time = date || new Date().toISOString();
-  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUser + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
   return callback(messageHtml);
 };
 
@@ -1341,6 +1349,8 @@ ChatManager.sendMessage = function sendMessage(callback) {
     // Catch commands here and encrypt data to users as needed
     var command = regexResult[1];
     var splitCommand = command.split(" ");
+    var currentChatId = ChatManager.activeChat.id;
+
     console.log("Split command is: " + splitCommand.toString());
 
     // Catch join command
@@ -1352,7 +1362,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
     }
     else if (splitCommand[0] == "part") {
       var name = splitCommand[1];
-      socketClient.partRoom({ name: name }, function(err) {
+      socketClient.partRoom({ chatId: currentChatId }, function(err) {
         console.log("Sent request to part room " + name);
       })
     }
@@ -1376,18 +1386,24 @@ ChatManager.sendMessage = function sendMessage(callback) {
       console.log("Active chat type is: " + ChatManager.activeChat.type);
       var date = new Date().toISOString();
       if (ChatManager.activeChat.type == 'room') {
-        debugger;
         console.log("Sending message to room #"+ChatManager.chats[ChatManager.activeChat.id].name);
-        window.socketClient.sendMessage(ChatManager.chats[ChatManager.activeChat.id].name, preparedInput);
+
+        window.socketClient.sendMessage({ chatId: ChatManager.activeChat.id, message: preparedInput });
         $('#message-input').val('');
         return callback();
       }
       else if (ChatManager.activeChat.type == 'chat') {
-        var username = ChatManager.chats[ChatManager.activeChat.id].name;
+        var id = ChatManager.activeChat.id;
+        var username = ChatManager.chats[id].name;
+
         console.log("Sending private message to '" + username + "' with message '" + preparedInput + "'");
-        ChatManager.handlePrivateMessage({ messageString: preparedInput, fromUser: window.username, toUser: username, date: date });
-        socketClient.sendPrivateMessage(username, preparedInput);
+
+        ChatManager.handlePrivateMessage({ id: id, String: preparedInput, fromUser: window.username, toUser: username, date: date });
+
+        socketClient.sendPrivateMessage({ id: id, message: preparedInput });
+
         $('#message-input').val('');
+
         return callback();
       }
       else {

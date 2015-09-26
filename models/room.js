@@ -257,12 +257,12 @@ roomSchema.statics.part = function part(data, callback) {
  */
 roomSchema.statics.addMember = function addMember(data, callback) {
   var username = data.username;
-  var member = data.member;
+  var memberName = data.memberName;
   var chatId = data.chatId;
   var membership = data.membership;
   var pushed = false;
 
-  logger.debug("[ADD MEMBER] Finding user '" + username + "' who is adding member '" + member + "' to '" + chatId + "'");
+  logger.debug("[ADD MEMBER] Finding user '" + username + "' who is adding member '" + memberName + "' to '" + chatId + "'");
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     if (err) {
       logger.debug("[ROOM] (addMember) Database error while finding user " + username);
@@ -311,11 +311,11 @@ roomSchema.statics.addMember = function addMember(data, callback) {
 
       if (isRoomAdmin || isRoomOwner) {
         logger.debug("[ROOM] User is admin or owner");
-        mongoose.model('User').findOne({ username: member }, function(err, memberObj) {
-          logger.debug("Requesting user " + username + " is an admin of room " + room.name + " so adding " + member + " as a " + membership);
+        mongoose.model('User').findOne({ username: memberName }, function(err, memberObj) {
+          logger.debug("Requesting user " + username + " is an admin of room " + room.name + " so adding " + memberName + " as a " + membership);
 
           if (!memberObj) {
-            return callback({ success: false, message: "I cannot find the user '" + member + "' so I am unable to add them to #" + room.name } );
+            return callback({ success: false, message: "I cannot find the user '" + memberName + "' so I am unable to add them to #" + room.name } );
           }
 
           var isInArray = room.members.some(function (member) {
@@ -326,7 +326,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
 
           logger.debug("[ROOM] isInArray: ",isInArray);
           if (isInArray) {
-            return callback({ success: false, message: "User '" + member + "' is already a member of this room" } );
+            return callback({ success: false, message: "User '" + memberName + "' is already a member of this room" } );
           }
 
           logger.debug("[ROOM] pushing member",memberObj.username,"to room",room.name,"as a",membership);
@@ -347,7 +347,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
 
           room.save(function(err) {
             logger.debug("[ROOM] Done saving room, calling callback");
-            return callback({ success: true, message: member + " has been added as a member of #" + room.name });
+            return callback({ success: true, message: memberName + " has been added as a member of #" + room.name });
           });
         })
       } else {

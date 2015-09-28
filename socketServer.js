@@ -405,6 +405,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
+
   var targetSockets = self.namespace.userMap[toUsername];
   var participantIds = data.participantIds;
 
@@ -419,22 +420,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
-  var participants = [];
-
-  // Populate participants
+  // Get the socketId's for each participant
   participantIds.forEach(function(participantId) {
-    User.findOne({ _id: participantId }, function(err, participant) {
-      participants.push(participant);
-    });
+    var participantSockets = self.namespace.userMap[participantId];
+    targetSockets = targetSockets.concat(self.namespace.userMap[participantId]);
   });
-
-  // Do I need to wait until all participants are populated? Or is forEach blocking?
-
-  // Add a reference to this chat from the users object if it does not exist there already
-  // Get the user object
-  // Check to see if the chat exists in the _chats array
-  // Add it if not
-  // Add the chat to the users _chats array
 
   message.save(function(err) {
     if (err) {
@@ -474,6 +464,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   targetSockets.forEach(function(targetSocket) {
+    logger.debug("[socketServer.onPrivateMessage] Sending private message from " + self.socket.user.username + " to ", participantUsernames);
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
       from: self.socket.user.username,
       to: toUserId,

@@ -362,11 +362,11 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   }, callback);
 };
 
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(username, message, callback) {
+EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(toUserId, message, callback) {
   var self = this;
   var keys = [];
 
-  keys.push(window.userMap[username].keyInstance);
+  keys.push(ChatManager.userlist[toUserId].keyInstance);
   keys.push(self.keyManager);
 
   console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);
@@ -502,6 +502,21 @@ EncryptionManager.prototype.decryptMasterKey = function decryptMasterKey(encrypt
     }
   });
 };
+
+
+
+EncryptionManager.prototype.getKeyInstance = function getKeyInstance(publicKey, callback) {
+  window.kbpgp.KeyManager.import_from_armored_pgp({
+    armored: publicKey
+  }, function (err, keyInstance) {
+    if (err) {
+      return console.log("[encryptionManager.getKeyInstance] Error getting key Instance");
+    }
+
+    return callback(keyInstance);
+  });
+};
+
 
 EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(username, callback) {
   var timestamp = new Date().toString();

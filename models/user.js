@@ -210,7 +210,7 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(userlist);
   })

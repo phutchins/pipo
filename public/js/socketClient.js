@@ -123,8 +123,9 @@ SocketClient.prototype.addListeners = function() {
 
     console.log("[SOCKET] 'userlistUpdate'");
 
-    ChatManager.userlist = userlist;
     ChatManager.userNameMap = userNameMap;
+
+    ChatManager.updateUserlist(userlist);
   });
 
   this.socket.on('roomUsersUpdate', function(data) {
@@ -167,7 +168,6 @@ SocketClient.prototype.addListeners = function() {
 
     roomUsers.forEach(function(user) {
       if (user) {
-        debugger;
         addToRoomUsers(user);
         if (window.userMap[user.userId]) {
           if (window.userMap[user.userId].publicKey === user.publicKey) {
@@ -205,6 +205,8 @@ SocketClient.prototype.addListeners = function() {
           }
           console.log("imported key", user.username);
           window.userMap[user.userId].keyInstance = keyInstance;
+          // Setting key instance here but we need to do this elsewhere...
+          ChatManager.userlist[user.userId].keyInstance = keyInstance;
           encryptionManager.keyRing.add_key_manager(keyInstance);
         });
       }
@@ -471,25 +473,21 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
-  var id = data.id;
+  var toUserId = data.id;
   var message = data.message;
 
   // These should be sent as an array of ID's
-  var participantusernames = [ username, window.username ];
-  var participantIds = [];
-
-  participantusernames.forEach(function(username) {
-    participantIds.push(ChatManager.userlist[username].id);
-  });
+  var participantIds = [ toUserId, ChatManager.userNameMap[window.username] ];
 
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage(username, preparedMessage, function(err, pgpMessage) {
+    window.encryptionManager.encryptPrivateMessage(toUserId, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
 
       else {
-        self.socket.emit('privateMessage', {toUser: username, pgpMessage: pgpMessage, participantIds: participantIds });
+        // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
+        self.socket.emit('privateMessage', {toUserId: toUserId, toUsername: ChatManager.userlist[toUserId].username, pgpMessage: pgpMessage, participantIds: participantIds });
         $('#message-input').val('');
       }
     });

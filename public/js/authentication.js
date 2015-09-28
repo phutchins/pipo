@@ -16,7 +16,7 @@ Authentication.authenticate = function authenticate(data) {
 Authentication.authenticated = function authenticated(data) {
   var favoriteRooms = data.favoriteRooms;
   var defaultRoomId = data.defaultRoomId;
-  var userIdMap = data.userIdMap;
+  var userNameMap = data.userNameMap;
   var userlist = data.userlist;
 
   // Ensure that we have permission to show notifications and prompt if we don't
@@ -36,8 +36,9 @@ Authentication.authenticated = function authenticated(data) {
     ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
   }
 
-  ChatManager.userlist = userlist;
-  ChatManager.userIdMap = userIdMap;
+  //ChatManager.userlist = userlist;
+  ChatManager.updateUserlist(userlist);
+  ChatManager.userNameMap = userNameMap;
 
   ChatManager.updateProfileHeader();
 

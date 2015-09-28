@@ -87,10 +87,11 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   // This needs to be set in the config somewhere and passed to the client in a config block
   var systemusername = 'pipo';
 
+  // System user is also getting created in server.js so one of these should be removed
   var systemUserData = {
     username: 'pipo',
+    publicKey: '-----BEGIN PGP PUBLIC KEY BLOCK-----\nVersion: OpenPGP.js v1.0.1\nComment: http://openpgpjs.org\n\nxsBNBFYHKFYBCAC2+gs6wGupdqKwAAHsNfTMqpBJkezYox9fRnHXBgkOzWty\nTzBdItmKRRBr7RCpeQ9nPS4WtEq6d3iUcP4MQmL35gou4mQIH6ClhVUAZykJ\niYXugvPgZXZl6qK8/k7EaLl2kAiYM0n9NSQhOGkZXAtH6MGw0gR4bhw7Dcp7\n3GSOMpgT/n4nBOWbiATKy9Kl3FrW5DrLkt8l0P3ocwVmGC418fkqJSkuNJR1\nFi87L2E2kEcn4EHL9Z4uVTI1mdBp9oLkriW2lMrR1aKMa/I5L5U6ayNALYnS\nNC7pieG3ZuxX7crFcaWa9krFinLSf6AxATQFLpJQLPLTF68yjYhNHzSDABEB\nAAHNDGZsaXBfZmlyZWZveMLAcgQQAQgAJgUCVgcoVwYLCQgHAwIJEKb6o/qa\nk5gaBBUIAgoDFgIBAhsDAh4BAABuWQf5AagTGdxjkpWreAEbqBcolqEIP8I5\nBIHsJcpDoI7VPKsrb4H0qLdE0YTIeD59yPBbs8NPPSh3veebMGU8fVr+5HoN\nQpg8JJImlSvTnZM83fpygsOrMzULgNIqsACDM933Bu34v43dodQ/1n7SN88c\nmpxJSzjoAJdMQ6ItFg6bsPp7Us9KfCeXBSNXHnuBrky9YqyIoAbBmi9mefzh\ngTRI2OnezCIGuNvu/fK2whgjK+qx831EVepqf8JM+IVfA22eZBq9wPFbYkof\n3q1yjuyGePPpn1uTZgQSlw/Ql/uuyQe66PxLuXm2eBrbzbPGdapllywThQ6j\nhfzSR5B6hyiPGM7ATQRWByhWAQgAwXw97JA9goeBP3K3FOb8TVLq/E/Vi13i\ndsrrc2A9D9g/ISCky9Ax211rCZg7IjzKWO7tNU14f25eOoD+pPKxC4iJkmVx\nAXQGIp744g7NmA0WhgzrnM/lId2OvypUihEMq5d3EFVO8g5DKhsRHHkReE6s\nmiagfKlhHT6epZu7lBhU3uUUtwfsdl/cbwpaZb27FeiKvp+5hL03de3g8v+v\nHO81XmS8q2wWOI2OR+419iYDlmXVD9NKxiDMRaJjCDbgJUsM82QgaTnG5WvZ\nAap5OzCL/AKfnN0KQgZsF9oxsl5izmGDuu6faAzO/hyDQ4EK3WwvFtzEtsK8\nGdS6l6ROjwARAQABwsBfBBgBCAATBQJWByhXCRCm+qP6mpOYGgIbDAAAAqIH\n/jLpXcPZhnwCYG3W/9XsAA3xMfzPAiYmv0NeWuLsovPvsOkQGgD6iPoNmdCm\nJrL8dYqmwUSAn+SELYYtLjGk/0XvgCi2l3I46mO4Z8of0cjyHRr6n2j7xRRb\nKRFOj3DTrhhqHSA/rXzrR+r8dT75/EUcIlQZ/3CiI4lF474c5+793DjyCXDC\nkZdurRkTA6UWT2fvnq4HqKlBMZEGMwO5keXMcaQL+mcZOCjgNJxwVqk6DtiY\ntUX8Tvo0QvbOaFhRMaKFqeMBlSrQZmzzBmTXYOBtupfxAFIqjYLqO2AsRXUr\nk8vffgzuYy6uRINhhTfz/iGKsQAVWAWzQ+ndSj86jRE=\n=83fL\n-----END PGP PUBLIC KEY BLOCK-----',
     email: 'pipo@pipo.chat',
-    publicKey: ''
   }
 
   // Move this to User.getSystemUser
@@ -394,12 +395,20 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
-  logger.debug("[socketServer.onPrivateMessage] Handling private message...");
 
-  var fromUser = self.socket.user.username;
-  var targetusername = data.toUser;
-  var targetSockets = self.namespace.userMap[targetusername];
+  var fromUser = self.socket.user._id.toString();
+  var toUserId = data.toUserId;
+  var toUsername = data.toUsername
+
+  // Need to get the target socket using user id!
+  // BUG
+  // SUPER HACKY FIX
+  logger.debug("[socketServer.onPrivateMessage] data is: ", data);
+  logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
+  var targetSockets = self.namespace.userMap[toUsername];
   var participantIds = data.participantIds;
+
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + toUserId + ".");
 
   // Where should we store private message chats?
   var message = new Message({
@@ -467,7 +476,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   targetSockets.forEach(function(targetSocket) {
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
       from: self.socket.user.username,
-      to: targetusername,
+      to: toUserId,
       date: message.date,
       message: data.pgpMessage,
       signature: data.signature
@@ -549,7 +558,7 @@ SocketServer.prototype.getChat = function getChat(data) {
       newChat.save(function(err, savedChat) {
         logger.debug("[getChat] saved chat: ",savedChat._id);
         Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
-          logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
+          //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
           Chat.sanatize(populatedChat, function(sanatizedChat) {
             logger.debug("[getChat] Sending 'chatUpdate' to client");
             return self.socket.emit('chatUpdate', { chat: sanatizedChat });

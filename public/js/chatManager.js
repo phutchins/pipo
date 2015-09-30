@@ -598,8 +598,8 @@ ChatManager.updateProfileHeader = function updateProfileHeader() {
   // TODO: This should be smarter and have a sane default in the DB as well as a better default image
   var emailHash = "0";
 
-  if (ChatManager.userlist[window.username]) {
-    emailHash = ChatManager.userlist[window.username].emailHash || "0";
+  if (ChatManager.userlist[ChatManager.userNameMap[window.username]]) {
+    emailHash = ChatManager.userlist[ChatManager.userNameMap[window.username]].emailHash || "0";
   }
 
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");

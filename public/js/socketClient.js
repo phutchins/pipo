@@ -95,8 +95,8 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('privateMessage', function(data) {
     var self = this;
     var message = data.message;
-    var from = data.from;
-    var to = data.to;
+    var fromUserId = data.fromUserId;
+    var toUserId = data.toUserId;
     var date = data.date;
 
     console.log('privateMessage', data);
@@ -104,7 +104,7 @@ SocketClient.prototype.addListeners = function() {
       if (err) {
         console.log(err);
       }
-      ChatManager.handlePrivateMessage({ messageString: messageString, fromUser: from, toUser: to, date: date, socket: self });
+      ChatManager.handlePrivateMessage({ messageString: messageString, fromUserId: fromUserId, toUserId: toUserId, date: date, socket: self });
     });
   });
 

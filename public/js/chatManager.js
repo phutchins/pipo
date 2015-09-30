@@ -655,6 +655,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   // TODO: Should store online status for members and messages in an object or array also
 
+  debugger;
+
   self.chats[room.id] = { id: room.id,
     name: room.name,
     type: 'room',
@@ -670,6 +672,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
     admins: room.admins,
     owner: room.owner
   };
+
+  debugger;
 
   self.chats[room.id] = room;
 
@@ -751,6 +755,8 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   }
 
+  debugger;
+
   self.chats[chatId] = {
     id: chatId,
     type: 'chat',
@@ -786,8 +792,13 @@ ChatManager.initChat = function initChat(chat, callback) {
           self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
           ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
         });
-        // May want to pull this out to the calling methods and call the callback here instead
-        ChatManager.refreshChatContent(chatId);
+
+        debugger;
+        if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
+          self.focusChat({ id: chatId }, function(err) {
+            console.log("Room focus for " + chatId + " done");
+          });
+        }
       };
     })
   });
@@ -796,12 +807,6 @@ ChatManager.initChat = function initChat(chat, callback) {
   //  ChatManager.activeChat = window.activeChat;
   //};
 
-  if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
-    debugger;
-    self.focusChat({ id: chatId }, function(err) {
-      console.log("Room focus for " + chatId + " done");
-    });
-  }
 
   self.updateRoomList(function(err) {
     console.log("Update room list for initChat done...");
@@ -867,38 +872,22 @@ ChatManager.focusChat = function focusChat(data, callback) {
   var id = data.id;
   var type = ChatManager.chats[id].type;
   var chatName = ChatManager.chats[id].name;
+  var messages = $('#chat');
 
+  // Set the active chat to the one we're focusing on
+  console.log("Setting activeChat to room: " + ChatManager.chats[id].name + " which has ID: " + id);
   ChatManager.setActiveChat(id);
 
   if (ChatManager.chats[id].type == 'room') {
-    var messages = $('#chat');
-
-    // Set the active chat to the one we're focusing on
-    console.log("Setting activeChat to room: " + ChatManager.chats[id]);
-
-    // Update the content in the room for the desired room to be in focus
-    ChatManager.refreshChatContent(id);
-
-    // Scroll to the most recent message
-    // TODO: This should remember the last position the window was scrolled to
-    messages[0].scrollTop = messages[0].scrollHeight;
-
     ChatManager.updateRoomUsers({ chatId: id });
   } else if (type == 'chat') {
 
-    // Init private message for user if it does not exist
-    if (ChatManager.chats[id] == null) {
-      console.log("WARNING!! Shouldn't be init'ing chat here!");
-      ChatManager.chats[id] = { name: user, type: 'chat', messages: "", topic: 'Private conversation...', group: 'PM' };
-    }
-
-
-    debugger;
-    // Display private messages for user in the room element
-    ChatManager.refreshChatContent(id);
   }
 
-  /* This is done in updatechat methods
+  ChatManager.refreshChatContent(id);
+
+  messages[0].scrollTop = messages[0].scrollHeight;
+
   // Update the room list to reflect the desired room to be infocus
   $('.chat-list-item-selected')
     .addClass('chat-list-item')
@@ -907,7 +896,6 @@ ChatManager.focusChat = function focusChat(data, callback) {
   $('#' + id)
     .removeClass('chat-list-item')
     .addClass('chat-list-item-selected');
-    */
 
   ChatManager.activeChat.focused = true;
 
@@ -945,7 +933,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
       if ( !$('#room-list #' + id).length ) {
 
         if ( ChatManager.activeChat.id && ChatManager.activeChat.id == id ) {
-          console.log("Active chat is " + ChatManager.activeChat.name);
+          console.log("Active chat is " + ChatManager.activeChat.id);
 
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + id + '">' + roomName + '</li>';
         } else {
@@ -956,7 +944,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
         console.log("Added " + roomName + " to room-list");
       }
 
-      $("#" + id).click(function() {
+      $("#" + id).unbind().click(function() {
         // Catch clicks on the room list to update room focus
         ChatManager.focusChat({ id: id }, function(err) {
           // Room focus complete
@@ -1037,6 +1025,8 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
       console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
 
+      debugger;
+
       if ( !ChatManager.chats[userId] && username != window.username ) {
         console.log("chat for ",username," was empty so initializing");
         //console.log("[updateRoomUsers] GETCHAT - calling getChat from updateRoomUsers");
@@ -1044,6 +1034,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
         //socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ]});
 
         // Create the chat so that is iready for the new data we are getting from getChat
+        debugger;
         ChatManager.chats[userId] = { name: username, type: 'chat', group: 'pm', messages: '', messageCache: '', topic: "One to one encrypted chat with " + username };
 
         ChatManager.updatePrivateChats();
@@ -1253,6 +1244,7 @@ ChatManager.handleMessage = function handleMessage(data) {
 ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
+
   var messageString = data.messageString;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
@@ -1271,6 +1263,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     var privateChatIndex = ChatManager.activePrivateChats.indexOf(fromUserId);
     chatName = fromUsername;
 
+    debugger;
 
     if (privateChatIndex == -1) {
       ChatManager.activePrivateChats.push(fromUserId);
@@ -1355,6 +1348,7 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
 
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
+  debugger;
   $('#chat').html(messageCache);
   ChatManager.updateChatHeader(chatId);
 }
@@ -1441,6 +1435,9 @@ ChatManager.sendMessage = function sendMessage(callback) {
 
         console.log("Sending private message to '" + username + "' with message '" + preparedInput + "'");
 
+        // BUG: This sends a null chatid, we really need to get the ID form the server?
+        // Should use this to display the message and then wait for the confirmation from the server
+        // that it was received by the other party
         ChatManager.handlePrivateMessage({ chatId: id, messageString: preparedInput, fromUserId: ChatManager.userNameMap[window.username], toUserId: ChatManager.userNameMap[username], date: date });
 
         socketClient.sendPrivateMessage({ id: id, message: preparedInput });

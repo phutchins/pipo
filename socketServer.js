@@ -186,13 +186,13 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     };
 
     // Add the user to the userMap if they do not exist
-    if (!self.namespace.userMap[user.username])
-      self.namespace.userMap[user.username] = [];
+    if (!self.namespace.userMap[user._id.toString()])
+      self.namespace.userMap[user._id.toString()] = [];
 
     // Push the current socket to the users socketMap arary
-    self.namespace.userMap[user.username].push(self.socket.id);
+    self.namespace.userMap[user._id.toString()].push(self.socket.id);
 
-    logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user.username]);
+    logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user._id.toString()]);
 
     self.socket.user = user;
     logger.debug("[INIT] Init'd user " + user.username);
@@ -229,6 +229,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
         logger.debug("[socketServer.authenticate] getting available room list");
 
+        // Send the available rooms to the user
         User.availableRooms({ username: user.username }, function(err, roomData) {
           if (err) {
             logger.error("[socketServer.authenticate] Authentication failed getting available rooms: ", err);
@@ -406,7 +407,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
 
-  var targetSockets = self.namespace.userMap[toUsername];
+  var targetSockets = self.namespace.userMap[toUserId];
   var participantIds = data.participantIds;
 
   logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + toUserId + ".");
@@ -425,6 +426,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     var participantSockets = self.namespace.userMap[participantId];
     targetSockets = targetSockets.concat(self.namespace.userMap[participantId]);
   });
+
+  var userMapKeys = Object.keys(self.namespace.userMap);
+  logger.debug("[socketServer.onPrivateMessage] userMapKeys:", userMapKeys);
+
+  logger.debug("[socketServer.onPrivateMessage] targetSockets: ", targetSockets);
 
   message.save(function(err) {
     if (err) {
@@ -464,10 +470,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   targetSockets.forEach(function(targetSocket) {
-    logger.debug("[socketServer.onPrivateMessage] Sending private message from " + self.socket.user.username + " to ", participantUsernames);
+    //logger.debug("[socketServer.onPrivateMessage] Sending private message from " + self.socket.user.username + " to ", participantUsernames);
     self.socket.broadcast.to(targetSocket).emit('privateMessage', {
-      from: self.socket.user.username,
-      to: toUserId,
+      fromUserId: self.socket.user._id.toString(),
+      toUserId: toUserId,
       date: message.date,
       message: data.pgpMessage,
       signature: data.signature
@@ -571,9 +577,9 @@ SocketServer.prototype.getChat = function getChat(data) {
 /*
  * Send masterKeyPair to user
  */
-SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(username, room, masterKeyPair) {
+SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(userId, room, masterKeyPair) {
   var self = this;
-  var targetSockets = self.namespace.userMap[username];
+  var targetSockets = self.namespace.userMap[userId];
   if (targetSockets) {
     targetSockets.forEach(function(targetSocket) {
       self.socket.broadcast.to(targetSocket).emit('newMasterKey', {
@@ -1196,16 +1202,16 @@ SocketServer.prototype.disconnect = function disconnect() {
 
     // Delete disconnecting users socket from socket array
     // TODO: May be better to find a way to use socketIO's namespace and the users username to check all active sockets
-    if (self.namespace.userMap && self.namespace.userMap[self.socket.user.username]) {
-      var indexOfSocketId = self.namespace.userMap[self.socket.user.username].indexOf(self.socket.id);
+    if (self.namespace.userMap && self.namespace.userMap[self.socket.user._id.toString()]) {
+      var indexOfSocketId = self.namespace.userMap[self.socket.user._id.toString()].indexOf(self.socket.id);
       if (indexOfSocketId > -1) {
-        self.namespace.userMap[self.socket.user.username].splice(indexOfSocketId, 1);
+        self.namespace.userMap[self.socket.user._id.toString()].splice(indexOfSocketId, 1);
       };
     };
 
     // If there are no more sockets in the array, delete the usermap entry for that user
-    if (Object.keys(self.namespace.userMap[self.socket.user.username]).length == 0) {
-      delete self.namespace.userMap[self.socket.user.username];
+    if (Object.keys(self.namespace.userMap[self.socket.user._id.toString()]).length == 0) {
+      delete self.namespace.userMap[self.socket.user._id.toString()];
     }
   } else {
     logger.info("WARNING! Someone left the room and we don't know who it was...");

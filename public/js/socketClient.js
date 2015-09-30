@@ -95,16 +95,17 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('privateMessage', function(data) {
     var self = this;
     var message = data.message;
-    var fromUserId = data.fromUserId;
-    var toUserId = data.toUserId;
-    var date = data.date;
 
     console.log('privateMessage', data);
     window.encryptionManager.decryptMessage(message, function(err, messageString) {
       if (err) {
         console.log(err);
       }
-      ChatManager.handlePrivateMessage({ messageString: messageString, fromUserId: fromUserId, toUserId: toUserId, date: date, socket: self });
+
+      data.messageString = messageString;
+      data.socket = self;
+
+      ChatManager.handlePrivateMessage(data);
     });
   });
 
@@ -473,21 +474,18 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
-  var toUserId = data.id;
+  var ids = data.ids;
   var message = data.message;
 
-  // These should be sent as an array of ID's
-  var participantIds = [ toUserId, ChatManager.userNameMap[window.username] ];
-
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage(toUserId, preparedMessage, function(err, pgpMessage) {
+    window.encryptionManager.encryptPrivateMessage(ids, preparedMessage, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
 
       else {
         // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
-        self.socket.emit('privateMessage', {toUserId: toUserId, toUsername: ChatManager.userlist[toUserId].username, pgpMessage: pgpMessage, participantIds: participantIds });
+        self.socket.emit('privateMessage', {toUserIds: ids, pgpMessage: pgpMessage });
         $('#message-input').val('');
       }
     });

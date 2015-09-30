@@ -392,43 +392,45 @@ SocketServer.prototype.onMessage = function onMessage(data) {
  */
 SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var self = this;
+  var targetSockets = [];
+
   if (!self.socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
   var fromUser = self.socket.user._id.toString();
-  var toUserId = data.toUserId;
-  var toUsername = data.toUsername
+  var toUserIds = data.toUserIds;
 
   // Need to get the target socket using user id!
   // BUG
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
-
-  var targetSockets = self.namespace.userMap[toUserId];
-  var participantIds = data.participantIds;
-
-  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + toUserId + ".");
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + toUserIds.toString() + ".");
 
   // Where should we store private message chats?
   var message = new Message({
     _fromUser: self.socket.user,
-    fromUser: self.socket.user.username,
-    toUsers: [ data.toUser ],
+    toUsers: toUserIds,
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
 
   // Get the socketId's for each participant
-  participantIds.forEach(function(participantId) {
-    var participantSockets = self.namespace.userMap[participantId];
-    targetSockets = targetSockets.concat(self.namespace.userMap[participantId]);
+  toUserIds.forEach(function(toUserId) {
+    targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
   });
 
+  var emitData = {
+    fromUserId: self.socket.user._id.toString(),
+    toUserIds: toUserIds,
+    date: message.date,
+    message: data.pgpMessage,
+    signature: data.signature
+  };
+
   var userMapKeys = Object.keys(self.namespace.userMap);
-  logger.debug("[socketServer.onPrivateMessage] userMapKeys:", userMapKeys);
 
   logger.debug("[socketServer.onPrivateMessage] targetSockets: ", targetSockets);
 
@@ -440,45 +442,46 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     logger.debug("[onPrivateMessage] Saved private message");
 
     // Add this message to the appropriate chat
-    logger.debug("Finding chat with participants ", participantIds);
-    Chat.findOne({ type: 'chat', _participants: { $in: participantIds }}, function(err, chat) {
+    logger.debug("Finding chat with participants ", toUserIds);
+    Chat.findOne({ type: 'chat', _participants: { $in: toUserIds }}, function(err, chat) {
       // If there is not a chat with these participants create one
       if (err) {
-        return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ",participantIds);
+        return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ", toUserIds);
       };
 
       if (!chat) {
         logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
         var chat = new Chat({
           type: "chat",
-          _participants: participants,
+          _participants: toUserIds,
         });
       }
 
-      // TODO: Need to make sure to handle adding users to chats before a message goes through for
-      // a chat with a new user and it creates a new chat
       chat._messages.push(message);
-      chat.save();
+
+      if (chat.id) {
+        emitData.chatId = chat.id.toString();
+        emitToSockets(targetSockets, emitData);
+        chat.save();
+      } else {
+        chat.save(function(err, chat) {
+          emitData.chatId = chat.id.toString();
+          emitToSockets(targetSockets, emitData);
+        });
+      };
     });
-  })
+  });
 
-  // Should create a SocketIO room here and add users to that
+  var emitToSockets = function emitToSockets(targetSockets, emitData) {
+    if (!targetSockets) {
+      logger.info("[socketServer.onPrivateMessage] No participants of this chat are on line");
+      return self.socket.emit('errorMessage', {message: "User is not online"});
+    }
 
-  if (!targetSockets) {
-    logger.info("[MSG] Ignoring private message to offline user");
-    return self.socket.emit('errorMessage', {message: "User is not online"});
-  }
-
-  targetSockets.forEach(function(targetSocket) {
-    //logger.debug("[socketServer.onPrivateMessage] Sending private message from " + self.socket.user.username + " to ", participantUsernames);
-    self.socket.broadcast.to(targetSocket).emit('privateMessage', {
-      fromUserId: self.socket.user._id.toString(),
-      toUserId: toUserId,
-      date: message.date,
-      message: data.pgpMessage,
-      signature: data.signature
+    targetSockets.forEach(function(targetSocket) {
+      self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
-  })
+  };
 };
 
 

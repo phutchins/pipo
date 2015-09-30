@@ -362,11 +362,14 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   }, callback);
 };
 
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(toUserId, message, callback) {
+EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(toUserIds, message, callback) {
   var self = this;
   var keys = [];
 
-  keys.push(ChatManager.userlist[toUserId].keyInstance);
+  toUserIds.forEach(function(userId) {
+    keys.push(ChatManager.userlist[userId].keyInstance);
+  });
+
   keys.push(self.keyManager);
 
   console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);

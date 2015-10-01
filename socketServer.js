@@ -230,7 +230,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         logger.debug("[socketServer.authenticate] getting available room list");
 
         // Send the available rooms to the user
-        User.availableRooms({ username: user.username }, function(err, roomData) {
+        User.availableRooms({ _id: user._id }, function(err, roomData) {
           if (err) {
             logger.error("[socketServer.authenticate] Authentication failed getting available rooms: ", err);
             return self.socket.emit('roomUpdate', { err: "Room update failed: " + err });

@@ -424,7 +424,8 @@ $('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
 
 
 $('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
-  ChatManager.populateManageMembersModal({ roomName: ChatManager.activeChat.name, clearMessages: true });
+  debugger;
+  ChatManager.populateManageMembersModal({ chatId: ChatManager.activeChat.id, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
 });
@@ -454,6 +455,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
   var admins = ChatManager.chats[chatId].admins;
   var ownerId = ChatManager.chats[chatId].owner;
 
+  debugger;
 
   // Clear notifications
   if (clearMessages) {
@@ -463,7 +465,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var manageMembersList = $('.manage-members-modal .manage-members-list');
   $('.manage-members-modal .chatname').val(chatName);
-  $('.manage-members-modal .chatid').val(chatId);
+  $('.manage-members-modal').attr('id', chatId);
 
   manageMembersList.empty();
 
@@ -528,7 +530,7 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
       // TODO: need to allow for change of room name
       var chatName = $('.manage-members-modal .chatname').val();
-      var chatId = $('.manage-members-modal .chatid').val();
+      var chatId = $('.manage-members-modal').attr('id');
       var modifyMember = e.currentTarget.id;
       var newMembership = e.currentTarget.previousSibling.value;
 
@@ -549,15 +551,17 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   console.log("[ADD MEMBER] Caught add member button click");
   var memberName = $('.manage-members-modal .membername').val();
-  var roomId = $('.manage-members-modal .roomid').val();
+  var chatId = $('.manage-members-modal').attr('id');
   var membership = $('.manage-members-modal .membership .selected').text();
 
   var membershipData = ({
     type: 'add',
     memberName: memberName,
-    roomId: roomId,
+    chatId: chatId,
     membership: membership
   });
+
+  debugger;
 
   console.log("[ADD MEMBER] Sending membership data to socketClient");
   socketClient.membership(membershipData);

@@ -894,7 +894,7 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     if (err) {
       return logger.info("Error creating room: " + err);
     }
-    self.socket.emit('createRoomComplete', { name: data.name });
+    self.socket.emit('createRoomComplete', { room: { id: newRoom.id }});
     logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
     logger.debug("[socketServer.createRoom] sanatizeRoomForClient 4");
@@ -959,7 +959,6 @@ SocketServer.prototype.membership = function membership(data) {
   var username = self.socket.user.username;
 
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
-  logger.debug("[MEMBERSHIP] membership data is:", addData);
 
   if (type == 'add') {
     var addData = ({
@@ -969,6 +968,8 @@ SocketServer.prototype.membership = function membership(data) {
       chatId: chatId,
       username: username
     })
+
+    logger.debug("[MEMBERSHIP] membership data is:", addData);
 
     Room.addMember(addData, function(addResultData) {
       var success = addResultData.success;

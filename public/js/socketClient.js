@@ -385,8 +385,8 @@ SocketClient.prototype.partComplete = function(data) {
 
 SocketClient.prototype.createRoomComplete = function(data) {
   var self = this;
-  var name = data.name;
-  self.joinRoom(name, function(err) {
+  var room = data.room;
+  self.joinRoom(room.id, function(err) {
     if (err) {
       return console.log("Error joining room after creating: " + err);
     }

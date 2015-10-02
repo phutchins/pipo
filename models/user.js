@@ -174,12 +174,13 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
  * Get the list of rooms that a user is a member of or able to join
  */
 userSchema.statics.availableRooms = function availableRooms(data, callback) {
-  logger.debug("[user.availableRooms] Building available rooms list for user '" + data.username + "'...");
-  var username = data.username;
+  logger.debug("[user.availableRooms] Data: ", data);
+  logger.debug("[user.availableRooms] Building available rooms list for user '" + data.userId + "'...");
+  var userId = data.userId;
   // TODO: This may should just return room ids
-  this.findOne({ username: username }).exec(function(err, user) {
-    logger.debug("[user.availableRooms] Found user ",username," for which we are building the room list");
-    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('members._member _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
+  this.findOne({ _id: userId }).exec(function(err, user) {
+    logger.debug("[user.availableRooms] Found user ",user.username," for which we are building the room list");
+    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }
@@ -187,7 +188,7 @@ userSchema.statics.availableRooms = function availableRooms(data, callback) {
         logger.debug("[user.availableRooms] No rooms found for member");
         return callback(null, { rooms: null });
       }
-      logger.debug("[user.availableRooms] Found rooms for member " + username + " : " + Object.keys(rooms).toString());
+      logger.debug("[user.availableRooms] Found rooms for member " + user.username + " : " + Object.keys(rooms).toString());
       return callback(null, { rooms: rooms });
     })
   })

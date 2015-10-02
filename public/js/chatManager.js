@@ -424,7 +424,6 @@ $('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
 
 
 $('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
-  debugger;
   ChatManager.populateManageMembersModal({ chatId: ChatManager.activeChat.id, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
@@ -447,15 +446,15 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
   if (!data) { data = {} }
 
+  debugger;
   var chatId = (typeof data.chatId === 'undefined') ? ChatManager.activeChat.id : data.chatId;
+  debugger;
   var chatName = ChatManager.chats[chatId].name;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 
   var members = ChatManager.chats[chatId].members;
   var admins = ChatManager.chats[chatId].admins;
   var ownerId = ChatManager.chats[chatId].owner;
-
-  debugger;
 
   // Clear notifications
   if (clearMessages) {
@@ -560,8 +559,6 @@ $('.manage-members-modal .button.addmember').unbind().click(function(e) {
     chatId: chatId,
     membership: membership
   });
-
-  debugger;
 
   console.log("[ADD MEMBER] Sending membership data to socketClient");
   socketClient.membership(membershipData);
@@ -789,15 +786,8 @@ ChatManager.initChat = function initChat(chat, callback) {
     })
   });
 
-  // Sort participantIds
-  var orderedChatIds = participants.sort();
-
-  // MD5 participantIds
-  var chatHash = encryptionManager.sha256(orderedChatIds.toString()).then(function(payloadHash) {
-    // Add to awaitingInit
-    ChatManager.activeChat.awaitingInit = payloadHash;
-
-    if ((ChatManager.activeChat && ChatManager.activeChat.id == chat.id && !ChatManager.activeChat.focused) || ChatManager.activeChat.awaitingInit == payloadHash) {
+  ChatManager.arrayHash(participants, function(chatHash) {
+    if ((ChatManager.activeChat && ChatManager.activeChat.id == chat.id && !ChatManager.activeChat.focused) || ChatManager.activeChat.awaitingInit == chatHash) {
       self.focusChat({ id: chat.id }, function(err) {
         console.log("[chatManager.initChat] Chat focus for " + chat.id + " done");
       });
@@ -806,6 +796,21 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   self.updateChatList();
   return callback(null);
+};
+
+ChatManager.waitForInit = function waitForInit(chatHash) {
+  ChatManager.activeChat.awaitingInit = chatHash;
+}
+
+
+ChatManager.arrayHash = function arrayHash(array, callback) {
+  // Sort participantIds
+  var orderedArray = array.sort();
+
+  // MD5 participantIds
+  encryptionManager.sha256(orderedArray.toString()).then(function(arrayHash) {
+    return callback(arrayHash);
+  });
 };
 
 
@@ -1112,15 +1117,10 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
       // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
       // BOOKMARK
 
-      // Sort participantIds
-      var orderedChatIds = participantIds.sort();
-
-      // MD5 participantIds
-      var chatHash = encryptionManager.sha256(orderedChatIds.toString()).then(function(payloadHash) {
+      ChatManager.arrayHash(participantIds, function(chatHash) {
         // Add to awaitingInit
-        ChatManager.activeChat.awaitingInit = payloadHash;
+        ChatManager.waitForInit(chatHash);
         socket.emit('getChat', { participantIds: participantIds });
-
       });
 
 
@@ -1255,7 +1255,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var date = data.date;
   var chatName;
 
-  // If we're the ones sending the message we should add it to the correct place
   chatName = fromUsername;
 
   // If we don't have a private chat created for this
@@ -1269,9 +1268,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     window.socketClient.socket.emit('getChat', { participantIds: [ ChatManager.userlist[fromUserId].id, myUserId ]});
   }
 
-  if (ChatManager.activeChat.id !== fromUserId) {
-    clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
-  }
+  clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
 
   ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
@@ -1377,10 +1374,10 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
   ChatManager.initChat(chat, function() {
     if (chat.participants) {
       var sortedParticipantIds = chat.participants.sort();
-      encryptionManager.sha256(sortedParticipantIds.toString()).then(function(payloadHash) {
-        if (ChatManager.activeChat.awaitingInit == payloadHash) {
-          ChatManager.setActiveChat(chat.id);
-        };
+      //encryptionManager.sha256(sortedParticipantIds.toString()).then(function(payloadHash) {
+      //  if (ChatManager.activeChat.awaitingInit == payloadHash) {
+      //    ChatManager.setActiveChat(chat.id);
+      //  };
 
         if (ChatManager.activeChat && ChatManager.activeChat.id == chat.id) {
           console.log("[chatManager.handleChatUpdate] Focusing chat with id '" + chat.id + "'");
@@ -1388,7 +1385,7 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
             console.log("Room focus for " + chat.id + " done");
           });
         };
-      });
+      //});
     };
 
     return console.log("[handleChatUpdate] initChat done.");

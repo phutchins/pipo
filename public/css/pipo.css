@@ -939,6 +939,7 @@ button, input, select, textarea {
 }
 
 .manage-members-list-item {
+  rgb(0, 0, 0);
   height: 42px;
 }
 

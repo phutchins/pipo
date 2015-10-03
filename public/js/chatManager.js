@@ -1014,6 +1014,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
 
   var isActive = function(userId) {
+    debugger;
     if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
       console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is true");
       return true;
@@ -1029,7 +1030,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
     subscribers.forEach(function(userId) {
       var username = ChatManager.userlist[userId].username;
 
-      console.log("[chatManager.updateRoomUsers] activeMembers is: ", ChatManager.chats[chatId].activeMembers);
+      console.log("[chatManager.updateRoomUsers] activeUsers is: ", ChatManager.chats[chatId].activeUsers);
       var active = isActive(userId);
 
       // FIgure out why active is set ot true when users are not active

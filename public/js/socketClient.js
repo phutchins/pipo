@@ -129,17 +129,17 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.updateUserlist(userlist);
   });
 
-  this.socket.on('activeMembersUpdate', function(data) {
+  this.socket.on('activeUsersUpdate', function(data) {
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
     var chatId = data.chatId;
     var chatName = ChatManager.chats[chatId].name;
-    var activeMembers = data.activeMembers;
+    var activeUsers = data.activeUsers;
 
     console.log("[SOCKET] 'roomUsersUpdate' for room #" + chatName);
 
     if (ChatManager.chats[chatId]) {
-      ChatManager.chats[chatId].activeMembers = activeMembers;
+      ChatManager.chats[chatId].activeUsers = activeUsers;
     }
 
     /*

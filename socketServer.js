@@ -677,8 +677,8 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
                   return logger.warning("Failed to join room " + roomName);
                 }
               })
-              logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveMembers for room " + roomName);
-              self.updateActiveMembers(roomId);
+              logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + roomName);
+              self.updateActiveUsers(roomId);
             });
           });
         } else {
@@ -686,8 +686,8 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           self.socket.join(roomName);
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
-          logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveMembers for room " + room.name + " with member list of ", membersArray);
-          self.updateActiveMembers(roomId);
+          logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name + " with member list of ", membersArray);
+          self.updateActiveUsers(roomId);
         };
       });
     });
@@ -733,12 +733,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         // self.namespace.emit('roomUpdate', { rooms: rooms });
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
 
-        logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveMembers for room " + room.name);
+        logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name);
 
         // Emit room update to the namespace
 
         // Is this needed?
-        self.updateActiveMembers(room._id);
+        self.updateActiveUsers(room._id);
       })
     })
   };
@@ -1075,7 +1075,7 @@ SocketServer.prototype.partRoom = function partRoom(data) {
       return logger.info("Failed to part room " + roomName);
     }
     logger.info("User " + username + " parted room " + roomName);
-    self.updateActiveMembers(chatId);
+    self.updateActiveUsers(chatId);
 
     // Update user status
     //
@@ -1117,15 +1117,15 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
 /**
  * Update userlist for a room
  */
-SocketServer.prototype.updateActiveMembers = function updateActiveMembers(chatId) {
+SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
-  self.getActiveMembers(chatId, function(err, activeMembers) {
-    logger.debug("[socketServer.updateActiveMembers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
-    logger.debug("[socketServer.updateActiveMembers] Actrive members is: ", activeMembers);
+  self.getActiveUsers(chatId, function(err, activeUsers) {
+    logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
+    logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
     // Is this emitting to the right ID?
-    self.namespace.to(chatId).emit("activeMembersUpdate", {
+    self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
-      activeMembers: activeMembers
+      activeUsers: activeUsers
     });
   });
 };
@@ -1135,36 +1135,36 @@ SocketServer.prototype.updateActiveMembers = function updateActiveMembers(chatId
 /*
  * Get a list of a rooms active members from the socket namespace
  */
-SocketServer.prototype.getActiveMembers = function(chatId, callback) {
+SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var self = this;
-  var activeMembers = [];
+  var activeUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    activeMembers = this.namespace.adapter.rooms[chatId];
+    activeUsers = this.namespace.adapter.rooms[chatId];
 
-    logger.debug("[socketServer.getActiveMembers] activeMembers: ", activeMembers);
+    logger.debug("[socketServer.getActiveUsers] activeUsers: ", activeUsers);
 
-    activeMembers = Object.keys(this.namespace.adapter.rooms[chatId]).filter(function(sid) {
-      logger.debug("[socketServer.getActiveMembers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
-      return activeMembers[sid];
+    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId]).filter(function(sid) {
+      logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
+      return activeUsers[sid];
     });
 
-    logger.debug("[socketServer.getActiveMembers] Got member SID's: ", activeMembers);
+    logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
 
     //Map sockets to users
-    activeMembers = activeMembers.map(function(sid) {
+    activeUsers = activeUsers.map(function(sid) {
       return self.namespace.socketMap[sid].userId;
     });
 
-    logger.debug("[socketServer.getActiveMembers] Mapped members to sockets: ", activeMembers);
+    logger.debug("[socketServer.getActiveUsers] Mapped members to sockets: ", activeUsers);
 
   } else {
     logger.info("[GET USER LIST] User list is empty");
   };
 
-  logger.debug("[socketServer.getActiveMembers] Active activeMembers for chatId: '" + chatId + "' is: ", activeMembers);
+  logger.debug("[socketServer.getActiveUsers] Active activeUsers for chatId: '" + chatId + "' is: ", activeUsers);
 
-  callback(null, activeMembers);
+  callback(null, activeUsers);
 };
 
 
@@ -1203,7 +1203,7 @@ SocketServer.prototype.disconnect = function disconnect() {
             logger.info("User " + username + " successfully parted room " + currentRoom.name);
             // TODO: Should update all appropritae rooms here
             logger.info("Updating room users!");
-            self.updateActiveMembers(currentRoom._id.toString());
+            self.updateActiveUsers(currentRoom._id.toString());
           })
         }
       })

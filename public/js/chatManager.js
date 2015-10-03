@@ -446,9 +446,7 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
   if (!data) { data = {} }
 
-  debugger;
   var chatId = (typeof data.chatId === 'undefined') ? ChatManager.activeChat.id : data.chatId;
-  debugger;
   var chatName = ChatManager.chats[chatId].name;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 
@@ -1015,15 +1013,26 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
 
+  var isActive = function(userId) {
+    if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
+      console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is true");
+      return true;
+    }
+    console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is false");
+    return false;
+  };
+
+  // Make sure that activeUsers for the chat is updated before we build the userlist for the room below
+  debugger;
+
   if (subscribers.length > 0) {
     subscribers.forEach(function(userId) {
       var username = ChatManager.userlist[userId].username;
 
-      var active = function() {
-        if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1)
-          return true;
-        return false;
-      };
+      console.log("[chatManager.updateRoomUsers] activeMembers is: ", ChatManager.chats[chatId].activeMembers);
+      var active = isActive(userId);
+
+      // FIgure out why active is set ot true when users are not active
 
       var user = ChatManager.userlist[userId];
 

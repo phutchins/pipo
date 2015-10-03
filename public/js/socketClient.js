@@ -129,15 +129,21 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.updateUserlist(userlist);
   });
 
-  this.socket.on('roomUsersUpdate', function(data) {
+  this.socket.on('activeMembersUpdate', function(data) {
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
     var chatId = data.chatId;
     var chatName = ChatManager.chats[chatId].name;
-    var roomUsers = data.userlist;
+    var activeMembers = data.activeMembers;
 
-    console.log("Got roomUsersUpdate for room #" + chatName);
+    console.log("[SOCKET] 'roomUsersUpdate' for room #" + chatName);
 
+    if (ChatManager.chats[chatId]) {
+      ChatManager.chats[chatId].activeMembers = activeMembers;
+    }
+
+    /*
+    // BUG: Should update the users in the ChatManager.chats[chatId] object instead of window.roomUsers
     if (window.roomUsers[chatId]) {
       var currentRoomUsersArray = Object.keys(window.roomUsers[chatId]);
 
@@ -220,6 +226,7 @@ SocketClient.prototype.addListeners = function() {
     // Should probably do this in roomUpdate or chatUpdate instead
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
+    */
 
     if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
       ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });

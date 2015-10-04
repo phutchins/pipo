@@ -384,8 +384,8 @@ SocketClient.prototype.joinComplete = function(data) {
 
 SocketClient.prototype.partComplete = function(data) {
   var self = this;
-  var room = data.room;
-  ChatManager.destroyChat(room, function() {
+  var chatId = data.chatId;
+  ChatManager.destroyChat(chatId, function() {
     console.log("Done parting room");
   });
 };

@@ -216,29 +216,42 @@ roomSchema.statics.unsubscribe = function subscribe(data, callback) {
 };
 
 roomSchema.statics.part = function part(data, callback) {
-  mongoose.model('User').findOne({ username: data.username }).populate('membership.rooms._room').exec(function(err, user) {
-    mongoose.model('Room').findOne({ name: data.name }).populate('_members _admins _owner').exec(function(err, room) {
+  var userId = data.userId;
+  var chatId = data.chatId;
+
+  mongoose.model('User').findOne({ _id: userId }).populate('membership.rooms._room').exec(function(err, user) {
+    if (err) {
+      return callback(err, false);
+    };
+
+    if (!user) {
+      var err = "No user found while trying to part room with id '" + chatId + "'";
+      return callback(err, false);
+    };
+
+    mongoose.model('Room').findOne({ _id: chatId }).populate('_members _admins _owner').exec(function(err, room) {
       if (err) {
         return callback(err, false);
       }
 
       if (!room) {
-        return logger.error("No room found when trying to part for user " + data.username);
+        return logger.error("No room found when trying to part for user " + user.username);
       }
 
       var isMember = null;
 
       if (typeof user.membership._currentRooms == 'Object') {
         logger.debug("[ROOM} user.membership._currentrooms: ", user.membership._currentRooms);
-        logger.debug("[ROOM] (BEFORE) User " + data.username + " is a member of ", user.membership._currentRooms.length);
-        // Check SocketServer.namespace.socketmap for the user to see if there are any remaining sockets open for this room
+        logger.debug("[ROOM] (BEFORE) User " + user.username + " is a member of ", user.membership._currentRooms.length);
 
+        // Check SocketServer.namespace.socketmap for the user to see if there are any remaining sockets open for this room
+        // Is this a good place to be referencing SocketServer from? Maybe the logic goes in the calling class or lib.
 
         mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user } } }, { '$members.active': false });
       }
 
       user.save(function(err) {
-        logger.debug("User " + data.username + " has parted #" + data.name + " successfully");
+        logger.debug("User " + userId + " has parted #" + room.name + " successfully");
         return callback(null, true);
       });
     })

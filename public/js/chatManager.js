@@ -310,7 +310,7 @@ $('.chat-header__settings .room-options.leave-room').unbind().click(function(e) 
   if (ChatManager.activeChat.type == 'chat') {
     console.log("Destroying chat '", chatName, "'");
 
-    ChatManager.destroyChat(chatName, function(err) {
+    ChatManager.destroyChat(chatId, function(err) {
       console.log("Chat destroyed. Updating private chats...");
       ChatManager.updateChatList();
     });
@@ -849,13 +849,13 @@ ChatManager.updateChatHeader = function updateChatHeader(chatId) {
 /*
  * Remove room from client
  */
-ChatManager.destroyChat = function destroyChat(chat, callback) {
-  delete ChatManager.chats[chat];
+ChatManager.destroyChat = function destroyChat(chatId, callback) {
+  delete ChatManager.chats[chatId];
   var sortedChats = Object.keys(ChatManager.chats).sort();
   var lastChat = ChatManager.chats[sortedChats[sortedChats.length - 1]];
   ChatManager.activeChat = lastChat;
   // TODO: Make this focusChat and do th elogic inside of the function to determine what to do for private chats vs rooms
-  ChatManager.focusChat({ id: lastChat.name }, function(err) {
+  ChatManager.focusChat({ id: lastChat.id }, function(err) {
     ChatManager.updateRoomList(function(err) {
       callback(null);
     });
@@ -1014,7 +1014,6 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
 
   var isActive = function(userId) {
-    debugger;
     if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
       console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is true");
       return true;
@@ -1024,7 +1023,6 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
   };
 
   // Make sure that activeUsers for the chat is updated before we build the userlist for the room below
-  debugger;
 
   if (subscribers.length > 0) {
     subscribers.forEach(function(userId) {

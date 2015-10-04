@@ -1053,6 +1053,7 @@ SocketServer.prototype.membership = function membership(data) {
 SocketServer.prototype.partRoom = function partRoom(data) {
   var self = this;
   var chatId = data.chatId;
+  var userId = self.socket.user.id;
   var username = self.socket.user.username;
 
   // Check if user has already initiated parting this room
@@ -1065,23 +1066,23 @@ SocketServer.prototype.partRoom = function partRoom(data) {
     return self.socket.emit('errorMessage', {message: 401});
   }
 
-  logger.info("[PART ROOM] User " + username + " parting room " + roomName);
+  logger.info("[PART ROOM] User " + username + " parting room with id '" + chatId + "'");
 
-  Room.part({ username: username, name: roomName }, function(err, success) {
+  Room.part({ userId: userId, chatId: chatId }, function(err, success) {
     if (err) {
-      return logger.info("Error parting room " + roomName + " with error: " + err);
+      return logger.info("Error parting room with id '" + chatId + "' with error: " + err);
     }
     if (!success) {
-      return logger.info("Failed to part room " + roomName);
+      return logger.info("Failed to part room with id'" + chatId + "'");
     }
-    logger.info("User " + username + " parted room " + roomName);
+    logger.info("User " + username + " parted room with id'" + chatId + "'");
     self.updateActiveUsers(chatId);
 
     // Update user status
     //
 
-    self.socket.leave(roomName);
-    self.socket.emit('partComplete', { room: roomName });
+    self.socket.leave(chatId);
+    self.socket.emit('partComplete', { chatId: chatId });
   })
 };
 
@@ -1178,27 +1179,36 @@ SocketServer.prototype.disconnect = function disconnect() {
   logger.info("[DISCONNECT] socket.id: " + self.socket.id);
   self.socket.leaveAll();
 
-  if (self.socket.user && self.socket.user.username) {
+  if (self.socket.user && self.socket.user.id) {
+    var userId = self.socket.user.id;
     var username = self.socket.user.username;
+
     logger.info("[SOCKET SERVER] (disconnect) username: "+username);
-    User.findOne({ username: username }).populate('membership.rooms._room').exec(function(err, user) {
+
+    User.findOne({ _id: userId }).populate('membership.rooms._room').exec(function(err, user) {
       if (err) {
         return logger.info("ERROR finding user while parting room");
       }
+
       if (!user) {
         return logger.info("ERROR finding user while parting room");
       }
+
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
       user.membership.rooms.forEach(function(roomMembership) {
         if (roomMembership.active) {
-          Room.part({ username: username, name: roomMembership._room.name }, function(err, success) {
+          var currentRoom = roomMembership._room;
+
+          Room.part({ userId: userId, chatId: roomMembership._room._id }, function(err, success) {
             if (err) {
               return logger.info("ERROR parting room: " + err);
             }
+
             if (!success) {
               return logger.info("User " + username + " failed to part room " + currentRoom.name);
             }
+
             //BOOKMARK
             logger.info("User " + username + " successfully parted room " + currentRoom.name);
             // TODO: Should update all appropritae rooms here

@@ -326,6 +326,7 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var message = data.message;
   var roomName = ChatManager.chats[chatId].name;
   var username;
+  var keys_test;
   var keys;
 
   // If the room has membershipRequired enabled only encrypt messages to the members
@@ -352,25 +353,31 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   if (!ChatManager.chats[chatId].membershipRequired) {
     console.log("[encryptClientKeyMessage] Encrypting client key message for public room to ALL users");
 
-    //debugger;
     keys = Object.keys(ChatManager.userlist).map(function(userId) {
-      //debugger;
+      if (window.userMap[userId]) {
+        return window.userMap[userId].keyInstance;
+      }
+    }).filter(function(key) {
+      return !!key;
+    });
+
+    keys_test = Object.keys(ChatManager.userlist).map(function(userId) {
       if (ChatManager.userlist[userId].keyInstance) {
         console.log("[encryptionManager.encryptClientKeyMessage] Adding key ID '" + ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint().toString('hex') + "' for user '" + ChatManager.userlist[userId].username + "' to keys to encrypt this message to");
-        //debugger;
         return ChatManager.userlist[userId].keyInstance;
       }
     }).filter(function(key) {
       return !!key;
     });
-    //debugger;
+
     // Should probably push this to the room object to cache it so we dont' have to generate it every time
     keys.push(self.keyManager);
+    keys_test.push(self.keyManager);
   }
 
   window.kbpgp.box({
     msg: message,
-    encrypt_for: keys,
+    encrypt_for: keys_test,
     sign_with: self.keyManager
   }, callback);
 };
@@ -402,16 +409,14 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 
  //TODO: Should name this appropriately for client key decryption
 EncryptionManager.prototype.decryptMessage = function decryptMessage(encryptedMessage, callback) {
-  debugger;
   var self = this;
 
-  Object.keys(self.keyRing._keys).forEach(function(keyId) {
-    debugger;
+  Object.keys(this.keyRing._keys).forEach(function(keyId) {
     console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + self.keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
   });
 
   debugger;
-  window.kbpgp.unbox({ keyfetch: self.keyRing, armored: encryptedMessage }, function(err, literals) {
+  window.kbpgp.unbox({ keyfetch: this.keyRing, armored: encryptedMessage }, function(err, literals) {
 
     //if (err) {
     //  console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);

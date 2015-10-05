@@ -84,7 +84,7 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomMessage', function(data) {
     var message = data.message;
-    window.encryptionManager.decryptMessage(data.message, function(err, messageString) {
+    window.encryptionManager.decryptMessage({ encryptedMessage: data.message }, function(err, messageString) {
       if (err) {
         console.log(err);
       }
@@ -97,7 +97,7 @@ SocketClient.prototype.addListeners = function() {
     var message = data.message;
 
     console.log('privateMessage', data);
-    window.encryptionManager.decryptMessage(message, function(err, messageString) {
+    window.encryptionManager.decryptMessage({ encryptedMessage: message }, function(err, messageString) {
       if (err) {
         console.log(err);
       }

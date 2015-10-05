@@ -676,30 +676,34 @@ ChatManager.initRoom = function initRoom(room, callback) {
    * Also we should only send messages to each user starting at their join date or
    * the date/time that they were added to a room
    */
-  messages.forEach(function(message, key) {
-    window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
-      var encryptedMessage = message.encryptedMessage;
-      var decryptedMessage = decryptedMessage;
-      var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
-      if (err) {
-        decryptedMessage = 'Unable to decrypt...\n';
-        console.log("Error decrypting message : ");
-      }
+  encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
+    ChatManager.chats[room.id].keyRing = keyRing;
 
-      // Cache the decrypted message
-      messageArray[key] = decryptedMessage.toString();
-      count++;
-      if (messages.length === count) {
-        messageArray.forEach(function(decryptedMessageString, key) {
-          var fromUserId = self.chats[room.id].messages[key].fromUser;
-          var date = self.chats[room.id].messages[key].date;
+    messages.forEach(function(message, key) {
+      window.encryptionManager.decryptMessage({ encryptedMessage: message.encryptedMessage }, function(err, decryptedMessage) {
+        var encryptedMessage = message.encryptedMessage;
+        var decryptedMessage = decryptedMessage;
+        var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
+        if (err) {
+          decryptedMessage = 'Unable to decrypt...\n';
+          console.log("Error decrypting message : ");
+        }
 
-          self.chats[room.id].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'room', chatId: room.id, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
-        });
-      };
-    })
-  })
+        // Cache the decrypted message
+        messageArray[key] = decryptedMessage.toString();
+        count++;
+        if (messages.length === count) {
+          messageArray.forEach(function(decryptedMessageString, key) {
+            var fromUserId = self.chats[room.id].messages[key].fromUser;
+            var date = self.chats[room.id].messages[key].date;
+
+            self.chats[room.id].messages[key].decryptedMessage = decryptedMessageString;
+            ChatManager.addMessageToChat({ type: 'room', chatId: room.id, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
+          });
+        };
+      });
+    });
+  });
 
   //if (!ChatManager.activeChat && window.activeChat) {
   //  ChatManager.activeChat = window.activeChat;
@@ -709,7 +713,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     self.focusChat({ id: room.id }, function(err) {
       console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
     });
-  }
+  };
 
   self.updateRoomList(function(err) {
     console.log("Update room list done...");
@@ -756,32 +760,37 @@ ChatManager.initChat = function initChat(chat, callback) {
   var count = 0;
   var messageArray = Array(messages.length);
 
-  messages.forEach(function(message, key) {
-    window.encryptionManager.decryptMessage(message.encryptedMessage, function(err, decryptedMessage) {
-      var encryptedMessage = message.encryptedMessage;
-      var decryptedMessage = decryptedMessage;
+  encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
+    ChatManager.chats[room.id].keyRing = keyRing;
 
-      count++;
+    messages.forEach(function(message, key) {
 
-      if (err) {
-        decryptedMessage = 'Unable to decrypt...\n';
-        console.log("Error decrypteing message: ", err);
-      }
+      window.encryptionManager.decryptMessage({ encryptedMessage: message.encryptedMessage }, function(err, decryptedMessage) {
+        var encryptedMessage = message.encryptedMessage;
+        var decryptedMessage = decryptedMessage;
 
-      messageArray[key] = decryptedMessage.toString();
-      console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
-      if (messages.length === count) {
-        messageArray.forEach(function(decryptedMessageString, key) {
+        count++;
 
-          var fromUserId = messages[key]._fromUser;
-          var date = messages[key].date;
+        if (err) {
+          decryptedMessage = 'Unable to decrypt...\n';
+          console.log("Error decrypteing message: ", err);
+        }
 
-          self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
-          ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
-        });
+        messageArray[key] = decryptedMessage.toString();
+        console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
+        if (messages.length === count) {
+          messageArray.forEach(function(decryptedMessageString, key) {
 
-      };
-    })
+            var fromUserId = messages[key]._fromUser;
+            var date = messages[key].date;
+
+            self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
+            ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
+          });
+
+        };
+      })
+    });
   });
 
   ChatManager.arrayHash(participants, function(chatHash) {
@@ -795,6 +804,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   self.updateChatList();
   return callback(null);
 };
+
 
 ChatManager.waitForInit = function waitForInit(chatHash) {
   ChatManager.activeChat.awaitingInit = chatHash;

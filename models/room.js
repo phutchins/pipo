@@ -185,16 +185,6 @@ roomSchema.statics.join = function join(data, callback) {
         // Should not return room name? Should catch error...
         return callback(null, { auth: false, updated: updated, room: { name: room.name } });
       }
-
-      logger.debug("User " + userName + " unable to join #" + name + " due to incorrect membership");
-
-      // Should not return room name? Should catch error...
-      if (!user.membership._currentRooms.includes(room)) {
-        user.membership._currentRooms.push(room);
-        user.save();
-      }
-
-      return callback(null, { auth: false, room: { name: name } });
     })
   })
 };

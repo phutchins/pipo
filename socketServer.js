@@ -432,6 +432,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
   var emitData = {
     fromUserId: self.socket.user._id.toString(),
+    chatId: chatId,
     toUserIds: toUserIds,
     date: message.date,
     message: data.pgpMessage,

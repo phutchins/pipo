@@ -811,7 +811,7 @@ ChatManager.initChat = function initChat(chat, callback) {
         if (messages.length === count) {
           messageArray.forEach(function(decryptedMessageString, key) {
 
-            var fromUserId = messages[key]._fromUser;
+            var fromUserId = messages[key].fromUser;
             var date = messages[key].date;
 
             self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
@@ -1374,7 +1374,6 @@ ChatManager.handleLocalMessage = function handleLocalMessage(data) {
   var type = ChatManager.chats[chatId].type;
   var messageString = data.messageString;
   var fromUserId = data.fromUserId;
-  var toUserIds = data.toUserIds;
   var date = data.date;
 
   // Need to add functionality to addMessageToChat to have the message confirmed or not
@@ -1522,8 +1521,11 @@ ChatManager.sendMessage = function sendMessage(callback) {
       }
       else if (ChatManager.activeChat.type == 'chat') {
         var sendToIds = ChatManager.chats[ChatManager.activeChat.id].participants;
+        var activeChatId = ChatManager.activeChat.id;
 
-        socketClient.sendPrivateMessage({ ids: sendToIds, message: preparedInput });
+        // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+
+        socketClient.sendPrivateMessage({ chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
 
         $('#message-input').val('');
 
@@ -1532,7 +1534,6 @@ ChatManager.sendMessage = function sendMessage(callback) {
           chatId: ChatManager.activeChat.id,
           messageString: preparedInput,
           fromUserId: ChatManager.userNameMap[window.username],
-          toUserIds: sendToIds,
           date: date
         });
 

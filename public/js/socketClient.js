@@ -471,18 +471,19 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
-  var ids = data.ids;
+  var chatId = data.chatId;
+  var toUserIds = data.toUserIds;
   var message = data.message;
 
   ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage(ids, preparedMessage, function(err, pgpMessage) {
+    window.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
 
       else {
         // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
-        self.socket.emit('privateMessage', {toUserIds: ids, pgpMessage: pgpMessage });
+        self.socket.emit('privateMessage', {chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
         $('#message-input').val('');
       }
     });

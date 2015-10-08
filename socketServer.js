@@ -404,6 +404,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   var fromUser = self.socket.user._id.toString();
+  var chatId = data.chatId;
   var toUserIds = data.toUserIds;
 
   // Need to get the target socket using user id!
@@ -411,15 +412,18 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
-  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + toUserIds.toString() + ".");
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + chatId + ".");
 
   // Where should we store private message chats?
   var message = new Message({
     _fromUser: self.socket.user,
-    toUsers: toUserIds,
+    _toUsers: toUserIds,
+    _toChat: chatId,
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
+
+
 
   // Get the socketId's for each participant
   toUserIds.forEach(function(toUserId) {
@@ -433,6 +437,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     message: data.pgpMessage,
     signature: data.signature
   };
+
+  logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
 
   var userMapKeys = Object.keys(self.namespace.userMap);
 
@@ -526,7 +532,7 @@ SocketServer.prototype.getChat = function getChat(data) {
     // Get the chat by id
     logger.debug("[getChat] Getting chat for client - ", chatId);
 
-    Chat.findOne({ _id: chatId}, function(err, chat) {
+    Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers _messages._toChat').exec(function(err, chat) {
       if (err) {
         self.socket.emit('chatUpdate', null);
         return logger.debug("Error finding chat by participants: " + err);

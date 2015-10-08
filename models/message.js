@@ -16,30 +16,32 @@ var logger = require('../config/logger');
 var messageSchema = new Schema({
   date: { type: Date, default: new Date() },
   _fromUser: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
-  fromUser: { type: String },
   _toUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  toUsers: [{ type: String }],
+  _toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
   encryptedMessage: { type: String }
 });
 
 messageSchema.statics.sanatize = function sanatize(message, callback) {
   var toUsersArray = [];
 
-  if (message._toUsers.length > 0) {
-    message._toUsers.forEach(function(toUser) {
-      toUsersArray.push(toUser._id.toString());
-    });
-  }
+  this.populate(message, { path: '_fromUser _toUsers _toChat' }, function(err, populatedMessage) {
 
-  var sanatizedMessage = {
-    date: message.date,
-    _fromUser: message._fromUser,
-    fromUser: message.fromUser,
-    _toUsers: toUsersArray,
-    encryptedMessage: message.encryptedMessage
-  };
+    if (populatedMessage._toUsers.length > 0) {
+      populatedMessage._toUsers.forEach(function(toUser) {
+        toUsersArray.push(toUser._id.toString());
+      });
+    }
 
-  return callback(sanatizedMessage);
+    var sanatizedMessage = {
+      date: populatedMessage.date,
+      fromUser: populatedMessage._fromUser._id.toString(),
+      toUsers: toUsersArray,
+      toChat: populatedMessage._toChat._id.toString(),
+      encryptedMessage: populatedMessage.encryptedMessage
+    };
+
+    return callback(sanatizedMessage);
+  });
 };
 
 module.exports = mongoose.model('Message', messageSchema);

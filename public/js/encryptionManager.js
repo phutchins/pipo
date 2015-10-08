@@ -394,19 +394,30 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   }, callback);
 };
 
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(toUserIds, message, callback) {
+EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(data, callback) {
   var self = this;
+  var chatId = data.chatId;
+  var message = data.message;
   var keys = [];
   var keyFingerPrints = {};
 
+  /*
   toUserIds.forEach(function(userId) {
     keys.push(ChatManager.userlist[userId].keyInstance);
+  });
+  */
+
+  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+  });
+
+  ChatManager.chats[chatId].participants.forEach(function(userId) {
     keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
   });
 
   keys.push(self.keyManager);
 
-  console.log("[encryptionManager.encryptPrivateMessage] Encrypting private message to keys: ",keyFingerPrints);
+  //console.log("[encryptionManager.encryptPrivateMessage] Encrypting private message to keys: ",keyFingerPrints);
 
   window.kbpgp.box({
     msg: message,

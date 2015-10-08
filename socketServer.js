@@ -804,13 +804,16 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   if (room._messages.length > 0) {
     var processedMessages = 0;
     room._messages.forEach(function(message) {
-      var toUsersArray = [];
+      if (message._toUsers && message._toUsers.length > 0) {
+        var toUsersArray = [];
+        message._toUsers.forEach(function(toUser) {
+          //logger.debug("[socketServer.sanatizeRoomForClient] Looping toUsers, _toUser._id is: " + toUser._id.toString());
+          toUsersArray.push(toUser._id.toString());
+        });
+      };
 
-      message._toUsers.forEach(function(toUser) {
-        //logger.debug("[socketServer.sanatizeRoomForClient] Looping toUsers, _toUser._id is: " + toUser._id.toString());
-        toUsersArray.push(toUser._id.toString());
-      });
-
+      // Should be able to remove this?
+      // bug when I do, i can't see finish() from this context... :-\
       message.populate('_fromUser', function() {
 
         //logger.debug("[socketServer.sanatizeRoomForClient] Looping messages, from user is : " + message._fromUser._id.toString());
@@ -829,7 +832,7 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
           finish();
         };
       });
-    })
+    });
   };
 
 
@@ -979,7 +982,7 @@ SocketServer.prototype.membership = function membership(data) {
 
       logger.debug("[socketServer.membership] Member added, finding room with '" + chatId + "' to return...");
 
-      Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers').exec(function(err, room) {
+      Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser _messages._toUsers').exec(function(err, room) {
         logger.debug("[socketServer.membership] sanatizeRoomForClient 5");
         self.sanatizeRoomForClient(room, function(sanatizedRoom) {
           var rooms = {};
@@ -1016,7 +1019,7 @@ SocketServer.prototype.membership = function membership(data) {
       }
 
       logger.debug("[MEMBERSHIP] Finding room to send back to the user");
-      Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers').exec(function(err, room) {
+      Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages').exec(function(err, room) {
         //logger.debug("[SOCKET SERVER] (membership) Room members: ",room._members);
         //logger.debug("[SOCKET SERVER] (membership) Room admins: ",room._admins);
         logger.debug("[SOCKET SERVER] (membership) Room owner: ",room._owner.username);

@@ -84,11 +84,16 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomMessage', function(data) {
     var message = data.message;
-    window.encryptionManager.decryptMessage({ encryptedMessage: data.message }, function(err, messageString) {
+    var chatId = data.chatId;
+
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: data.message
+    }, function(err, messageString) {
       if (err) {
         console.log(err);
       }
-      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: data.chatId });
+      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: chatId });
     });
   });
 
@@ -97,7 +102,9 @@ SocketClient.prototype.addListeners = function() {
     var message = data.message;
 
     console.log('privateMessage', data);
-    window.encryptionManager.decryptMessage({ encryptedMessage: message }, function(err, messageString) {
+    window.encryptionManager.decryptMessage({
+      encryptedMessage: message
+    }, function(err, messageString) {
       if (err) {
         console.log(err);
       }
@@ -135,6 +142,7 @@ SocketClient.prototype.addListeners = function() {
     var chatId = data.chatId;
     var chatName = ChatManager.chats[chatId].name;
     var activeUsers = data.activeUsers;
+    var roomUsers = data.activeUsers;
 
     console.log("[SOCKET] 'roomUsersUpdate' for room #" + chatName);
 
@@ -142,63 +150,25 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.chats[chatId].activeUsers = activeUsers;
     }
 
-    /*
-    // BUG: Should update the users in the ChatManager.chats[chatId] object instead of window.roomUsers
-    if (window.roomUsers[chatId]) {
-      var currentRoomUsersArray = Object.keys(window.roomUsers[chatId]);
-
-      Object.keys(roomUsers).forEach(function(key) {
-        console.log("Found new user '" + roomUsers[key].username);
-        newRoomUsersArray.push(roomUsers[key].username);
-      });
-
-      uniqueRoomUsersArray = newRoomUsersArray.filter(function(user) {
-        return !currentRoomUsersArray.indexOf(user);
-      });
-
-      //Don't notify us about ourselves
-      // Also should not notify when initially getting the room users update
-      uniqueRoomUsersArray.forEach(function(joinusername) {
-        if (window.username !== joinusername) {
-          if (currentRoomUsersArray.indexOf(joinusername)) {
-            console.log("User " + joinusername + " has joined #" + chatName);
-            clientNotification.send(null, 'PiPo', joinusername + ' has joined #' + chatName, 3000);
-          } else {
-            console.log("User " + joinusername + " has left #" + chatName);
-            clientNotification.send(null, 'PiPo', joinusername + ' has left #' + chatName, 3000);
-          }
-        }
-      })
-    }
-
     window.roomUsers[chatId] = {};
 
-    roomUsers.forEach(function(user) {
+    /*
+     * BUG BUG BUG
+     * Need to remove this code but it is making decryption work
+     */
+    /*
+    roomUsers.forEach(function(userId) {
+      var user = ChatManager.userlist[userId];
       if (user) {
-        addToRoomUsers(user);
-        if (window.userMap[user.userId]) {
-          if (window.userMap[user.userId].publicKey === user.publicKey) {
-            return;
-          }
-        }
         addToGlobalUsers(user);
       }
     });
 
-    function addToRoomUsers(user) {
-      if (!window.roomUsers[chatId][user.userId]) {
-        window.roomUsers[chatId][user.userId] = {
-          connections: 1
-        };
-      }
-      else {
-        window.roomUsers[chatId][user.userId].connections++;
-      }
-    }
     function addToGlobalUsers(user) {
-      window.userMap[user.userId] = {
-        publicKey: user.publicKey
-      };
+      debugger;
+      //window.userMap[user.id] = {
+      //  publicKey: user.publicKey
+      //};
 
       //Don't build publicKey for ourselves
       if (user.username != window.username) {
@@ -210,14 +180,16 @@ SocketClient.prototype.addListeners = function() {
           if (err) {
             console.log("Error importing user key", err);
           }
-          console.log("imported key", user.username);
-          window.userMap[user.userId].keyInstance = keyInstance;
+          var keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
+          console.log("imported key", user.username, "with finger print", keyFingerPrint);
+          //window.userMap[user.id].keyInstance = keyInstance;
           // Setting key instance here but we need to do this elsewhere...
-          ChatManager.userlist[user.userId].keyInstance = keyInstance;
+          //ChatManager.userlist[user.id].keyInstance = keyInstance;
           encryptionManager.keyRing.add_key_manager(keyInstance);
         });
       }
     }
+    */
 
     console.log("[USERLIST UPDATE] Updating userlist");
 
@@ -226,7 +198,6 @@ SocketClient.prototype.addListeners = function() {
     // Should probably do this in roomUpdate or chatUpdate instead
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
-    */
 
     if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
       ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });
@@ -423,20 +394,37 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   // We want to update one at a time in case we only receive an update for select room(s)
   Object.keys(rooms).forEach(function(id) {
     console.log("[socketClient.handleRoomUpdate] Adding room",id,"to array with data:",rooms[id]);
-    ChatManager.chats[id] = rooms[id];
+
+    //
+    // BUG: This should not overwrite the entire room... It is nuking the messageCache
+    //
+
+    ChatManager.initRoom(rooms[id], function(err) {
+      console.log("Init'd room " + rooms[id].name + " from room update");
+
+      // TODO: Move this for all initRoom callbacks to somewhere common to remove duplication
+      //ChatManager.chats[id].joined = true;
+
+      ChatManager.updateRoomList(function() {
+        ChatManager.enableChat(rooms[id], ChatManager.chats[id].encryptionSchema);
+      });
+      ChatManager.buildRoomListModal;
+
+      // if manageMembersModal is currently visible don't clear any error or ok messages
+      ChatManager.populateManageMembersModal({ clearMessages: false });
+    });
   })
 
+  /*
   if (ChatManager.activeChat) {
     activeChatId = ChatManager.activeChat.id;
     activeChatName = ChatManager.chats[activeChatId].name;
     console.log("[socketClient.handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
     ChatManager.refreshChatContent(activeChatId);
 
-    // if manageMembersModal is currently visible don't clear any error or ok messages
-    ChatManager.populateManageMembersModal({ clearMessages: false });
   }
 
-  ChatManager.buildRoomListModal;
+  */
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {

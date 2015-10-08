@@ -287,17 +287,23 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + ChatManager.chats[chatId].name);
 
   if (membershipRequired) {
-    ChatManager.chats[chatId].members.forEach(function(member) {
-      var keyInstance = ChatManager.userlist[member.id].keyInstance;
-      keyRing.add_key_manager(keyInstance);
+    ChatManager.chats[chatId].members.forEach(function(userId) {
+      if (ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = ChatManager.userlist[userId].keyInstance;
+        keyRing.add_key_manager(keyInstance);
+      };
     });
   };
 
   if (!membershipRequired) {
-    debugger;
+    console.log("[encryptionManager.buildChatKeyRing] Building keyRing for public chat");
     Object.keys(ChatManager.userlist).forEach(function(userId) {
-      var keyInstance = ChatManager.userlist[userId].keyInstance;
-      keyRing.add_key_manager(keyInstance);
+      if (ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = ChatManager.userlist[userId].keyInstance;
+        var keyFingerPrint = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+        console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
+        keyRing.add_key_manager(keyInstance);
+      };
     });
   };
 
@@ -327,7 +333,6 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
     console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
 
-    debugger;
     // Make sure that we are encrypting message to the user as well as our self here
 
     self.encryptClientKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
@@ -360,6 +365,8 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var chatId = data.chatId;
   var message = data.message;
   var keys = [];
+  var keysTest = [];
+  var keyFingerPrints = {};
 
 
   // TODO: Need to confirm the admin signature that added the user to this chat here
@@ -371,10 +378,14 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
     keys.push(ChatManager.chats[chatId].keyRing._kms[id]);
   });
 
+  ChatManager.chats[chatId].subscribers.forEach(function(userId) {
+    keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+  });
+
+  console.log("[encryptionManager.encryptClientKeyMessage] Encrypting client key message to users: ", keyFingerPrints);
+
   //Add our own key to the mix so that we can read the message as well
   keys.push(self.keyManager);
-
-  debugger;
 
   window.kbpgp.box({
     msg: message,
@@ -386,14 +397,16 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(toUserIds, message, callback) {
   var self = this;
   var keys = [];
+  var keyFingerPrints = {};
 
   toUserIds.forEach(function(userId) {
     keys.push(ChatManager.userlist[userId].keyInstance);
+    keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
   });
 
   keys.push(self.keyManager);
 
-  console.log("[encryptPrivateMessage] Encrypting private message to keys: ",keys);
+  console.log("[encryptionManager.encryptPrivateMessage] Encrypting private message to keys: ",keyFingerPrints);
 
   window.kbpgp.box({
     msg: message,
@@ -412,14 +425,16 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callback) {
   var self = this;
   var encryptedMessage = data.encryptedMessage;
+  var keyRing = data.keyRing || this.keyRing;
 
-  Object.keys(this.keyRing._keys).forEach(function(keyId) {
-    console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + self.keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
+  Object.keys(keyRing._keys).forEach(function(keyId) {
+    console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
   });
 
-  debugger;
+  // Add our own decrypted private key to the key manager so we can decrypt messages
+  keyRing.add_key_manager(self.keyManager);
 
-  window.kbpgp.unbox({ keyfetch: this.keyRing, armored: encryptedMessage }, function(err, literals) {
+  window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedMessage }, function(err, literals) {
 
     //if (err) {
     //  console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);

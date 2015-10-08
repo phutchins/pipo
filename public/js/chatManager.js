@@ -450,8 +450,8 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
   var chatName = ChatManager.chats[chatId].name;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 
-  var members = ChatManager.chats[chatId].members;
-  var admins = ChatManager.chats[chatId].admins;
+  var members = ChatManager.chats[chatId].members || [];
+  var admins = ChatManager.chats[chatId].admins || [];
   var ownerId = ChatManager.chats[chatId].owner;
 
   // Clear notifications
@@ -647,6 +647,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   // TODO: Should store online status for members and messages in an object or array also
 
+  // If room already exists locally, don't overwrite settings that should persist
+  if (self.chats[room.id]) {
+
+  };
+
   self.chats[room.id] = { id: room.id,
     name: room.name,
     type: 'room',
@@ -676,11 +681,19 @@ ChatManager.initRoom = function initRoom(room, callback) {
    * Also we should only send messages to each user starting at their join date or
    * the date/time that they were added to a room
    */
+
+  /*
+   * Should only buldChatKeyRing for private rooms
+   * Should build allUserKeyRing once and use that for public rooms
+   */
   encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
     ChatManager.chats[room.id].keyRing = keyRing;
 
     messages.forEach(function(message, key) {
-      window.encryptionManager.decryptMessage({ encryptedMessage: message.encryptedMessage }, function(err, decryptedMessage) {
+      window.encryptionManager.decryptMessage({
+        keyRing: ChatManager.chats[room.id].keyRing,
+        encryptedMessage: message.encryptedMessage
+      }, function(err, decryptedMessage) {
         var encryptedMessage = message.encryptedMessage;
         var decryptedMessage = decryptedMessage;
         var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
@@ -760,12 +773,15 @@ ChatManager.initChat = function initChat(chat, callback) {
   var count = 0;
   var messageArray = Array(messages.length);
 
-  encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
-    ChatManager.chats[room.id].keyRing = keyRing;
+  encryptionManager.buildChatKeyRing({ chatId: chatId }, function(keyRing) {
+    ChatManager.chats[chatId].keyRing = keyRing;
 
     messages.forEach(function(message, key) {
 
-      window.encryptionManager.decryptMessage({ encryptedMessage: message.encryptedMessage }, function(err, decryptedMessage) {
+      window.encryptionManager.decryptMessage({
+        keyRing: ChatManager.chats[chatId].keyRing,
+        encryptedMessage: message.encryptedMessage
+      }, function(err, decryptedMessage) {
         var encryptedMessage = message.encryptedMessage;
         var decryptedMessage = decryptedMessage;
 
@@ -1160,6 +1176,8 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   var self = this;
 
+  // TODO:
+  // Need to enable and disable chat for each chat or all chats
   if (self.enabled) {
     console.log("[enableChat] Trying to enable chat when it is already enabled");
     return;

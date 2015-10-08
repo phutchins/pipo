@@ -180,7 +180,7 @@ userSchema.statics.availableRooms = function availableRooms(data, callback) {
   // TODO: This may should just return room ids
   this.findOne({ _id: userId }).exec(function(err, user) {
     logger.debug("[user.availableRooms] Found user ",user.username," for which we are building the room list");
-    Room.find({ $or: [ { members: { _member: user._id } }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
+    Room.find({ $or: [ { _members: user._id }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }

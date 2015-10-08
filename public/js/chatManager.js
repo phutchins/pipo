@@ -1337,6 +1337,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
 
+  var message = data.message;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
   var fromUsername = ChatManager.userlist[fromUserId].username;

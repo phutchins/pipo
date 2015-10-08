@@ -100,20 +100,12 @@ SocketClient.prototype.addListeners = function() {
   this.socket.on('privateMessage', function(data) {
     var self = this;
     var message = data.message;
+    var chatId = data.chatId;
 
     console.log('privateMessage', data);
-    window.encryptionManager.decryptMessage({
-      encryptedMessage: message
-    }, function(err, messageString) {
-      if (err) {
-        console.log(err);
-      }
+    data.socket = self;
 
-      data.messageString = messageString;
-      data.socket = self;
-
-      ChatManager.handlePrivateMessage(data);
-    });
+    ChatManager.handlePrivateMessage(data);
   });
 
   this.socket.on('newMasterKey', function(data) {

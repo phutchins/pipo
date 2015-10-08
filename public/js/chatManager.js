@@ -1337,7 +1337,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
 
-  var messageString = data.messageString;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
   var fromUsername = ChatManager.userlist[fromUserId].username;
@@ -1346,10 +1345,9 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var date = data.date;
   var chatName;
 
-  chatName = fromUsername;
-
   // If we don't have a private chat created for this
   if (!ChatManager.chats[chatId]) {
+    chatName = fromUsername;
     ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', messages: [] };
 
     console.log("Updating private chats");
@@ -1357,11 +1355,20 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.updateChatList();
 
     window.socketClient.socket.emit('getChat', { participantIds: [ ChatManager.userlist[fromUserId].id, myUserId ]});
-  }
+  } else {
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: message
+    }, function(err, messageString) {
+      if (err) {
+        console.log(err);
+      };
+      clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
 
-  clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
+      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 
-  ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
+    });
+  };
 };
 
 

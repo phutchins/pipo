@@ -171,3 +171,17 @@ Options...
 
 Notes...
 -  We can switch the order of public & private key upload with getting the users information like password if that makes more sense. We will just need the password to decrypt the key so we would have to add some more logic to wait to decrypt the key until after the user has entered their password
+
+
+# MVP Feature List
++ Ability to generate revocation key
++ Use revocation key to change current key
++ Emoticons
++ Finish notifications
+  + Highlight Room or Chat until clicked
+  + Title bar should flash until selected
+  + Email notification
+    + Email for messages when offline
+    + Email after certain time of message not being viewed when online
++ File transfer (peer to peer)
+

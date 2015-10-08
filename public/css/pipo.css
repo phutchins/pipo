@@ -939,6 +939,7 @@ button, input, select, textarea {
 }
 
 .manage-members-list-item {
+  rgb(0, 0, 0);
   height: 42px;
 }
 
@@ -953,4 +954,12 @@ button, input, select, textarea {
 .manage-members-list-options {
   width: 200px;
   float: right;
+}
+
+.user-active {
+  opacity: 1;
+}
+
+.user-inactive {
+  opacity: 0.4;
 }

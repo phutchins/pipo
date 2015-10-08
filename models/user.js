@@ -7,8 +7,8 @@ var Chat = require('./chat');
 var logger = require('../config/logger');
 
 var userSchema = new Schema({
-  userName: { type: String },
-  userNameLowerCase: { type: String },
+  username: { type: String },
+  usernameLowerCase: { type: String },
   fullName: { type: String },
   title: { type: String },
   email: { type: String },
@@ -23,8 +23,7 @@ var userSchema = new Schema({
       lastSeen: { type: Date },
       accessLevel: { type: String, default: 'none' }
     }],
-    _autoJoin: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }],
-    _currentRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }]
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }],
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
@@ -41,33 +40,33 @@ userSchema.statics.create = function createUser(userData, callback) {
   if (!userData || userData == null) {
     return callback("no userdata provided to create user", null);
   }
-  if (!userData.userName || !userData.publicKey || !userData.email) {
+  if (!userData.username || !userData.publicKey || !userData.email) {
     return callback("Missing username, publickey or email", null);
   }
 
-  logger.debug("[USER] Creating user with userName: "+userData.userName+" userNameLowerCase: "+userData.userName.toLowerCase(),"email:",userData.email);
+  logger.debug("[USER] Creating user with username: "+userData.username+" usernameLowerCase: "+userData.username.toLowerCase(),"email:",userData.email);
   logger.debug("[USER] userData is", userData);
 
-  var userName = userData.userName;
+  var username = userData.username;
   var email = userData.email;
   var emailHash = null;
   if (email) {
     emailHash = crypto.createHash('md5').update(email).digest('hex');
   }
-  var userNameLowerCase = userName.toLowerCase();
+  var usernameLowerCase = username.toLowerCase();
   var publicKey = userData.publicKey;
   var createUserCallback = callback;
   logger.debug("[USER] created emailHash",emailHash,"from email",email);
 
   var newUser = new this({
-    userName: userName,
+    username: username,
     email: email,
     emailHash: emailHash,
-    userNameLowerCase: userNameLowerCase,
+    usernameLowerCase: usernameLowerCase,
     publicKey: publicKey
   });
 
-  mongoose.model('User').findOne({ userName: userName }, function(err, user) {
+  mongoose.model('User').findOne({ username: username }, function(err, user) {
     if (!user) {
       logger.debug("[USER] Saving user...");
       newUser.save(function(err) {
@@ -76,8 +75,7 @@ userSchema.statics.create = function createUser(userData, callback) {
           return callback("error saving new user", null);
         }
         logger.debug("[USER] saved new user");
-        mongoose.model('User').findOne({ userName: userName }, function(err, user) {
-          logger.debug("[USER] Created user and found new user: ",user," error is: ",err);
+        mongoose.model('User').findOne({ username: username }, function(err, user) {
           return callback(null, {user: user, newUser: true});
         })
       })
@@ -98,8 +96,8 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
   if (typeof data != 'object' || !Object.keys(data).length || data == null) {
     return callback(new Error("No user data included in request"));
   }
-  if (!data.userName) {
-    return callback(new Error("userName is required"));
+  if (!data.username) {
+    return callback(new Error("username is required"));
   }
   if (!data.publicKey) {
     return callback(new Error("publicKey is required"));
@@ -109,27 +107,27 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //return callback(new Error("signature is required"))
   }
   logger.debug("About to find user...");
-  this.findOne({userName: data.userName}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
+  this.findOne({username: data.username}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
     logger.debug("done finding user");
     if (err) {
       logger.error("Error finding or creating user: ",err);
       return callback(err);
     }
     if (!user) {
-      logger.debug("[USER] User '"+data.userName+"' not found so creating");
-      data.userNameLowerCase = data.userName.toLowerCase();
+      logger.debug("[USER] User '"+data.username+"' not found so creating");
+      data.usernameLowerCase = data.username.toLowerCase();
       return self.create(data, callback);
     }
     if (user) {
-      logger.debug("[USER] Found user '"+data.userName+"'");
+      logger.debug("[USER] Found user '"+data.username+"'");
       // TODO: Need to change all references to publicKey
       if ( user.publicKey == data.publicKey ) {
-        logger.debug("[USER] User '"+data.userName+"' has a public key that matches userName");
+        logger.debug("[USER] User '"+data.username+"' has a public key that matches username");
         //TODO: Check signature
         return callback(null, { user: user } );
       }
       else {
-        return callback(new Error("userName and publicKey mismatch"));
+        return callback(new Error("username and publicKey mismatch"));
       }
     }
   });
@@ -139,7 +137,7 @@ userSchema.statics.setEmail = function setEmail(data, callback) {
   var username = data.username;
   var email = data.email;
   var emailHash = this.generateEmailHash(email);
-  this.findOne({ userName: username }).exec(function(err, user) {
+  this.findOne({ username: username }).exec(function(err, user) {
     if (err) { return callback(err) }
     user.email = email;
     user.emailHash = emailHash;
@@ -149,9 +147,9 @@ userSchema.statics.setEmail = function setEmail(data, callback) {
 };
 
 userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
-  var userName = data.userName;
+  var username = data.username;
   var roomName = data.roomName;
-  this.findOne({ userName: data.userName }).populate('membership._autoJoin').exec(function(err, user) {
+  this.findOne({ username: data.username }).populate('membership._autoJoin').exec(function(err, user) {
     Room.findOne({ name: data.roomName }, function(err, room) {
       user.membership.autoJoin.push(room);
       user.save();
@@ -161,9 +159,9 @@ userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
 };
 
 userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
-  var userName = data.userName;
+  var username = data.username;
   var roomName = data.roomName;
-  this.findOne({ userName: userName }).populate('membership._autoJoin').exec(function(err, user) {
+  this.findOne({ username: username }).populate('membership._autoJoin').exec(function(err, user) {
     Room.findOne({ name: roomName }, function(err, room) {
       user.membership.autoJoin.pull(room);
       user.save();
@@ -175,20 +173,22 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
 /*
  * Get the list of rooms that a user is a member of or able to join
  */
-userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
-  logger.debug("Building available rooms list...");
-  var userName = data.userName;
-  this.findOne({ userName: userName }).populate('_members').exec(function(err, user) {
-    logger.debug("Found user ",userName," for which we are building the room list");
-    Room.find({ $or: [ { _members: user }, { _admins: user }, { _owner: user }, { membershipRequired: false } ] }).populate('_members _admins _owner').exec(function(err, rooms) {
+userSchema.statics.availableRooms = function availableRooms(data, callback) {
+  logger.debug("[user.availableRooms] Data: ", data);
+  logger.debug("[user.availableRooms] Building available rooms list for user '" + data.userId + "'...");
+  var userId = data.userId;
+  // TODO: This may should just return room ids
+  this.findOne({ _id: userId }).exec(function(err, user) {
+    logger.debug("[user.availableRooms] Found user ",user.username," for which we are building the room list");
+    Room.find({ $or: [ { _members: user._id }, { _admins: user._id }, { _owner: user._id }, { membershipRequired: false } ] }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser').exec(function(err, rooms) {
       if (err) {
         return callback(err, { rooms: null });
       }
       if (!rooms) {
-        logger.debug("No rooms found for member");
+        logger.debug("[user.availableRooms] No rooms found for member");
         return callback(null, { rooms: null });
       }
-      logger.debug("Found rooms for member " + userName + " : " + Object.keys(rooms).toString());
+      logger.debug("[user.availableRooms] Found rooms for member " + user.username + " : " + Object.keys(rooms).toString());
       return callback(null, { rooms: rooms });
     })
   })
@@ -200,7 +200,7 @@ userSchema.statics.availableRooms = function getRoomsForMember(data, callback) {
  */
 userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
   var username = data.username;
-  this.findOne({ userName: username }, function(err, user) {
+  this.findOne({ username: username }, function(err, user) {
     if (err) { return callback(err, null) }
     return callback(null, user.emailHash);
   })
@@ -211,49 +211,53 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      // Should move this to its own sanatize method
-      var currentRoomsArray = [];
-
-      if (user.membership._currentRooms.length > 0) {
-        user.membership._currentRooms.forEach(function(room) {
-          currentRoomsArray.push(room.name);
-        });
-      };
-
-      userlist[user.userName] = { id: user._id.toString(), userName: user.userName, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title, membership: { currentRooms: currentRoomsArray } };
+      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
     })
     return callback(userlist);
   })
 };
 
-userSchema.statics.buildUserIdMap = function getUserIdMap(data, callback) {
+userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) {
   var userlist = data.userlist;
-  var userIdMap = {};
+  var userNameMap = {};
   if (!userlist) {
-    return callback(userIdMap);
+    return callback(userNameMap);
   }
 
   Object.keys(userlist).forEach(function(key) {
     var user = userlist[key];
-    logger.debug("Looping user for userIdMap: ",user);
-    userIdMap[user.id] = user.userName;
+    userNameMap[user.username] = user.id;
   });
 
-  return callback(userIdMap);
+  return callback(userNameMap);
 };
 
+
+userSchema.statics.buildProfile = function buildProfile(data, callback) {
+  var user = data.user;
+
+  var profile = {
+    username: user.username,
+  };
+
+  logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
+  return callback(profile);
+};
+
+
+
 // TODO: Decide if these are needed still
-userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, callback) {
+userSchema.statics.addUserIfNotExists = function addUserIfNotExist(username, callback) {
   var User = require('./models/user.js');
-  this.findOne({ userName: userName }, function(err, user) {
+  this.findOne({ username: username }, function(err, user) {
     if (err) { return callback(err); };
     if (typeof user === 'undefined' || user === null) {
-      logger.debug("No user found in DB with userName "+userName);
+      logger.debug("No user found in DB with username "+username);
       new User({
-        userName: userName,
+        username: username,
       }).save( function(err, user, count) {
         if (err) { return logger.error("Error adding user to DB: "+err); }
-        logger.debug("Added user '"+userName+"' to DB");
+        logger.debug("Added user '"+username+"' to DB");
         return callback(null);
       });
     } else {
@@ -263,12 +267,12 @@ userSchema.statics.addUserIfNotExists = function addUserIfNotExist(userName, cal
   });
 };
 
-userSchema.statics.getMasterKeyPair = function getMasterKeyPair(userName, room, callback) {
-  this.findOne({ userName: userName }, function(err, user) {
+userSchema.statics.getMasterKeyPair = function getMasterKeyPair(username, room, callback) {
+  this.findOne({ username: username }, function(err, user) {
     if (err) {
       return callback(err);
     } else if (user == null) {
-      return callback("No user found with this userName");
+      return callback("No user found with this username");
     } else {
       // TODO: Master keys need to be stored per room in user
       logger.debug("[USER] (getMasterKeyPair) Returning masterKeyPair.id: "+user.masterKeyPair.id);
@@ -295,25 +299,22 @@ userSchema.statics.disconnect = function disconnectUser(socketId, callback) {
     if (err) {
       callback(err);
     } else {
-      var userName = user.userName;
-      removeUserFromAllChannels(socketId, function(err, userName) {
+      var username = user.username;
+      removeUserFromAllChannels(socketId, function(err, username) {
         if (err) {
-          return logger.error("[DISCONNECT USER] Error removing user "+userName+" from all channels");
-          callback(err);
-        } else {
-          sendUserListUpdate("general", function(err) {
-            logger.debug("[DISCONNECT USER] Error getting channel users: "+err);
-          });
-          // Should only send this to the channels the user has parted from
-          var statusMessage = user.userName+" has left the channel";
-          var statusData = {
-            statusType: "PART",
-            statusMessage: statusMessage
-          }
-          ioMain.emit('chat status', statusData);
-          logger.info("[DISCONNECT] User "+userName+" disconnected...");
-          callback(null);
+          logger.error("[DISCONNECT USER] Error removing user "+username+" from all channels");
+          return callback(err);
         }
+
+        // Should only send this to the channels the user has parted from
+        var statusMessage = user.username+" has left the channel";
+        var statusData = {
+          statusType: "PART",
+          statusMessage: statusMessage
+        }
+        ioMain.emit('chat status', statusData);
+        logger.info("[DISCONNECT] User "+username+" disconnected...");
+        callback(null);
       });
     };
   });

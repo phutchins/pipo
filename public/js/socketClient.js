@@ -140,6 +140,11 @@ SocketClient.prototype.addListeners = function() {
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
     var chatId = data.chatId;
+
+    if (!ChatManager.chats[chatId]) {
+      return;
+    };
+
     var chatName = ChatManager.chats[chatId].name;
     var activeUsers = data.activeUsers;
     var roomUsers = data.activeUsers;
@@ -150,7 +155,7 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.chats[chatId].activeUsers = activeUsers;
     }
 
-    window.roomUsers[chatId] = {};
+    //window.roomUsers[chatId] = {};
 
     /*
      * BUG BUG BUG
@@ -165,7 +170,6 @@ SocketClient.prototype.addListeners = function() {
     });
 
     function addToGlobalUsers(user) {
-      debugger;
       //window.userMap[user.id] = {
       //  publicKey: user.publicKey
       //};
@@ -356,7 +360,7 @@ SocketClient.prototype.joinComplete = function(data) {
 SocketClient.prototype.partComplete = function(data) {
   var self = this;
   var chatId = data.chatId;
-  ChatManager.destroyChat(chatId, function() {
+  ChatManager.partChat(chatId, function() {
     console.log("Done parting room");
   });
 };
@@ -402,12 +406,10 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
     ChatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
-      // TODO: Move this for all initRoom callbacks to somewhere common to remove duplication
-      //ChatManager.chats[id].joined = true;
-
       ChatManager.updateRoomList(function() {
         ChatManager.enableChat(rooms[id], ChatManager.chats[id].encryptionSchema);
       });
+
       ChatManager.buildRoomListModal;
 
       // if manageMembersModal is currently visible don't clear any error or ok messages

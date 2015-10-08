@@ -446,6 +446,10 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
   if (!data) { data = {} }
 
+  if (!ChatManager.activeChat || !ChatManager.chats[ChatManager.activeChat.id]) {
+    return;
+  };
+
   var chatId = (typeof data.chatId === 'undefined') ? ChatManager.activeChat.id : data.chatId;
   var chatName = ChatManager.chats[chatId].name;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
@@ -643,13 +647,14 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
+  var joined = false;
   console.log("Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
 
   // If room already exists locally, don't overwrite settings that should persist
   if (self.chats[room.id]) {
-
+    joined = self.chats[room.id].joined;
   };
 
   self.chats[room.id] = { id: room.id,
@@ -657,18 +662,19 @@ ChatManager.initRoom = function initRoom(room, callback) {
     type: 'room',
     topic: room.topic,
     group: room.group,
+    joined: joined,
     messages: room.messages,
     decryptedMessages: '',
     messageCache: '',
     encryptionScheme: room.encryptionScheme,
     keepHistory: room.keepHistory,
     membershipRequired: room.membershipRequired,
+    activeUsers: room.activeUsers,
     members: room.members,
     admins: room.admins,
-    owner: room.owner
+    owner: room.owner,
+    subscribers: room.subscribers
   };
-
-  self.chats[room.id] = room;
 
   // Decrypt messages and HTMLize them
   var messages = self.chats[room.id].messages.sort(dynamicSort("date"));
@@ -697,6 +703,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
         var encryptedMessage = message.encryptedMessage;
         var decryptedMessage = decryptedMessage;
         var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
+
         if (err) {
           decryptedMessage = 'Unable to decrypt...\n';
           console.log("Error decrypting message : ");
@@ -711,8 +718,15 @@ ChatManager.initRoom = function initRoom(room, callback) {
             var date = self.chats[room.id].messages[key].date;
 
             self.chats[room.id].messages[key].decryptedMessage = decryptedMessageString;
-            ChatManager.addMessageToChat({ type: 'room', chatId: room.id, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
           });
+
+          ChatManager.populateMessageCache(room.id);
+          if (ChatManager.activeChat.id == room.id) {
+            var chatContainer = $('#chat');
+
+            ChatManager.refreshChatContent(room.id);
+            chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+          }
         };
       });
     });
@@ -876,17 +890,56 @@ ChatManager.updateChatHeader = function updateChatHeader(chatId) {
  * Remove room from client
  */
 ChatManager.destroyChat = function destroyChat(chatId, callback) {
+  var self = this;
   delete ChatManager.chats[chatId];
-  var sortedChats = Object.keys(ChatManager.chats).sort();
+
+  self.focusLastChat(function(err) {
+    if (err) {
+      return console.log("[chatManager.destroyChat] Error focusing on last active chat");
+    };
+
+    callback(null);
+  });
+}
+
+
+/*
+ * Part a chat but keep the chat data cached
+ */
+ChatManager.partChat = function partChat(chatId, callback) {
+  var self = this;
+  ChatManager.chats[chatId].joined = false;
+
+  self.focusLastChat(function(err) {
+    callback(err);
+  });
+};
+
+
+/*
+ * Focus on the last active chat
+ */
+ChatManager.focusLastChat = function focusLastChat(callback) {
+  // Create a sorted list of chats that are joined
+  var sortedChats = Object.keys(ChatManager.chats).sort().filter(function(chatId) {
+    return ChatManager.chats[chatId].joined;
+  });
+
+  // Should check here for an empty chat list and do something sane if we have parted the last chat
   var lastChat = ChatManager.chats[sortedChats[sortedChats.length - 1]];
   ChatManager.activeChat = lastChat;
   // TODO: Make this focusChat and do th elogic inside of the function to determine what to do for private chats vs rooms
   ChatManager.focusChat({ id: lastChat.id }, function(err) {
+    if (err) {
+      return callback(err);
+    };
+
     ChatManager.updateRoomList(function(err) {
       callback(null);
     });
   });
-}
+};
+
 
 /*
  * Set the specified chat to be in focus for the user
@@ -945,6 +998,8 @@ ChatManager.setActiveChat = function setActiveChat(id) {
  * Update the list of rooms on the left bar
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
+  console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
+
   $('#room-list').empty();
   console.log("Updating room list!");
 
@@ -1359,16 +1414,19 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
  * This is instead of using addMessageToChat to add them one by one
  * TODO: Should pass messages around the same way everywhere instead of a string some places and object others
  */
-ChatManager.populateMessageCache = function populateMessageCache(data) {
-  var chat = data.chat;
-  var messages = data.messages;
+ChatManager.populateMessageCache = function populateMessageCache(chatId) {
+  var messageCount = ChatManager.chats[chatId].messages.length;
 
-  messages.forEach(function(message) {
-    var fromUsername = ChatManager.chats[message.fromUser].username;
-    ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUsername: message.fromUser }, function(formattedMessage) {
-      ChatManager.chats[chat].messageCache = ChatManager.chats[chat].messageCache.concat(formattedMessage);
-    })
-  })
+  ChatManager.chats[chatId].messageCache = '';
+
+  if (messageCount > 0) {
+    ChatManager.chats[chatId].messages.forEach(function(message) {
+      var fromUsername = ChatManager.userlist[message.fromUser].username;
+      ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+        ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
+      });
+    });
+  };
 };
 
 ChatManager.formatChatMessage = function formatChatMessage(data, callback) {

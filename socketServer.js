@@ -236,8 +236,12 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             return self.socket.emit('roomUpdate', { err: "Room update failed: " + err });
           }
 
+          logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
+
+          logger.debug("[socketServer.authenticate] **********************************************");
           self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
-            logger.debug("[socketServer.authenticate] Finsihed sanatizing rooms for " + user.username + " and sending roomUpdate with " + sanatizedRooms.length);
+            logger.debug("[socketServer.authenticate] ******************************DONE***********************");
+            logger.debug("[socketServer.authenticate] Finsihed sanatizing rooms for " + user.username + " and sending roomUpdate with ",sanatizedRooms);
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -698,6 +702,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     Room.join({id: roomId, username: username}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
+      var roomUpdated = data.updated;
 
       if (!room) {
         if (err) {
@@ -727,11 +732,16 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete");
 
         // TODO: Should only do one of these probably
-        self.socket.emit('roomUpdate', { rooms: rooms } );
+        //self.socket.emit('roomUpdate', { rooms: rooms } );
         // Emit roomUpdate to the namespace so existing users receive the change if there is one
         // We should eventually only do this if there are changes in the room...
-        // self.namespace.emit('roomUpdate', { rooms: rooms });
+
+        // joinComplete and roomUpdate should be ensured that they are called in the same order
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
+
+        if (roomUpdated) {
+          self.namespace.emit('roomUpdate', { rooms: rooms });
+        }
 
         logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name);
 
@@ -1079,12 +1089,14 @@ SocketServer.prototype.partRoom = function partRoom(data) {
       return logger.info("Failed to part room with id'" + chatId + "'");
     }
     logger.info("User " + username + " parted room with id'" + chatId + "'");
+
+    // Remove the user from the rooms namespace
+    self.socket.leave(chatId);
+
+    // Update the active users for the chat and emit the change to all users in that namespace
     self.updateActiveUsers(chatId);
 
-    // Update user status
-    //
-
-    self.socket.leave(chatId);
+    // Emit part complete to the parting user
     self.socket.emit('partComplete', { chatId: chatId });
   })
 };

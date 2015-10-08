@@ -131,6 +131,7 @@ roomSchema.statics.update = function update(data, callback) {
 roomSchema.statics.join = function join(data, callback) {
   var self = this;
   var username = data.username;
+  var updated = false;
   var id = data.id;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     var user = user;
@@ -163,21 +164,26 @@ roomSchema.statics.join = function join(data, callback) {
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
         //mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
 
+        var alreadySubscribed = (room._subscribers.indexOf(user._id) > -1);
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
 
           if (data.err) {
             logger.error("[room.join] Error: data.err");
-            return callback(data.err, { auth: false, room: { name: name } } );
+            return callback(data.err, { auth: false, updated: updated, room: { name: name } } );
           }
 
+          if (!alreadySubscribed) {
+            updated = true;
+          };
+
           logger.debug("[room.join] Successfully subscribed " + user.username + " to #" + updatedRoom.name + ". Returning updated room with auth true");
-          return callback(null, { auth: true, room: updatedRoom });
+          return callback(null, { auth: true, updated: updated, room: updatedRoom });
         });
       } else {
         logger.debug("User " + username + " unable to join #" + room.name + " due to incorrect membership");
         // Should not return room name? Should catch error...
-        return callback(null, { auth: false, room: { name: room.name } });
+        return callback(null, { auth: false, updated: updated, room: { name: room.name } });
       }
     })
   })
@@ -194,6 +200,7 @@ roomSchema.statics.subscribe = function subscribe(data, callback) {
   logger.debug("[room.subscribe] Subscribing userId: '" + userId + "' to roomId '" + roomId + "'");
 
   mongoose.model('Room').findOneAndUpdate({ _id: roomId }, { $addToSet: { _subscribers: mongoose.Types.ObjectId(userId) } }, { new: true }).populate('_members _owner _admins _messages _subscribers _activeUsers').exec(function(err, room) {
+
     return callback({ room: room });
   });
 
@@ -341,12 +348,17 @@ roomSchema.statics.addMember = function addMember(data, callback) {
           if (membership == 'member') {
             room._members.push(memberObj._id);
             pushed = true;
-          }
+          };
 
           if (membership == 'admin' && isRoomOwner) {
             room._admins.push(memberObj);
             pushed = true;
-          }
+          };
+
+          if (membership == 'owner' && isRoomOwner) {
+            room._owner = memberObj;
+            pushed = true;
+          };
 
           if (!pushed) {
             return callback({ success: false, message: "You must be the room owner of " + room.name + " to add an admin" });

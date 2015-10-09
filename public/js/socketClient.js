@@ -12,7 +12,9 @@ function SocketClient() {
   });
 
   this.socket.on('certificate', function(certificate) {
+    console.log("[socketClient] (certificate) Got server certificate. Verifying...");
     window.encryptionManager.verifyCertificate(certificate, function(err) {
+      console.log("[socketClient] (certificate) Veritifed server certificate! Authenticating with server.");
       self.init();
     });
   });
@@ -373,6 +375,24 @@ SocketClient.prototype.updateRoomComplete = function(data) {
   var name = data.name;
   console.log("[UPDATE ROOM COMPLETE] Done updating room...");
 };
+
+
+/*
+ * Toggle favorite room
+ */
+SocketClient.prototype.toggleFavorite = function(data) {
+  var self = this;
+  var chatId = data.chatId;
+
+  console.log("[socketClient.toggleFavorite] Emitting toggle favorite for '" + chatId + "'");
+  self.socket.emit('toggleFavorite', { chatId: chatId });
+  self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
+    console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
+    self.socket.removeListener('toggleFavoriteComplete-' + chatId);
+    ChatManager.updateFavoriteButton({ favorite: data.favorite });
+  });
+};
+
 
 /*
  * Get all rooms that user is a member of or is public

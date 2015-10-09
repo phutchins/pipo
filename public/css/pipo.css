@@ -507,14 +507,14 @@ body, html { padding: 0; margin: 0; }
   margin-top: 6px;
 }
 
-.chat-header__favourite {
+.chat-header__favorite {
   display: inline-block;
   text-align: center;
   line-height: 49px;
   margin: 0 0 0 10px;
 }
 
-.chat-header__favourite i {
+.chat-header__favorite i {
   cursor: pointer;
   opacity: .4;
   -webkit-transition: opacity .2s ease-in-out;

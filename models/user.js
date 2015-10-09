@@ -23,7 +23,7 @@ var userSchema = new Schema({
       lastSeen: { type: Date },
       accessLevel: { type: String, default: 'none' }
     }],
-    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }],
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],

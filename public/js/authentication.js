@@ -53,12 +53,12 @@ Authentication.authenticated = function authenticated(data) {
 
           // Use cilent keys and enable chat for each room user is currently in
           if (favoriteRooms.length > 0) {
-            console.log("[SOCKET] (authenticated) Joining room ",room);
 
-            favoriteRooms.forEach(function(room) {
-              if (room && typeof room !== 'undefined') {
-                socketClient.joinRoom(room, function(err) {
-                  console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+            favoriteRooms.forEach(function(roomId) {
+              console.log("[SOCKET] (authenticated) Joining room ",roomId);
+              if (roomId && typeof roomId !== 'undefined') {
+                socketClient.joinRoom(roomId, function(err) {
+                  console.log("[SOCKET] (authenticated) Sent join request for room "+roomId);
                 });
               }
             });

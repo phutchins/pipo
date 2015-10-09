@@ -548,6 +548,33 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
   })
 };
 
+
+/*
+ * Catch clicks on favorite room button (star)
+ */
+$('.chat-header__favorite').unbind().click(function(e) {
+  console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
+
+  var activeChatId = ChatManager.activeChat.id;
+
+  socketClient.toggleFavorite({ chatId: activeChatId });
+});
+
+
+ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
+  var favorite = data.favorite;
+
+  if (favorite) {
+    $('.chat-header__buttons .star.icon').removeClass('empty');
+  };
+
+  if (!favorite) {
+    $('.chat-header__buttons .star.icon').addClass('empty');
+  };
+
+};
+
+
 // Catch click on .button.addmember
 $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   console.log("[ADD MEMBER] Caught add member button click");
@@ -1245,7 +1272,7 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
-  $('textarea').keydown(function (event) {
+  $("#input-container").find('textarea.message-input').keydown(function (event) {
     var element = this;
 
     //Prevent shift+enter from sending
@@ -1265,6 +1292,14 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
       return false;
     }
   });
+
+  $('#send-button').unbind().on('click', function() {
+    console.log("Got send button click!");
+    // This should probably not use the form and do it some other way
+    //$('#message-input-form').submit();
+    return false;
+  });
+
 };
 
 ChatManager.disableChat = function disableChat(room) {

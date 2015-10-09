@@ -211,10 +211,38 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
-    })
+      this.sanatize(user, function(sanatizedUser) {
+        userlist[user._id.toString()] =  sanatizedUser;
+      //userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      });
+    });
     return callback(userlist);
   })
+};
+
+userSchema.statics.sanatize = function sanatize(user, callback) {
+  var favoriteRoomIds = [];
+
+  if (user.membership._favoriteRooms.length > 0) {
+    favoriteRoomIds = user.membership._favoriteRooms.map(function(key) {
+      return user.membership._favoriteRooms[key]._id.toString();
+    });
+  };
+
+  var sanatizedUser = {
+    id: user._id.toString(),
+    username: user.username,
+    publicKey: user.publicKey,
+    fullName: user.fullName,
+    email: user.email,
+    emailHash: user.emailHash,
+    title: user.title,
+    membership: {
+      favoriteRooms: favoriteRoomIds
+    }
+  };
+
+  return callback(sanatizedUser);
 };
 
 userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) {
@@ -236,12 +264,10 @@ userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) 
 userSchema.statics.buildProfile = function buildProfile(data, callback) {
   var user = data.user;
 
-  var profile = {
-    username: user.username,
-  };
-
-  logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
-  return callback(profile);
+  this.sanatizeUser(user, function(sanatziedUser) {
+    logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
+    return callback(profile);
+  });
 };
 
 

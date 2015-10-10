@@ -12,7 +12,9 @@ function SocketClient() {
   });
 
   this.socket.on('certificate', function(certificate) {
+    console.log("[socketClient] (certificate) Got server certificate. Verifying...");
     window.encryptionManager.verifyCertificate(certificate, function(err) {
+      console.log("[socketClient] (certificate) Veritifed server certificate! Authenticating with server.");
       self.init();
     });
   });
@@ -310,13 +312,19 @@ SocketClient.prototype.joinComplete = function(data) {
 
   if (err) {
     console.log("Cannot join channel due to permissions");
-
-    //if (ChatManager.lastActiveChat) {
-    //  ChatManager.activeChat = ChatManager.lastActiveChat;
-    //}
-
     return ChatManager.showError(err);
   }
+
+  // Determine what the current active chat should be
+  // If we have an active chat cached locally, set it to active chat but only if it exists in our chats list
+  if (!ChatManager.activeChat && window.activeChat && ChatManager.chats[window.activeChat.id]) {
+    ChatManager.activeChat = window.activeChat;
+  };
+
+  // If there is still no active chat, set it to the one we just joined
+  if (!ChatManager.activeChat) {
+    ChatManager.setActiveChat(room.id);
+  };
 
   console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
 
@@ -344,6 +352,12 @@ SocketClient.prototype.joinComplete = function(data) {
   ChatManager.initRoom(room, function(err) {
     ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
+      if (ChatManager.activeChat.id == room.id && !ChatManager.activeChat.focused) {
+        ChatManager.focusChat({ id: room.id }, function(err) {
+          console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
+        });
+      };
+      // Should move this inside focusChat callback after moving enable/disable chats to room object
       ChatManager.enableChat(room, data.encryptionScheme);
     });
   });
@@ -373,6 +387,24 @@ SocketClient.prototype.updateRoomComplete = function(data) {
   var name = data.name;
   console.log("[UPDATE ROOM COMPLETE] Done updating room...");
 };
+
+
+/*
+ * Toggle favorite room
+ */
+SocketClient.prototype.toggleFavorite = function(data) {
+  var self = this;
+  var chatId = data.chatId;
+
+  console.log("[socketClient.toggleFavorite] Emitting toggle favorite for '" + chatId + "'");
+  self.socket.emit('toggleFavorite', { chatId: chatId });
+  self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
+    console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
+    self.socket.removeListener('toggleFavoriteComplete-' + chatId);
+    ChatManager.updateFavoriteButton({ favorite: data.favorite });
+  });
+};
+
 
 /*
  * Get all rooms that user is a member of or is public

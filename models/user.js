@@ -23,7 +23,7 @@ var userSchema = new Schema({
       lastSeen: { type: Date },
       accessLevel: { type: String, default: 'none' }
     }],
-    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room" }],
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
@@ -207,14 +207,44 @@ userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
 };
 
 userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
+  var self = this;
   var userlist = {};
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
-    })
+      self.sanatize(user, function(sanatizedUser) {
+        userlist[user._id.toString()] =  sanatizedUser;
+      //userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
+      });
+    });
     return callback(userlist);
   })
+};
+
+userSchema.statics.sanatize = function sanatize(user, callback) {
+  var favoriteRoomIds = [];
+
+  if (user.membership._favoriteRooms.length > 0) {
+    favoriteRoomIds = user.membership._favoriteRooms.map(function(room) {
+      logger.debug("[user.sanatize] Mapping favorite room to: ", room.toString());
+      return room.id;
+    });
+  };
+
+  var sanatizedUser = {
+    id: user._id.toString(),
+    username: user.username,
+    publicKey: user.publicKey,
+    fullName: user.fullName,
+    email: user.email,
+    emailHash: user.emailHash,
+    title: user.title,
+    membership: {
+      favoriteRooms: favoriteRoomIds
+    }
+  };
+
+  return callback(sanatizedUser);
 };
 
 userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) {
@@ -234,14 +264,13 @@ userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) 
 
 
 userSchema.statics.buildProfile = function buildProfile(data, callback) {
+  var self = this;
   var user = data.user;
 
-  var profile = {
-    username: user.username,
-  };
-
-  logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
-  return callback(profile);
+  this.sanatize(user, function(sanatizedUser) {
+    logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
+    return callback(sanatizedUser);
+  });
 };
 
 

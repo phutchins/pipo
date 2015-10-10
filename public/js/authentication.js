@@ -18,6 +18,7 @@ Authentication.authenticated = function authenticated(data) {
   var defaultRoomId = data.defaultRoomId;
   var userNameMap = data.userNameMap;
   var userlist = data.userlist;
+  var userProfile = data.userProfile;
 
   // Ensure that we have permission to show notifications and prompt if we don't
   clientNotification.init();
@@ -32,13 +33,13 @@ Authentication.authenticated = function authenticated(data) {
 
   ChatManager.defaultRoomId = data.defaultRoomId;
 
-  if (!ChatManager.activeChat) {
-    ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
-  }
+  //if (!ChatManager.activeChat) {
+  //  ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
+  //}
 
-  //ChatManager.userlist = userlist;
   ChatManager.updateUserlist(userlist);
   ChatManager.userNameMap = userNameMap;
+  ChatManager.userProfile = userProfile;
 
   ChatManager.updateProfileHeader();
 
@@ -53,12 +54,12 @@ Authentication.authenticated = function authenticated(data) {
 
           // Use cilent keys and enable chat for each room user is currently in
           if (favoriteRooms.length > 0) {
-            console.log("[SOCKET] (authenticated) Joining room ",room);
 
-            favoriteRooms.forEach(function(room) {
-              if (room && typeof room !== 'undefined') {
-                socketClient.joinRoom(room, function(err) {
-                  console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+            favoriteRooms.forEach(function(roomId) {
+              console.log("[SOCKET] (authenticated) Joining room ",roomId);
+              if (roomId && typeof roomId !== 'undefined') {
+                socketClient.joinRoom(roomId, function(err) {
+                  console.log("[SOCKET] (authenticated) Sent join request for room "+roomId);
                 });
               }
             });

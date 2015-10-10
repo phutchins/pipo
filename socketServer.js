@@ -7,6 +7,7 @@ var Chat = require('./models/chat');
 var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
+var mongoose = require('mongoose');
 
 /**
  * Handles all socket traffic
@@ -50,6 +51,8 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
+
+  socket.on('toggleFavorite', self.toggleFavorite.bind(self));
 
   socket.on('serverCommand', self.onServerCommand.bind(self));
 
@@ -200,10 +203,13 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     var favoriteRooms = [];
     User.populate(user, { path: 'membership._favoriteRooms' }, function(err, populatedUser) {
       if (populatedUser.membership._favoriteRooms.length > 0) {
+        logger.debug("[socketServer.authenticate] populatedUser.membership._favoriteRooms.length: ", populatedUser.membership._favoriteRooms.length);
         logger.debug("[socketServer.authenticate] Building favorite rooms for " + user.username);
-        Object.keys(populatedUser.membership._favoriteRooms).forEach(function(key) {
-          logger.info("Adding " + populatedUser.membership._favoriteRooms[key].name + " to auto join array");
-          favoriteRooms.push(populatedUser.membership._favoriteRooms[key].name);
+        logger.debug("[socketServer.authenticate] Object.keys: ", Object.keys(populatedUser.membership._favoriteRooms));
+        populatedUser.membership._favoriteRooms.forEach(function(room) {
+          var roomId = room._id;
+          logger.info("Adding " + roomId + " to auto join array");
+          favoriteRooms.push(roomId);
         })
       }
 
@@ -238,9 +244,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
-          logger.debug("[socketServer.authenticate] **********************************************");
           self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
-            logger.debug("[socketServer.authenticate] ******************************DONE***********************");
             logger.debug("[socketServer.authenticate] Finsihed sanatizing rooms for " + user.username + " and sending roomUpdate with ",sanatizedRooms);
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
@@ -1105,6 +1109,75 @@ SocketServer.prototype.partRoom = function partRoom(data) {
     // Emit part complete to the parting user
     self.socket.emit('partComplete', { chatId: chatId });
   })
+};
+
+
+/*
+ * Toggle a room as favorite
+ */
+SocketServer.prototype.toggleFavorite = function toggleFavorite(data) {
+  var self = this;
+  var chatId = data.chatId;
+  var userId = self.socket.user.id;
+  var username = self.socket.user.username;
+
+  logger.debug("[socketServer.toggleFavorite] (toggleFavorite) Got socket request to toggle favorite for user '" + userId + "' and chat '" + chatId + "'");
+
+  User.findOne({ _id: userId }).exec(function(err, user) {
+    var user = user;
+
+    if (!user) {
+      return logger.error("[socketServer.toggleFavorite] Error finding user '" + username + " to toggle favorite rooms for");
+    };
+
+    logger.debug("[socketServer.toggleFavorite] Found user " + user.username);
+    //logger.debug("[socketServer.toggleFavorite] user.membership: ", user.membership._favoriteRooms);
+
+    Room.findOne({ _id: chatId }, function(err, room) {
+      if (!room) {
+        return logger.error("[socketServer.toggleFavorite] Error finding room by chatId '" + chatId + "' while trying to toggle favorite");
+      };
+
+      logger.debug("[socketServer.toggleFavorite] favoriteRooms: ",user.membership._favoriteRooms);
+
+      var favorite = (user.membership._favoriteRooms.indexOf(room.id) > -1);
+
+      logger.debug("[socketServer.toggleFavorite] looking for room in membership: ", room.id);
+
+      logger.debug("[socketServer.toggleFavorite] favorite is ", favorite);
+
+      if (!favorite) {
+        logger.debug("[socketServer.toggleFavorite] Favorite room not found for " + self.socket.user.username + " with id " + self.socket.user.id + " so adding " + chatId);
+        user.membership._favoriteRooms.addToSet(room._id);
+        //User.update({ _id: chatId }, { $addToSet: { membership: { _favoriteRooms: room._id }}});
+        //user.membership._favoriteRooms.addToSet({ membership: { _favoriteRooms: mongoose.Types.ObjectId( room._id ) }});
+        //user.membership._favoriteRooms.addToSet(room._id).save(function(err) {
+        logger.debug("[socketServer.toggleFavorite] After adding room: ", user.membership._favoriteRooms);
+        user.save(function(err) {
+          if (err) {
+            logger.error("[socketServer.toggleFavorite] Error saving toggle change");
+          };
+
+          return finish({ favorite: true });
+        });
+        //});
+      };
+
+      if (favorite) {
+        logger.debug("[socketServer.toggleFavorite] Favorite room " + chatId + " exists for user " + self.socket.user.username + " with id " + self.socket.user.id + " so removing it");
+        user.membership._favoriteRooms.pull(room._id);
+        user.save(function(err) {
+          return finish({ favorite: false });
+        });
+      };
+    });
+
+    var finish = function(data) {
+      var favorite = data.favorite;
+
+      return self.socket.emit('toggleFavoriteComplete-' + chatId, { favorite: favorite });
+    };
+  });
 };
 
 

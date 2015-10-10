@@ -312,13 +312,19 @@ SocketClient.prototype.joinComplete = function(data) {
 
   if (err) {
     console.log("Cannot join channel due to permissions");
-
-    //if (ChatManager.lastActiveChat) {
-    //  ChatManager.activeChat = ChatManager.lastActiveChat;
-    //}
-
     return ChatManager.showError(err);
   }
+
+  // Determine what the current active chat should be
+  // If we have an active chat cached locally, set it to active chat but only if it exists in our chats list
+  if (!ChatManager.activeChat && window.activeChat && ChatManager.chats[window.activeChat.id]) {
+    ChatManager.activeChat = window.activeChat;
+  };
+
+  // If there is still no active chat, set it to the one we just joined
+  if (!ChatManager.activeChat) {
+    ChatManager.setActiveChat(room.id);
+  };
 
   console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
 
@@ -346,6 +352,12 @@ SocketClient.prototype.joinComplete = function(data) {
   ChatManager.initRoom(room, function(err) {
     ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
+      if (ChatManager.activeChat.id == room.id && !ChatManager.activeChat.focused) {
+        ChatManager.focusChat({ id: room.id }, function(err) {
+          console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
+        });
+      };
+      // Should move this inside focusChat callback after moving enable/disable chats to room object
       ChatManager.enableChat(room, data.encryptionScheme);
     });
   });

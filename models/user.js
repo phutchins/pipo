@@ -207,11 +207,12 @@ userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
 };
 
 userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
+  var self = this;
   var userlist = {};
   this.find({}, function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
-      this.sanatize(user, function(sanatizedUser) {
+      self.sanatize(user, function(sanatizedUser) {
         userlist[user._id.toString()] =  sanatizedUser;
       //userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
       });
@@ -224,8 +225,9 @@ userSchema.statics.sanatize = function sanatize(user, callback) {
   var favoriteRoomIds = [];
 
   if (user.membership._favoriteRooms.length > 0) {
-    favoriteRoomIds = user.membership._favoriteRooms.map(function(key) {
-      return user.membership._favoriteRooms[key]._id.toString();
+    favoriteRoomIds = user.membership._favoriteRooms.map(function(room) {
+      logger.debug("[user.sanatize] Mapping favorite room to: ", room.toString());
+      return room.id;
     });
   };
 
@@ -262,11 +264,12 @@ userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) 
 
 
 userSchema.statics.buildProfile = function buildProfile(data, callback) {
+  var self = this;
   var user = data.user;
 
-  this.sanatizeUser(user, function(sanatziedUser) {
+  this.sanatize(user, function(sanatizedUser) {
     logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
-    return callback(profile);
+    return callback(sanatizedUser);
   });
 };
 

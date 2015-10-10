@@ -13,6 +13,9 @@ ChatManager.userlist = {};
 // Private chats are conversations outside of a room between two or more users
 ChatManager.userNameMap  = {};
 
+// Stores the users profile information
+ChatManager.userProfile = {};
+
 // activeChat is data on the currently focused chat which would be a room or private message
 ChatManager.activeChat = null;
 ChatManager.lastActiveChat = null;
@@ -549,32 +552,6 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 };
 
 
-/*
- * Catch clicks on favorite room button (star)
- */
-$('.chat-header__favorite').unbind().click(function(e) {
-  console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
-
-  var activeChatId = ChatManager.activeChat.id;
-
-  socketClient.toggleFavorite({ chatId: activeChatId });
-});
-
-
-ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
-  var favorite = data.favorite;
-
-  if (favorite) {
-    $('.chat-header__buttons .star.icon').removeClass('empty');
-  };
-
-  if (!favorite) {
-    $('.chat-header__buttons .star.icon').addClass('empty');
-  };
-
-};
-
-
 // Catch click on .button.addmember
 $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   console.log("[ADD MEMBER] Caught add member button click");
@@ -748,7 +725,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
           });
 
           ChatManager.populateMessageCache(room.id);
-          if (ChatManager.activeChat.id == room.id) {
+
+          var isAutoJoin = (ChatManager.userProfile.membership.favoriteRooms.indexOf(room.id) > -1)
+
+          if (!ChatManager.activeChat && isAutoJoin) {
+            ChatManager.setActiveChat(room.id);
+          };
+
+          if (ChatManager.activeChat && ChatManager.activeChat.id == room.id) {
             var chatContainer = $('#chat');
 
             ChatManager.refreshChatContent(room.id);
@@ -758,16 +742,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
       });
     });
   });
-
-  //if (!ChatManager.activeChat && window.activeChat) {
-  //  ChatManager.activeChat = window.activeChat;
-  //};
-
-  if (ChatManager.activeChat && ChatManager.activeChat.id == room.id && !ChatManager.activeChat.focused) {
-    self.focusChat({ id: room.id }, function(err) {
-      console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
-    });
-  };
 
   self.updateRoomList(function(err) {
     console.log("Update room list done...");
@@ -891,6 +865,33 @@ function dynamicSort(property) {
     }
 }
 
+
+/*
+ * Catch clicks on favorite room button (star)
+ */
+$('.chat-header__favorite').unbind().click(function(e) {
+  console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
+
+  var activeChatId = ChatManager.activeChat.id;
+
+  socketClient.toggleFavorite({ chatId: activeChatId });
+});
+
+
+ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
+  var favorite = data.favorite;
+
+  if (favorite) {
+    $('.chat-header__buttons .star.icon').removeClass('empty');
+  };
+
+  if (!favorite) {
+    $('.chat-header__buttons .star.icon').addClass('empty');
+  };
+
+};
+
+
 ChatManager.updateChatHeader = function updateChatHeader(chatId) {
   var self = this;
   var chat = ChatManager.chats[chatId];
@@ -908,10 +909,14 @@ ChatManager.updateChatHeader = function updateChatHeader(chatId) {
     chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
   }
 
+  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
+  self.updateFavoriteButton({ favorite: isFavorite });
+
   $('.chat-topic').text(chatTopic);
   $('.chat-header__title').text(chatHeaderTitle);
   $('.chat-header__avatar').html(headerAvatarHtml);
 }
+
 
 /*
  * Remove room from client
@@ -1038,7 +1043,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
 
       if ( !$('#room-list #' + id).length ) {
 
-        if ( ChatManager.activeChat.id && ChatManager.activeChat.id == id ) {
+        if ( ChatManager.activeChat && ChatManager.activeChat.id == id ) {
           console.log("Active chat is " + ChatManager.activeChat.id);
 
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + id + '">' + roomName + '</li>';

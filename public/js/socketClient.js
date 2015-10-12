@@ -104,7 +104,7 @@ SocketClient.prototype.addListeners = function() {
     var message = data.message;
     var chatId = data.chatId;
 
-    console.log('privateMessage', data);
+    console.log('[socketClient] (privateMessage) Got private message event. Data is: ', data);
     data.socket = self;
 
     ChatManager.handlePrivateMessage(data);

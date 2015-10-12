@@ -754,7 +754,8 @@ ChatManager.initChat = function initChat(chat, callback) {
   var chatId = chat.id;
   var myUserId = ChatManager.userNameMap[window.username];
   var chatName = '';
-  var messages = chat.messages || [];
+  //var messages = chat.messages || [];
+  var messages = chat.messages.sort(dynamicSort("date"));
   var participants = chat.participants || [];
 
   console.log("Running init on chat " + chatId);
@@ -810,36 +811,53 @@ ChatManager.initChat = function initChat(chat, callback) {
         messageArray[key] = decryptedMessage.toString();
         console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
         if (messages.length === count) {
+          debugger;
           messageArray.forEach(function(decryptedMessageString, key) {
 
             var fromUserId = messages[key].fromUser;
             var date = messages[key].date;
 
             self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
-            ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
+            //ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
           });
-
+          finish();
         };
       })
     });
   });
 
-  ChatManager.arrayHash(participants, function(chatHash) {
-    if ((ChatManager.activeChat && ChatManager.activeChat.id == chat.id && !ChatManager.activeChat.focused) || ChatManager.activeChat.awaitingInit == chatHash) {
-      self.focusChat({ id: chat.id }, function(err) {
-        console.log("[chatManager.initChat] Chat focus for " + chat.id + " done");
-      });
-    };
-  });
+  var finish = function finish() {
+    ChatManager.populateMessageCache(chatId);
 
-  self.updateChatList();
-  return callback(null);
+    if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
+      var chatContainer = $('#chat');
+
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+
+    ChatManager.arrayHash(participants, function(chatHash) {
+      if ((ChatManager.activeChat && ChatManager.activeChat.id == chat.id && !ChatManager.activeChat.focused) || ChatManager.activeChat.awaitingInit == chatHash) {
+        self.focusChat({ id: chat.id }, function(err) {
+          console.log("[chatManager.initChat] Chat focus for " + chat.id + " done");
+        });
+      };
+    });
+
+    self.updateChatList();
+    return callback(null);
+
+  };
+
 };
 
 
+/*
+ * This is being replaced by listeners with ids
 ChatManager.waitForInit = function waitForInit(chatHash) {
   ChatManager.activeChat.awaitingInit = chatHash;
 }
+*/
 
 
 ChatManager.arrayHash = function arrayHash(array, callback) {
@@ -1240,8 +1258,15 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 
       ChatManager.arrayHash(participantIds, function(chatHash) {
         // Add to awaitingInit
-        ChatManager.waitForInit(chatHash);
-        socket.emit('getChat', { participantIds: participantIds });
+        //ChatManager.waitForInit(chatHash);
+        window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
+
+        window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+          self.handleChatUpdate(data);
+          window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
+        });
+
+        //socket.emit('getChat', { participantIds: participantIds });
       });
 
 
@@ -1384,6 +1409,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var myUserId = ChatManager.userNameMap[window.username];
   var toUserIds = data.toUserIds;
   var date = data.date;
+  var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
   var chatName;
 
   // If we don't have a private chat created for this
@@ -1395,7 +1421,13 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
 
     ChatManager.updateChatList();
 
-    window.socketClient.socket.emit('getChat', { participantIds: [ ChatManager.userlist[fromUserId].id, myUserId ]});
+    ChatManager.arrayHash(participantIds, function(chatHash) {
+      window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
+
+      window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+        self.handleChatUpdate(data);
+      });
+    });
   } else {
     window.encryptionManager.decryptMessage({
       keyRing: ChatManager.chats[chatId].keyRing,
@@ -1462,12 +1494,18 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
  * TODO: Should pass messages around the same way everywhere instead of a string some places and object others
  */
 ChatManager.populateMessageCache = function populateMessageCache(chatId) {
-  var messageCount = ChatManager.chats[chatId].messages.length;
+  var messages = ChatManager.chats[chatId].messages;
+  var messageCount = messages.length;
+  //var sortedMessages = [];
 
   ChatManager.chats[chatId].messageCache = '';
 
   if (messageCount > 0) {
-    ChatManager.chats[chatId].messages.forEach(function(message) {
+    //sortedMessages = messages.sort(function(a,b) {
+    //  return new Date(b.date) - new Date(a.date);
+    //});
+
+    messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
       ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
         ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
@@ -1511,10 +1549,12 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
 
+  debugger;
+
   // Init the chat
   ChatManager.initChat(chat, function() {
     if (chat.participants) {
-      var sortedParticipantIds = chat.participants.sort();
+      //var sortedParticipantIds = chat.participants.sort();
       //encryptionManager.sha256(sortedParticipantIds.toString()).then(function(payloadHash) {
       //  if (ChatManager.activeChat.awaitingInit == payloadHash) {
       //    ChatManager.setActiveChat(chat.id);

@@ -245,7 +245,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
           self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
-            logger.debug("[socketServer.authenticate] Finsihed sanatizing rooms for " + user.username + " and sending roomUpdate with ",sanatizedRooms);
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -520,7 +519,7 @@ SocketServer.prototype.getChat = function getChat(data) {
 
     Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
       if (chat) {
-        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id);
+        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id + "'");
       }
 
       if (err) {
@@ -557,7 +556,13 @@ SocketServer.prototype.getChat = function getChat(data) {
       logger.debug("[getChat finish] Have a chat, sanatizing now...");
       Chat.sanatize(chat, function(sanatizedChat) {
         logger.debug("[getChat finish] Finishing with a valid chat");
-        return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+        if (chatHash) {
+          logger.debug("[getChat.finish] We have chatHash '" + chatHash + "'");
+          return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+        } else {
+          logger.debug("[getChat.finish] We have no chatHash");
+          return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+        };
       })
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
@@ -790,8 +795,8 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var activeUsersArray = [];
   var messagesArray = [];
 
-  logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
-  logger.debug("[socketServer.sanatizeRoomForClient] room._members[0]: " + room._members[0]);
+  //logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
+  //logger.debug("[socketServer.sanatizeRoomForClient] room._members[0]: " + room._members[0]);
 
   if (membersLength > 0) {
     room._members.forEach(function(member) {

@@ -38,6 +38,7 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
     var sanatizedChat = {
       id: chat._id.toString(),
       topic: chat.topic,
+      type: chat.type,
       group: chat.group,
       participants: participantIds,
       messages: messagesArray

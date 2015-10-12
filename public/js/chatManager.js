@@ -811,7 +811,6 @@ ChatManager.initChat = function initChat(chat, callback) {
         messageArray[key] = decryptedMessage.toString();
         console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
         if (messages.length === count) {
-          debugger;
           messageArray.forEach(function(decryptedMessageString, key) {
 
             var fromUserId = messages[key].fromUser;
@@ -829,6 +828,8 @@ ChatManager.initChat = function initChat(chat, callback) {
   var finish = function finish() {
     ChatManager.populateMessageCache(chatId);
 
+    self.updateChatList();
+
     if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
       var chatContainer = $('#chat');
 
@@ -844,7 +845,6 @@ ChatManager.initChat = function initChat(chat, callback) {
       };
     });
 
-    self.updateChatList();
     return callback(null);
 
   };
@@ -1254,15 +1254,17 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
   $('.userPopup .privateChatButton').unbind().click(function() {
     if (username !== window.username) {
       // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
-      // BOOKMARK
-
       ChatManager.arrayHash(participantIds, function(chatHash) {
         // Add to awaitingInit
         //ChatManager.waitForInit(chatHash);
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
-          self.handleChatUpdate(data);
+          debugger;
+          self.setActiveChat(data.chat.id);
+          self.handleChatUpdate(data, function() {
+          });
+
           window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
         });
 
@@ -1425,7 +1427,9 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
-        self.handleChatUpdate(data);
+        self.handleChatUpdate(data, function() {
+
+        });
       });
     });
   } else {
@@ -1543,13 +1547,11 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
 
 
 
-ChatManager.handleChatUpdate = function handleChatUpdate(data) {
+ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
   var chat = data.chat;
   var self = this;
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
-
-  debugger;
 
   // Init the chat
   ChatManager.initChat(chat, function() {
@@ -1569,7 +1571,8 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data) {
       //});
     };
 
-    return console.log("[handleChatUpdate] initChat done.");
+    console.log("[handleChatUpdate] initChat done.");
+    return callback();
   });
 
 };

@@ -1045,8 +1045,8 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
 
       if ( !$('#room-list #' + id).length ) {
 
-        if ( ChatManager.activeChat && ChatManager.activeChat.id == id ) {
-          console.log("Active chat is " + ChatManager.activeChat.id);
+        if ( ChatManager.activeChat == id ) {
+          console.log("Active chat is " + ChatManager.activeChat);
 
           var roomListHtml = '<li class="room chat-list-item-selected" id="' + id + '">' + roomName + '</li>';
         } else {

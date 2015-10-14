@@ -104,7 +104,7 @@ SocketClient.prototype.addListeners = function() {
     var message = data.message;
     var chatId = data.chatId;
 
-    console.log('privateMessage', data);
+    console.log('[socketClient] (privateMessage) Got private message event. Data is: ', data);
     data.socket = self;
 
     ChatManager.handlePrivateMessage(data);
@@ -197,7 +197,7 @@ SocketClient.prototype.addListeners = function() {
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
 
-    if (ChatManager.activeChat && ChatManager.activeChat.id == chatId) {
+    if (ChatManager.activeChat == chatId) {
       ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });
     }
   });
@@ -317,7 +317,7 @@ SocketClient.prototype.joinComplete = function(data) {
 
   // Determine what the current active chat should be
   // If we have an active chat cached locally, set it to active chat but only if it exists in our chats list
-  if (!ChatManager.activeChat && window.activeChat && ChatManager.chats[window.activeChat.id]) {
+  if (!ChatManager.activeChat && window.activeChat && ChatManager.chats[window.activeChat]) {
     ChatManager.activeChat = window.activeChat;
   };
 
@@ -352,7 +352,7 @@ SocketClient.prototype.joinComplete = function(data) {
   ChatManager.initRoom(room, function(err) {
     ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
-      if (ChatManager.activeChat.id == room.id && !ChatManager.activeChat.focused) {
+      if (ChatManager.activeChat == room.id) {
         ChatManager.focusChat({ id: room.id }, function(err) {
           console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
         });
@@ -482,8 +482,9 @@ SocketClient.prototype.sendServerCommand = function(data) {
 SocketClient.prototype.serverCommandComplete = function(data) {
   var self = this;
   var response = data.response;
-  console.log("Displaying response from server command in chat '" + ChatManager.activeChat.name + "'");
-  ChatManager.addMessageToChat({ type: ChatManager.activeChat.type, message: response, chat: ChatManager.activeChat.name });
+  var activeChatid = ChatManager.activeChat;
+  console.log("Displaying response from server command in chat '" + ChatManager.chats[activeChatId].name + "'");
+  ChatManager.addMessageToChat({ type: ChatManager.chats[activeChatId].type, message: response, chat: ChatManager.chats[activeChatId].name });
 };
 
 SocketClient.prototype.membership = function(data) {

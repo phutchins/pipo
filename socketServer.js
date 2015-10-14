@@ -245,7 +245,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
           self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
-            logger.debug("[socketServer.authenticate] Finsihed sanatizing rooms for " + user.username + " and sending roomUpdate with ",sanatizedRooms);
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -475,12 +474,13 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
       chat._messages.push(message);
 
       if (chat.id) {
-        emitData.chatId = chat.id.toString();
-        emitToSockets(targetSockets, emitData);
-        chat.save();
-      } else {
-        chat.save(function(err, chat) {
+        chat.save(function(err, savedChat) {
           emitData.chatId = chat.id.toString();
+          emitToSockets(targetSockets, emitData);
+        });
+      } else {
+        chat.save(function(err, savedChat) {
+          emitData.chatId = savedChat.id.toString();
           emitToSockets(targetSockets, emitData);
         });
       };
@@ -505,11 +505,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
  */
 SocketServer.prototype.getChat = function getChat(data) {
   var self = this;
-  var data = data;
-  // BOOKMARK
 
   // How do we find the chat using the participants (or some other thing)?
   var chatId = data.chatId;
+  var chatHash = data.chatHash;
   var participantIds = data.participantIds;
 
   logger.debug("[getChat] Got socket 'getChat' request");
@@ -520,11 +519,11 @@ SocketServer.prototype.getChat = function getChat(data) {
 
     Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
       if (chat) {
-        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id);
+        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id + "'");
       }
 
       if (err) {
-        self.socket.emit('chatUpdate', null);
+        self.socket.emit('chatUpdate-' + chatHash, null);
         return logger.debug("Error finding chat by participants: " + err);
       };
 
@@ -539,7 +538,7 @@ SocketServer.prototype.getChat = function getChat(data) {
 
     Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers _messages._toChat').exec(function(err, chat) {
       if (err) {
-        self.socket.emit('chatUpdate', null);
+        self.socket.emit('chatUpdate-' + chatHash, null);
         return logger.debug("Error finding chat by participants: " + err);
       };
 
@@ -557,7 +556,13 @@ SocketServer.prototype.getChat = function getChat(data) {
       logger.debug("[getChat finish] Have a chat, sanatizing now...");
       Chat.sanatize(chat, function(sanatizedChat) {
         logger.debug("[getChat finish] Finishing with a valid chat");
-        return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+        if (chatHash) {
+          logger.debug("[getChat.finish] We have chatHash '" + chatHash + "'");
+          return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+        } else {
+          logger.debug("[getChat.finish] We have no chatHash");
+          return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+        };
       })
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
@@ -576,7 +581,7 @@ SocketServer.prototype.getChat = function getChat(data) {
           //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
           Chat.sanatize(populatedChat, function(sanatizedChat) {
             logger.debug("[getChat] Sending 'chatUpdate' to client");
-            return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+            return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
           });
         });
         // Get the new chat object
@@ -790,8 +795,8 @@ SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(ro
   var activeUsersArray = [];
   var messagesArray = [];
 
-  logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
-  logger.debug("[socketServer.sanatizeRoomForClient] room._members[0]: " + room._members[0]);
+  //logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
+  //logger.debug("[socketServer.sanatizeRoomForClient] room._members[0]: " + room._members[0]);
 
   if (membersLength > 0) {
     room._members.forEach(function(member) {

@@ -1462,8 +1462,6 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  debugger;
-
   ChatManager.formatChatMessage({ messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
     ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
   });

@@ -443,7 +443,9 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
   });
 
   // Add our own decrypted private key to the key manager so we can decrypt messages
-  keyRing.add_key_manager(self.keyManager);
+  if (self.keymanager) {
+    keyRing.add_key_manager(self.keyManager);
+  };
 
   window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedMessage }, function(err, literals) {
 
@@ -718,9 +720,11 @@ EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certi
     });
 
     self.loadAdminKeys(certificate, function (err) {
+      console.log("[encryptionManager.verifyCertificate] Loaded admin keys");
       window.async.eachSeries(rawSignatures, function (signature, callback) {
         var fingerprint, index;
         self.decryptMessage({ encryptedMessage: signature }, function (err, message) {
+          console.log("[encryptionManager.verifyCertificate] Decrypted Admin Certificate...");
           if (err) {
             console.log(err);
             return callback(err);

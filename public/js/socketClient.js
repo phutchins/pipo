@@ -216,7 +216,9 @@ SocketClient.prototype.addListeners = function() {
 SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
+
   ChatManager.init();
+
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere

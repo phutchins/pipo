@@ -436,23 +436,18 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callback) {
   var self = this;
   var encryptedMessage = data.encryptedMessage;
-  debugger;
   var keyRing = data.keyRing || this.keyRing;
 
   Object.keys(keyRing._keys).forEach(function(keyId) {
     console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
   });
 
-  debugger;
-
   // Add our own decrypted private key to the key manager so we can decrypt messages
-  keyRing.add_key_manager(self.keyManager);
-
-  debugger;
+  if (self.keymanager) {
+    keyRing.add_key_manager(self.keyManager);
+  };
 
   window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedMessage }, function(err, literals) {
-
-    debugger;
 
     //if (err) {
     //  console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);
@@ -728,9 +723,7 @@ EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certi
       console.log("[encryptionManager.verifyCertificate] Loaded admin keys");
       window.async.eachSeries(rawSignatures, function (signature, callback) {
         var fingerprint, index;
-        debugger;
         self.decryptMessage({ encryptedMessage: signature }, function (err, message) {
-          debugger;
           console.log("[encryptionManager.verifyCertificate] Decrypted Admin Certificate...");
           if (err) {
             console.log(err);
@@ -791,13 +784,10 @@ EncryptionManager.prototype.loadAdminKeys = function loadadminKeys(certificate, 
 
   window.async.each(adminKeyData, function(keyData, callback) {
     var rawKey = atob(keyData.data);
-    debugger;
     window.kbpgp.KeyManager.import_from_armored_pgp({
       armored: rawKey
     }, function(err, keyManager) {
-      debugger;
       self.keyRing.add_key_manager(keyManager);
-      debugger;
       callback();
     });
   }, callback);

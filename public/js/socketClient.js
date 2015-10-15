@@ -217,11 +217,7 @@ SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
 
-  debugger;
-
   ChatManager.init();
-
-  debugger;
 
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {

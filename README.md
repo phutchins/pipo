@@ -1,8 +1,8 @@
 # PiPo - A secure chat client with client side encryption and perfect forward secrecy written in NodeJS
 
 ### Screenshots
-![User1](https://pipo.chat/pipo_phutchins.png)
-![User2](https://pipo.chat/pipo_flip.png)
+![User1](./docs/screenshots/pipo_phutchins.png)
+![User2](./docs/screenshots/pipo_flip.png)
 
 # Features
 + Markdown using the Marked Library and React (https://github.com/chjj/marked, https://facebook.github.io/react/)

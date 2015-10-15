@@ -709,7 +709,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
         var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
 
         if (err) {
-          decryptedMessage = 'Unable to decrypt...\n';
+          decryptedMessage = 'This message was not encrypted to you...\n';
           console.log("Error decrypting message : ");
         }
 

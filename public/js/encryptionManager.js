@@ -443,7 +443,7 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
   });
 
   // Add our own decrypted private key to the key manager so we can decrypt messages
-  if (self.keymanager) {
+  if (self.keyManager) {
     keyRing.add_key_manager(self.keyManager);
   };
 

@@ -1,18 +1,30 @@
-# PiPo - A secure chat client with client side encryption and perfect forward secrecy written in NodeJS
+# PiPo - A secure chat client with client side encryption written in NodeJS
 
-### Screenshots
+## Goal
+PiPo's goal is to make secure communication easy to use and open source. It is a client server appilcation that aims to remove the server from being a vulnerable point in the communication chain.
+
+## Features
+
++ Client side encryption using AES-256 keys
++ Your private key never leaves your device
++ Key backup and restore
++ Markdown using the Marked Library and React (https://github.com/chjj/marked, https://facebook.github.io/react/)
++ Avatars from Gravatar
+
+## Encryption
+
+Currently PiPo uses the KbPGP library to do PGP encryption. Behind this is AES-256 with 4096 bit keys.
+
+## Screenshots
 ![User1](./docs/screenshots/pipo_phutchins.png)
 ![User2](./docs/screenshots/pipo_flip.png)
 
-# Features
-+ Markdown using the Marked Library and React (https://github.com/chjj/marked, https://facebook.github.io/react/)
 
-# Encryption
-Options...
-+ GPG
-+ OpenSSL (Eliptic Curve AES 256)
+## How it works...
+When a user signs up with their username, email address and password, an AES-256 keypair is generated within their browser. The public part of that keypair is then uploaded to the server and associated with that username. From here, access is granted to private rooms by an admin. The addition of this user is signed in a transaction that can then be verified by all clients back to one of the original two administrators. This removes the possibliity of a malitious attacker injecting their public key onto a compromised server and tricking users into sending them messages thinking they are someone else.
 
-### Setup
+
+## Setup
 + Place two admins public keys in adminData in the format username.pub
   + Generate Two Keys (repeat this process for the second key)
     + gpg --gen-key
@@ -36,6 +48,8 @@ Options...
     + You should see the server start and tell you that out found the signatures
     + This will generate the adminCertificate
   + Run npm start to start the server (make usre Mongo is running)
+
+## Protocol Outline & Planning Considerations
 
 ### Authentication
 + Initial Signup
@@ -73,21 +87,6 @@ Options...
 + Server destroys unencrypted shared private key
 + Server sends new encrypted private key to users as they sign on
   + Possible to have client with rights to add user create the private key and encrypt to all users then upload to server
-
-
-# Protocol
-+ Send noonce with each message and then the clients would see that it's a new one and query the server for new key?
-+ When someone joins, they send public key to server. Server temporarily encrypts to both old key and new key until new keys are generated and ready for users to download. Everyone can see messages from new user as soon as they have updated their key to the new key.
-
-
-### Decentralizaing
-+ Clients can still communicate if server is down?
-
-### Local storage of private keys
-
-
-
-### Use this as a way to replace email?
 
 
 ## Mobile
@@ -171,10 +170,6 @@ Options...
 
 + NEW USER path
   + User has the option to be guided through uploading avatar and how to use pipo
-
-
-Notes...
--  We can switch the order of public & private key upload with getting the users information like password if that makes more sense. We will just need the password to decrypt the key so we would have to add some more logic to wait to decrypt the key until after the user has entered their password
 
 
 # MVP Feature List

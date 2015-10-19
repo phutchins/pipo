@@ -1388,7 +1388,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
 
-  var message = data.message;
+  var encryptedMessage = data.message;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
   var fromUsername = ChatManager.userlist[fromUserId].username;
@@ -1397,6 +1397,27 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var date = data.date;
   var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
   var chatName;
+
+  var decrypt = function decrypt(chatId, encryptedMessage, callback) {
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, message) {
+      if (err) {
+        console.log(err);
+      };
+
+      callback(message);
+    });
+  };
+
+  if (ChatManager.chats[chatId]) {
+    decrypt(chatId, encryptedMessage, function(message) {
+      clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+
+      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+    });
+  };
 
   // If we don't have a private chat created for this
   if (!ChatManager.chats[chatId]) {
@@ -1412,22 +1433,11 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
         self.handleChatUpdate(data, function() {
-
+          decrypt(chatId, encryptedMessage, function(message) {
+            clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+          });
         });
       });
-    });
-  } else {
-    window.encryptionManager.decryptMessage({
-      keyRing: ChatManager.chats[chatId].keyRing,
-      encryptedMessage: message
-    }, function(err, messageString) {
-      if (err) {
-        console.log(err);
-      };
-      clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
-
-      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
-
     });
   };
 };

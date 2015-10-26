@@ -61,3 +61,18 @@ clientNotification.send = function send(image, title, message, timeout, showOnFo
     }
   });
 };
+
+// Make a chat list item pulse
+clientNotification.pulseChat = function pulseChat(chatId) {
+  var properties = {
+       backgroundColor : '#ddd'
+  };
+
+  var el = $('#' + chatId);
+
+  el.pulse(properties, {
+    duration : 3250,
+    pulses   : 5,
+    interval : 800
+  })
+};

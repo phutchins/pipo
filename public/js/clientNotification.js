@@ -35,6 +35,7 @@ clientNotification.getPermission = function getPermission(callback) {
 
 // Sends a notification that expires after a timeout. If timeout = 0 it does not expire
 clientNotification.send = function send(image, title, message, timeout, showOnFocus) {
+  var self = this;
   this.getPermission(function(permission) {
     if (permission) {
       console.log("[NOTIFICATION] Attempting to display notification");
@@ -49,6 +50,8 @@ clientNotification.send = function send(image, title, message, timeout, showOnFo
       if (shouldNotify) {
         console.log("[NOTIFCATION] Sending notification now...");
         var notification = new Notification(title, { body: message });
+				console.log("[clientNotification.send] Flashing title bar!");
+			  self.flashTitleBar("New Messages")();
         if (timeout > 0) {
           // Hide the notification after the timeout
           setTimeout(function(){
@@ -75,4 +78,22 @@ clientNotification.pulseChat = function pulseChat(chatId) {
     pulses   : 5,
     interval : 800
   })
+};
+
+clientNotification.flashTitleBar = function flashTitleBar(message) {
+    var oldTitle = document.title;
+    var timeoutId;
+    var blink = function() { document.title = document.title == message ? ' ' : message; };
+    var clear = function() {
+        clearInterval(timeoutId);
+        document.title = oldTitle;
+        window.onmousemove = null;
+        timeoutId = null;
+    };
+    return function () {
+        if (!timeoutId) {
+            timeoutId = setInterval(blink, 1000);
+            window.onmousemove = clear;
+        }
+    };
 };

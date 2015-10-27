@@ -652,6 +652,8 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
   var joined = false;
+  var unread = false;
+  var unreadCount = 0;
   console.log("Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
@@ -659,6 +661,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
   // If room already exists locally, don't overwrite settings that should persist
   if (self.chats[room.id]) {
     joined = self.chats[room.id].joined;
+    unread = self.chats[room.id].unreadCount;
+    unreadCount = self.chats[room.id].unread;
   };
 
   self.chats[room.id] = { id: room.id,
@@ -667,6 +671,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
     topic: room.topic,
     group: room.group,
     joined: joined,
+    unread: unread,
+    unreadCount: unreadCount,
     messages: room.messages,
     decryptedMessages: '',
     messageCache: '',
@@ -777,12 +783,15 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   }
 
+  // Need to save and pull unread bits here too
   self.chats[chatId] = {
     id: chatId,
     type: 'chat',
     name: chatName,
     participants: participants,
     messages: messages,
+    unread: false,
+    unreadCount: 0,
     messageCache: ''
   };
 
@@ -997,6 +1006,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
 
   if (ChatManager.chats[id].unread) {
     ChatManager.chats[id].unread = false;
+    ChatManager.chats[id].unreadCount = 0;
   };
 
   if (ChatManager.chats[id].type == 'room') {
@@ -1452,10 +1462,14 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   // If we don't have a private chat created for this
   if (!ChatManager.chats[chatId]) {
     chatName = fromUsername;
-    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', messages: [] };
+    // Should save and pull unreadCount from the DB
+    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', unread: false, unreadCount: 0, messages: [] };
 
     // Set unread to true for now. When these windows are cached open, we need a better way to determine if it is an unread message or not.
     ChatManager.chats[chatId].unread = true;
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
 
     console.log("Updating private chats");
 
@@ -1514,6 +1528,9 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
     chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
   } else {
     ChatManager.chats[chatId].unread = true;
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
     ChatManager.updateRoomList(function() {
       return;
     });

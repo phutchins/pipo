@@ -652,6 +652,8 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
   var joined = false;
+  var unread = false;
+  var unreadCount = 0;
   console.log("Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
@@ -659,6 +661,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
   // If room already exists locally, don't overwrite settings that should persist
   if (self.chats[room.id]) {
     joined = self.chats[room.id].joined;
+    unread = self.chats[room.id].unreadCount;
+    unreadCount = self.chats[room.id].unread;
   };
 
   self.chats[room.id] = { id: room.id,
@@ -667,6 +671,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
     topic: room.topic,
     group: room.group,
     joined: joined,
+    unread: unread,
+    unreadCount: unreadCount,
     messages: room.messages,
     decryptedMessages: '',
     messageCache: '',
@@ -777,12 +783,15 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   }
 
+  // Need to save and pull unread bits here too
   self.chats[chatId] = {
     id: chatId,
     type: 'chat',
     name: chatName,
     participants: participants,
     messages: messages,
+    unread: false,
+    unreadCount: 0,
     messageCache: ''
   };
 
@@ -876,17 +885,6 @@ function dynamicSort(property) {
 }
 
 
-/*
- * Catch clicks on favorite room button (star)
- */
-$('.chat-header__favorite').unbind().click(function(e) {
-  console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
-
-  var activeChatId = ChatManager.activeChat.id;
-
-  socketClient.toggleFavorite({ chatId: activeChatId });
-});
-
 
 ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
   var favorite = data.favorite;
@@ -908,6 +906,7 @@ ChatManager.updateChatHeader = function updateChatHeader(chatId) {
   var headerAvatarHtml = '';
   var chatTopic = '';
   var chatHeaderTitle = '';
+  var activeChatId = ChatManager.activeChat;
 
   if (chat.type == 'chat') {
     headerAvatarHtml = '<i class="huge spy icon"></i>';
@@ -921,6 +920,15 @@ ChatManager.updateChatHeader = function updateChatHeader(chatId) {
 
   var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
   self.updateFavoriteButton({ favorite: isFavorite });
+
+  /*
+   * Catch clicks on favorite room button (star)
+   */
+  $('.chat-header__favorite').unbind().click(function(e) {
+    console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
+
+    socketClient.toggleFavorite({ chatId: activeChatId });
+  });
 
   $('.chat-topic').text(chatTopic);
   $('.chat-header__title').text(chatHeaderTitle);
@@ -996,6 +1004,11 @@ ChatManager.focusChat = function focusChat(data, callback) {
   console.log("Setting activeChat to room: " + ChatManager.chats[id].name + " which has ID: " + id);
   ChatManager.setActiveChat(id);
 
+  if (ChatManager.chats[id].unread) {
+    ChatManager.chats[id].unread = false;
+    ChatManager.chats[id].unreadCount = 0;
+  };
+
   if (ChatManager.chats[id].type == 'room') {
     ChatManager.updateRoomUsers({ chatId: id });
   } else if (type == 'chat') {
@@ -1042,16 +1055,27 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
   chatIds.forEach(function(id) {
     if (ChatManager.chats[id].type == 'room' && ChatManager.chats[id].joined) {
       var roomName = ChatManager.chats[id].name;
+      var unreadMessages = ChatManager.chats[id].unread;
 
       if ( !$('#room-list #' + id).length ) {
+
+        var roomListItemClasses = [];
+        var unreadIconClasses = [];
 
         if ( ChatManager.activeChat == id ) {
           console.log("Active chat is " + ChatManager.activeChat);
 
-          var roomListHtml = '<li class="room chat-list-item-selected" id="' + id + '">' + roomName + '</li>';
+          roomListItemClasses.push('chat-list-item-selected');
         } else {
-          var roomListHtml = '<li class="room chat-list-item" id="' + id + '">' + roomName + '</li>';
+          roomListItemClasses.push('chat-list-item');
+        };
+
+        if ( !unreadMessages ) {
+          unreadIconClasses.push('hidden');
         }
+
+        var roomListHtml = '<li class="room ' + roomListItemClasses.join() + '" id="' + id + '">' + roomName + '<i class="icon idea ' + unreadIconClasses.join() + '"></i></li>';
+
 
         $('#room-list').append(roomListHtml);
         console.log("Added " + roomName + " to room-list");
@@ -1061,6 +1085,10 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
         // Catch clicks on the room list to update room focus
         ChatManager.focusChat({ id: id }, function(err) {
           // Room focus complete
+          // We need to update the room list here to update the read/unread marker
+          ChatManager.updateRoomList(function() {
+            // Room list updated
+          });
         });
       });
     }
@@ -1084,12 +1112,22 @@ ChatManager.updateChatList = function updateChatList() {
   chatIds.forEach(function(id) {
     console.log("[chatManager.updateChatList] Adding chat with ID: " + id + " to the chat list");
     var privateChat = ChatManager.chats[id];
+    var unread = ChatManager.chats[id].unread;
+    var chatListItemClasses = [];
+    var unreadIconClasses = [];
 
-    if ( ChatManager.activeChat.id && ChatManager.activeChat.id == id ) {
-      userListHtml += "<li class='private-chat chat-list-item-selected' id='" + id + "'>" + privateChat.name + "</li>\n";
+    if ( !unread ) {
+      unreadIconClasses.push('hidden');
+    }
+
+    if ( ChatManager.activeChat == id ) {
+      chatListItemClasses.push('chat-list-item-selected');
     } else {
-      userListHtml += "<li class='private-chat chat-list-item' id='" + id + "'>" + privateChat.name + "</li>\n";
+      chatListItemClasses.push('chat-list-item');
     };
+
+    userListHtml += '<li class="private-chat ' + chatListItemClasses.join() + '" id="' + id + '">' + privateChat.name + '<i class="icon idea ' + unreadIconClasses.join() + '"></i></li>\n';
+
   });
 
   // Push the newly generated chat list to the chat-list
@@ -1099,10 +1137,12 @@ ChatManager.updateChatList = function updateChatList() {
   chatIds.forEach(function(id) {
     console.log("[chatManager.updateChatList] Setting on click for chat with ID: " + id);
     if (id !== ChatManager.userNameMap[window.username]) {
-      $('#' + id).click(function() {
+      $('#' + id).unbind().click(function() {
         console.log("[chatManager.updateChatList] Got click on id: " + id);
         ChatManager.focusChat({ id: id }, function(err) {
-          // Done
+          ChatManager.updateChatList(function() {
+            // Room list updated
+          });
         });
       });
     };
@@ -1388,7 +1428,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
 
-  var message = data.message;
+  var encryptedMessage = data.message;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
   var fromUsername = ChatManager.userlist[fromUserId].username;
@@ -1398,10 +1438,38 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
   var chatName;
 
+  var decrypt = function decrypt(chatId, encryptedMessage, callback) {
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, message) {
+      if (err) {
+        console.log(err);
+      };
+
+      callback(message);
+    });
+  };
+
+  if (ChatManager.chats[chatId]) {
+    decrypt(chatId, encryptedMessage, function(message) {
+      clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+
+      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+    });
+  };
+
   // If we don't have a private chat created for this
   if (!ChatManager.chats[chatId]) {
     chatName = fromUsername;
-    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', messages: [] };
+    // Should save and pull unreadCount from the DB
+    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', unread: false, unreadCount: 0, messages: [] };
+
+    // Set unread to true for now. When these windows are cached open, we need a better way to determine if it is an unread message or not.
+    ChatManager.chats[chatId].unread = true;
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
 
     console.log("Updating private chats");
 
@@ -1412,22 +1480,11 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
         self.handleChatUpdate(data, function() {
-
+          decrypt(chatId, encryptedMessage, function(message) {
+            clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+          });
         });
       });
-    });
-  } else {
-    window.encryptionManager.decryptMessage({
-      keyRing: ChatManager.chats[chatId].keyRing,
-      encryptedMessage: message
-    }, function(err, messageString) {
-      if (err) {
-        console.log(err);
-      };
-      clientNotification.send(null, 'Private message from ' + fromUsername, messageString, 3000);
-
-      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
-
     });
   };
 };
@@ -1469,6 +1526,17 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   if (ChatManager.activeChat == chatId) {
     ChatManager.refreshChatContent(chatId);
     chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+  } else {
+    ChatManager.chats[chatId].unread = true;
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
+    ChatManager.updateRoomList(function() {
+      return;
+    });
+    ChatManager.updateChatList(function() {
+      return;
+    });
   }
 };
 

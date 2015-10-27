@@ -415,6 +415,23 @@ body, html { padding: 0; margin: 0; }
   margin: 4px;
   text-align: left;
   width: 248px;
+  justify-content: space-between;
+}
+
+#room-list .idea.icon.hidden {
+  visibility: hidden;
+}
+
+#chat-list .idea.icon.hidden {
+  visibility: hidden;
+}
+
+#room-list .icon.idea {
+  padding-right: 22px;
+}
+
+#chat-list .icon.idea {
+  padding-right: 22px;
 }
 
 
@@ -447,6 +464,7 @@ body, html { padding: 0; margin: 0; }
   margin: 4px;
   text-align: left;
   width: 248px;
+  justify-content: space-between;
 }
 
 .chat-header {

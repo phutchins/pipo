@@ -760,11 +760,19 @@ ChatManager.initChat = function initChat(chat, callback) {
   var chatId = chat.id;
   var myUserId = ChatManager.userNameMap[window.username];
   var chatName = '';
+  var unread = false;
+  var unreadCount = 0;
   //var messages = chat.messages || [];
   var messages = chat.messages.sort(dynamicSort("date"));
   var participants = chat.participants || [];
 
   console.log("Running init on chat " + chatId);
+
+  // Persist certain values through an init chat if we've already constructed a chat object
+  if (ChatManager.chats[chatId]) {
+    unread = ChatManager.chats[chatId].unread;
+    unreadCount = ChatManager.chats[chatId].unreadCount;
+  }
 
   // Private chat between two users
   if (chat.participants.length == 2) {
@@ -790,8 +798,8 @@ ChatManager.initChat = function initChat(chat, callback) {
     name: chatName,
     participants: participants,
     messages: messages,
-    unread: false,
-    unreadCount: 0,
+    unread: unread,
+    unreadCount: unreadCount,
     messageCache: ''
   };
 
@@ -1463,10 +1471,9 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   if (!ChatManager.chats[chatId]) {
     chatName = fromUsername;
     // Should save and pull unreadCount from the DB
-    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', unread: false, unreadCount: 0, messages: [] };
+    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', unread: true, unreadCount: 0, messages: [] };
 
     // Set unread to true for now. When these windows are cached open, we need a better way to determine if it is an unread message or not.
-    ChatManager.chats[chatId].unread = true;
     ChatManager.chats[chatId].unreadCount++;
 
     console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);

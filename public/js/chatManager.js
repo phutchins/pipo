@@ -1491,13 +1491,14 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.updateChatList();
 
     ChatManager.arrayHash(participantIds, function(chatHash) {
+      decrypt(chatId, encryptedMessage, function(message) {
+        clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+      });
+
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
         self.handleChatUpdate(data, function() {
-          decrypt(chatId, encryptedMessage, function(message) {
-            clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
-          });
         });
       });
     });

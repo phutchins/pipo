@@ -30,7 +30,7 @@ To test out PiPo, I've included a sample adminCertificate. You should not use th
 + The app will now start up in Client Key mode
 + Start the app
 
-      node server.js
+        node server.js
 
 
 ## Setup

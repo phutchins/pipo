@@ -814,8 +814,28 @@ ChatManager.initChat = function initChat(chat, callback) {
   var count = 0;
   var messageArray = Array(messages.length);
 
+  var finish = function finish() {
+    ChatManager.populateMessageCache(chatId);
+
+    self.updateChatList();
+
+    if (ChatManager.activeChat == chatId) {
+      var chatContainer = $('#chat');
+
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+
+    return callback(null);
+
+  };
+
   encryptionManager.buildChatKeyRing({ chatId: chatId }, function(keyRing) {
     ChatManager.chats[chatId].keyRing = keyRing;
+
+    if (messages.length == 0) {
+      finish();
+    };
 
     messages.forEach(function(message, key) {
 
@@ -849,22 +869,6 @@ ChatManager.initChat = function initChat(chat, callback) {
       })
     });
   });
-
-  var finish = function finish() {
-    ChatManager.populateMessageCache(chatId);
-
-    self.updateChatList();
-
-    if (ChatManager.activeChat == chatId) {
-      var chatContainer = $('#chat');
-
-      ChatManager.refreshChatContent(chatId);
-      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
-    }
-
-    return callback(null);
-
-  };
 
 };
 
@@ -1300,7 +1304,7 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
-          console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "'");
+          console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");
           self.setActiveChat(data.chat.id);
           self.handleChatUpdate(data, function() {
           });
@@ -1622,20 +1626,18 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 
   // Init the chat
   ChatManager.initChat(chat, function() {
-    if (chat.participants) {
-      //var sortedParticipantIds = chat.participants.sort();
-      //encryptionManager.sha256(sortedParticipantIds.toString()).then(function(payloadHash) {
-      //  if (ChatManager.activeChat.awaitingInit == payloadHash) {
-      //    ChatManager.setActiveChat(chat.id);
-      //  };
 
-        if (ChatManager.activeChat == chat.id) {
-          console.log("[chatManager.handleChatUpdate] Focusing chat with id '" + chat.id + "'");
-          self.focusChat({ id: chat.id }, function(err) {
-            console.log("Room focus for " + chat.id + " done");
-          });
-        };
-      //});
+    self.updateChatList();
+    self.updateRoomList(function() {
+    });
+
+    if (chat.participants) {
+      if (ChatManager.activeChat == chat.id) {
+        console.log("[chatManager.handleChatUpdate] Focusing chat with id '" + chat.id + "'");
+        self.focusChat({ id: chat.id }, function(err) {
+          console.log("Room focus for " + chat.id + " done");
+        });
+      };
     };
 
     console.log("[handleChatUpdate] initChat done.");

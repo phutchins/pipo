@@ -23,13 +23,14 @@ Currently PiPo uses the KbPGP library to do PGP encryption. Behind this is AES-2
 ## How it works...
 When a user signs up with their username, email address and password, an AES-256 keypair is generated within their browser. The public part of that keypair is then uploaded to the server and associated with that username. From here, access is granted to private rooms by an admin. The addition of this user is signed in a transaction that can then be verified by all clients back to one of the original two administrators. This removes the possibliity of a malitious attacker injecting their public key onto a compromised server and tricking users into sending them messages thinking they are someone else.
 
-## Dev/Test Setup
+## Quick Setup (Dev/Test)
 To test out PiPo, I've included a sample adminCertificate. You should not use these for production as you do not have the private keys associated with these admin certificates.
 
 + Copy adminData.sample to adminData
 + The app will now start up in Client Key mode
 + Start the app
-    node server.js
+
+      node server.js
 
 
 ## Setup

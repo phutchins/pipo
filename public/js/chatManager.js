@@ -446,8 +446,14 @@ ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
   $('.modal.editroom .membershiprequired').dropdown('set selected', data.membershipRequired);
 };
 
+/*
+ * Create the manage members modal for manage users
+ */
 ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
   if (!data) { data = {} }
+
+  // There are circumstances where this is populating a modal for a private chat which does not currently have an owner
+  // There might should be at least two owners for a private chat which would default to the first two participants
 
   if (!ChatManager.activeChat || !ChatManager.chats[ChatManager.activeChat]) {
     return;
@@ -481,7 +487,9 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
     memberList[memberId] = 'member';
   });
 
-  memberList[ownerId] = 'owner';
+  if (ownerId) {
+    memberList[ownerId] = 'owner';
+  };
 
   admins.forEach(function(adminId) {
     memberList[adminId] = 'admin';
@@ -1665,6 +1673,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
 
       console.log("Active chat type is: " + activeChatType);
       var date = new Date().toISOString();
+
       if (activeChatType == 'room') {
         console.log("Sending message to room #"+ activeChatName);
 

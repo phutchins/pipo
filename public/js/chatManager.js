@@ -1464,8 +1464,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
   var chatName;
 
-  debugger;
-
   var decrypt = function decrypt(chatId, encryptedMessage, callback) {
     window.encryptionManager.decryptMessage({
       keyRing: ChatManager.chats[chatId].keyRing,
@@ -1505,13 +1503,16 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.arrayHash(participantIds, function(chatHash) {
       decrypt(chatId, encryptedMessage, function(message) {
         clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
       });
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+        debugger;
         self.handleChatUpdate(data, function() {
         });
+        window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
       });
     });
   };
@@ -1631,8 +1632,6 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
   var self = this;
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
-
-  debugger;
 
   // Init the chat
   ChatManager.initChat(chat, function() {

@@ -419,8 +419,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // BUG
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
-  logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
-  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + chatId + ".");
+  //logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to chat" + chatId + ".");
 
   // Where should we store private message chats?
   var message = new Message({
@@ -430,8 +430,6 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
-
-
 
   // Get the socketId's for each participant
   toUserIds.forEach(function(toUserId) {
@@ -478,6 +476,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
       chat._messages.push(message);
 
+      // For some reason, emitting to sockets, then getChat returns a chat that doesn't have the first message of a chat?
+      // Looks like the server is not saving the messages after the first message but the client still gets it?
       chat.save(function(err, savedChat) {
         emitToSockets(targetSockets, emitData);
       });
@@ -515,6 +515,7 @@ SocketServer.prototype.getChat = function getChat(data) {
 
     Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
       if (err) {
+        self.socket.emit('chatUpdate-' + chatHash, null);
         return logger.error("[getChat] Error getting chat: " + err);
       }
 
@@ -522,49 +523,6 @@ SocketServer.prototype.getChat = function getChat(data) {
         logger.debug("[getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
       }
 
-      self.arrayHash(participantIds, function(serverChatHash) {
-        logger.debug("[getChat] serverChatHash is '" + serverChatHash + "'");
-        finish(chat);
-      });
-    });
-  };
-
-  if (participantIds) {
-    // Get the chat
-    logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
-
-    var participantObjects = [];
-    participantIds.forEach(function(element, index, array) {
-      participantObjects[index] = mongoose.Types.ObjectId(element);
-    });
-
-    Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
-      if (chat) {
-        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id + "'");
-      }
-
-      if (err) {
-        self.socket.emit('chatUpdate-' + chatHash, null);
-        return logger.debug("Error finding chat by participants: " + err);
-      };
-
-      logger.debug("[getChat] Finishing (participantIds)...");
-      finish(chat);
-    });
-  };
-
-  if (chatId) {
-    // Get the chat by id
-    logger.debug("[getChat] Getting chat for client - ", chatId);
-
-    // Removed _messages._toChat here as it should not be needed
-    Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers').exec(function(err, chat) {
-      if (err) {
-        self.socket.emit('chatUpdate-' + chatHash, null);
-        return logger.debug("Error finding chat by participants: " + err);
-      };
-
-      logger.debug("[getChat] Finishing (chatId)...");
       finish(chat);
     });
   };
@@ -589,6 +547,7 @@ SocketServer.prototype.getChat = function getChat(data) {
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
 
+      // This may be redundant as the client is doing the array hash also but we could check it here to make sure it matches?
       self.arrayHash(participantIds, function(chatHash) {
 
         // Create a new chat
@@ -609,14 +568,7 @@ SocketServer.prototype.getChat = function getChat(data) {
               return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
             });
           });
-          // Get the new chat object
-          //Chat.findOne({ _id: chat._id}, function(err, new
-          // Sanatize the chat object
-          // Emit chatUpdate with the new chat object
         });
-
-        // TODO: Need to send back some data about what chat we were searching for here
-        //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
       });
     };
   };

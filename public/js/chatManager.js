@@ -1301,6 +1301,10 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
       ChatManager.arrayHash(participantIds, function(chatHash) {
         // Add to awaitingInit
         //ChatManager.waitForInit(chatHash);
+
+        // Need to ensure that we're requesting the correct participantId's from the server here
+        debugger;
+
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
@@ -1342,6 +1346,9 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   }
 
   self.enabled = true;
+
+  // Add conditional to check if the generate modal is displayed
+  $('.ui.modal.generate').modal('hide');
 
   //Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
@@ -1470,6 +1477,8 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
       callback(message);
     });
   };
+
+  debugger;
 
   if (ChatManager.chats[chatId]) {
     decrypt(chatId, encryptedMessage, function(message) {
@@ -1919,7 +1928,6 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           localStorage.setItem('email', email);
           //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
-          $('.ui.modal.generate').modal('hide');
           ChatManager.enableChat();
           socketClient.init();
         }

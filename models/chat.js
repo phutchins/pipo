@@ -20,6 +20,7 @@ var chatSchema = new Schema({
 chatSchema.statics.sanatize = function sanatize(chat, callback) {
   var self = this;
   var callback = callback;
+  var chatId = chat._id.toString();
 
   logger.debug("Sanatizing chat: ", chat._id.toString());
 
@@ -33,11 +34,15 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
     })
   }
 
+  if (chat.chatHash) {
+    chatId = chat.chatHash;
+  }
+
   logger.debug("[Chat.sanatize] participantIds is: ",participantIds);
 
   var finish = function finish(callback) {
     var sanatizedChat = {
-      id: chat._id.toString(),
+      id: chatId,
       topic: chat.topic,
       type: chat.type,
       group: chat.group,

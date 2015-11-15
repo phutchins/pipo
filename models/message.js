@@ -17,14 +17,14 @@ var messageSchema = new Schema({
   date: { type: Date, default: new Date() },
   _fromUser: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   _toUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
+  //_toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
   encryptedMessage: { type: String }
 });
 
 messageSchema.statics.sanatize = function sanatize(message, callback) {
   var toUsersArray = [];
 
-  this.populate(message, { path: '_fromUser _toUsers _toChat' }, function(err, populatedMessage) {
+  this.populate(message, { path: '_fromUser _toUsers' }, function(err, populatedMessage) {
 
     if (populatedMessage._toUsers.length > 0) {
       populatedMessage._toUsers.forEach(function(toUser) {
@@ -36,7 +36,7 @@ messageSchema.statics.sanatize = function sanatize(message, callback) {
       date: populatedMessage.date,
       fromUser: populatedMessage._fromUser._id.toString(),
       toUsers: toUsersArray,
-      toChat: populatedMessage._toChat._id.toString(),
+      //toChat: populatedMessage._toChat._id.toString(),
       encryptedMessage: populatedMessage.encryptedMessage
     };
 

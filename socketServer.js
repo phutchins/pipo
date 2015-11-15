@@ -410,6 +410,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   var fromUser = self.socket.user._id.toString();
+
+  //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
   var chatId = data.chatId;
   var toUserIds = data.toUserIds;
 
@@ -424,7 +426,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var message = new Message({
     _fromUser: self.socket.user,
     _toUsers: toUserIds,
-    _toChat: chatId,
+    //_toChat: chatId,
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
@@ -460,7 +462,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
     // Add this message to the appropriate chat
     logger.debug("Finding chat with participants ", toUserIds);
-    Chat.findOne({ type: 'chat', _participants: { $in: toUserIds }}, function(err, chat) {
+    Chat.findOne({ chatHash: chatId }, function(err, chat) {
       // If there is not a chat with these participants create one
       if (err) {
         return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ", toUserIds);
@@ -476,17 +478,9 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
       chat._messages.push(message);
 
-      if (chat.id) {
-        chat.save(function(err, savedChat) {
-          emitData.chatId = chat.id.toString();
-          emitToSockets(targetSockets, emitData);
-        });
-      } else {
-        chat.save(function(err, savedChat) {
-          emitData.chatId = savedChat.id.toString();
-          emitToSockets(targetSockets, emitData);
-        });
-      };
+      chat.save(function(err, savedChat) {
+        emitToSockets(targetSockets, emitData);
+      });
     });
   });
 
@@ -544,7 +538,7 @@ SocketServer.prototype.getChat = function getChat(data) {
       participantObjects[index] = mongoose.Types.ObjectId(element);
     });
 
-    Chat.findOne({ _participants: { $elemMatch: { $in: participantObjects } } }).populate('_participants _messages').exec(function(err, chat) {
+    Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
       if (chat) {
         logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id + "'");
       }
@@ -563,7 +557,8 @@ SocketServer.prototype.getChat = function getChat(data) {
     // Get the chat by id
     logger.debug("[getChat] Getting chat for client - ", chatId);
 
-    Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers _messages._toChat').exec(function(err, chat) {
+    // Removed _messages._toChat here as it should not be needed
+    Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers').exec(function(err, chat) {
       if (err) {
         self.socket.emit('chatUpdate-' + chatHash, null);
         return logger.debug("Error finding chat by participants: " + err);

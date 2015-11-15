@@ -1303,13 +1303,12 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
         //ChatManager.waitForInit(chatHash);
 
         // Need to ensure that we're requesting the correct participantId's from the server here
-        debugger;
 
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
           console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");
-          self.setActiveChat(data.chat.id);
+          self.setActiveChat(chatHash);
           self.handleChatUpdate(data, function() {
           });
 
@@ -1465,6 +1464,8 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
   var chatName;
 
+  debugger;
+
   var decrypt = function decrypt(chatId, encryptedMessage, callback) {
     window.encryptionManager.decryptMessage({
       keyRing: ChatManager.chats[chatId].keyRing,
@@ -1477,8 +1478,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
       callback(message);
     });
   };
-
-  debugger;
 
   if (ChatManager.chats[chatId]) {
     decrypt(chatId, encryptedMessage, function(message) {
@@ -1633,6 +1632,8 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 
   console.log("[handleChatUpdate] got 'chatUpdate' from server");
 
+  debugger;
+
   // Init the chat
   ChatManager.initChat(chat, function() {
 
@@ -1697,6 +1698,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
         var sendToIds = ChatManager.chats[activeChatId].participants;
 
         // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+        console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
 
         socketClient.sendPrivateMessage({ chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
 

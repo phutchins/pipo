@@ -8,6 +8,7 @@ var chatSchema = new Schema({
   name: { type: String },
   topic: { type: String, default: 'Default topic' },
   group: { type: String, default: 'GRP' },
+  chatHash: { type: String },
   _participants: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
   _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message" }]
 });

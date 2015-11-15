@@ -8,6 +8,7 @@ var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
 var mongoose = require('mongoose');
+var crypto = require('crypto');
 
 /**
  * Handles all socket traffic
@@ -515,6 +516,25 @@ SocketServer.prototype.getChat = function getChat(data) {
 
   logger.debug("[getChat] Got socket 'getChat' request");
 
+  if (chatHash) {
+    logger.debug("[getChat] Getting chat by chat hash: '" + chatHash + "'");
+
+    Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
+      if (err) {
+        return logger.error("[getChat] Error getting chat: " + err);
+      }
+
+      if (!chat) {
+        logger.debug("[getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
+      }
+
+      self.arrayHash(participantIds, function(serverChatHash) {
+        logger.debug("[getChat] serverChatHash is '" + serverChatHash + "'");
+        finish(chat);
+      });
+    });
+  };
+
   if (participantIds) {
     // Get the chat
     logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
@@ -569,33 +589,48 @@ SocketServer.prototype.getChat = function getChat(data) {
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
 
-      // Create a new chat
-      var newChat = new Chat({
-        _participants: participantIds,
-        _messages: [],
-        type: 'chat',
-      });
+      self.arrayHash(participantIds, function(chatHash) {
 
-      // Save it
-      newChat.save(function(err, savedChat) {
-        logger.debug("[getChat] saved chat: ",savedChat._id);
-        Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
-          //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
-          Chat.sanatize(populatedChat, function(sanatizedChat) {
-            logger.debug("[getChat] Sending 'chatUpdate' to client");
-            return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
-          });
+        // Create a new chat
+        var newChat = new Chat({
+          _participants: participantIds,
+          _messages: [],
+          chatHash: chatHash,
+          type: 'chat',
         });
-        // Get the new chat object
-        //Chat.findOne({ _id: chat._id}, function(err, new
-        // Sanatize the chat object
-        // Emit chatUpdate with the new chat object
-      });
 
-      // TODO: Need to send back some data about what chat we were searching for here
-      //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
+        // Save it
+        newChat.save(function(err, savedChat) {
+          logger.debug("[getChat] saved chat: ",savedChat._id);
+          Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
+            //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
+            Chat.sanatize(populatedChat, function(sanatizedChat) {
+              logger.debug("[getChat] Sending 'chatUpdate' to client");
+              return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+            });
+          });
+          // Get the new chat object
+          //Chat.findOne({ _id: chat._id}, function(err, new
+          // Sanatize the chat object
+          // Emit chatUpdate with the new chat object
+        });
+
+        // TODO: Need to send back some data about what chat we were searching for here
+        //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
+      });
     };
   };
+};
+
+
+SocketServer.prototype.arrayHash = function arrayHash(array, callback) {
+  var self = this;
+
+  // Sort participantIds
+  var orderedArray = array.sort();
+
+  var arrayHashString = crypto.createHash('sha256').update(orderedArray.toString()).digest('hex').toString();
+  return callback(arrayHashString);
 };
 
 

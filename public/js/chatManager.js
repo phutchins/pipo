@@ -1426,6 +1426,7 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
 
 ChatManager.handleMessage = function handleMessage(data) {
   var fromUserId = data.fromUserId;
+  var fromUserName = ChatManager.userlist[fromUserId].username;
   var messageString = data.messageString;
   var chatId = data.chatId;
   var messages = $('#chat');
@@ -1435,7 +1436,7 @@ ChatManager.handleMessage = function handleMessage(data) {
   var mentionRegex = new RegExp(mentionRegexString);
   console.log("Running mention regex: " + messageString.match(mentionRegex));
   if (messageString.match(mentionRegex)) {
-    clientNotification.send(null, 'You were just mentioned by ' + fromUser + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
+    clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
   };
 
   this.addMessageToChat({ type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });

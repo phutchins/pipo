@@ -158,7 +158,7 @@ roomSchema.statics.join = function join(data, callback) {
       });
 
       if (isMember || !self.membershipRequired || room.name == 'pipo') {
-        logger.debug("[room.join] User " + username + " has joined #" + data.name);
+        logger.debug("[room.join] User " + username + " has joined #" + room.name);
 
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });

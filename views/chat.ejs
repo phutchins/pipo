@@ -234,11 +234,11 @@
     </div>
 
     <div class="ui small modal initial">
-      <div class="header">Generate or Authenticate</div>
-      <div class="content">No localStorage credentials were found, would you like to generate new credentials or authenticate using existing ones?</div>
+      <div class="header">Register or Sign In</div>
+      <div class="content">You do not appear to have signed in from this computer before. Would you like to Register as a new user or Sign In using your existing keys?</div>
       <div class="actions">
-        <div class="ui button approve green generate" data-value="generate">Generate</div>
-        <div class="ui button approve blue authenticate" data-value="authenticate">Authenticate</div>
+        <div class="ui button approve green generate" data-value="generate">Register</div>
+        <div class="ui button approve blue authenticate" data-value="authenticate">Sign In</div>
       </div>
     </div>
 
@@ -279,7 +279,7 @@
     <div class="ui small modal unlock">
       <div class="header">Unlock Credentials for <span class="username">your user</span></div>
       <form class="ui form content unlock">
-        <div class="field">Enter the passphrase you selected to decrypt your keys</div>
+        <div class="field">Enter the passphrase you selected to decrypt your keys. You will be prompted for this password once more after you submit this form to sign in.</div>
         <div class="field" style="display: none; color: red" id="createError"></div>
         <div class="field">
           <label for="password">Password</label>

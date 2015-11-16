@@ -1301,11 +1301,14 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
       ChatManager.arrayHash(participantIds, function(chatHash) {
         // Add to awaitingInit
         //ChatManager.waitForInit(chatHash);
+
+        // Need to ensure that we're requesting the correct participantId's from the server here
+
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
           console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");
-          self.setActiveChat(data.chat.id);
+          self.setActiveChat(chatHash);
           self.handleChatUpdate(data, function() {
           });
 
@@ -1342,6 +1345,9 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
   }
 
   self.enabled = true;
+
+  // Add conditional to check if the generate modal is displayed
+  $('.ui.modal.generate').modal('hide');
 
   //Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
@@ -1420,6 +1426,7 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
 
 ChatManager.handleMessage = function handleMessage(data) {
   var fromUserId = data.fromUserId;
+  var fromUserName = ChatManager.userlist[fromUserId].username;
   var messageString = data.messageString;
   var chatId = data.chatId;
   var messages = $('#chat');
@@ -1429,7 +1436,7 @@ ChatManager.handleMessage = function handleMessage(data) {
   var mentionRegex = new RegExp(mentionRegexString);
   console.log("Running mention regex: " + messageString.match(mentionRegex));
   if (messageString.match(mentionRegex)) {
-    clientNotification.send(null, 'You were just mentioned by ' + fromUser + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
+    clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
   };
 
   this.addMessageToChat({ type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
@@ -1497,13 +1504,16 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.arrayHash(participantIds, function(chatHash) {
       decrypt(chatId, encryptedMessage, function(message) {
         clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
       });
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+        debugger;
         self.handleChatUpdate(data, function() {
         });
+        window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
       });
     });
   };
@@ -1688,6 +1698,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
         var sendToIds = ChatManager.chats[activeChatId].participants;
 
         // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+        console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
 
         socketClient.sendPrivateMessage({ chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
 
@@ -1919,7 +1930,6 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
           localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
           localStorage.setItem('email', email);
           //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
-          $('.ui.modal.generate').modal('hide');
           ChatManager.enableChat();
           socketClient.init();
         }

@@ -8,6 +8,7 @@ var config = require('./config/pipo');
 var logger = require('./config/logger');
 var AdminCertificate = require('./adminData/adminCertificate');
 var mongoose = require('mongoose');
+var crypto = require('crypto');
 
 /**
  * Handles all socket traffic
@@ -409,6 +410,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   var fromUser = self.socket.user._id.toString();
+
+  //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
   var chatId = data.chatId;
   var toUserIds = data.toUserIds;
 
@@ -416,19 +419,17 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // BUG
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
-  logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
-  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to " + chatId + ".");
+  //logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to chat" + chatId + ".");
 
   // Where should we store private message chats?
   var message = new Message({
     _fromUser: self.socket.user,
     _toUsers: toUserIds,
-    _toChat: chatId,
+    //_toChat: chatId,
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
-
-
 
   // Get the socketId's for each participant
   toUserIds.forEach(function(toUserId) {
@@ -444,7 +445,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     signature: data.signature
   };
 
-  logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
+  //logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
 
   var userMapKeys = Object.keys(self.namespace.userMap);
 
@@ -459,7 +460,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
     // Add this message to the appropriate chat
     logger.debug("Finding chat with participants ", toUserIds);
-    Chat.findOne({ type: 'chat', _participants: { $in: toUserIds }}, function(err, chat) {
+    Chat.findOne({ chatHash: chatId }, function(err, chat) {
       // If there is not a chat with these participants create one
       if (err) {
         return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ", toUserIds);
@@ -475,17 +476,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
       chat._messages.push(message);
 
-      if (chat.id) {
-        chat.save(function(err, savedChat) {
-          emitData.chatId = chat.id.toString();
-          emitToSockets(targetSockets, emitData);
-        });
-      } else {
-        chat.save(function(err, savedChat) {
-          emitData.chatId = savedChat.id.toString();
-          emitToSockets(targetSockets, emitData);
-        });
-      };
+      // For some reason, emitting to sockets, then getChat returns a chat that doesn't have the first message of a chat?
+      // Looks like the server is not saving the messages after the first message but the client still gets it?
+      chat.save(function(err, savedChat) {
+        emitToSockets(targetSockets, emitData);
+      });
     });
   });
 
@@ -515,36 +510,19 @@ SocketServer.prototype.getChat = function getChat(data) {
 
   logger.debug("[getChat] Got socket 'getChat' request");
 
-  if (participantIds) {
-    // Get the chat
-    logger.debug("[getChat] Getting chat for participant ids: ", participantIds);
+  if (chatHash) {
+    logger.debug("[getChat] Getting chat by chat hash: '" + chatHash + "'");
 
-    Chat.findOne({ _participants: { $in: participantIds } }).populate('_participants _messages').exec(function(err, chat) {
-      if (chat) {
-        logger.debug("[getChat] Finished finding chat for participant id's and got chat with ID: '" + chat._id + "'");
+    Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
+      if (err) {
+        self.socket.emit('chatUpdate-' + chatHash, null);
+        return logger.error("[getChat] Error getting chat: " + err);
       }
 
-      if (err) {
-        self.socket.emit('chatUpdate-' + chatHash, null);
-        return logger.debug("Error finding chat by participants: " + err);
-      };
+      if (!chat) {
+        logger.debug("[getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
+      }
 
-      logger.debug("[getChat] Finishing (participantIds)...");
-      finish(chat);
-    });
-  };
-
-  if (chatId) {
-    // Get the chat by id
-    logger.debug("[getChat] Getting chat for client - ", chatId);
-
-    Chat.findOne({ _id: chatId}).populate('_participants _messages _messages._fromUser _messages._toUsers _messages._toChat').exec(function(err, chat) {
-      if (err) {
-        self.socket.emit('chatUpdate-' + chatHash, null);
-        return logger.debug("Error finding chat by participants: " + err);
-      };
-
-      logger.debug("[getChat] Finishing (chatId)...");
       finish(chat);
     });
   };
@@ -569,33 +547,42 @@ SocketServer.prototype.getChat = function getChat(data) {
     } else {
       logger.debug("[getChat finish] Finishing without a chat");
 
-      // Create a new chat
-      var newChat = new Chat({
-        _participants: participantIds,
-        _messages: [],
-        type: 'chat',
-      });
+      // This may be redundant as the client is doing the array hash also but we could check it here to make sure it matches?
+      self.arrayHash(participantIds, function(chatHash) {
 
-      // Save it
-      newChat.save(function(err, savedChat) {
-        logger.debug("[getChat] saved chat: ",savedChat._id);
-        Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
-          //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
-          Chat.sanatize(populatedChat, function(sanatizedChat) {
-            logger.debug("[getChat] Sending 'chatUpdate' to client");
-            return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+        // Create a new chat
+        var newChat = new Chat({
+          _participants: participantIds,
+          _messages: [],
+          chatHash: chatHash,
+          type: 'chat',
+        });
+
+        // Save it
+        newChat.save(function(err, savedChat) {
+          logger.debug("[getChat] saved chat: ",savedChat._id);
+          Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
+            //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
+            Chat.sanatize(populatedChat, function(sanatizedChat) {
+              logger.debug("[getChat] Sending 'chatUpdate' to client");
+              return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+            });
           });
         });
-        // Get the new chat object
-        //Chat.findOne({ _id: chat._id}, function(err, new
-        // Sanatize the chat object
-        // Emit chatUpdate with the new chat object
       });
-
-      // TODO: Need to send back some data about what chat we were searching for here
-      //return self.socket.emit('chatUpdate', { chat: { participantIds: participantIds } });
     };
   };
+};
+
+
+SocketServer.prototype.arrayHash = function arrayHash(array, callback) {
+  var self = this;
+
+  // Sort participantIds
+  var orderedArray = array.sort();
+
+  var arrayHashString = crypto.createHash('sha256').update(orderedArray.toString()).digest('hex').toString();
+  return callback(arrayHashString);
 };
 
 
@@ -666,7 +653,7 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 SocketServer.prototype.joinRoom = function joinRoom(data) {
   var self = this;
 
-  logger.debug("[JOIN ROOM] data is ",data);
+  //logger.debug("[JOIN ROOM] data is ",data);
 
   if (!self.socket.user) {
     logger.info("Ignoring join attempt by unauthenticated user");
@@ -676,7 +663,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
   var username = self.socket.user.username;
   var roomId = data.roomId;
 
-  logger.info("[JOIN ROOM] User '" + username + "' joining room with id "+ roomId);
+  //logger.info("[JOIN ROOM] User '" + username + "' joining room with id "+ roomId);
 
   // Ensure that user has the most recent master key for this room if in masterKey mode
   if (config.encryptionScheme == 'masterKey') {
@@ -699,7 +686,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
                   return logger.warning("Failed to join room " + roomName);
                 }
               })
-              logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + roomName);
+              logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + roomName);
               self.updateActiveUsers(roomId);
             });
           });
@@ -708,7 +695,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           self.socket.join(roomName);
 
           self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
-          logger.info("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name + " with member list of ", membersArray);
+          logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name + " with member list of ", membersArray);
           self.updateActiveUsers(roomId);
         };
       });
@@ -1223,7 +1210,7 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
-    logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
+    //logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
     // Is this emitting to the right ID?
     self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
@@ -1244,21 +1231,21 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
     activeUsers = this.namespace.adapter.rooms[chatId];
 
-    logger.debug("[socketServer.getActiveUsers] activeUsers: ", activeUsers);
+    //logger.debug("[socketServer.getActiveUsers] activeUsers: ", activeUsers);
 
     activeUsers = Object.keys(this.namespace.adapter.rooms[chatId]).filter(function(sid) {
-      logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
+      //logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
       return activeUsers[sid];
     });
 
-    logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
+    //logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
 
     //Map sockets to users
     activeUsers = activeUsers.map(function(sid) {
       return self.namespace.socketMap[sid].userId;
     });
 
-    logger.debug("[socketServer.getActiveUsers] Mapped members to sockets: ", activeUsers);
+    //logger.debug("[socketServer.getActiveUsers] Mapped members to sockets: ", activeUsers);
 
   } else {
     logger.info("[GET USER LIST] User list is empty");

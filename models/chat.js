@@ -8,6 +8,7 @@ var chatSchema = new Schema({
   name: { type: String },
   topic: { type: String, default: 'Default topic' },
   group: { type: String, default: 'GRP' },
+  chatHash: { type: String },
   _participants: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
   _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message" }]
 });
@@ -19,6 +20,7 @@ var chatSchema = new Schema({
 chatSchema.statics.sanatize = function sanatize(chat, callback) {
   var self = this;
   var callback = callback;
+  var chatId = chat.chatHash;
 
   logger.debug("Sanatizing chat: ", chat._id.toString());
 
@@ -32,11 +34,15 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
     })
   }
 
+  if (!chat.chatHash) {
+    return logger.error("[chat.sanatize] No chatHash!");
+  }
+
   logger.debug("[Chat.sanatize] participantIds is: ",participantIds);
 
   var finish = function finish(callback) {
     var sanatizedChat = {
-      id: chat._id.toString(),
+      id: chatId,
       topic: chat.topic,
       type: chat.type,
       group: chat.group,

@@ -1379,6 +1379,10 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
     console.log("Got send button click!");
     // This should probably not use the form and do it some other way
     //$('#message-input-form').submit();
+    ChatManager.sendMessage(function() {
+      fitToContent('message-input', 156);
+      return false;
+    })
     return false;
   });
 

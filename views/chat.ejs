@@ -243,29 +243,33 @@
     </div>
 
     <div class="ui small modal create">
-      <div class="header">Create</div>
-      <form class="ui form content create">
+      <div class="header">Register</div>
+      <form class="ui form segment create">
         <div class="field">Select a username and a passphrase to encrypt your keys</div>
         <div class="field" style="display: none; color: red" id="createError"></div>
         <div class="field">
-          <label for="username">Name</label>
-          <input type="text" class="username" id="username">
+          <label>Username</label>
+          <input type="text" name="username" placeholder="Username">
         </div>
         <div class="field">
-          <label for="email">Email</label>
+          <label>Name</label>
+          <input name="name" type="text">
+        </div>
+        <div class="field">
+          <label>Email</label>
           <input type="email" class="email" id="email">
         </div>
         <div class="field">
-          <label for="password">Password</label>
-          <input type="password" class="password" id="password">
+          <label>Password</label>
+          <input type="password" name="password">
         </div>
         <div class="field">
-          <label for="confirmPassword">Confirm Password</label>
-          <input type="password" class="password" id="confirmPassword">
+          <label>Confirm Password</label>
+          <input type="password" name="confirmPassword">
         </div>
       </form>
       <div class="actions">
-        <div class="ui button approve green go" data-value="go">Go</div>
+        <div class="ui green submit button go" data-value="go">Go</div>
       </div>
     </div>
 

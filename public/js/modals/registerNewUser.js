@@ -1,16 +1,9 @@
 /*
  * Register New User Modal Setup
  */
-var buildRegisterNewUserModal = function() {
-
-};
-
-/*
- * Create Room Modal Setup
- */
-var buildCreateRoomModal = function() {
-  console.log("Building create room modal");
-  $('.modal.createroom').modal({
+var buildRegisterModal = function() {
+  console.log("Building register new user modal");
+  $('.ui.modal.register').modal({
     detachable: true,
     //By default, if click outside of modal, modal will close
     //Set closable to false to prevent this
@@ -20,69 +13,113 @@ var buildCreateRoomModal = function() {
     onApprove : function() {
       //Submits the semantic ui form
       //And pass the handling responsibilities to the form handlers, e.g. on form validation success
-      $('.ui.form.createroom').submit();
+      $('.ui.form.register').submit();
       //Return false as to not close modal dialog
       return false;
     }
   });
+
   $('#add-room-button').unbind().click(function(e) {
     //Resets form input fields
-    $('.ui.form.createroom').trigger("reset");
+    $('.ui.form.register').trigger("reset");
     //Resets form error messages
-    $('.ui.form.createroom .field.error').removeClass( "error" );
-    $('.ui.form.createroom.error').removeClass( "error" );
-    $('.modal.createroom').modal('show');
+    $('.ui.form.register .field.error').removeClass( "error" );
+    $('.ui.form.register.error').removeClass( "error" );
+    $('.ui.modal.register').modal('show');
   });
 };
 
-$(document).ready( buildCreateRoomModal );
+$(document).ready( buildRegisterModal );
 
-var formValidationRules = {
-  name: {
-    identifier : 'name',
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room name'
-    }
-    ]
-  },
-  topic: {
-    identifier : 'topic',
-    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
-    optional   : true,
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room topic'
-    }
-    ]
-  },
+var registerFormValidationRules = {
+	username : {
+		identifier: 'username',
+		rules : [{
+			type : 'empty',
+			prompt : 'Please enter a username'
+		},
+		{
+			type : "regExp[^[a-z0-9_-]{3,16}$]",
+			prompt : 'Please enter a properly formatted username'
+		}]
+	},
+	name : {
+		identifier: 'name',
+		rules : [{
+			type: 'empty',
+			prompt : 'Please enter your name'
+		}]
+	},
+	email : {
+		identifier : 'email',
+		rules : [{
+			type: 'empty',
+			prompt : 'You must enter an email address'
+		}]
+	},
+	password : {
+		identifier : 'password',
+		rules : [{
+			type: 'empty',
+			prompt: 'Please enter a password'
+		},
+		{
+			type : 'minLength[8]',
+			prompt : 'Your password must be at least {ruleValue} characters'
+		}]
+	},
+	confirmPassword : {
+		identifier : 'confirmPassword',
+		rules : [{
+			type: 'empty',
+			prompt : 'Please confirm your password'
+		},
+		{
+			type: 'match[password]',
+			prompt : 'Your passwords do not match'
+		}]
+  }
 }
 
-var createRoomFormSettings = {
+var registerFormSettings = {
   onSuccess : function()
   {
     //Hides modal on validation success
-    $('.modal.createroom').modal('hide');
+    $('.ui.modal.register').modal('hide');
 
-    var data = {
-      name: $('.ui.form.createroom input[name="name"]').val(),
-      topic: $('.ui.form.createroom input[name="topic"]').val(),
-      encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
-      keepHistory: ($('.dropdown.messagehistory .selected').data().value === 'keep'),
-      membershipRequired: ($('.dropdown.membershiprequired .selected').data().value === 'private')
-    };
+    var errorDisplay = $('.create #createError');
+    var username = $('.create.form #username').val().toString();
+		var fullName = $('.register.form #name').val().toString();
+    var password = $('.create.form #password').val().toString();
+    var email = $('.create.form #email').val().toString();
+    var confirmPassword = $('.create #confirmPassword').val().toString();
 
-    socketClient.createRoom(data, function(err) {
+    $('.ui.modal.generate').modal('show');
+
+    ChatManager.disableChat();
+
+    window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
       if (err) {
-        return console.log("Error creating room: " + err);
+        console.log("Error generating client keypair: "+err);
+      } else {
+        window.username = username;
+        window.email = email;
+        window.fullName = fullName;
+
+        //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
+        localStorage.setItem('username', username);
+				localStorage.setItem('fullName', fullName);
+        localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+        localStorage.setItem('email', email);
+        //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
+        ChatManager.enableChat();
+        socketClient.init();
       }
-      console.log("Sent request to create room " + data.name);
-    })
+    });
+
     return false;
   }
 }
 
-$('.ui.form.createroom').form(formValidationRules, createRoomFormSettings);
+$('.ui.form.register').form(registerFormValidationRules, registerFormSettings);
 

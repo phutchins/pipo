@@ -242,11 +242,11 @@
       </div>
     </div>
 
-    <div class="ui small modal create">
+    <div class="ui small modal register">
       <div class="header">Register</div>
-      <form class="ui form segment create">
+      <form class="ui form segment register">
         <div class="field">Select a username and a passphrase to encrypt your keys</div>
-        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field" style="display: none; color: red" id="registerError"></div>
         <div class="field">
           <label>Username</label>
           <input type="text" name="username" placeholder="Username">
@@ -598,6 +598,9 @@
     <script src="/js/lib/FileSaver.js"></script>
     <script src="/js/lib/blob.js"></script>
     <script src="/js/lib/jquery.pulse.js"></script>
+
+    <!-- Load Modals -->
+    <script src="/js/modals/registerNewUser.js"></script>
 
     <script src="/js/chatManager.js"></script>
     <script src="/js/clientNotification.js"></script>

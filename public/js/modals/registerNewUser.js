@@ -3,6 +3,7 @@
  */
 var buildRegisterModal = function() {
   console.log("Building register new user modal");
+
   $('.ui.modal.register').modal({
     detachable: true,
     //By default, if click outside of modal, modal will close
@@ -10,80 +11,97 @@ var buildRegisterModal = function() {
     closable: false,
     transition: 'fade up',
     //Callback function for the submit button, which has the class of "ok"
-    onApprove : function() {
+    onSuccess : function(event) {
       //Submits the semantic ui form
       //And pass the handling responsibilities to the form handlers, e.g. on form validation success
+			console.log("Approved! Submitting registration form!");
       $('.ui.form.register').submit();
+
+			$('.ui.button.register').unbind().click(function(e) {
+				//Resets form input fields
+				$('.ui.form.register').trigger("reset");
+				//Resets form error messages
+				$('.ui.form.register .field.error').removeClass( "error" );
+				$('.ui.form.register.error').removeClass( "error" );
+				$('.ui.modal.register').modal('show');
+			});
+
       //Return false as to not close modal dialog
       return false;
     }
   });
 
-  $('#add-room-button').unbind().click(function(e) {
-    //Resets form input fields
-    $('.ui.form.register').trigger("reset");
-    //Resets form error messages
-    $('.ui.form.register .field.error').removeClass( "error" );
-    $('.ui.form.register.error').removeClass( "error" );
-    $('.ui.modal.register').modal('show');
-  });
+	//$('.ui.button.register.submit').unbind().click(function(e) {
+//		$('.ui.form.register').submit();
+//		return false;
+//	});
 };
 
 $(document).ready( buildRegisterModal );
 
+//$('.ui.form.register').form({
+//	fields: {
 var registerFormValidationRules = {
-	username : {
-		identifier: 'username',
-		rules : [{
-			type : 'empty',
-			prompt : 'Please enter a username'
+		username : {
+			identifier: 'username',
+			rules : [{
+				type : 'empty',
+				prompt : 'Please enter a username'
+			},
+			{
+				//type : "regExp[^[a-z0-9_-]{3,16}$]",
+				type : "empty",
+				prompt : 'Please enter a properly formatted username'
+			}]
 		},
-		{
-			type : "regExp[^[a-z0-9_-]{3,16}$]",
-			prompt : 'Please enter a properly formatted username'
-		}]
-	},
-	name : {
-		identifier: 'name',
-		rules : [{
-			type: 'empty',
-			prompt : 'Please enter your name'
-		}]
-	},
-	email : {
-		identifier : 'email',
-		rules : [{
-			type: 'empty',
-			prompt : 'You must enter an email address'
-		}]
-	},
-	password : {
-		identifier : 'password',
-		rules : [{
-			type: 'empty',
-			prompt: 'Please enter a password'
+		name : {
+			identifier: 'name',
+			rules : [{
+				type: 'empty',
+				prompt : 'Please enter your name'
+			}]
 		},
-		{
-			type : 'minLength[8]',
-			prompt : 'Your password must be at least {ruleValue} characters'
-		}]
-	},
-	confirmPassword : {
-		identifier : 'confirmPassword',
-		rules : [{
-			type: 'empty',
-			prompt : 'Please confirm your password'
+		email : {
+			identifier : 'email',
+			rules : [{
+				type: 'empty',
+				prompt : 'You must enter an email address'
+			}]
 		},
-		{
-			type: 'match[password]',
-			prompt : 'Your passwords do not match'
-		}]
-  }
-}
+		password : {
+			identifier : 'password',
+			rules : [{
+				type: 'empty',
+				prompt: 'Please enter a password'
+			},
+			{
+				type : 'minLength[8]',
+				prompt : 'Your password must be at least {ruleValue} characters'
+			}]
+		},
+		confirmPassword : {
+			identifier : 'confirmPassword',
+			rules : [{
+				type: 'empty',
+				prompt : 'Please confirm your password'
+			},
+			{
+				type: 'match[password]',
+				prompt : 'Your passwords do not match'
+			}]
+		}
+	};
+//});
 
 var registerFormSettings = {
-  onSuccess : function()
-  {
+  inline: true,
+  on: 'blur',
+  debug: true,
+  onFailure: function(event) {
+		console.log("FAILURE!!!");
+	},
+  onSuccess : function(event) {
+		console.log("Form submitted success 1!");
     //Hides modal on validation success
     $('.ui.modal.register').modal('hide');
 
@@ -118,8 +136,11 @@ var registerFormSettings = {
     });
 
     return false;
+	  event.preventDefault();
   }
 }
 
-$('.ui.form.register').form(registerFormValidationRules, registerFormSettings);
+$(document).ready(function() {
+	$('.ui.form.register').form(registerFormValidationRules, registerFormSettings);
+});
 

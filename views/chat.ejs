@@ -237,7 +237,7 @@
       <div class="header">Register or Sign In</div>
       <div class="content">You do not appear to have signed in from this computer before. Would you like to Register as a new user or Sign In using your existing keys?</div>
       <div class="actions">
-        <div class="ui button approve green generate" data-value="generate">Register</div>
+        <div class="ui button approve green register" data-value="generate">Register</div>
         <div class="ui button approve blue authenticate" data-value="authenticate">Sign In</div>
       </div>
     </div>
@@ -246,14 +246,16 @@
       <div class="header">Register</div>
       <form class="ui form segment register">
         <div class="field">Select a username and a passphrase to encrypt your keys</div>
-        <div class="field" style="display: none; color: red" id="registerError"></div>
-        <div class="field">
-          <label>Username</label>
-          <input type="text" name="username" placeholder="Username">
-        </div>
-        <div class="field">
-          <label>Name</label>
-          <input name="name" type="text">
+        <div class="two fields">
+          <div class="field" style="display: none; color: red" id="registerError"></div>
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" placeholder="Username">
+          </div>
+          <div class="field">
+            <label>Name</label>
+            <input name="name" type="text">
+          </div>
         </div>
         <div class="field">
           <label>Email</label>
@@ -269,7 +271,8 @@
         </div>
       </form>
       <div class="actions">
-        <div class="ui green submit button go" data-value="go">Go</div>
+        <div class="ui green register submit button go" data-value="go">Go</div>
+        <div class="ui error message"></div>
       </div>
     </div>
 

@@ -1817,6 +1817,16 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
   $(".ui.modal.initial")
     .modal('setting', 'closable', false)
     .modal("show");
+
+  $('.ui.button.register').unbind().click(function(e) {
+    //Resets form input fields
+    $('.ui.form.register').trigger("reset");
+    //Resets form error messages
+    $('.ui.form.register .field.error').removeClass( "error" );
+    $('.ui.form.register.error').removeClass( "error" );
+    $('.ui.modal.register').modal('show');
+  });
+
 };
 
 ChatManager.promptForCredentials = function promptForCredentials() {

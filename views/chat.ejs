@@ -140,7 +140,7 @@
           <p>Please enter your client key password...</p>
         </div>
         <div class="ui input">
-            <input name="password" type="password" placeholder="password"></input>
+            <input name="keyPassword" type="password" placeholder="password"></input>
         </div>
       </div>
       <div class="actions">
@@ -250,29 +250,28 @@
           <div class="field" style="display: none; color: red" id="registerError"></div>
           <div class="field">
             <label>Username</label>
-            <input type="text" name="username" placeholder="Username">
+            <input type="text" name="username" class="username" placeholder="Username">
           </div>
           <div class="field">
-            <label>Name</label>
-            <input name="name" type="text">
+            <label>Real Name</label>
+            <input name="name" type="text" class="name" placeholder="Real Name">
           </div>
         </div>
         <div class="field">
           <label>Email</label>
-          <input type="email" class="email" id="email">
+          <input type="email" name="email" class="email" placeholder="Email">
         </div>
         <div class="field">
           <label>Password</label>
-          <input type="password" name="password">
+          <input type="password" name="registerPassword" class="registerPassword" placeholder="Password">
         </div>
         <div class="field">
           <label>Confirm Password</label>
-          <input type="password" name="confirmPassword">
+          <input type="password" name="confirmPassword" placeholder="Confirm Password">
         </div>
       </form>
       <div class="actions">
-        <div class="ui green register submit button go" data-value="go">Go</div>
-        <div class="ui error message"></div>
+        <div class="ui green submit button">OK</div>
       </div>
     </div>
 
@@ -604,6 +603,7 @@
 
     <!-- Load Modals -->
     <script src="/js/modals/registerNewUser.js"></script>
+    <script src="/js/modals/passwordPrompt.js"></script>
 
     <script src="/js/chatManager.js"></script>
     <script src="/js/clientNotification.js"></script>

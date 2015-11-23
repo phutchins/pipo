@@ -1839,53 +1839,7 @@ ChatManager.promptForCredentials = function promptForCredentials() {
 
 ChatManager.promptForPassphrase = function(callback) {
   console.log("[promptForPassphrase] Prompting for passphrase");
-  $('.ui.modal.unlock .username').text(window.username);
-  $('.ui.modal.unlock')
-    .modal('setting', 'closable', false)
-    .modal('setting', {
-      onApprove: function() {
-        $('.ui.form.unlock').submit();
-      }
-    })
-    .modal('show');
-
-  $('.ui.form.unlock').form('setting', {
-    onSuccess: function() {
-      var errorDisplay = $('.unlock #createError');
-      var password = $('.unlock #password').val();
-      if (!password) {
-        if (errorDisplay.text().toLowerCase().indexOf('password is required') !== -1) {
-          return false;
-        }
-        if (errorDisplay.transition('is visible')) {
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '0.5s',
-            onComplete: function () {
-              errorDisplay.text("Password is required");
-            }
-          });
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '1s'
-          });
-        }
-        else {
-          errorDisplay.text("Password is required");
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '1s'
-          });
-        }
-        return false;
-      }
-      else {
-        $('.ui.modal.unlock').modal('hide');
-        callback(password);
-        return false;
-      }
-    }
-  });
+  $('.ui.modal.unlock').modal('show');
 };
 
 ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {

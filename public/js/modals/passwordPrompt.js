@@ -35,7 +35,8 @@ PasswordPrompt.init = function init(successCallback) {
         // If unlock fails, notify user and wait for another try
         if (data && data.err) {
           // Display error status on the modal
-          console.log("Error unlocking client key: " + err);
+          console.log("Error unlocking client key: " + data.err);
+          $('.ui.form.unlock').form('add errors', ['Incorrect Password. Please try again...']);
           return false;
         }
         // If unlock succeedes, hide the modal and keep going

@@ -244,7 +244,7 @@
 
     <div class="ui small modal register">
       <div class="header">Register</div>
-      <form class="ui form segment register">
+      <form class="ui form error segment register">
         <div class="field">Select a username and a passphrase to encrypt your keys</div>
         <div class="two fields">
           <div class="field" style="display: none; color: red" id="registerError"></div>
@@ -269,10 +269,11 @@
           <label>Confirm Password</label>
           <input type="password" name="confirmPassword" placeholder="Confirm Password">
         </div>
+        <div class="actions">
+          <div class="ui green submit button">OK</div>
+          <div class="ui error message"></div>
+        </div>
       </form>
-      <div class="actions">
-        <div class="ui green submit button">OK</div>
-      </div>
     </div>
 
     <div class="ui small modal generate">
@@ -291,11 +292,11 @@
           <label for="password">Password</label>
           <input type="password" class="password" id="password">
         </div>
+        <div class="actions">
+          <div class="ui submit button green decrypt">Decrypt</div>
+          <div class="ui error message"></div>
+        </div>
       </form>
-      <div class="actions">
-        <div class="ui submit button green decrypt">Decrypt</div>
-        <div class="ui form error"></div>
-      </div>
     </div>
 
     <div class="ui small modal authenticate">

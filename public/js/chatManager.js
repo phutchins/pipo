@@ -1837,11 +1837,6 @@ ChatManager.promptForCredentials = function promptForCredentials() {
     .modal('show');
 }
 
-ChatManager.promptForPassphrase = function(callback) {
-  console.log("[promptForPassphrase] Prompting for passphrase");
-  $('.ui.modal.unlock').modal('show');
-};
-
 ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
   console.log("Prompting user to import existing keypair");
   $('.modal.import-keypair-modal').modal('show');

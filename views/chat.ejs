@@ -284,7 +284,7 @@
 
     <div class="ui small modal unlock">
       <div class="header">Unlock Credentials for <span class="username">your user</span></div>
-      <form class="ui form content unlock">
+      <form class="ui form error content unlock">
         <div class="field">Enter the passphrase you selected to decrypt your keys. You will be prompted for this password once more after you submit this form to sign in.</div>
         <div class="field" style="display: none; color: red" id="createError"></div>
         <div class="field">
@@ -293,7 +293,8 @@
         </div>
       </form>
       <div class="actions">
-        <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
+        <div class="ui submit button green decrypt">Decrypt</div>
+        <div class="ui form error"></div>
       </div>
     </div>
 

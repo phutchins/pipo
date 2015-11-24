@@ -1,54 +1,69 @@
-var initPasswordPromptModal = function initPasswordPromptModal() {
-  $('.ui.modal.unlock .username').text(window.username);
-  $('.ui.modal.unlock')
-    .modal('setting', 'closable', false)
-    .modal('setting', {
-      onApprove: function() {
-        $('.ui.form.unlock').submit();
-      }
-    })
-    .modal('show');
+/*
+ * Password Prompt Modal
+ */
 
-  $('.ui.form.unlock').form('setting', {
+var PasswordPrompt = {};
+
+PasswordPrompt.init = function init(successCallback) {
+  var buildPasswordPromptModal = function buildPasswordPromptModal() {
+    $('.ui.modal.unlock .username').text(window.username);
+    $('.ui.modal.unlock').modal('setting', 'closable', false);
+  };
+
+  $(document).ready(buildPasswordPromptModal);
+
+  var passwordPromptFormSettings = {
+    inline: true,
+    on: 'blur',
+    onApprove: function() {
+      $('.ui.form.unlock').submit();
+      return false;
+    },
+    onFailure: function(event) {
+      console.log("Form Failure!");
+      event.preventDefault();
+      return false;
+    },
     onSuccess: function(event) {
       var errorDisplay = $('.unlock #createError');
       var password = $('.unlock #password').val();
 
       event.preventDefault();
 
-      if (!password) {
-        if (errorDisplay.text().toLowerCase().indexOf('password is required') !== -1) {
+      // Attempt to unlock the client key
+      window.encryptionManager.unlockClientKey({ passphrase: password }, function(data) {
+        // If unlock fails, notify user and wait for another try
+        if (data && data.err) {
+          // Display error status on the modal
+          console.log("Error unlocking client key: " + err);
           return false;
         }
-        if (errorDisplay.transition('is visible')) {
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '0.5s',
-            onComplete: function () {
-              errorDisplay.text("Password is required");
-            }
-          });
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '1s'
-          });
-        }
-        else {
-          errorDisplay.text("Password is required");
-          errorDisplay.transition({
-            animation: 'fade up',
-            duration: '1s'
-          });
-        }
-        return false;
-      }
-      else {
+        // If unlock succeedes, hide the modal and keep going
         $('.ui.modal.unlock').modal('hide');
-        callback(password);
+
+        successCallback();
         return false;
+      });
+    },
+    fields: {
+      password: {
+        identifier: 'password',
+        rules: [{
+          type: 'empty',
+          prompt: 'You must enter your password...'
+        }]
       }
     }
+  };
+
+  $(document).ready(function() {
+    $('.ui.form.unlock').form(passwordPromptFormSettings);
   });
 };
 
-$(document).ready(initPasswordPromptModal);
+PasswordPrompt.show = function show(callback) {
+  var self = this;
+
+  self.init(callback);
+  $('.ui.modal.unlock').modal('show');
+};

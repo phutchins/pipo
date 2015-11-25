@@ -970,14 +970,19 @@ SocketServer.prototype.membership = function membership(data) {
   var type = data.type;
   var chatId = data.chatId;
   var memberName = data.memberName;
+  var memberId = data.memberId;
   var membership = data.membership;
   var username = self.socket.user.username;
+  // BOOKMARK - Where should I be getting the userId from for the user doing the adding?
+  var userId = self.socket.user.id;
 
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
 
   if (type == 'add') {
     var addData = ({
       username: username,
+      userId: userId,
+      memberId: memberId,
       memberName: memberName,
       membership: membership,
       chatId: chatId,
@@ -985,6 +990,7 @@ SocketServer.prototype.membership = function membership(data) {
 
     logger.debug("[MEMBERSHIP] membership data is:", addData);
 
+    // Should be passing both user and member as userId's here
     Room.addMember(addData, function(addResultData) {
       var success = addResultData.success;
       var message = addResultData.message;
@@ -1016,6 +1022,7 @@ SocketServer.prototype.membership = function membership(data) {
     modifyData = ({
       memberName: data.member,
       chatId: data.chatId,
+      memberId: data.memberId,
       membership: data.membership,
       username: username
     });

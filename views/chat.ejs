@@ -140,7 +140,7 @@
           <p>Please enter your client key password...</p>
         </div>
         <div class="ui input">
-            <input name="password" type="password" placeholder="password"></input>
+            <input name="keyPassword" type="password" placeholder="password"></input>
         </div>
       </div>
       <div class="actions">
@@ -237,36 +237,43 @@
       <div class="header">Register or Sign In</div>
       <div class="content">You do not appear to have signed in from this computer before. Would you like to Register as a new user or Sign In using your existing keys?</div>
       <div class="actions">
-        <div class="ui button approve green generate" data-value="generate">Register</div>
+        <div class="ui button approve green register" data-value="generate">Register</div>
         <div class="ui button approve blue authenticate" data-value="authenticate">Sign In</div>
       </div>
     </div>
 
-    <div class="ui small modal create">
-      <div class="header">Create</div>
-      <form class="ui form content create">
+    <div class="ui small modal register">
+      <div class="header">Register</div>
+      <form class="ui form error segment register">
         <div class="field">Select a username and a passphrase to encrypt your keys</div>
-        <div class="field" style="display: none; color: red" id="createError"></div>
-        <div class="field">
-          <label for="username">Name</label>
-          <input type="text" class="username" id="username">
+        <div class="two fields">
+          <div class="field" style="display: none; color: red" id="registerError"></div>
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" class="username" placeholder="Username">
+          </div>
+          <div class="field">
+            <label>Real Name</label>
+            <input name="name" type="text" class="name" placeholder="Real Name">
+          </div>
         </div>
         <div class="field">
-          <label for="email">Email</label>
-          <input type="email" class="email" id="email">
+          <label>Email</label>
+          <input type="email" name="email" class="email" placeholder="Email">
         </div>
         <div class="field">
-          <label for="password">Password</label>
-          <input type="password" class="password" id="password">
+          <label>Password</label>
+          <input type="password" name="registerPassword" class="registerPassword" placeholder="Password">
         </div>
         <div class="field">
-          <label for="confirmPassword">Confirm Password</label>
-          <input type="password" class="password" id="confirmPassword">
+          <label>Confirm Password</label>
+          <input type="password" name="confirmPassword" placeholder="Confirm Password">
+        </div>
+        <div class="actions">
+          <div class="ui green submit button">OK</div>
+          <div class="ui error message"></div>
         </div>
       </form>
-      <div class="actions">
-        <div class="ui button approve green go" data-value="go">Go</div>
-      </div>
     </div>
 
     <div class="ui small modal generate">
@@ -278,17 +285,18 @@
 
     <div class="ui small modal unlock">
       <div class="header">Unlock Credentials for <span class="username">your user</span></div>
-      <form class="ui form content unlock">
+      <form class="ui form error content unlock">
         <div class="field">Enter the passphrase you selected to decrypt your keys. You will be prompted for this password once more after you submit this form to sign in.</div>
         <div class="field" style="display: none; color: red" id="createError"></div>
         <div class="field">
           <label for="password">Password</label>
           <input type="password" class="password" id="password">
         </div>
+        <div class="actions">
+          <div class="ui submit button green decrypt">Decrypt</div>
+          <div class="ui error message"></div>
+        </div>
       </form>
-      <div class="actions">
-        <div class="ui button approve green decrypt" data-value="decryptKeys">Decrypt</div>
-      </div>
     </div>
 
     <div class="ui small modal authenticate">
@@ -594,6 +602,10 @@
     <script src="/js/lib/FileSaver.js"></script>
     <script src="/js/lib/blob.js"></script>
     <script src="/js/lib/jquery.pulse.js"></script>
+
+    <!-- Load Modals -->
+    <script src="/js/modals/registerUserPrompt.js"></script>
+    <script src="/js/modals/passwordPrompt.js"></script>
 
     <script src="/js/chatManager.js"></script>
     <script src="/js/clientNotification.js"></script>

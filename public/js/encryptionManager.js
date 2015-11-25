@@ -95,11 +95,8 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
         if (!err) {
           self.keyManager = keyManager;
           if (keyManager.is_pgp_locked()) {
-            self.unlockClientKey(function(err) {
-              if (err) {
-                console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) Error decrypting client key pair: +err");
-                return callback(err, null);
-              }
+            PasswordPrompt.show(function() {
+              self.keyRing.add_key_manager(keyManager);
               self.clientCredentialsLoaded = true;
               return callback(null, true);
             });
@@ -198,45 +195,33 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
   });
 }
 
-EncryptionManager.prototype.unlockClientKey = function unlockClientKey(callback) {
+EncryptionManager.prototype.promptForPassphrase = function promptForPassphrase(callback) {
   var self = this;
-  //Unlock key with passphrase if locked
-  if (self.keyManager.is_pgp_locked()) {
-    var tries = 3;
+  PasswordPrompt.show(callback);
+};
 
-    function promptAndDecrypt() {
-      console.log("[unlockClientKey] Key manager is locked and you have " + tries + " tries left to unlock");
-      ChatManager.promptForPassphrase(function (passphrase) {
-        console.log("[unlockClientKey] Got passphase, unlocking client key!");
-        self.keyManager.unlock_pgp({
-          passphrase: passphrase
-        }, function (err) {
-          if (err) {
-            if (tries) {
-              tries--;
-              return promptAndDecrypt();
-            }
-            console.log("Error unlocking key", err);
-            return callback(err);
-          }
-          console.log("[ENCRYPTION MANAGER] (unlockClientKey) Successfully decrypted client key");
-          //self.keyManager = keyManager;
-          self.keyRing.add_key_manager(self.keyManager);
+EncryptionManager.prototype.clientKeyUnlocked = function clientKeyUnlocked() {
+};
 
-          self.clientCredentialsDecrypted = true;
+EncryptionManager.prototype.unlockClientKey = function unlockClientKey(data, callback) {
+  var self = this;
+  var passphrase = data.passphrase;
 
-          return callback(null);
-        });
-      });
+  self.keyManager.unlock_pgp({
+    passphrase: passphrase
+  }, function (err) {
+    if (err) {
+      console.log("Error unlocking key", err);
+      return callback({ err: err });
     }
 
-    console.log("[ENCRYPTION MANAGER] (unlockClientKey) Prompting for password to decrypt client key...");
-    promptAndDecrypt();
-  }
-  else {
-    self.keyRing.add_key_manager(keyManager);
+    console.log("[ENCRYPTION MANAGER] (unlockClientKey) Successfully decrypted client key");
+
+    self.keyRing.add_key_manager(self.keyManager);
+    self.clientCredentialsDecrypted = true;
+
     return callback(null);
-  }
+  });
 };
 
 EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, callback) {

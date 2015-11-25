@@ -49,6 +49,7 @@ userSchema.statics.create = function createUser(userData, callback) {
 
   var username = userData.username;
   var email = userData.email;
+  var fullName = userData.fullName;
   var emailHash = null;
   if (email) {
     emailHash = crypto.createHash('md5').update(email).digest('hex');
@@ -60,6 +61,7 @@ userSchema.statics.create = function createUser(userData, callback) {
 
   var newUser = new this({
     username: username,
+    fullName: fullName,
     email: email,
     emailHash: emailHash,
     usernameLowerCase: usernameLowerCase,

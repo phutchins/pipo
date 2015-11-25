@@ -149,46 +149,6 @@ SocketClient.prototype.addListeners = function() {
       ChatManager.chats[chatId].activeUsers = activeUsers;
     }
 
-    //window.roomUsers[chatId] = {};
-
-    /*
-     * BUG BUG BUG
-     * Need to remove this code but it is making decryption work
-     */
-    /*
-    roomUsers.forEach(function(userId) {
-      var user = ChatManager.userlist[userId];
-      if (user) {
-        addToGlobalUsers(user);
-      }
-    });
-
-    function addToGlobalUsers(user) {
-      //window.userMap[user.id] = {
-      //  publicKey: user.publicKey
-      //};
-
-      //Don't build publicKey for ourselves
-      if (user.username != window.username) {
-        //Build pgp key instance
-        //console.log("[USERLIST UPDATE] user.publicKey: "+user.publicKey);
-        window.kbpgp.KeyManager.import_from_armored_pgp({
-          armored: user.publicKey
-        }, function (err, keyInstance) {
-          if (err) {
-            console.log("Error importing user key", err);
-          }
-          var keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
-          console.log("imported key", user.username, "with finger print", keyFingerPrint);
-          //window.userMap[user.id].keyInstance = keyInstance;
-          // Setting key instance here but we need to do this elsewhere...
-          //ChatManager.userlist[user.id].keyInstance = keyInstance;
-          encryptionManager.keyRing.add_key_manager(keyInstance);
-        });
-      }
-    }
-    */
-
     console.log("[USERLIST UPDATE] Updating userlist");
 
     //

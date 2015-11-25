@@ -1819,12 +1819,9 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
     .modal("show");
 
   $('.ui.button.register').unbind().click(function(e) {
-    //Resets form input fields
-    $('.ui.form.register').trigger("reset");
-    //Resets form error messages
-    $('.ui.form.register .field.error').removeClass( "error" );
-    $('.ui.form.register.error').removeClass( "error" );
-    $('.ui.modal.register').modal('show');
+    RegisterUserPrompt.show(function(data) {
+      // Do something when registration is succcessful
+    });
   });
 
 };

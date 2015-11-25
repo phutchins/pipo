@@ -7,7 +7,7 @@ Authentication.authenticate = function authenticate(data) {
 
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      socket.emit('authenticate', {username: window.username, publicKey: publicKey, email: window.email});
+      socket.emit('authenticate', {username: window.username, fullName: window.fullName, publicKey: publicKey, email: window.email});
     });
   });
 };

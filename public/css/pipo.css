@@ -262,6 +262,7 @@ body, html { padding: 0; margin: 0; }
 
 .user-list-container {
   margin-bottom: 20px;
+  overflow-y: scroll;
 }
 
 .chat-list-container {

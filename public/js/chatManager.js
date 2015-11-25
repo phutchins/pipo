@@ -483,6 +483,16 @@ ChatManager.populateManageMembersModal = function populateManageMembersModal(dat
 
   var memberList = {};
 
+  var autoCompleteUsers = [];
+  Object.keys(ChatManager.userNameMap).forEach(function(username) {
+    autoCompleteUsers.push({title: username});
+  });
+
+  //var autoCompleteArray = Object.keys(ChatManager.userNameMap);
+  $('.ui.modal.manage-members-modal .ui.search').search({
+    source: autoCompleteUsers,
+  });
+
   members.forEach(function(memberId) {
     memberList[memberId] = 'member';
   });
@@ -567,8 +577,14 @@ $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   var chatId = $('.manage-members-modal').attr('id');
   var membership = $('.manage-members-modal .membership .selected').text();
 
+  // Get memberId from local array
+  var memberId = ChatManager.userNameMap[memberName.toLowerCase()]
+
+  debugger;
+
   var membershipData = ({
     type: 'add',
+    memberId: memberId,
     memberName: memberName,
     chatId: chatId,
     membership: membership
@@ -1514,7 +1530,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
-        debugger;
         self.handleChatUpdate(data, function() {
         });
         window.socketClient.socket.removeListener('chatUpdate-' + chatHash);

@@ -258,7 +258,7 @@ userSchema.statics.buildUserNameMap = function buildUserNameMap(data, callback) 
 
   Object.keys(userlist).forEach(function(key) {
     var user = userlist[key];
-    userNameMap[user.username] = user.id;
+    userNameMap[user.username.toLowerCase()] = user.id;
   });
 
   return callback(userNameMap);

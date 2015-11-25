@@ -272,12 +272,14 @@ roomSchema.statics.part = function part(data, callback) {
 roomSchema.statics.addMember = function addMember(data, callback) {
   var username = data.username;
   var memberName = data.memberName;
+  var userId = data.userId;
+  var memberId = data.memberId;
   var chatId = data.chatId;
   var membership = data.membership;
   var pushed = false;
 
   logger.debug("[ADD MEMBER] Finding user '" + username + "' who is adding member '" + memberName + "' to '" + chatId + "'");
-  mongoose.model('User').findOne({ username: username }, function(err, user) {
+  mongoose.model('User').findOne({ _id: userId }, function(err, user) {
     if (err) {
       logger.debug("[ROOM] (addMember) Database error while finding user " + username);
       return callback({ success: false, message: "Error finding user " + username });
@@ -325,7 +327,7 @@ roomSchema.statics.addMember = function addMember(data, callback) {
 
       if (isRoomAdmin || isRoomOwner) {
         logger.debug("[ROOM] User is admin or owner");
-        mongoose.model('User').findOne({ username: memberName }, function(err, memberObj) {
+        mongoose.model('User').findOne({ _id: memberId }, function(err, memberObj) {
           logger.debug("Requesting user " + username + " is an admin of room " + room.name + " so adding " + memberName + " as a " + membership);
 
           if (!memberObj) {

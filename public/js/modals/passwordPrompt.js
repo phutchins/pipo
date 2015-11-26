@@ -25,7 +25,6 @@ PasswordPrompt.init = function init(successCallback) {
       return false;
     },
     onSuccess: function(event) {
-      var errorDisplay = $('.unlock #createError');
       var password = $('.unlock #password').val();
 
       event.preventDefault();

@@ -92,7 +92,7 @@ RegisterUserPrompt.init = function init(successCallback) {
       var email = $('.register.form .email').val().toString();
 
       // Check with the server if the name is in use
-      socketClient.checkUsernameAvailability(username, function(data) {
+      var checkCallback = function checkCallback(data) {
         var available = data.available;
 
         if (available) {
@@ -102,7 +102,9 @@ RegisterUserPrompt.init = function init(successCallback) {
         // Show error stating that username is not available
         $('.ui.form.unlock').form('add errors', ['Incorrect Password. Please try again...']);
         return event.preventDefault();
-      });
+      };
+
+      socketClient.checkUsernameAvailability(username, checkCallback);
 
       var finish = function finish() {
         //Hides modal on validation success

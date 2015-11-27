@@ -164,10 +164,13 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
  * Check if a username is available
  */
 SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailability(data) {
+  var self = this;
   var username = data.username;
   var socketCallback = data.socketCallback;
   var available = true;
   var error = null;
+
+  logger.debug("[socketServer.checkUsernameAvailability] checking username availability for username '" + username + "'");
 
   User.findOne({ username: username }, function(err, user) {
     if (err) {
@@ -175,11 +178,13 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
       error = "There was an error while checking availability of supplied username";
     }
 
+    logger.debug("[socketServer.checkUsernameAvailability] User is " + user);
+
     if (user) {
       available = false;
     }
 
-    return self.socket.emit(socketCallback, { available: available, error: error });
+    return self.socket.emit('availability-' + username, { available: available, error: error });
   });
 };
 

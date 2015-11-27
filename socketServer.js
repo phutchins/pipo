@@ -178,8 +178,6 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
       error = "There was an error while checking availability of supplied username";
     }
 
-    logger.debug("[socketServer.checkUsernameAvailability] User is " + user);
-
     if (user) {
       available = false;
     }

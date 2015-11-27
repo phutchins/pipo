@@ -513,8 +513,6 @@ SocketClient.prototype.checkUsernameAvailability = function checkUsernameAvailab
   var self = this;
   var usernameCallback = callback;
 
-  debugger;
-
   // Create a listener tied to the username we are checking
   self.socket.on('availability-' + username, function(data) {
     console.log("[socketClient.checkUsernameAvailability] Got availability callback");
@@ -527,13 +525,9 @@ SocketClient.prototype.checkUsernameAvailability = function checkUsernameAvailab
       // Show error on modal
     };
 
-    debugger;
-
     self.socket.removeListener('availability-' + username);
     usernameCallback({ available: available });
   });
-
-  debugger;
 
   // Send the socket request to check the username
   self.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });

@@ -509,6 +509,30 @@ SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {
   });
 };
 
+SocketClient.prototype.checkUsernameAvailability = function checkUsernameAvailability(username, callback) {
+  var self = this;
+  var usernameCallback = callback;
+
+  // Create a listener tied to the username we are checking
+  self.socket.on('availability-' + username, function(data) {
+    console.log("[socketClient.checkUsernameAvailability] Got availability callback");
+    var available = data.available;
+    var error = data.error;
+
+    if (error) {
+      console.log("[socketClient.checkUsernameAvailability] There was an error while checking username availability");
+
+      // Show error on modal
+    };
+
+    self.socket.removeListener('availability-' + username);
+    usernameCallback({ available: available });
+  });
+
+  // Send the socket request to check the username
+  self.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });
+}
+
 Array.prototype.contains = function(v) {
   for(var i = 0; i < this.length; i++) {
     if(this[i] === v) return true;

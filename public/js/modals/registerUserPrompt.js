@@ -86,38 +86,56 @@ RegisterUserPrompt.init = function init(successCallback) {
     },
     onSuccess : function(event) {
       console.log("Form submitted success 1!");
-      //Hides modal on validation success
-      $('.ui.modal.register').modal('hide');
-
-      var errorDisplay = $('.register #createError');
       var username = $('.register.form .username').val().toString();
       var fullName = $('.register.form .name').val().toString();
       var password = $('.register.form .registerPassword').val().toString();
       var email = $('.register.form .email').val().toString();
 
-      ChatManager.disableChat();
+      // Check with the server if the name is in use
+      var checkCallback = function checkCallback(data) {
+        var available = data.available;
 
-      $('.ui.modal.generate').modal('show');
-
-      window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
-        if (err) {
-          console.log("Error generating client keypair: "+err);
-        } else {
-          window.username = username;
-          window.email = email;
-          window.fullName = fullName;
-
-          //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
-          localStorage.setItem('username', username);
-          localStorage.setItem('fullName', fullName);
-          localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
-          localStorage.setItem('email', email);
-          //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
-          ChatManager.enableChat();
-          socketClient.init();
+        if (available) {
+          return finish();
         }
-      });
 
+        // Show error stating that username is not available
+        $('.ui.form.register').form('add errors', ['Username is already in use. Please choose another one...']);
+        return event.preventDefault();
+      };
+
+      socketClient.checkUsernameAvailability(username, checkCallback);
+
+      var finish = function finish() {
+        //Hides modal on validation success
+        $('.ui.modal.register').modal('hide');
+
+
+        ChatManager.disableChat();
+
+        $('.ui.modal.generate').modal('show');
+
+        window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
+          if (err) {
+            console.log("Error generating client keypair: "+err);
+          } else {
+            window.username = username;
+            window.email = email;
+            window.fullName = fullName;
+
+            //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
+            localStorage.setItem('username', username);
+            localStorage.setItem('fullName', fullName);
+            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+            localStorage.setItem('email', email);
+            //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
+            ChatManager.enableChat();
+            socketClient.init();
+          }
+        });
+      };
+
+      // Probabally don't need both of these here
       event.preventDefault();
       return false;
     }

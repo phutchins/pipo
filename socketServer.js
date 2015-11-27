@@ -1,12 +1,22 @@
+// PiPo Libs
+
+
+// Models
 var User = require('./models/user');
 var KeyId = require('./models/keyid');
 var KeyPair = require('./models/keypair');
 var Room = require('./models/room');
 var Message = require('./models/message');
 var Chat = require('./models/chat');
+
+// Config
 var config = require('./config/pipo');
 var logger = require('./config/logger');
+
+// Admin Data
 var AdminCertificate = require('./adminData/adminCertificate');
+
+// Modules
 var mongoose = require('mongoose');
 var crypto = require('crypto');
 
@@ -36,6 +46,7 @@ SocketServer.prototype.onSocket = function(socket) {
   logger.debug("[CONNECTION] Socket connected to main");
 
   socket.on('authenticate', self.authenticate.bind(self));
+  socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
 
   socket.on('updateClientKey', self.updateClientKey.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
@@ -79,7 +90,6 @@ SocketServer.prototype.init = function init() {
     // Do client key things
   }
 };
-
 
 
 /*
@@ -149,6 +159,32 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   })
 };
 
+
+/*
+ * Check if a username is available
+ */
+SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailability(data) {
+  var self = this;
+  var username = data.username;
+  var socketCallback = data.socketCallback;
+  var available = true;
+  var error = null;
+
+  logger.debug("[socketServer.checkUsernameAvailability] checking username availability for username '" + username + "'");
+
+  User.findOne({ username: username }, function(err, user) {
+    if (err) {
+      logger.error('[socketServer.checkUsernameAvailability] There was an error while checking availbility of a username: ' + err);
+      error = "There was an error while checking availability of supplied username";
+    }
+
+    if (user) {
+      available = false;
+    }
+
+    return self.socket.emit('availability-' + username, { available: available, error: error });
+  });
+};
 
 
 /**

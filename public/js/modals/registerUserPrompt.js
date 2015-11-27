@@ -100,7 +100,7 @@ RegisterUserPrompt.init = function init(successCallback) {
         }
 
         // Show error stating that username is not available
-        $('.ui.form.unlock').form('add errors', ['Incorrect Password. Please try again...']);
+        $('.ui.form.register').form('add errors', ['Username is already in use. Please choose another one...']);
         return event.preventDefault();
       };
 

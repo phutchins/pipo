@@ -530,7 +530,7 @@ SocketClient.prototype.checkUsernameAvailability = function checkUsernameAvailab
     debugger;
 
     self.socket.removeListener('availability-' + username);
-    self.usernameCallback({ available: available });
+    usernameCallback({ available: available });
   });
 
   debugger;

@@ -1261,29 +1261,24 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
 
   $('#user-list').html(userListHtml);
 
-  if (members.length > 0) {
-    members.forEach(function(userId) {
-      $('#userlist-' + userId).popup({
-        inline: true
+  if (subscribers.length > 0) {
+    subscribers.forEach(function(userId) {
+      console.log("Setting up User Popup for '#userlist-" + userId + " .user-list-avatar'");
+      $('#userlist-' + userId + ' .user-list-avatar').popup({
+        inline: true,
+        position: 'left center',
+        hoverable: true,
+        target: '#userlist-' + userId,
+        popup: $('.ui.popup.userPopup'),
+        on: 'click'
       })
 
-      $('.user-list-li').click(function() {
+      $('#userlist-' + userId + ' .user-list-avatar').click(function() {
         var username = $( this ).attr('name');
         var userId = $( this ).attr('userId');
 
         console.log("Populating user popup for", username);
         ChatManager.populateUserPopup({ username: username, userId: userId, socket: socket });
-        $('.userPopup').removeClass('popover-hidden').addClass('popover');
-        $(document).mouseup(function (e)
-        {
-            var container = $('.userPopup');
-            if (!container.is(e.target)
-              && container.has(e.target).length === 0)
-            {
-              $('.userPopup').removeClass('popover').addClass('popover-hidden');
-              //container.hide();
-            }
-        });
       });
     });
   }

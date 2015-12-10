@@ -1274,11 +1274,10 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       })
 
       $('#userlist-' + userId + ' .user-list-avatar').click(function() {
-        var username = $( this ).attr('name');
-        var userId = $( this ).attr('userId');
+        var userId = $( this ).parent().attr('userid');
 
         console.log("Populating user popup for", username);
-        ChatManager.populateUserPopup({ username: username, userId: userId, socket: socket });
+        ChatManager.populateUserPopup({ userId: userId, socket: socket });
       });
     });
   }
@@ -1289,18 +1288,25 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
  */
 ChatManager.populateUserPopup = function populateUserPopup(data) {
   var self = this;
-  var username = data.username;
+
   var userId = data.userId;
+  var userObject = ChatManager.userlist[userId];
+
+  var username = userObject.username;;
+  var fullName = userObject.fullName;
+  var emailHash = userObject.emailHash;
+  var email = userObject.email;
+
   var socket = data.socket;
   var participantIds = [ userId, ChatManager.userNameMap[window.username] ];
 
-  // Get full name from users object here
-  var fullName = 'Default Name';
-  var emailHash = ChatManager.userlist[userId].emailHash || "00000000000";
   var avatarHtml = "<img src='https://www.gravatar.com/avatar/" + emailHash + "?s=256' class='avatar-l'>";
 
   $('.userPopup .avatar').html(avatarHtml);
   $('.userPopup .fullName').text(fullName);
+  $('.userPopup .username').text(username);
+  $('.userPopup .email').text(email);
+  $('.userPopup .email').attr('href', 'mailto:' + email);
 
   var usernameHtml = "<a href='http://pipo.chat/users/" + username + "' target='_blank'>" + username + "</a>";
 

@@ -660,6 +660,13 @@ body, html { padding: 0; margin: 0; }
   transform: translate3d(0,0,0);
 }
 
+.userPopupDetails {
+}
+
+.popover-content {
+  width: 220px;
+}
+
 .user-list-avatar {
   display: inline-block;
   text-align: center;

@@ -660,11 +660,45 @@ body, html { padding: 0; margin: 0; }
   transform: translate3d(0,0,0);
 }
 
+.popup {
+  max-width: 520px;
+}
+
 .userPopupDetails {
 }
 
 .popover-content {
   width: 220px;
+}
+
+.userPopupAvatar {
+  display: block;
+  float: left;
+}
+
+.userPopupInfo {
+  box-sizing: border-box;
+  margin-left: 12px;
+  max-width: 340px;
+  float: right;
+}
+
+.userPopupStats {
+    border-top: 1px solid #eee;
+    border-top-width: 1px;
+    border-top-style: solid;
+    border-top-color: rgb(238, 238, 238);
+    border-bottom: 1px solid #eee;
+    border-bottom-width: 1px;
+    border-bottom-style: solid;
+    border-bottom-color: rgb(238, 238, 238);
+    padding: 4px 2px;
+    margin-bottom: 4px;
+    margin-top: 10px
+}
+
+.userPopupContact {
+
 }
 
 .user-list-avatar {

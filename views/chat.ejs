@@ -424,51 +424,20 @@
     </div>
 
     <div class="ui popup left center transition hidden userPopup">
-      <div class="ui one column divided center aligned grid">
-        <div class="column">
-          <div class="arrow"></div>
-          <div class="popover-inner" style="min-height: 88px;">
-            <h5 class="popover-title" style="display: none;"></h5>
-            <div class="popover-content">
-              <div>
-                <div class="avatar" style="float: left"></div>
-                <div class="trpPopoverDetails">
-                  <h2 class="fullName">Full Name</h2>
-                  <h3 class="username"><a href="http://pipo.chat/users/username" target="_blank">username</a></h3>
-                  <div class="vcard-stats">
-                    <strong class="vcard-stat-count">1</strong>
-                    followers &nbsp;
-                    <strong class="vcard-stat-count">13</strong>
-                    repos &nbsp;
-                    <strong class="vcard-stat-count">1</strong>
-                    following &nbsp;
-                  </div>
-                  <ul class="trpUserDetails">
-                    <li>
-                      <div class="trpUserDetails__icon">
-                        <i class="octicon octicon-location"></i>
-                      </div>
-                      <div class="trpUserDetails__text">Atlanta, GA</div>
-                    </li>
-                    <li>
-                      <div class="trpUserDetails__icon">
-                        <i class="octicon octicon-mail"></i>
-                      </div>
-                      <div class="trpUserDetails__text"><a class="email" href="mailto:email@address.com">email@address.com</a></div>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div class="userPopupAvatar">
+          <div class="avatar" style="float: left"></div>
       </div>
-      <div class="popover-footer">
-        <div class="popover-footer-content">
-          <div>
-            <button class="trpBtnLightGrey buttonSmall" id="button-mention">
-              Mention
-            </button>
+      <div class="userPopupInfo">
+        <div class="userPopupNames">
+          <h2 class="fullName">Full Name</h2>
+          <h3 class="username"><a href="http://pipo.chat/users/username" target="_blank">username</a></h3>
+        </div>
+        <div class="userPopupStats">
+          5 followers  66 repos  4 following
+        </div>
+        <div class="userPopupContact">
+          <a class="email" href="mailto:email@address.com">email@address.com</a></div>
+          <div class="userPopupButtons">
             <button class="privateChatButton buttonSmall" id="button-onetoone">
               Chat Privately
             </button>

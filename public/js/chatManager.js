@@ -633,6 +633,8 @@ ChatManager.updateProfileHeader = function updateProfileHeader() {
     emailHash = ChatManager.userlist[ChatManager.userNameMap[window.username]].emailHash || "0";
   }
 
+  $('#menu-header-profile .ui.dropdown').dropdown({ action: 'select' });
+
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
   $('#menu-header-profile .ui.dropdown .text.username').text(window.username);
 };

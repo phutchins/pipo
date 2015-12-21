@@ -661,11 +661,11 @@ body, html { padding: 0; margin: 0; }
 }
 
 .popup {
-  max-width: 520px;
 }
 
 .userPopup {
   display: flex !important;
+  max-width: 400px !important;
 }
 
 .userPopupDetails {
@@ -683,8 +683,9 @@ body, html { padding: 0; margin: 0; }
 .userPopupInfo {
   box-sizing: border-box;
   margin-left: 12px;
-  max-width: 340px;
+  max-width: 440px;
   float: right;
+  white-space: nowrap;
 }
 
 .userPopupStats {
@@ -702,7 +703,7 @@ body, html { padding: 0; margin: 0; }
 }
 
 .userPopupContact {
-
+  margin-bottom: 10px;
 }
 
 .user-list-avatar {

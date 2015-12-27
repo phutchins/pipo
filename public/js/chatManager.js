@@ -109,6 +109,11 @@ $('#edit-profile-button').unbind().on('click', function() {
 
 $('#generate-keypair-button').unbind().on('click', function() {
   console.log("Regenerating client keypair");
+  // Warn the user that this will clear their current key and they should export it if they
+  // want to keep it
+
+  // Clear local storage
+  localStorage.clear();
   ChatManager.promptForCredentials();
 });
 
@@ -1847,9 +1852,9 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
 ChatManager.promptForCredentials = function promptForCredentials() {
   var self = this;
   console.log("Prompting for credentials!");
-
-  $('.ui.modal.create')
-    .modal('show');
+  RegisterUserPrompt.show(function(data) {
+    // Do something when registration is succcessful
+  });
 }
 
 ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {

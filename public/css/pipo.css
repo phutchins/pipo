@@ -664,6 +664,10 @@ body, html { padding: 0; margin: 0; }
   max-width: 520px;
 }
 
+.userPopup {
+  display: flex;
+}
+
 .userPopupDetails {
 }
 

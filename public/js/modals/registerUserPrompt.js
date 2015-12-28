@@ -115,6 +115,9 @@ RegisterUserPrompt.init = function init(successCallback) {
 
         $('.ui.modal.generate').modal('show');
 
+        // Clear all local storage and window variables here?
+        // This should include chat history etc...
+
         window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
           if (err) {
             console.log("Error generating client keypair: "+err);
@@ -126,8 +129,13 @@ RegisterUserPrompt.init = function init(successCallback) {
             //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
             localStorage.setItem('username', username);
             localStorage.setItem('fullName', fullName);
-            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
             localStorage.setItem('email', email);
+
+            // Save newly generated keypair
+            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+            // Need to unload an old keypair if it existed
+            window.encryptionManager.clientCredentialsLoaded = false;
+
             //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
             ChatManager.enableChat();
             socketClient.init();

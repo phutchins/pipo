@@ -112,9 +112,9 @@ $('#generate-keypair-button').unbind().on('click', function() {
   // Warn the user that this will clear their current key and they should export it if they
   // want to keep it
 
-  // Clear local storage
-  localStorage.clear();
-  ChatManager.promptForCredentials();
+  ChatManager.promptForCredentials(function() {
+    // Do something after the prompt is shown
+  });
 });
 
 $('#import-keypair-button').unbind().on('click', function() {
@@ -130,8 +130,9 @@ $('#import-keypair-button').unbind().on('click', function() {
         return console.log("Error saving client keyPair");
       };
       console.log("Client keypair saved to local storage");
-      window.encryptionManager.clientCredentialsLoaded = false;
-      window.socketClient.init();
+      window.encryptionManager.unloadClientKeyPair(function() {
+        window.socketClient.init();
+      });
     })
   })
 });
@@ -1849,11 +1850,11 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
 
 };
 
-ChatManager.promptForCredentials = function promptForCredentials() {
+ChatManager.promptForCredentials = function promptForCredentials(callback) {
   var self = this;
   console.log("Prompting for credentials!");
   RegisterUserPrompt.show(function(data) {
-    // Do something when registration is succcessful
+    return callback()
   });
 }
 

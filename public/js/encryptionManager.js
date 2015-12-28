@@ -52,6 +52,22 @@ EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPa
   });
 };
 
+
+/*
+ * Unload a currently loaded keypair for signing out or loading a new keypair
+ * Maybe we should just reset this entire object instead of clearing things?
+ */
+EncryptionManager.prototype.unloadClientKeyPair = function unloadClientKeyPair(callback) {
+  // Set loaded flag to false
+  self.clientCredentialsLoaded = false;
+
+  // Clear all variables related to decrypted client credentials
+  // self.keyRing, localStorage.getItem('keyPair'),
+  self.keyRing = new window.kbpgp.keyring.keyRing();
+  return callback();
+}
+
+
 /**
  * Attemtps to load stored PGP key from localStorage and initalize all internal variables
  * @param callback(err, loaded)
@@ -95,7 +111,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
         if (!err) {
           self.keyManager = keyManager;
           if (keyManager.is_pgp_locked()) {
-            PasswordPrompt.show(function() {
+            UnlockClientKeyPairModal.show(function() {
               self.keyRing.add_key_manager(keyManager);
               self.clientCredentialsLoaded = true;
               return callback(null, true);
@@ -197,7 +213,7 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
 
 EncryptionManager.prototype.promptForPassphrase = function promptForPassphrase(callback) {
   var self = this;
-  PasswordPrompt.show(callback);
+  UnlockClientKeyPairModal.show(callback);
 };
 
 EncryptionManager.prototype.clientKeyUnlocked = function clientKeyUnlocked() {
@@ -206,6 +222,8 @@ EncryptionManager.prototype.clientKeyUnlocked = function clientKeyUnlocked() {
 EncryptionManager.prototype.unlockClientKey = function unlockClientKey(data, callback) {
   var self = this;
   var passphrase = data.passphrase;
+
+  console.log("[encryptionManager.unlockClientKey] Unlocking client key");
 
   self.keyManager.unlock_pgp({
     passphrase: passphrase

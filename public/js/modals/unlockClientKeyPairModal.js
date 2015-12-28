@@ -4,12 +4,13 @@
 
 var UnlockClientKeyPairModal = {};
 
-UnlockClientKeyPairModal.init = function init(callback) {
-
+var init = function() {
+  var self = this;
   console.log("[unlockClientKeyPairModal] Running unlockClientKeyPairModal init...");
 
   var UnlockClientKeyPairModalFormSettings = {
     inline: true,
+    closable: false,
     on: 'blur',
     onApprove: function() {
       $('.ui.form.unlock').submit();
@@ -35,12 +36,12 @@ UnlockClientKeyPairModal.init = function init(callback) {
           // Display error status on the modal
           console.log("Error unlocking client key: " + data.err);
           $('.ui.form.unlock').form('add errors', ['Incorrect Password. Please try again...']);
-          callback(data.err, false);
+          //callback(data.err, false);
         }
         // If unlock succeedes, hide the modal and keep going
         $('.ui.modal.unlock').modal('hide');
 
-        callback();
+        //callback();
       });
       return false;
     },
@@ -57,21 +58,21 @@ UnlockClientKeyPairModal.init = function init(callback) {
 
   var buildUnlockClientKeyPairModal = function buildUnlockClientKeyPairModal() {
     console.log("[unlockClientKeyPairModal] buildUnlockClientKeyPairModal function running!");
-    $('.ui.modal.unlock .username').text(window.username);
-    $('.ui.modal.unlock').modal('setting', 'closable', false);
-    $('.ui.modal.unlock').form(UnlockClientKeyPairModalFormSettings);
   };
 
-  $(document).ready(buildUnlockClientKeyPairModal);
+  $('.ui.modal.unlock').form(UnlockClientKeyPairModalFormSettings);
+};
 
-  //$(document).ready(function() {
-  //  $('.ui.form.unlock').form(UnlockClientKeyPairModalFormSettings);
-  //});
+UnlockClientKeyPairModal.update = function update(callback) {
+  $('.ui.modal.unlock .username').text(window.username);
+  callback();
 };
 
 UnlockClientKeyPairModal.show = function show(callback) {
-  var self = this;
-
-  self.init(callback);
-  $('.ui.modal.unlock').modal('show');
+  this.update(function() {
+    $('.ui.modal.unlock').modal('show');
+    callback();
+  });
 };
+
+$(document).ready(init);

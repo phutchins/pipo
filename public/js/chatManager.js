@@ -683,6 +683,7 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
+  var enabled = false;
   var joined = false;
   var unread = false;
   var unreadCount = 0;
@@ -698,24 +699,25 @@ ChatManager.initRoom = function initRoom(room, callback) {
   };
 
   self.chats[room.id] = { id: room.id,
-    name: room.name,
-    type: 'room',
-    topic: room.topic,
+    activeUsers: room.activeUsers,
+    admins: room.admins,
+    decryptedMessages: '',
+    enabled: enabled,
+    encryptionScheme: room.encryptionScheme,
     group: room.group,
     joined: joined,
+    keepHistory: room.keepHistory,
+    members: room.members,
+    membershipRequired: room.membershipRequired,
+    messages: room.messages,
+    messageCache: '',
+    name: room.name,
+    owner: room.owner,
+    subscribers: room.subscribers,
+    type: 'room',
+    topic: room.topic,
     unread: unread,
     unreadCount: unreadCount,
-    messages: room.messages,
-    decryptedMessages: '',
-    messageCache: '',
-    encryptionScheme: room.encryptionScheme,
-    keepHistory: room.keepHistory,
-    membershipRequired: room.membershipRequired,
-    activeUsers: room.activeUsers,
-    members: room.members,
-    admins: room.admins,
-    owner: room.owner,
-    subscribers: room.subscribers
   };
 
   // Decrypt messages and HTMLize them
@@ -789,6 +791,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
 ChatManager.initChat = function initChat(chat, callback) {
   var self = this;
+  var enabled = false;
   var chatId = chat.id;
   var myUserId = ChatManager.userNameMap[window.username];
   var chatName = '';
@@ -825,14 +828,15 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   // Need to save and pull unread bits here too
   self.chats[chatId] = {
+    enabled: enabled,
     id: chatId,
-    type: 'chat',
+    messages: messages,
+    messageCache: '',
     name: chatName,
     participants: participants,
-    messages: messages,
+    type: 'chat',
     unread: unread,
     unreadCount: unreadCount,
-    messageCache: ''
   };
 
   var count = 0;
@@ -1047,6 +1051,17 @@ ChatManager.focusChat = function focusChat(data, callback) {
   // Set the active chat to the one we're focusing on
   console.log("Setting activeChat to room: " + ChatManager.chats[id].name + " which has ID: " + id);
   ChatManager.setActiveChat(id);
+
+  if (!ChatManager.chats[id].enabled || asdf) {
+    ChatManager.disableChat(id);
+  };
+
+  // Find out what we need to check before enabling or disbling chat in this room
+  debugger;
+
+  if (ChatManager.chats[id].enabled && asdf) {
+    ChatManager.enableChat(id);
+  };
 
   if (ChatManager.chats[id].unread) {
     ChatManager.chats[id].unread = false;
@@ -1359,67 +1374,96 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 };
 
 
-ChatManager.enableChat = function enableChat(room, encryptionScheme) {
+ChatManager.enableChat = function enableChat(roomId) {
   var self = this;
 
-  // TODO:
-  // Need to enable and disable chat for each chat or all chats
-  if (self.enabled) {
-    console.log("[enableChat] Trying to enable chat when it is already enabled");
-    return;
-  }
+  if (!roomId) {
+    var roomIds = Object.keys(ChatManager.chats);
+  };
 
-  self.enabled = true;
+  if (roomId) {
+    var roomIds = [ roomId ];
+  };
 
-  // Add conditional to check if the generate modal is displayed
-  $('.ui.modal.generate').modal('hide');
+  roomIds.forEach(function(id) {
+    var enabled = ChatManager.chats[id].enabled;
 
-  //Make input usable
-  $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
-  $('#send-button').prop('disabled', false);
-  $('#loading-icon').hide();
+    if (enabled) {
+      console.log("[enableChat] Trying to enable chat when it is already enabled");
+      return;
+    };
 
-  $("#input-container").find('textarea.message-input').keydown(function (event) {
-    var element = this;
+    ChatManager.chats[id].enabled = true;
 
-    //Prevent shift+enter from sending
-    if (event.keyCode === 13 && event.shiftKey) {
-      var content = element.value;
-      var caret = self.getCaret(this);
+    // If the chat we're looping is active, update the UI to reflect
+    if (ChatManager.activeChat == id) {
 
-      element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
-      event.stopPropagation();
+      // Add conditional to check if the generate modal is displayed
+      $('.ui.modal.generate').modal('hide');
 
-      var $messageInput = $('#message-input');
-      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-      return false;
-    }
-    else if (event.keyCode === 13) {
-      $('#main-input-form').submit();
-      return false;
-    }
-  });
+      //Make input usable
+      $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
+      $('#send-button').prop('disabled', false);
+      $('#loading-icon').hide();
 
-  $('#send-button').unbind().on('click', function() {
-    console.log("Got send button click!");
-    // This should probably not use the form and do it some other way
-    //$('#message-input-form').submit();
-    ChatManager.sendMessage(function() {
-      fitToContent('message-input', 156);
-      return false;
-    })
-    return false;
+      $("#input-container").find('textarea.message-input').keydown(function (event) {
+        var element = this;
+
+        //Prevent shift+enter from sending
+        if (event.keyCode === 13 && event.shiftKey) {
+          var content = element.value;
+          var caret = self.getCaret(this);
+
+          element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
+          event.stopPropagation();
+
+          var $messageInput = $('#message-input');
+          $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+          return false;
+        }
+        else if (event.keyCode === 13) {
+          $('#main-input-form').submit();
+          return false;
+        }
+      });
+
+      $('#send-button').unbind().on('click', function() {
+        console.log("Got send button click!");
+
+        ChatManager.sendMessage(function() {
+          fitToContent('message-input', 156);
+          return false;
+        })
+        return false;
+      });
+    };
   });
 
 };
 
-ChatManager.disableChat = function disableChat(room) {
+ChatManager.disableChat = function disableChat(roomId) {
   var self = this;
-  self.enabled = false;
-  $('textarea').off("keydown", "**");
-  $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
-  $('#send-button').prop('disabled', true);
-  $('#loading-icon').show();
+
+  if (!roomId) {
+    var roomIds = Object.keys(ChatManager.chats);
+  }
+
+  if (roomId) {
+    var roomIds = [ roomId ];
+  }
+
+  roomIds.forEach(function(id) {
+    var room = ChatManager.chats[id];
+
+    room.enabled = false;
+
+    if (ChatManager.activeChat == id) {
+      $('textarea').off("keydown", "**");
+      $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
+      $('#send-button').prop('disabled', true);
+      $('#loading-icon').show();
+    };
+  });
 };
 
 ChatManager.getCaret = function getCaret(el) {

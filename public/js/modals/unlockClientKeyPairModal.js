@@ -37,6 +37,7 @@ var init = function() {
           console.log("Error unlocking client key: " + data.err);
           $('.ui.form.unlock').form('add errors', ['Incorrect Password. Please try again...']);
           //callback(data.err, false);
+          return false;
         }
         // If unlock succeedes, hide the modal and keep going
         $('.ui.modal.unlock').modal('hide');

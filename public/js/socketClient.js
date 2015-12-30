@@ -320,7 +320,7 @@ SocketClient.prototype.joinComplete = function(data) {
         });
       };
       // Should move this inside focusChat callback after moving enable/disable chats to room object
-      ChatManager.enableChat(room, data.encryptionScheme);
+      ChatManager.enableChat(room.id);
     });
   });
 };
@@ -393,7 +393,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       ChatManager.updateRoomList(function() {
-        ChatManager.enableChat(rooms[id], ChatManager.chats[id].encryptionSchema);
+        ChatManager.enableChat(id);
       });
 
       ChatManager.buildRoomListModal;

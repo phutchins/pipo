@@ -4,7 +4,7 @@
 
 var UnlockClientKeyPairModal = {};
 
-var init = function() {
+var init = function(successCallback) {
   var self = this;
   console.log("[unlockClientKeyPairModal] Running unlockClientKeyPairModal init...");
 
@@ -40,11 +40,11 @@ var init = function() {
           return false;
         }
         // If unlock succeedes, hide the modal and keep going
+        debugger;
         $('.ui.modal.unlock').modal('hide');
-
-        //callback();
+        return successCallback();
       });
-      return false;
+      //return false;
     },
     fields: {
       password: {
@@ -69,11 +69,12 @@ UnlockClientKeyPairModal.update = function update(callback) {
   callback();
 };
 
-UnlockClientKeyPairModal.show = function show(callback) {
+UnlockClientKeyPairModal.show = function show(successCallback) {
+  init(successCallback);
   this.update(function() {
     $('.ui.modal.unlock').modal('show');
-    callback();
   });
 };
 
-$(document).ready(init);
+// Commenting out to try moving this to modal show
+//$(document).ready(init);

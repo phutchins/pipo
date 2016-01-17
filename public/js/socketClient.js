@@ -177,8 +177,6 @@ SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
 
-  ChatManager.init();
-
   window.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere
@@ -188,12 +186,16 @@ SocketClient.prototype.init = function() {
       console.log("[INIT] Prompting for credentials");
       return ChatManager.initialPromptForCredentials();
     } else {
+      debugger;
+      ChatManager.init();
+
       console.log("[INIT] Client credentials loaded");
     }
     if (!self.listeners) {
       self.addListeners();
     }
     console.log("[INIT] Authenticating");
+    debugger;
     return Authentication.authenticate({ socket: self.socket });
   });
 };

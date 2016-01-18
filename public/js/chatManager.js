@@ -130,10 +130,7 @@ $('#import-keypair-button').unbind().on('click', function() {
         return console.log("Error saving client keyPair");
       };
       console.log("Client keypair saved to local storage");
-      // BOOKMARK: Looks like we're slipping past this piont and loading chats before authenticating
-      debugger;
       window.encryptionManager.unloadClientKeyPair(function() {
-        debugger;
         window.socketClient.init();
       });
     })
@@ -589,8 +586,6 @@ $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   // Get memberId from local array
   var memberId = ChatManager.userNameMap[memberName.toLowerCase()]
 
-  debugger;
-
   var membershipData = ({
     type: 'add',
     memberId: memberId,
@@ -696,6 +691,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   // If room already exists locally, don't overwrite settings that should persist
   if (self.chats[room.id]) {
+    enabled = self.chats[room.id].enabled;
     joined = self.chats[room.id].joined;
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
@@ -782,9 +778,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
             ChatManager.refreshChatContent(room.id);
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
-
-          // BOOKMARK: Is this right?
-          //debugger;
+          // BOOKMARK ***
           //ChatManager.setChatEnabled([room.id]);
           //ChatManager.updateChatStatus();
         };
@@ -1075,6 +1069,18 @@ ChatManager.focusChat = function focusChat(data, callback) {
   }
 
   ChatManager.refreshChatContent(id);
+  ChatManager.updateChatStatus();
+
+  // TODO:
+  // Enabling chat here but only we are in a good state which consists of
+  // - Connected to the server
+  // - All messages have been decrypted and displayed
+  // - You are signed in and your key has been decrypted
+  // -
+  // Each one of these things needs to know how to enable and disable the main chat status or request a recheck of all statuses
+  // so that it can set the main status on a change
+  //debugger;
+  //ChatManager.chats[id].enabled = true;
 
   messages[0].scrollTop = messages[0].scrollHeight;
 
@@ -1404,7 +1410,6 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
   };
 
   // Determine why enabled is not defined here sometimes
-  debugger;
 
   roomIds.forEach(function(id) {
     var disabled = ChatManager.chats[id].enabled;

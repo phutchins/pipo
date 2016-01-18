@@ -112,12 +112,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
           self.keyManager = keyManager;
           if (keyManager.is_pgp_locked()) {
             // Is this actually waiting here? We might should catch the success of the unlock clint key pair and trigger the callback that this is calling now
-            debugger;
             UnlockClientKeyPairModal.show(function() {
-              // This should only return once the password has been entered?
-              // PROBLEM HERE!! NEED TO CALL THIS CHUNK BELOW FROM SOMEWHERE ELSE OR MAKE THE MODAL WAIT FOR SUCCESS
-
-							debugger;
               self.keyRing.add_key_manager(keyManager);
               self.clientCredentialsLoaded = true;
               return callback(null, true);

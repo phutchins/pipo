@@ -186,7 +186,6 @@ SocketClient.prototype.init = function() {
       console.log("[INIT] Prompting for credentials");
       return ChatManager.initialPromptForCredentials();
     } else {
-      debugger;
       ChatManager.init();
 
       console.log("[INIT] Client credentials loaded");
@@ -195,7 +194,6 @@ SocketClient.prototype.init = function() {
       self.addListeners();
     }
     console.log("[INIT] Authenticating");
-    debugger;
     return Authentication.authenticate({ socket: self.socket });
   });
 };

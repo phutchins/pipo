@@ -40,7 +40,6 @@ var init = function(successCallback) {
           return false;
         }
         // If unlock succeedes, hide the modal and keep going
-        debugger;
         $('.ui.modal.unlock').modal('hide');
         return successCallback();
       });

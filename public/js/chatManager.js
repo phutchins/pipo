@@ -779,11 +779,19 @@ ChatManager.initRoom = function initRoom(room, callback) {
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
           // BOOKMARK ***
-          //ChatManager.setChatEnabled([room.id]);
-          //ChatManager.updateChatStatus();
+          ChatManager.setChatEnabled([room.id]);
+          ChatManager.updateChatStatus();
         };
       });
     });
+
+    // If there are no messages, we still need to enable chat
+    // Better way to do this?
+    debugger;
+    if (messages.length == 0) {
+      ChatManager.setChatEnabled([room.id]);
+      ChatManager.updateChatStatus();
+    }
   });
 
   self.updateRoomList(function(err) {
@@ -1054,8 +1062,6 @@ ChatManager.focusChat = function focusChat(data, callback) {
   // Set the active chat to the one we're focusing on
   console.log("Setting activeChat to room: " + ChatManager.chats[id].name + " which has ID: " + id);
   ChatManager.setActiveChat(id);
-
-  ChatManager.updateChatStatus();
 
   if (ChatManager.chats[id].unread) {
     ChatManager.chats[id].unread = false;
@@ -1412,9 +1418,9 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
   // Determine why enabled is not defined here sometimes
 
   roomIds.forEach(function(id) {
-    var disabled = ChatManager.chats[id].enabled;
+    var enabled = ChatManager.chats[id].enabled;
 
-    if (enabled) {
+    if (!enabled) {
       console.log("[setChatDisabled] Trying to disable chat when it is already disabled");
       return;
     };
@@ -1429,11 +1435,14 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
 
 
 ChatManager.updateChatStatus = function updateChatStatus() {
-  if (ChatManager.chats[ChatManager.activeChat].enabled) {
-    ChatManager.enableChat();
-  } else {
-    ChatManager.disableChat();
+  var id = ChatManager.activeChat;
+  if (ChatManager.chats[id].enabled) {
+    return ChatManager.enableChat();
+  }
+  if (!ChatManager.chats[id].enabled) {
+    return ChatManager.disableChat();
   };
+  console.log("(chatManager.updateChatStatus) ERROR: chat.enabled not set?");
 };
 
 

@@ -586,8 +586,6 @@ $('.manage-members-modal .button.addmember').unbind().click(function(e) {
   // Get memberId from local array
   var memberId = ChatManager.userNameMap[memberName.toLowerCase()]
 
-  debugger;
-
   var membershipData = ({
     type: 'add',
     memberId: memberId,
@@ -683,6 +681,7 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
+  var enabled = false;
   var joined = false;
   var unread = false;
   var unreadCount = 0;
@@ -692,30 +691,32 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
   // If room already exists locally, don't overwrite settings that should persist
   if (self.chats[room.id]) {
+    enabled = self.chats[room.id].enabled;
     joined = self.chats[room.id].joined;
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
   };
 
   self.chats[room.id] = { id: room.id,
-    name: room.name,
-    type: 'room',
-    topic: room.topic,
+    activeUsers: room.activeUsers,
+    admins: room.admins,
+    decryptedMessages: '',
+    enabled: enabled,
+    encryptionScheme: room.encryptionScheme,
     group: room.group,
     joined: joined,
+    keepHistory: room.keepHistory,
+    members: room.members,
+    membershipRequired: room.membershipRequired,
+    messages: room.messages,
+    messageCache: '',
+    name: room.name,
+    owner: room.owner,
+    subscribers: room.subscribers,
+    type: 'room',
+    topic: room.topic,
     unread: unread,
     unreadCount: unreadCount,
-    messages: room.messages,
-    decryptedMessages: '',
-    messageCache: '',
-    encryptionScheme: room.encryptionScheme,
-    keepHistory: room.keepHistory,
-    membershipRequired: room.membershipRequired,
-    activeUsers: room.activeUsers,
-    members: room.members,
-    admins: room.admins,
-    owner: room.owner,
-    subscribers: room.subscribers
   };
 
   // Decrypt messages and HTMLize them
@@ -766,6 +767,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
           var isAutoJoin = (ChatManager.userProfile.membership.favoriteRooms.indexOf(room.id) > -1)
 
+          // If there is no active chat and this room is set to auto join, set it as active
           if (!ChatManager.activeChat && isAutoJoin) {
             ChatManager.setActiveChat(room.id);
           };
@@ -776,9 +778,19 @@ ChatManager.initRoom = function initRoom(room, callback) {
             ChatManager.refreshChatContent(room.id);
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
+          // BOOKMARK ***
+          ChatManager.setChatEnabled([room.id]);
+          ChatManager.updateChatStatus();
         };
       });
     });
+
+    // If there are no messages, we still need to enable chat
+    // Better way to do this?
+    if (messages.length == 0) {
+      ChatManager.setChatEnabled([room.id]);
+      ChatManager.updateChatStatus();
+    }
   });
 
   self.updateRoomList(function(err) {
@@ -789,6 +801,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
 ChatManager.initChat = function initChat(chat, callback) {
   var self = this;
+  var enabled = false;
   var chatId = chat.id;
   var myUserId = ChatManager.userNameMap[window.username];
   var chatName = '';
@@ -804,6 +817,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   if (ChatManager.chats[chatId]) {
     unread = ChatManager.chats[chatId].unread;
     unreadCount = ChatManager.chats[chatId].unreadCount;
+    enabled = ChatManager.chats[chatId].enabled;
   }
 
   // Private chat between two users
@@ -825,14 +839,15 @@ ChatManager.initChat = function initChat(chat, callback) {
 
   // Need to save and pull unread bits here too
   self.chats[chatId] = {
+    enabled: enabled,
     id: chatId,
-    type: 'chat',
+    messages: messages,
+    messageCache: '',
     name: chatName,
     participants: participants,
-    messages: messages,
+    type: 'chat',
     unread: unread,
     unreadCount: unreadCount,
-    messageCache: ''
   };
 
   var count = 0;
@@ -849,6 +864,9 @@ ChatManager.initChat = function initChat(chat, callback) {
       ChatManager.refreshChatContent(chatId);
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
+
+    ChatManager.setChatEnabled([chatId]);
+    ChatManager.updateChatStatus();
 
     return callback(null);
 
@@ -893,7 +911,6 @@ ChatManager.initChat = function initChat(chat, callback) {
       })
     });
   });
-
 };
 
 
@@ -1060,6 +1077,18 @@ ChatManager.focusChat = function focusChat(data, callback) {
   }
 
   ChatManager.refreshChatContent(id);
+  ChatManager.updateChatStatus();
+
+  // TODO:
+  // Enabling chat here but only we are in a good state which consists of
+  // - Connected to the server
+  // - All messages have been decrypted and displayed
+  // - You are signed in and your key has been decrypted
+  // -
+  // Each one of these things needs to know how to enable and disable the main chat status or request a recheck of all statuses
+  // so that it can set the main status on a change
+  //debugger;
+  //ChatManager.chats[id].enabled = true;
 
   messages[0].scrollTop = messages[0].scrollHeight;
 
@@ -1359,17 +1388,76 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 };
 
 
-ChatManager.enableChat = function enableChat(room, encryptionScheme) {
+ChatManager.setChatEnabled = function setChatEnabled(roomIds) {
+  if (!roomIds) {
+    // Should change this to currently joined chats? (is this the same as ChatManager.chats?
+    var roomIds = Object.keys(ChatManager.chats);
+  };
+
+  roomIds.forEach(function(id) {
+    var enabled = ChatManager.chats[id].enabled;
+
+    if (enabled) {
+      console.log("[setChatEnabled] Trying to enable chat when it is already enabled");
+      return;
+    };
+
+    ChatManager.chats[id].enabled = true;
+    //
+    // If the chat we're looping is active, update the UI to reflect
+    if (ChatManager.activeChat == id) {
+      ChatManager.enableChat();
+    };
+  });
+};
+
+
+ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
+  if (!roomIds) {
+    var roomIds = Object.keys(ChatManager.chats);
+  };
+
+  // Determine why enabled is not defined here sometimes
+
+  roomIds.forEach(function(id) {
+    var enabled = ChatManager.chats[id].enabled;
+
+    if (!enabled) {
+      console.log("[setChatDisabled] Trying to disable chat when it is already disabled");
+      return;
+    };
+
+    ChatManager.chats[id].enabled = false;
+
+    if (ChatManager.activeChat == id) {
+      ChatManager.disableChat();
+    };
+  });
+};
+
+
+ChatManager.updateChatStatus = function updateChatStatus() {
+  if (ChatManager.activeChat) {
+    var id = ChatManager.activeChat;
+
+    if (ChatManager.chats[id].enabled) {
+      return ChatManager.enableChat();
+    };
+
+    if (!ChatManager.chats[id].enabled) {
+      return ChatManager.disableChat();
+    };
+
+    console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
+  } else {
+    console.log("[ChatManager.updateChatStatus] Currently no active chat...");
+  };
+};
+
+
+
+ChatManager.enableChat = function enableChat() {
   var self = this;
-
-  // TODO:
-  // Need to enable and disable chat for each chat or all chats
-  if (self.enabled) {
-    console.log("[enableChat] Trying to enable chat when it is already enabled");
-    return;
-  }
-
-  self.enabled = true;
 
   // Add conditional to check if the generate modal is displayed
   $('.ui.modal.generate').modal('hide');
@@ -1402,20 +1490,18 @@ ChatManager.enableChat = function enableChat(room, encryptionScheme) {
 
   $('#send-button').unbind().on('click', function() {
     console.log("Got send button click!");
-    // This should probably not use the form and do it some other way
-    //$('#message-input-form').submit();
+
     ChatManager.sendMessage(function() {
       fitToContent('message-input', 156);
       return false;
     })
     return false;
   });
-
 };
 
-ChatManager.disableChat = function disableChat(room) {
+ChatManager.disableChat = function disableChat() {
   var self = this;
-  self.enabled = false;
+
   $('textarea').off("keydown", "**");
   $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
   $('#send-button').prop('disabled', true);

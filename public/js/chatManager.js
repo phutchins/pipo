@@ -787,7 +787,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
 
     // If there are no messages, we still need to enable chat
     // Better way to do this?
-    debugger;
     if (messages.length == 0) {
       ChatManager.setChatEnabled([room.id]);
       ChatManager.updateChatStatus();
@@ -818,6 +817,7 @@ ChatManager.initChat = function initChat(chat, callback) {
   if (ChatManager.chats[chatId]) {
     unread = ChatManager.chats[chatId].unread;
     unreadCount = ChatManager.chats[chatId].unreadCount;
+    enabled = ChatManager.chats[chatId].enabled;
   }
 
   // Private chat between two users
@@ -865,6 +865,9 @@ ChatManager.initChat = function initChat(chat, callback) {
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
 
+    ChatManager.setChatEnabled([chatId]);
+    ChatManager.updateChatStatus();
+
     return callback(null);
 
   };
@@ -908,7 +911,6 @@ ChatManager.initChat = function initChat(chat, callback) {
       })
     });
   });
-
 };
 
 
@@ -1435,14 +1437,21 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
 
 
 ChatManager.updateChatStatus = function updateChatStatus() {
-  var id = ChatManager.activeChat;
-  if (ChatManager.chats[id].enabled) {
-    return ChatManager.enableChat();
-  }
-  if (!ChatManager.chats[id].enabled) {
-    return ChatManager.disableChat();
+  if (ChatManager.activeChat) {
+    var id = ChatManager.activeChat;
+
+    if (ChatManager.chats[id].enabled) {
+      return ChatManager.enableChat();
+    };
+
+    if (!ChatManager.chats[id].enabled) {
+      return ChatManager.disableChat();
+    };
+
+    console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
+  } else {
+    console.log("[ChatManager.updateChatStatus] Currently no active chat...");
   };
-  console.log("(chatManager.updateChatStatus) ERROR: chat.enabled not set?");
 };
 
 

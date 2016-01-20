@@ -1639,19 +1639,22 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
  * Display an outgoing message locally greyed out then wait for it to be confirmed as sent by the server
  */
 ChatManager.handleLocalMessage = function handleLocalMessage(data) {
+  var messageid = data.messageid;
   var chatId = data.chatId;
   var type = ChatManager.chats[chatId].type;
   var messageString = data.messageString;
   var fromUserId = data.fromUserId;
   var date = data.date;
 
-  // Need to add functionality to addMessageToChat to have the message confirmed or not
-  ChatManager.addMessageToChat({ type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
+  // Should set the message to unconfirmed here (only if it's a local message tho
+  ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
 
 
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
+  var messageId = data.messageId;
+  var confirmed = data.confirmed;
   var type = data.type;
   var messageString = data.messageString;
   var date = data.date;
@@ -1663,7 +1666,11 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  ChatManager.formatChatMessage({ messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
+  // Need to figure out how to change the class of a message after it's in the message cache
+  debugger;
+  ChatManager.formatChatMessage({ messageId: messageId, messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
+    // Is it really taking this long to get the message displayed locally?
+    debugger;
     ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
   });
 
@@ -1723,6 +1730,17 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var time = date || new Date().toISOString();
   var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
   return callback(messageHtml);
+};
+
+
+/*
+ * Once we receive a message from the server, we need to check the sent messages array (need to create this)
+ * for ID's that match the incoming message. If the incoming message ID is in that array, we should confirm it
+ * by searching the message cache for an item with that ID and changing it's class from unconfirmed to
+ * confirmed (need to create these classes)
+ */
+ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
+
 };
 
 
@@ -1801,10 +1819,15 @@ ChatManager.sendMessage = function sendMessage(callback) {
       console.log("Active chat type is: " + activeChatType);
       var date = new Date().toISOString();
 
+      // Create a message ID using the current time and a random number
+      var timeString = (new Date().getTime()).toString();
+      var rand = Math.floor((Math.random() * 1000) + 1).toString();
+      var messageId = timeString.concat(rand);
+
       if (activeChatType == 'room') {
         console.log("Sending message to room #"+ activeChatName);
 
-        window.socketClient.sendMessage({ chatId: activeChatId, message: preparedInput });
+        window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
         $('#message-input').val('');
         return callback();
       }
@@ -1814,12 +1837,13 @@ ChatManager.sendMessage = function sendMessage(callback) {
         // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
         console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
 
-        socketClient.sendPrivateMessage({ chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+        socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
 
         $('#message-input').val('');
 
         // Add the message to the chat locally and wait for it to be confirmed
         ChatManager.handleLocalMessage({
+          messageId: messageId,
           chatId: activeChatId,
           messageString: preparedInput,
           fromUserId: ChatManager.userNameMap[window.username],

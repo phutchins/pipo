@@ -251,6 +251,7 @@ SocketClient.prototype.partRoom = function(data, callback) {
 
 SocketClient.prototype.sendMessage = function(data) {
   var self = this;
+  var messageId = data.messageId;
   var chatId = data.chatId;
   var message = data.message;
 
@@ -261,7 +262,7 @@ SocketClient.prototype.sendMessage = function(data) {
     }
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
-      self.socket.emit('roomMessage', {chatId: chatId, pgpMessage: pgpMessage});
+      self.socket.emit('roomMessage', { messageId: messageId, chatId: chatId, pgpMessage: pgpMessage});
       $('#message-input').val('');
     }
   });
@@ -458,6 +459,7 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
+  var messageId = data.messageId;
   var chatId = data.chatId;
   var toUserIds = data.toUserIds;
   var message = data.message;
@@ -470,7 +472,7 @@ SocketClient.prototype.sendPrivateMessage = function(data) {
 
       else {
         // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
-        self.socket.emit('privateMessage', {chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
+        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
         $('#message-input').val('');
       }
     });

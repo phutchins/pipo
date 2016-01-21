@@ -644,11 +644,38 @@ body, html { padding: 0; margin: 0; }
   background-size: cover;
 }
 
+.chat-item__container {
+  filter:alpha(opacity=100);
+  opacity: 1.0;
+  -moz-opacity:1.00;
+  z-index: 20;
+  transition: opacity 1.0s ease-in-out;
+  -moz-transition: opacity 1.0s ease-in-out;
+  -webkit-transition: opacity 1.0s ease-in-out;
+}
+
 .chat-item__content {
   padding: 0 10px 0 60px;
   border-radius: 5px;
   vertical-align: top;
   min-height: 1.5em;
+}
+
+.confirmedMessage {
+  filter:alpha(opacity=100);
+  opacity: 1.0;
+  -moz-opacity:1.00;
+  z-index: 20;
+}
+
+.unconfirmedMessage {
+  filter:alpha(opacity=50);
+  opacity: 0.5;
+  -moz-opacity:0.50;
+  z-index: 20;
+  transition: opacity 1.0s ease-in-out;
+  -moz-transition: opacity 1.0s ease-in-out;
+  -webkit-transition: opacity 1.0s ease-in-out;
 }
 
 .trpDisplayPicture {

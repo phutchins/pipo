@@ -88,6 +88,7 @@ $('#message-input').unbind().keyup(function (event) {
     $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     return false;
   } else if(event.keyCode == 13) {
+    console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
     ChatManager.sendMessage(function() {
       fitToContent('message-input', 156);
       return false;
@@ -1645,7 +1646,6 @@ ChatManager.handleLocalMessage = function handleLocalMessage(data) {
   var fromUserId = data.fromUserId;
   var date = data.date;
 
-  debugger;
   // Should set the message to unconfirmed here (only if it's a local message tho
   ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
@@ -1668,28 +1668,31 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 
   // If the message is confirmed (comes from the server), it has an ID, and it is from me, find it in the message cache
   // and mark it as confirmed
-  debugger;
   if (confirmed && messageId && (fromUserId == ChatManager.userNameMap[window.username])) {
     // Update teh message in message cache to be confirmed
-    ChatManager.confirmChatMessage({ chatId: chatId, messageId: messageId }, function(data) {
-      if (!data.found) {
+    ChatManager.confirmChatMessage({ chatId: chatId, messageId: messageId }, function(modifiedMessageCache) {
+      if (!modifiedMessageCache) {
         // Was not able to find and confirm the message
-        console.log("Couldn't find message to confirm");
+        return console.log("[ChatManager.addMessageToChat] Returned no messageCache");
       }
+      ChatManager.chats[chatId].messageCache = modifiedMessageCache;
     });
   } else {
 
     // Need to figure out how to change the class of a message after it's in the message cache
-    ChatManager.formatChatMessage({ messageId: messageId, messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
+    ChatManager.formatChatMessage({ messageId: messageId, messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date, confirmed: confirmed }, function(formattedMessage) {
       // Is it really taking this long to get the message displayed locally?
       ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
     });
+
+    if (ChatManager.activeChat == chatId) {
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    };
   };
 
-  if (ChatManager.activeChat == chatId) {
-    ChatManager.refreshChatContent(chatId);
-    chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
-  } else {
+
+  if (!ChatManager.activeChat == chatId) {
     ChatManager.chats[chatId].unread = true;
     ChatManager.chats[chatId].unreadCount++;
 
@@ -1725,7 +1728,7 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
-      ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
         ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
       });
     });
@@ -1737,6 +1740,7 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var messageString = data.messageString;
   var fromUserId = data.fromUserId;
   var fromUsername = data.fromUsername;
+  var confirmed = data.confirmed;
   var date = data.date;
   var emailHash = ChatManager.userlist[fromUserId].emailHash || "00000000000";
 
@@ -1748,7 +1752,12 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
     var messageIdHtml = ' data-messageId="' + messageId + '"';
   };
 
-  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '"' + messageIdHtml + ' data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
+  var confirmedClass = '';
+  if (!confirmed) {
+    confirmedClass = 'unconfirmedMessage';
+  };
+
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container ' + confirmedClass + '"' + messageIdHtml + '> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
   return callback(messageHtml);
 };
 
@@ -1764,18 +1773,11 @@ ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
   var messageId = data.messageId;
   var messageCache = ChatManager.chats[chatId].messageCache;
 
-  //var parsedMessage = window.marked(message).replace(/(<p>|<\/p>)/g, '');
-  //var container = $('<div>').html(parsedMessage);
+  container = $('<div>').html(messageCache);
+  container.find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
+  $('.chat-window').find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
 
-  // Check the hostname to make sure that it's not a local link...
-  //container.find('a').attr('target','_blank');
-  //container.find('code').addClass('hljs');
-
-  //callback(null, container.html());
-
-  debugger;
-
-  //messageCache // find message
+  return callback(container.html());
 };
 
 
@@ -1826,6 +1828,7 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 
 ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();
+  $('#message-input').val('');
 
   console.log("1 sendMessage input: " + input);
 
@@ -1846,6 +1849,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
   }
 
   else {
+
     ChatManager.prepareMessage(input, function(err, preparedInput) {
       var activeChatId = ChatManager.activeChat;
       var activeChatType = ChatManager.chats[activeChatId].type;
@@ -1862,7 +1866,6 @@ ChatManager.sendMessage = function sendMessage(callback) {
       if (activeChatType == 'room') {
         console.log("Sending message to room #"+ activeChatName);
 
-        debugger;
         // Add the message to the chat locally and wait for it to be confirmed
         ChatManager.handleLocalMessage({
           messageId: messageId,
@@ -1873,7 +1876,6 @@ ChatManager.sendMessage = function sendMessage(callback) {
         });
 
         window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
-        $('#message-input').val('');
         return callback();
       }
       else if (activeChatType == 'chat') {
@@ -1883,8 +1885,6 @@ ChatManager.sendMessage = function sendMessage(callback) {
         console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
 
         socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
-
-        $('#message-input').val('');
 
         // Add the message to the chat locally and wait for it to be confirmed
         ChatManager.handleLocalMessage({

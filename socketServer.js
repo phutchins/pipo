@@ -409,6 +409,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
       if (room.keepHistory) {
         var message = new Message({
           _fromUser: user,
+          messageId: data.messageId,
           date: new Date(),
           fromUser: user._id.toString(),
           encryptedMessage: data.pgpMessage
@@ -421,9 +422,12 @@ SocketServer.prototype.onMessage = function onMessage(data) {
         })
       }
 
+      logger.debug("[socketServer.onMessage] MessageId: " + data.messageid);
+
       self.namespace.emit('roomMessage', {
         chatId: room.id,
         fromUserId: user._id.toString(),
+        messageId: data.messageId,
         message: data.pgpMessage
       });
     });

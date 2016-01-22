@@ -1828,80 +1828,85 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 
 ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();
-  $('#message-input').val('');
 
-  console.log("1 sendMessage input: " + input);
+  // Is one of these faster? Both seem to work just fine...
+  //$('#message-input').val('');
+  document.getElementById('message-input').value='';
 
-  //input = input.replace(/(<p>|<\/p>)/g, '');
-  //console.log("2 sendMessage input: " + input);
+  setTimeout(function() {
+    console.log("1 sendMessage input: " + input);
 
-  var commandRegex = /^\/(.*)$/;
-  var regexResult = input.match(commandRegex);
+    //input = input.replace(/(<p>|<\/p>)/g, '');
+    //console.log("2 sendMessage input: " + input);
 
-  if (input === "") {
-    return callback();
-  }
+    var commandRegex = /^\/(.*)$/;
+    var regexResult = input.match(commandRegex);
 
-  else if (regexResult !== null) {
-    ServerCommand.parse(regexResult, function() {
+    if (input === "") {
       return callback();
-    });
-  }
+    }
 
-  else {
-
-    ChatManager.prepareMessage(input, function(err, preparedInput) {
-      var activeChatId = ChatManager.activeChat;
-      var activeChatType = ChatManager.chats[activeChatId].type;
-      var activeChatName = ChatManager.chats[activeChatId].name;
-
-      console.log("Active chat type is: " + activeChatType);
-      var date = new Date().toISOString();
-
-      // Create a message ID using the current time and a random number
-      var timeString = (new Date().getTime()).toString();
-      var rand = Math.floor((Math.random() * 1000) + 1).toString();
-      var messageId = timeString.concat(rand);
-
-      if (activeChatType == 'room') {
-        console.log("Sending message to room #"+ activeChatName);
-
-        // Add the message to the chat locally and wait for it to be confirmed
-        ChatManager.handleLocalMessage({
-          messageId: messageId,
-          chatId: activeChatId,
-          messageString: preparedInput,
-          fromUserId: ChatManager.userNameMap[window.username],
-          date: date
-        });
-
-        window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
+    else if (regexResult !== null) {
+      ServerCommand.parse(regexResult, function() {
         return callback();
-      }
-      else if (activeChatType == 'chat') {
-        var sendToIds = ChatManager.chats[activeChatId].participants;
+      });
+    }
 
-        // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-        console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+    else {
 
-        socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+      ChatManager.prepareMessage(input, function(err, preparedInput) {
+        var activeChatId = ChatManager.activeChat;
+        var activeChatType = ChatManager.chats[activeChatId].type;
+        var activeChatName = ChatManager.chats[activeChatId].name;
 
-        // Add the message to the chat locally and wait for it to be confirmed
-        ChatManager.handleLocalMessage({
-          messageId: messageId,
-          chatId: activeChatId,
-          messageString: preparedInput,
-          fromUserId: ChatManager.userNameMap[window.username],
-          date: date
-        });
+        console.log("Active chat type is: " + activeChatType);
+        var date = new Date().toISOString();
 
-        return callback();
-      }
-      else {
-        return console.log("ERROR: No activeChatType!");
-      }
-    })
-  }
+        // Create a message ID using the current time and a random number
+        var timeString = (new Date().getTime()).toString();
+        var rand = Math.floor((Math.random() * 1000) + 1).toString();
+        var messageId = timeString.concat(rand);
+
+        if (activeChatType == 'room') {
+          console.log("Sending message to room #"+ activeChatName);
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
+          return callback();
+        }
+        else if (activeChatType == 'chat') {
+          var sendToIds = ChatManager.chats[activeChatId].participants;
+
+          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+
+          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          return callback();
+        }
+        else {
+          return console.log("ERROR: No activeChatType!");
+        }
+      })
+    }
+  }, 0);
 };
 
 

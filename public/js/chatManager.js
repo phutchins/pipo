@@ -686,11 +686,12 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var joined = false;
   var unread = false;
   var unreadCount = 0;
-  console.log("Running initRoom for " + room.name);
+  console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
 
-  // If room already exists locally, don't overwrite settings that should persist
+  // If room already exists locally, don't overwrite local settings that should persist
+  // should probably stick these in a chats[id].local or a completely separate object all together
   if (self.chats[room.id]) {
     enabled = self.chats[room.id].enabled;
     joined = self.chats[room.id].joined;
@@ -726,8 +727,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var messageArray = Array(messages.length);
 
   /*
-   * Need a better way to detect when done decrypting all messages
-   * and add them to the chat after done
    * Also we should only send messages to each user starting at their join date or
    * the date/time that they were added to a room
    */
@@ -738,6 +737,13 @@ ChatManager.initRoom = function initRoom(room, callback) {
    */
   encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
     ChatManager.chats[room.id].keyRing = keyRing;
+
+    console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
+    // Display notice in the chatContainer that we are decrypting messages
+    // ...or display an encrypted message representing each message and replace as they are decrypted
+
+    // BOOKMARK
+    ChatManager.updateChatStatus({ chat: room.id, status: 'decrypting' });
 
     messages.forEach(function(message, key) {
       window.encryptionManager.decryptMessage({
@@ -780,8 +786,13 @@ ChatManager.initRoom = function initRoom(room, callback) {
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
           // BOOKMARK ***
-          ChatManager.setChatEnabled([room.id]);
-          ChatManager.updateChatStatus();
+
+          console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name);
+
+          // Do this inside of updateChatStatus
+          //ChatManager.setChatEnabled([room.id]);
+
+          ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
         };
       });
     });
@@ -789,8 +800,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
     // If there are no messages, we still need to enable chat
     // Better way to do this?
     if (messages.length == 0) {
-      ChatManager.setChatEnabled([room.id]);
-      ChatManager.updateChatStatus();
+      //ChatManager.setChatEnabled([room.id]);
+      ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     }
   });
 
@@ -866,8 +877,8 @@ ChatManager.initChat = function initChat(chat, callback) {
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
 
-    ChatManager.setChatEnabled([chatId]);
-    ChatManager.updateChatStatus();
+    //ChatManager.setChatEnabled([chatId]);
+    ChatManager.updateChatStatus({ chatId: chatId, status: 'enabled' });
 
     return callback(null);
 
@@ -1117,7 +1128,7 @@ ChatManager.setActiveChat = function setActiveChat(id) {
  * Update the list of rooms on the left bar
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
-  console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
+  //console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
 
   $('#room-list').empty();
   console.log("Updating room list!");
@@ -1387,6 +1398,7 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 };
 
 
+/*
 ChatManager.setChatEnabled = function setChatEnabled(roomIds) {
   if (!roomIds) {
     // Should change this to currently joined chats? (is this the same as ChatManager.chats?
@@ -1433,18 +1445,57 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
     };
   });
 };
+*/
 
 
-ChatManager.updateChatStatus = function updateChatStatus() {
+/*
+ * This should receive updates regarding the status of the individual chats and the chat server as a whole
+ * The conneciton status should be stored in a main object and the decrypting (or other statuses related to
+ * the room itself) should be stored in the room object on the client side
+ */
+ChatManager.updateChatStatus = function updateChatStatus(data) {
+  if (data) {
+    if (data.chatId) {
+      var chatId = data.chatId;
+    };
+
+    if (data.status) {
+      var status = data.status;
+    };
+  };
+
+  if (chatId && !status) {
+    console.log("[ChatManager.updateChatStatus] ERROR: You must specify a status when providing a chatId");
+  };
+
+  // If we have a chatId, change the status for that chat
+  if (chatId && status) {
+    if (ChatManager.chats[chatId].status != status) {
+      ChatManager.chats[chatId].status = status;
+    };
+  };
+
+  // If we have no chatId but have a stauts, set that status for all chats
+  if (!chatId && status) {
+    var allRoomIds = Object.keys(ChatManager.chats);
+
+    allRoomIds.forEach(function(id) {
+      if (ChatManager.chats[id].status != status) {
+        ChatManager.chats[id].status = status;
+      };
+    });
+  };
+
+  // Always run the update for the activeChat
   if (ChatManager.activeChat) {
     var id = ChatManager.activeChat;
 
-    if (ChatManager.chats[id].enabled) {
-      return ChatManager.enableChat();
+    if (ChatManager.chats[id].status == 'enabled') {
+      return ChatManager.enableMessageInput();
     };
 
-    if (!ChatManager.chats[id].enabled) {
-      return ChatManager.disableChat();
+    if (ChatManager.chats[id].status != 'enabled') {
+      return ChatManager.disableMessageInput({ status: ChatManager.chats[id].status });
     };
 
     console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
@@ -1454,8 +1505,7 @@ ChatManager.updateChatStatus = function updateChatStatus() {
 };
 
 
-
-ChatManager.enableChat = function enableChat() {
+ChatManager.enableMessageInput = function enableMessageInput() {
   var self = this;
 
   // Add conditional to check if the generate modal is displayed
@@ -1498,11 +1548,17 @@ ChatManager.enableChat = function enableChat() {
   });
 };
 
-ChatManager.disableChat = function disableChat() {
+ChatManager.disableMessageInput = function disableMessageInput(data) {
   var self = this;
+  var status = data.status;
+
+  var statusMessages = {
+    'disconnected': '          Waiting for connection... Please wait...',
+    'decrypting': '          Decrypting messages... Please wait...'
+  };
 
   $('textarea').off("keydown", "**");
-  $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
+  $('#message-input').attr('placeHolder', statusMessages[status]).prop('disabled', true);
   $('#send-button').prop('disabled', true);
   $('#loading-icon').show();
 };

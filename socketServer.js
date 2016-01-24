@@ -284,6 +284,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
           self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
+            logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -773,7 +774,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         self.socket.join(room._id.toString());
         logger.debug("[SOCKET SERVER] (joinRoom) Sending joinComplete in clientKey mode");
         var rooms = {};
+
+        // Should only include the room users here as a join should only change that
+
         rooms[room.id] = sanatizedRoom;
+
+
         logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete");
 
         // TODO: Should only do one of these probably
@@ -781,10 +787,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         // Emit roomUpdate to the namespace so existing users receive the change if there is one
         // We should eventually only do this if there are changes in the room...
 
-        // joinComplete and roomUpdate should be ensured that they are called in the same order
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
 
         if (roomUpdated) {
+          logger.debug("[socketServer.joinRoom] Running roomUpdate from joinRoom");
           self.namespace.emit('roomUpdate', { rooms: rooms });
         }
 

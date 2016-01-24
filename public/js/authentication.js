@@ -49,7 +49,7 @@ Authentication.authenticated = function authenticated(data) {
         if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
 
         if (upToDate) {
-          console.log("[INIT] Your public key matches what is on the server");
+          //console.log("[INIT] Your public key matches what is on the server");
           console.log("[AUTHENTICATED] Authenticated successfully");
 
           // Use cilent keys and enable chat for each room user is currently in
@@ -66,10 +66,10 @@ Authentication.authenticated = function authenticated(data) {
           } else {
             var defaultRoomId = ChatManager.defaultRoomId;
 
-            console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
+            //console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
 
             socketClient.joinRoom(defaultRoomId, function(err) {
-              console.log("[SOCKET] (authenticated) Joined default room becuase favoriteRooms was empty");
+              console.log("[Authentication.authenticated] Joined default room becuase favoriteRooms was empty");
             })
           }
         } else {

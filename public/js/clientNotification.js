@@ -15,7 +15,8 @@ clientNotification.getPermission = function getPermission(callback) {
     return callback(false);
   }
   // log current permission level
-  console.log(Notification.permission);
+  //console.log(Notification.permission);
+
   // if the user has not been asked to grant or deny notifications from this domain
   if(Notification.permission === 'default') {
     Notification.requestPermission(function() {

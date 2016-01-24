@@ -33,7 +33,6 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
 
   this.socket.on('authenticated', function(data) {
-    console.log("[SOCKET] authenticated");
     data.socket = this;
 
     Authentication.authenticated(data);
@@ -194,7 +193,7 @@ SocketClient.prototype.init = function() {
     if (!self.listeners) {
       self.addListeners();
     }
-    console.log("[INIT] Authenticating");
+
     return Authentication.authenticate({ socket: self.socket });
   });
 };
@@ -313,6 +312,7 @@ SocketClient.prototype.joinComplete = function(data) {
     console.log("[INIT] Enabling chat in clientKey mode");
   }
 
+  console.log("[socketClient.joinComplete] (1) Running initRoom");
   ChatManager.initRoom(room, function(err) {
     ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
@@ -322,7 +322,7 @@ SocketClient.prototype.joinComplete = function(data) {
         });
       };
       // Should move this inside focusChat callback after moving enable/disable chats to room object
-      ChatManager.enableChat(room.id);
+      ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     });
   });
 };
@@ -391,11 +391,15 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
     // BUG: This should not overwrite the entire room... It is nuking the messageCache
     //
 
+    console.log("[socketClient.handleRoomUpdate] (1) Running initRoom");
+
+    // Should we update the room selectively in initRoom or create a new method that handles only room updates
+    // while initRoom only handles the initial room setup case?
     ChatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       ChatManager.updateRoomList(function() {
-        ChatManager.enableChat(id);
+        ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
       ChatManager.buildRoomListModal;

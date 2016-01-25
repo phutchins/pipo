@@ -25,7 +25,10 @@
   },
   "dependencies": {
     "electron-ejs": "^0.1.0",
+    "jquery": "^2.2.0",
     "locals": "0.0.4",
+    "semantic": "0.0.1",
+    "semantic-ui": "^2.1.8",
     "socket.io": "^1.4.4"
   }
 }

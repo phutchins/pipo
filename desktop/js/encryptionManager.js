@@ -638,7 +638,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
   console.log("Verifying remote public key for user '"+username+"'");
   $.ajax({
     type: "GET",
-    url: "/key/publickey",
+    url: "https://pipo.chat/key/publickey",
     dataType: "json",
     data: {
       username: username

@@ -1,6 +1,7 @@
 function SocketClient() {
   var self = this;
-  var host = window.location.host;
+  //var host = window.location.host;
+  var host = 'https://pipo.chat';
   this.socket = window.io(host + '/socket');
 
   window.username = localStorage.getItem('username');

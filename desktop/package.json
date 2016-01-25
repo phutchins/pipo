@@ -1,0 +1,31 @@
+{
+  "name": "PiPo",
+  "version": "0.0.1",
+  "description": "End to end client side encrypted chat",
+  "main": "client.js",
+  "scripts": {
+    "start": "electron client.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/phutchins/pipo.git"
+  },
+  "keywords": [
+    "PiPo",
+    "chat"
+  ],
+  "author": "Philip Hutchins",
+  "license": "GPL",
+  "bugs": {
+    "url": "https://github.com/phutchins/pipo/issues"
+  },
+  "homepage": "https://pipo.chat",
+  "devDependencies": {
+    "electron-prebuilt": "^0.36.0"
+  },
+  "dependencies": {
+    "electron-ejs": "^0.1.0",
+    "locals": "0.0.4",
+    "socket.io": "^1.4.4"
+  }
+}

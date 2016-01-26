@@ -4,7 +4,7 @@
   "description": "End to end client side encrypted chat",
   "main": "client.js",
   "scripts": {
-    "start": "electron client.js",
+    "start": "node_modules/electron-prebuilt/cli.js ./ --dev",
     "dev": "node_modules/electron-prebuilt/cli.js ./ --dev"
   },
   "author": "Philip Hutchins <flipture@gmail.com>",

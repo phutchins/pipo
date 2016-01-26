@@ -4,8 +4,11 @@
   "description": "End to end client side encrypted chat",
   "main": "client.js",
   "scripts": {
-    "start": "electron client.js"
+    "start": "electron client.js",
+    "dev": "node_modules/electron-prebuilt/cli.js ./ --dev"
   },
+  "author": "Philip Hutchins <flipture@gmail.com>",
+  "license": "GPL",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/phutchins/pipo.git"
@@ -14,14 +17,29 @@
     "PiPo",
     "chat"
   ],
-  "author": "Philip Hutchins",
-  "license": "GPL",
   "bugs": {
     "url": "https://github.com/phutchins/pipo/issues"
   },
   "homepage": "https://pipo.chat",
   "devDependencies": {
-    "electron-prebuilt": "^0.36.0"
+    "electron-prebuilt": "^0.36.0",
+    "grunt-ejs-render": "^0.2.7",
+    "gulp": "^3.9.0",
+    "gulp-clean": "^0.3.1",
+    "gulp-concat": "^2.5.2",
+    "gulp-ejs": "^2.0.0",
+    "gulp-ejs-template": "^0.2.0",
+    "gulp-filter": "^2.0.2",
+    "gulp-less": "^3.0.3",
+    "gulp-rename": "^1.2.2",
+    "gulp-shell": "^0.4.2",
+    "gulp-sourcemaps": "^1.5.2",
+    "gulp-util": "^3.0.5",
+    "json-loader": "^0.5.2",
+    "main-bower-files": "^2.8.0",
+    "node-libs-browser": "^0.5.2",
+    "run-sequence": "^1.1.0",
+    "webpack": "^1.9.11"
   },
   "dependencies": {
     "electron-ejs": "^0.1.0",

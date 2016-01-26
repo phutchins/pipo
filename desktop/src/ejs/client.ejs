@@ -569,7 +569,7 @@
     <script>
     window.$ = window.jQuery = require('jquery');
     window.async = window.async = require('async');
-    io = require('socket.io-client');
+    window.io = require('socket.io-client');
     </script>
 
     <!--
@@ -586,7 +586,7 @@
     <script src="js/lib/kbpgp.js"></script>
     <script src="js/lib/semantic.js"></script>
 
-    <script src="js/lib/socket.io.js"></script>
+    <!--><script src="js/lib/socket.io.js"></script>-->
     <script>
       var socket = io();
     </script>

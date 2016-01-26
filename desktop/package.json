@@ -43,6 +43,8 @@
   },
   "dependencies": {
     "electron-ejs": "^0.1.0",
+    "grunt": "^0.4.5",
+    "gulp-ejs-template": "^0.2.0",
     "jquery": "^2.2.0",
     "locals": "0.0.4",
     "semantic": "0.0.1",

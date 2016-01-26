@@ -13,7 +13,7 @@ var shell = require('gulp-shell');
 var sourcemaps = require('gulp-sourcemaps');
 var webpack = require('webpack');
 var webpackConfig = require('./webpack.config');
-var ejs = require('gulp-ejs');
+var gulpEjs = require('gulp-ejs-template');
 var gutil = require('gulp-util');
 
 
@@ -95,14 +95,13 @@ gulp.task('build-src:js', function(callback) {
 
 gulp.task('build-src:ejs', function () {
   return gulp.src('./src/ejs/*.ejs')
-    .pipe(ejs({
-      msg: 'Hello Gulp!'
-    }).on('error', gutil.log))
-    .pipe(gulp.dest('./dist'));
+  .pipe(gulpEjs({
+    moduleName: 'client'
+  }))
+  .pipe(gulp.dest('./dist'));
 });
 
-
-
+// Need to compile the correct type of css here
 gulp.task('build-src:css', function() {
   return gulp.src('src/less/main.less')
     .pipe(sourcemaps.init())

@@ -10,6 +10,7 @@ const BrowserWindow = electron.BrowserWindow;
 //Import template parser
 var ejs = require('electron-ejs')(app);
 
+
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
 let mainWindow;

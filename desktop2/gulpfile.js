@@ -55,6 +55,7 @@ gulp.task('build', function(callback) {
 gulp.task('build-src', [
   'build-src:js',
   'build-src:css',
+  'build-src:ejs',
   'build-src:html'
 ]);
 
@@ -67,6 +68,7 @@ gulp.task('build-vendor', [
 gulp.task('watch-src', [
   'watch-src:js',
   'watch-src:css',
+  'watch-src:ejs',
   'watch-src:html'
 ]);
 
@@ -86,14 +88,18 @@ gulp.task('watch-src:html', function() {
   gulp.watch('./src/html/**/*', ['build-src:html']);
 });
 
+gulp.task('watch-src:html', function() {
+  gulp.watch('./src/ejs/**/*', ['build-src:ejs']);
+});
+
 gulp.task('build-src:js', function(callback) {
   webpack(webpackConfig).run(webpackLogger(callback));
 });
 
 gulp.task('build-src:css', function() {
-  return gulp.src('src/less/main.less')
+  return gulp.src('src/css/main.less')
     .pipe(sourcemaps.init())
-    .pipe(less())
+    //.pipe(less())
     .pipe(rename('main.css'))
     .pipe(sourcemaps.write('./'))
     .pipe(gulp.dest('dist'));
@@ -103,6 +109,7 @@ gulp.task('build-src:html', function() {
   return gulp.src('src/html/main.html')
     .pipe(gulp.dest('dist'));
 });
+
 gulp.task('build-src:ejs', function() {
   return gulp.src("src/ejs/*.ejs")
     .pipe(ejs({

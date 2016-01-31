@@ -443,6 +443,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
  */
 SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var self = this;
+  var messageId = data.messageId;
   var targetSockets = [];
 
   if (!self.socket.user) {
@@ -451,17 +452,22 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   var fromUser = self.socket.user._id.toString();
+  logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
 
   //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
   var chatId = data.chatId;
+  logger.debug("[SocketServer.onPrivateMessage] chatId: " + chatId);
+  logger.debug("[SocketServer.onPrivateMessage] data.toUserIds: " + data.toUserIds.toString());
   var toUserIds = data.toUserIds;
+
+  logger.debug("[SocketServer.onPrivateMessage] toUserIds: " + toUserIds.toString());
 
   // Need to get the target socket using user id!
   // BUG
   // SUPER HACKY FIX
   logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   //logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
-  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to chat" + chatId + ".");
+  logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to chat " + chatId + ".");
 
   // Where should we store private message chats?
   var message = new Message({
@@ -473,13 +479,21 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   });
 
   // Get the socketId's for each participant
+  // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap
   toUserIds.forEach(function(toUserId) {
-    targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
+    if (self.namespace.userMap[toUserId]) {
+      if (self.namespace.userMap[toUserId] != self.socket.user._id.toString()) {
+        targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
+      }
+    } else {
+      // Notify the sending user that the receiving user is not currently online
+    }
   });
 
   var emitData = {
     fromUserId: self.socket.user._id.toString(),
     chatId: chatId,
+    messageId: messageId,
     toUserIds: toUserIds,
     date: message.date,
     message: data.pgpMessage,
@@ -489,6 +503,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   //logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
 
   var userMapKeys = Object.keys(self.namespace.userMap);
+
+  logger.debug("[SocketServer.onPrivateMessage] userMapKeys: " + userMapKeys);
 
   logger.debug("[socketServer.onPrivateMessage] targetSockets: ", targetSockets);
 
@@ -526,14 +542,28 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   });
 
   var emitToSockets = function emitToSockets(targetSockets, emitData) {
+    // This shouldn't ever happen because the sending user should always get the message, and if sent should be online
     if (!targetSockets) {
       logger.info("[socketServer.onPrivateMessage] No participants of this chat are on line");
       return self.socket.emit('errorMessage', {message: "User is not online"});
     }
 
     targetSockets.forEach(function(targetSocket) {
-      self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
+      logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
+      self.socket.send(targetSocket).emit('privateMessage', emitData);
     });
+
+    // Send the message back to the sender for confirmation
+    //logger.debug("[socketServer.onPrivateMessage] self.namespace.userMap: " + Object.keys(self.namespace.userMap));
+    //var socketMapKeys = Object.keys(self.namespace.socketMap);
+    //socketMapKeys.forEach(function(key) {
+    //  logger.debug("[socketServer.onPrivateMessage] asdf");
+    //});
+
+    //logger.debug("[socketServer.onPrivateMessage] self.namespace.socketMap: " + Object.keys(self.namespace.socketMap));
+
+    //logger.debug("[socketServer.onPrivateMessage] Senders socket ID is: " + self.socket.id);
+    //self.socket.emit('privateMessage', emitData);
   };
 };
 
@@ -1282,16 +1312,16 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var activeUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    activeUsers = this.namespace.adapter.rooms[chatId];
+    activeUsers = this.namespace.adapter.rooms[chatId].sockets;
 
     //logger.debug("[socketServer.getActiveUsers] activeUsers: ", activeUsers);
 
-    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId]).filter(function(sid) {
-      //logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
+    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
+      logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
       return activeUsers[sid];
     });
 
-    //logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
+    logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
 
     //Map sockets to users
     activeUsers = activeUsers.map(function(sid) {

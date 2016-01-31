@@ -22,7 +22,9 @@ function SocketClient() {
   this.socket.on('connect_error', function(err) {
     console.log('[SOCKET] (connection error) Disabling chat!', err);
     if (self.listeners) {
-      ChatManager.disableChat();
+      // TODO: Should be updating CLIENT STATUS here instead of chat status
+      console.log("[SocketClient.SocketClient] (1) connect_error, running ChatManager.updateChatStatus();");
+      ChatManager.updateChatStatus({ status: 'disabled' });
     }
   });
 }
@@ -322,7 +324,8 @@ SocketClient.prototype.joinComplete = function(data) {
         });
       };
       // Should move this inside focusChat callback after moving enable/disable chats to room object
-      ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
+      //console.log("[SocketClient.joinComplete] (1) Running ChatManager.updateChatStauts();");
+      //ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     });
   });
 };
@@ -399,6 +402,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       ChatManager.updateRoomList(function() {
+        console.log("[SocketClient.handleRoomUpdate] (1) Running ChatManager.updateChatStauts();");
         ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 

@@ -88,6 +88,7 @@ $('#message-input').unbind().keyup(function (event) {
     $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
     return false;
   } else if(event.keyCode == 13) {
+    console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
     ChatManager.sendMessage(function() {
       fitToContent('message-input', 156);
       return false;
@@ -681,17 +682,19 @@ ChatManager.updateUserlist = function updateUserlist(userlist) {
  */
 ChatManager.initRoom = function initRoom(room, callback) {
   var self = this;
-  var enabled = false;
+  var enabled = 'initializing';
   var joined = false;
   var unread = false;
   var unreadCount = 0;
-  console.log("Running initRoom for " + room.name);
+  console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
 
-  // If room already exists locally, don't overwrite settings that should persist
+  // If room already exists locally, don't overwrite local settings that should persist
+  // should probably stick these in a chats[id].local or a completely separate object all together
   if (self.chats[room.id]) {
-    enabled = self.chats[room.id].enabled;
+    // We're going to have to decrypt all messages again to ensure that we are up to date so we shouldn't keep enabled
+    //enabled = self.chats[room.id].enabled;
     joined = self.chats[room.id].joined;
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
@@ -719,14 +722,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
     unreadCount: unreadCount,
   };
 
+  ChatManager.updateChatStatus();
+
   // Decrypt messages and HTMLize them
   var messages = self.chats[room.id].messages.sort(dynamicSort("date"));
   var count = 0;
   var messageArray = Array(messages.length);
 
   /*
-   * Need a better way to detect when done decrypting all messages
-   * and add them to the chat after done
    * Also we should only send messages to each user starting at their join date or
    * the date/time that they were added to a room
    */
@@ -737,6 +740,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
    */
   encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
     ChatManager.chats[room.id].keyRing = keyRing;
+
+    console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
+    // Display notice in the chatContainer that we are decrypting messages
+    // ...or display an encrypted message representing each message and replace as they are decrypted
+
+    // BOOKMARK
+    console.log("[ChatManager.initRoom] (1) Running ChatManager.updateChatStatus();");
+    ChatManager.updateChatStatus({ chatId: room.id, status: 'decrypting' });
 
     messages.forEach(function(message, key) {
       window.encryptionManager.decryptMessage({
@@ -779,8 +790,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
           // BOOKMARK ***
-          ChatManager.setChatEnabled([room.id]);
-          ChatManager.updateChatStatus();
+
+          console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name);
+
+          // Do this inside of updateChatStatus
+          //ChatManager.setChatEnabled([room.id]);
+
+          console.log("[ChatManager.initRoom] (2) Running ChatManager.updateChatStatus();");
+          ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
         };
       });
     });
@@ -788,8 +805,9 @@ ChatManager.initRoom = function initRoom(room, callback) {
     // If there are no messages, we still need to enable chat
     // Better way to do this?
     if (messages.length == 0) {
-      ChatManager.setChatEnabled([room.id]);
-      ChatManager.updateChatStatus();
+      //ChatManager.setChatEnabled([room.id]);
+      console.log("[ChatManager.initRoom] (3) Running ChatManager.updateChatStatus();");
+      ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     }
   });
 
@@ -865,8 +883,9 @@ ChatManager.initChat = function initChat(chat, callback) {
       chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
     }
 
-    ChatManager.setChatEnabled([chatId]);
-    ChatManager.updateChatStatus();
+    //ChatManager.setChatEnabled([chatId]);
+    console.log("[ChatManager.initChat] (1) Running ChatManager.updateChatStatus();");
+    ChatManager.updateChatStatus({ chatId: chatId, status: 'enabled' });
 
     return callback(null);
 
@@ -904,7 +923,6 @@ ChatManager.initChat = function initChat(chat, callback) {
             var date = messages[key].date;
 
             self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
-            //ChatManager.addMessageToChat({ type: 'chat', chatId: chatId, messageString: decryptedMessageString, date: date, fromUserId: fromUserId });
           });
           finish();
         };
@@ -1077,6 +1095,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
   }
 
   ChatManager.refreshChatContent(id);
+  console.log("[ChatManager.focusChat] (1) Running ChatManager.updateChatStatus();");
   ChatManager.updateChatStatus();
 
   // TODO:
@@ -1087,7 +1106,6 @@ ChatManager.focusChat = function focusChat(data, callback) {
   // -
   // Each one of these things needs to know how to enable and disable the main chat status or request a recheck of all statuses
   // so that it can set the main status on a change
-  //debugger;
   //ChatManager.chats[id].enabled = true;
 
   messages[0].scrollTop = messages[0].scrollHeight;
@@ -1118,7 +1136,7 @@ ChatManager.setActiveChat = function setActiveChat(id) {
  * Update the list of rooms on the left bar
  */
 ChatManager.updateRoomList = function updateRoomList(callback) {
-  console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
+  //console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
 
   $('#room-list').empty();
   console.log("Updating room list!");
@@ -1388,6 +1406,7 @@ ChatManager.populateUserPopup = function populateUserPopup(data) {
 };
 
 
+/*
 ChatManager.setChatEnabled = function setChatEnabled(roomIds) {
   if (!roomIds) {
     // Should change this to currently joined chats? (is this the same as ChatManager.chats?
@@ -1434,29 +1453,71 @@ ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
     };
   });
 };
+*/
 
 
-ChatManager.updateChatStatus = function updateChatStatus() {
+/*
+ * This should receive updates regarding the status of the individual chats and the chat server as a whole
+ * The conneciton status should be stored in a main object and the decrypting (or other statuses related to
+ * the room itself) should be stored in the room object on the client side
+ */
+ChatManager.updateChatStatus = function updateChatStatus(data) {
+  var chatId;
+  var status;
+
+  if (data) {
+    if (data.chatId) {
+      chatId = data.chatId;
+    };
+
+    if (data.status) {
+      status = data.status;
+    };
+  };
+
+  if (chatId && !status) {
+    console.log("[ChatManager.updateChatStatus] ERROR: You must specify a status when providing a chatId");
+  };
+
+  // If we have a chatId, change the status for that chat
+  if (chatId && status) {
+    if (ChatManager.chats[chatId].status != status) {
+      ChatManager.chats[chatId].status = status;
+    };
+  };
+
+  // If we have no chatId but have a stauts, set that status for all chats
+  if (!chatId && status) {
+    var allRoomIds = Object.keys(ChatManager.chats);
+
+    allRoomIds.forEach(function(id) {
+      if (ChatManager.chats[id].status != status) {
+        ChatManager.chats[id].status = status;
+      };
+    });
+  };
+
+  // Always run the update for the activeChat
   if (ChatManager.activeChat) {
-    var id = ChatManager.activeChat;
+    var activeChatId = ChatManager.activeChat;
 
-    if (ChatManager.chats[id].enabled) {
-      return ChatManager.enableChat();
+    if (chatId == activeChatId) {
+      if (ChatManager.chats[activeChatId].status == 'enabled') {
+        return ChatManager.enableMessageInput();
+      };
+
+      if (ChatManager.chats[activeChatId].status != 'enabled') {
+        return ChatManager.disableMessageInput({ status: ChatManager.chats[activeChatId].status });
+      };
+      console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
     };
-
-    if (!ChatManager.chats[id].enabled) {
-      return ChatManager.disableChat();
-    };
-
-    console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
   } else {
     console.log("[ChatManager.updateChatStatus] Currently no active chat...");
   };
 };
 
 
-
-ChatManager.enableChat = function enableChat() {
+ChatManager.enableMessageInput = function enableMessageInput() {
   var self = this;
 
   // Add conditional to check if the generate modal is displayed
@@ -1499,11 +1560,18 @@ ChatManager.enableChat = function enableChat() {
   });
 };
 
-ChatManager.disableChat = function disableChat() {
+ChatManager.disableMessageInput = function disableMessageInput(data) {
   var self = this;
+  var status = data.status;
+
+  var statusMessages = {
+    'disconnected': '          Waiting for connection... Please wait...',
+    'initializing': '          Initializing chat... Please wait...',
+    'decrypting': '          Decrypting messages... Please wait...'
+  };
 
   $('textarea').off("keydown", "**");
-  $('#message-input').attr('placeHolder', '         Waiting for connection...').prop('disabled', true);
+  $('#message-input').attr('placeHolder', statusMessages[status]).prop('disabled', true);
   $('#send-button').prop('disabled', true);
   $('#loading-icon').show();
 };
@@ -1540,6 +1608,7 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
 
 
 ChatManager.handleMessage = function handleMessage(data) {
+  var messageId = data.messageId;
   var fromUserId = data.fromUserId;
   var fromUserName = ChatManager.userlist[fromUserId].username;
   var messageString = data.messageString;
@@ -1554,7 +1623,7 @@ ChatManager.handleMessage = function handleMessage(data) {
     clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
   };
 
-  this.addMessageToChat({ type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
+  this.addMessageToChat({ confirmed: true, messageId: messageId, type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
 };
 
 
@@ -1570,6 +1639,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
 
+  var messageId = data.messageId;
   var encryptedMessage = data.message;
   var chatId = data.chatId;
   var fromUserId = data.fromUserId;
@@ -1597,7 +1667,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     decrypt(chatId, encryptedMessage, function(message) {
       clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
 
-      ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+      ChatManager.addMessageToChat({ confirmed: true, messageId: messageId, type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
     });
   };
 
@@ -1639,19 +1709,22 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
  * Display an outgoing message locally greyed out then wait for it to be confirmed as sent by the server
  */
 ChatManager.handleLocalMessage = function handleLocalMessage(data) {
+  var messageId = data.messageId;
   var chatId = data.chatId;
   var type = ChatManager.chats[chatId].type;
   var messageString = data.messageString;
   var fromUserId = data.fromUserId;
   var date = data.date;
 
-  // Need to add functionality to addMessageToChat to have the message confirmed or not
-  ChatManager.addMessageToChat({ type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
+  // Should set the message to unconfirmed here (only if it's a local message tho
+  ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
 
 
 
 ChatManager.addMessageToChat = function addMessageToChat(data) {
+  var messageId = data.messageId;
+  var confirmed = data.confirmed;
   var type = data.type;
   var messageString = data.messageString;
   var date = data.date;
@@ -1663,14 +1736,33 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  ChatManager.formatChatMessage({ messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date }, function(formattedMessage) {
-    ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
-  });
-
-  if (ChatManager.activeChat == chatId) {
-    ChatManager.refreshChatContent(chatId);
-    chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+  // If the message is confirmed (comes from the server), it has an ID, and it is from me, find it in the message cache
+  // and mark it as confirmed
+  if (confirmed && messageId && (fromUserId == ChatManager.userNameMap[window.username])) {
+    // Update teh message in message cache to be confirmed
+    ChatManager.confirmChatMessage({ chatId: chatId, messageId: messageId }, function(modifiedMessageCache) {
+      if (!modifiedMessageCache) {
+        // Was not able to find and confirm the message
+        return console.log("[ChatManager.addMessageToChat] Returned no messageCache");
+      }
+      ChatManager.chats[chatId].messageCache = modifiedMessageCache;
+    });
   } else {
+
+    // Need to figure out how to change the class of a message after it's in the message cache
+    ChatManager.formatChatMessage({ messageId: messageId, messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date, confirmed: confirmed }, function(formattedMessage) {
+      // Is it really taking this long to get the message displayed locally?
+      ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
+    });
+
+    if (ChatManager.activeChat == chatId) {
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    };
+  };
+
+
+  if (!ChatManager.activeChat == chatId) {
     ChatManager.chats[chatId].unread = true;
     ChatManager.chats[chatId].unreadCount++;
 
@@ -1706,7 +1798,7 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
-      ChatManager.formatChatMessage({ messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
         ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
       });
     });
@@ -1714,15 +1806,48 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
 };
 
 ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
+  var messageId = data.messageId;
   var messageString = data.messageString;
   var fromUserId = data.fromUserId;
   var fromUsername = data.fromUsername;
+  var confirmed = data.confirmed;
   var date = data.date;
   var emailHash = ChatManager.userlist[fromUserId].emailHash || "00000000000";
 
   var time = date || new Date().toISOString();
-  var messageHtml = '<div class="chat-item"><div class="chat-item__container"> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
+
+  var messageIdHtml = '';
+
+  if (messageId) {
+    var messageIdHtml = ' data-messageId="' + messageId + '"';
+  };
+
+  var confirmedClass = '';
+  if (!confirmed) {
+    confirmedClass = 'unconfirmedMessage';
+  };
+
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container ' + confirmedClass + '"' + messageIdHtml + '> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
   return callback(messageHtml);
+};
+
+
+/*
+ * Once we receive a message from the server, we need to check the sent messages array (need to create this)
+ * for ID's that match the incoming message. If the incoming message ID is in that array, we should confirm it
+ * by searching the message cache for an item with that ID and changing it's class from unconfirmed to
+ * confirmed (need to create these classes)
+ */
+ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
+  var chatId = data.chatId;
+  var messageId = data.messageId;
+  var messageCache = ChatManager.chats[chatId].messageCache;
+
+  container = $('<div>').html(messageCache);
+  container.find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
+  $('.chat-window').find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
+
+  return callback(container.html());
 };
 
 
@@ -1774,65 +1899,84 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();
 
-  console.log("1 sendMessage input: " + input);
+  // Is one of these faster? Both seem to work just fine...
+  //$('#message-input').val('');
+  document.getElementById('message-input').value='';
 
-  //input = input.replace(/(<p>|<\/p>)/g, '');
-  //console.log("2 sendMessage input: " + input);
+  setTimeout(function() {
+    console.log("1 sendMessage input: " + input);
 
-  var commandRegex = /^\/(.*)$/;
-  var regexResult = input.match(commandRegex);
+    //input = input.replace(/(<p>|<\/p>)/g, '');
+    //console.log("2 sendMessage input: " + input);
 
-  if (input === "") {
-    return callback();
-  }
+    var commandRegex = /^\/(.*)$/;
+    var regexResult = input.match(commandRegex);
 
-  else if (regexResult !== null) {
-    ServerCommand.parse(regexResult, function() {
+    if (input === "") {
       return callback();
-    });
-  }
+    }
 
-  else {
-    ChatManager.prepareMessage(input, function(err, preparedInput) {
-      var activeChatId = ChatManager.activeChat;
-      var activeChatType = ChatManager.chats[activeChatId].type;
-      var activeChatName = ChatManager.chats[activeChatId].name;
-
-      console.log("Active chat type is: " + activeChatType);
-      var date = new Date().toISOString();
-
-      if (activeChatType == 'room') {
-        console.log("Sending message to room #"+ activeChatName);
-
-        window.socketClient.sendMessage({ chatId: activeChatId, message: preparedInput });
-        $('#message-input').val('');
+    else if (regexResult !== null) {
+      ServerCommand.parse(regexResult, function() {
         return callback();
-      }
-      else if (activeChatType == 'chat') {
-        var sendToIds = ChatManager.chats[activeChatId].participants;
+      });
+    }
 
-        // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-        console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+    else {
 
-        socketClient.sendPrivateMessage({ chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+      ChatManager.prepareMessage(input, function(err, preparedInput) {
+        var activeChatId = ChatManager.activeChat;
+        var activeChatType = ChatManager.chats[activeChatId].type;
+        var activeChatName = ChatManager.chats[activeChatId].name;
 
-        $('#message-input').val('');
+        console.log("Active chat type is: " + activeChatType);
+        var date = new Date().toISOString();
 
-        // Add the message to the chat locally and wait for it to be confirmed
-        ChatManager.handleLocalMessage({
-          chatId: activeChatId,
-          messageString: preparedInput,
-          fromUserId: ChatManager.userNameMap[window.username],
-          date: date
-        });
+        // Create a message ID using the current time and a random number
+        var timeString = (new Date().getTime()).toString();
+        var rand = Math.floor((Math.random() * 1000) + 1).toString();
+        var messageId = timeString.concat(rand);
 
-        return callback();
-      }
-      else {
-        return console.log("ERROR: No activeChatType!");
-      }
-    })
-  }
+        if (activeChatType == 'room') {
+          console.log("Sending message to room #"+ activeChatName);
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
+          return callback();
+        }
+        else if (activeChatType == 'chat') {
+          var sendToIds = ChatManager.chats[activeChatId].participants;
+
+          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+
+          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          return callback();
+        }
+        else {
+          return console.log("ERROR: No activeChatType!");
+        }
+      })
+    }
+  }, 0);
 };
 
 

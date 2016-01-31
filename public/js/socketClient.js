@@ -22,7 +22,9 @@ function SocketClient() {
   this.socket.on('connect_error', function(err) {
     console.log('[SOCKET] (connection error) Disabling chat!', err);
     if (self.listeners) {
-      ChatManager.disableChat();
+      // TODO: Should be updating CLIENT STATUS here instead of chat status
+      console.log("[SocketClient.SocketClient] (1) connect_error, running ChatManager.updateChatStatus();");
+      ChatManager.updateChatStatus({ status: 'disabled' });
     }
   });
 }
@@ -33,7 +35,6 @@ SocketClient.prototype.addListeners = function() {
   self.listeners = true;
 
   this.socket.on('authenticated', function(data) {
-    console.log("[SOCKET] authenticated");
     data.socket = this;
 
     Authentication.authenticated(data);
@@ -86,6 +87,7 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomMessage', function(data) {
     var message = data.message;
+    var messageId = data.messageId;
     var chatId = data.chatId;
 
     window.encryptionManager.decryptMessage({
@@ -95,7 +97,7 @@ SocketClient.prototype.addListeners = function() {
       if (err) {
         console.log(err);
       }
-      ChatManager.handleMessage({ messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: chatId });
+      ChatManager.handleMessage({ messageId: messageId, messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: chatId });
     });
   });
 
@@ -193,7 +195,7 @@ SocketClient.prototype.init = function() {
     if (!self.listeners) {
       self.addListeners();
     }
-    console.log("[INIT] Authenticating");
+
     return Authentication.authenticate({ socket: self.socket });
   });
 };
@@ -251,6 +253,7 @@ SocketClient.prototype.partRoom = function(data, callback) {
 
 SocketClient.prototype.sendMessage = function(data) {
   var self = this;
+  var messageId = data.messageId;
   var chatId = data.chatId;
   var message = data.message;
 
@@ -261,7 +264,7 @@ SocketClient.prototype.sendMessage = function(data) {
     }
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
-      self.socket.emit('roomMessage', {chatId: chatId, pgpMessage: pgpMessage});
+      self.socket.emit('roomMessage', { messageId: messageId, chatId: chatId, pgpMessage: pgpMessage});
       $('#message-input').val('');
     }
   });
@@ -311,6 +314,7 @@ SocketClient.prototype.joinComplete = function(data) {
     console.log("[INIT] Enabling chat in clientKey mode");
   }
 
+  console.log("[socketClient.joinComplete] (1) Running initRoom");
   ChatManager.initRoom(room, function(err) {
     ChatManager.chats[room.id].joined = true;
     ChatManager.updateRoomList(function() {
@@ -320,7 +324,8 @@ SocketClient.prototype.joinComplete = function(data) {
         });
       };
       // Should move this inside focusChat callback after moving enable/disable chats to room object
-      ChatManager.enableChat(room.id);
+      //console.log("[SocketClient.joinComplete] (1) Running ChatManager.updateChatStauts();");
+      //ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     });
   });
 };
@@ -389,11 +394,16 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
     // BUG: This should not overwrite the entire room... It is nuking the messageCache
     //
 
+    console.log("[socketClient.handleRoomUpdate] (1) Running initRoom");
+
+    // Should we update the room selectively in initRoom or create a new method that handles only room updates
+    // while initRoom only handles the initial room setup case?
     ChatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       ChatManager.updateRoomList(function() {
-        ChatManager.enableChat(id);
+        console.log("[SocketClient.handleRoomUpdate] (1) Running ChatManager.updateChatStauts();");
+        ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
       ChatManager.buildRoomListModal;
@@ -458,6 +468,7 @@ SocketClient.prototype.membership = function(data) {
 
 SocketClient.prototype.sendPrivateMessage = function(data) {
   var self = this;
+  var messageId = data.messageId;
   var chatId = data.chatId;
   var toUserIds = data.toUserIds;
   var message = data.message;
@@ -470,7 +481,7 @@ SocketClient.prototype.sendPrivateMessage = function(data) {
 
       else {
         // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
-        self.socket.emit('privateMessage', {chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
+        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
         $('#message-input').val('');
       }
     });

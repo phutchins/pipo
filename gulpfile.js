@@ -17,6 +17,12 @@ gulp.task('lint', function() {
         .pipe(jshint.reporter('default'));
 });
 
+
+// Copy CSS files to dist folder
+// Copy JS files to dist folder
+// Copy socket.io folder to dist
+//
+
 // Compile Our Sass
 gulp.task('sass', function() {
     return gulp.src('src/scss/*.scss')

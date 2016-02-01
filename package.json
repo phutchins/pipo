@@ -49,10 +49,12 @@
     "winston": "^1.0.0"
   },
   "devDependencies": {
+    "electron-ejs": "^0.1.0",
     "grunt": "^0.4.5",
     "grunt-jasmine-node-coverage": "^0.4.1",
     "gulp-copy": "0.0.2",
     "gulp-ejs-template": "^0.2.0",
-    "gulp-minify-css": "^1.2.3"
+    "gulp-minify-css": "^1.2.3",
+    "socket.io": "^1.4.5"
   }
 }

@@ -21,7 +21,7 @@ function createWindow () {
   //});
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/dist/client.js');
+  mainWindow.loadURL('file://' + __dirname + '/dist/client.ejs');
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();

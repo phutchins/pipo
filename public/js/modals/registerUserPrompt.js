@@ -43,7 +43,7 @@ RegisterUserPrompt.init = function init(successCallback) {
           prompt : 'Please enter a username'
         },
         {
-          type : "regExp[^[a-z0-9_-]{3,32}$]",
+          type : "regExp[^[a-zA-Z0-9_-]{3,32}$]",
           prompt : 'Please enter a properly formatted username. Username can only contain regular letters and numbers, underscores and dashes and must be between 3 and 32 characters long.'
         }]
       },

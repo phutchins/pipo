@@ -1567,7 +1567,8 @@ ChatManager.disableMessageInput = function disableMessageInput(data) {
   var statusMessages = {
     'disconnected': '          Waiting for connection... Please wait...',
     'initializing': '          Initializing chat... Please wait...',
-    'decrypting': '          Decrypting messages... Please wait...'
+    'decrypting': '          Decrypting messages... Please wait...',
+    'generating': '          Generating key pair... Please wait...'
   };
 
   $('textarea').off("keydown", "**");

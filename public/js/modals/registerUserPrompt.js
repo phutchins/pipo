@@ -110,8 +110,7 @@ RegisterUserPrompt.init = function init(successCallback) {
         //Hides modal on validation success
         $('.ui.modal.register').modal('hide');
 
-
-        ChatManager.disableChat();
+        ChatManager.updateChatStatus({ status: 'generating' });
 
         $('.ui.modal.generate').modal('show');
 
@@ -137,7 +136,6 @@ RegisterUserPrompt.init = function init(successCallback) {
             window.encryptionManager.clientCredentialsLoaded = false;
 
             //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
-            ChatManager.enableChat();
             socketClient.init();
           }
         });

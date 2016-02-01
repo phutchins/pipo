@@ -1,0 +1,609 @@
+<!doctype html>
+<html>
+  <head>
+    <title>PiPo</title>
+  </head>
+  <body>
+    <div id="mainContainer">
+      <ul id="chat" class="chat-window">
+      </ul>
+
+      <header class="chat-header" id="header-wrapper">
+        <div id="header">
+          <div class="chat-header__avatar ">
+            <i class="huge comments outline icon"></i>
+          </div>
+        <div class="chat-header__buttons">
+          <div class="chat-header__favorite">
+            <i class="empty star icon"></i>
+          </div>
+          <div class="chat-header__settings">
+
+            <div class="ui icon top left pointing dropdown button">
+              <i class="wrench icon"></i>
+              <div class="menu">
+                <div class="header">Room Options</div>
+                <div class="item room-options manage-members">Manage Members</div>
+                <div class="item room-options edit-room">Edit Room</div>
+                <div class="ui divider"></div>
+                <div class="item">
+                  <i class="dropdown icon"></i>
+                  <span class="text">Advanced</span>
+                  <div class="menu">
+                    <div class="item">
+                      <i class="check icon"></i>
+                      Something Advanced
+                    </div>
+                  </div>
+                </div>
+                <div class="item">
+                  <i class="dropdown icon"></i>
+                  <span class="text">Admin</span>
+                  <div class="menu">
+                    <div class="item">
+                      <i class="check icon"></i>
+                      Destroy History
+                    </div>
+                    <div class="item">
+                      <i class="check icon"></i>
+                      Delete Room
+                    </div>
+                  </div>
+                </div>
+                <div class="item room-options leave-room">Leave Room</div>
+                <div class="item">Help</div>
+              </div>
+            </div>
+
+          </div>
+          </div>
+          <div class="chat-header__content">
+            <h2 class="js-chat-name" title="" data-original-title="">
+              <a class="chat-header__title" target="_blank">...</a>
+            </h2>
+            <p class="chat-topic">...</p>
+          </div>
+        </div>
+      </header>
+
+      <div id="menu">
+        <div id="left-menu-profile">
+          <div id="menu-header-profile">
+            <div class="ui labeled dropdown header-profile-dropdown">
+              <div class="trpDisplayPicture avatar-s avatar" style="" data-original-title=""> </div>
+              <span class="text username">Unauthenticated</span>
+              <i class="chevron down icon"></i>
+              <div id="options-menu-dropdown" class="menu">
+                <div id="edit-profile-button" class="item"><i class="edit icon"></i> Edit Profile</div>
+                <div id="generate-keypair-button" class="item"><i class="spy icon"></i> Generate new client key pair</div>
+                <div id="import-keypair-button" class="item"><i class="folder open icon"></i> Import existing key pair</div>
+                <div id="export-keypair-button" class="item"><i class="download icon"></i> Export client key pair</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div id="left-menu-scroll">
+          <div class="room-list-container">
+            <h5 class="room-list-header">Active Rooms</h5>
+            <i id="room-list-button" class="menu-icon search icon"></i>
+            <i id="add-room-button" class="add-room-icon plus square outline icon"></i>
+            <ul id="room-list">
+            </ul>
+          </div>
+          <div class="chat-list-container">
+            <h5 class="chat-list-header">Private Chats</h5>
+            <i class="menu-icon search icon"></i>
+            <i class="add-user-icon plus square outline icon"></i>
+            <div id="chat-list">
+            </div>
+          </div>
+          <div id="menu-actions">
+          </div>
+        </div>
+      </div>
+
+      <div id="right-menu-container" class="right-menu-container">
+        <header id="right-menu-header-wrapper" class="right-menu-header-wrapper">
+
+        </header>
+        <div class="user-list-container">
+          <div id="user-list">
+          </div>
+        </div>
+
+        <div id="right-menu-content-wrapper" class="right-menu-content-wrapper">
+          <div id="right-menu-user-actions" class="right-menu-user-actions">
+          </div>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="input-container" id="input-container">
+      <form id="message-input-form">
+        <div id="message-input-container" class="ui left fluid action icon input loading">
+          <textarea id="message-input" class="message-input ui left icon loading" autocorrect="off" spellcheck="true" autocomplete="off" type="text" placeholder="          Please wait while your secure connection is configured..."></textarea>
+          <i id="loading-icon" class="search icon"></i>
+          <button id="send-button" class="ui button" disabled="true">Send</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="ui form basic modal password-prompt-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Decrypt Master Key
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Please enter your client key password...</p>
+        </div>
+        <div class="ui input">
+            <input name="keyPassword" type="password" placeholder="password"></input>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button password-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui form basic modal key-creds-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Enter your key information
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Username:</p>
+        </div>
+        <div class="ui input">
+            <input name="username" type="username" placeholder="User Name"></input>
+        </div>
+                  <div class="description">
+          <p>Full Name:</p>
+        </div>
+        <div class="ui input">
+            <input name="fullname" type="fullname" placeholder="Full Name"></input>
+        </div>
+                  <div class="description">
+          <p>Email:</p>
+        </div>
+        <div class="ui input">
+            <input name="email" type="email" placeholder="Email"></input>
+        </div>
+        <div class="description">
+          <p>Please enter a strong password:</p>
+        </div>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui green basic inverted button key-creds-submit-button">
+            <i class="checkmark icon"></i>
+            Ok
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui form modal import-keypair-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Import Client Key Pair
+      </div>
+      <div class="ui">
+        <div class="description">
+          <p>Please locate your keys...</p>
+        </div>
+        <form class="ui form content create">
+          <div class="field">
+            <label for="username">Username</label>
+            <input type="text" class="username-input" id="username-input">
+          </div>
+          <div class="ui">
+            <a href="#" id="select-publickey">Public Key: </a><input type="file" id="publickey-file-input"></input>
+          </div>
+          <div class="ui">
+            <a href="#" id="select-privatekey">Private Key: </a><input type="file" id="privatekey-file-input"></input>
+          </div>
+        </form>
+      </div>
+      <div class="actions">
+        <div class="ui button approve red cancel">
+          <i class="remove icon"></i>
+          Cancel
+        </div>
+        <div class="ui button approve green import-keypair-submit-button">
+          <i class="checkmark icon"></i>
+          Ok
+        </div>
+      </div>
+    </div>
+
+    <div class="ui small modal initial">
+      <div class="header">Register or Sign In</div>
+      <div class="content">You do not appear to have signed in from this computer before. Would you like to Register as a new user or Sign In using your existing keys?</div>
+      <div class="actions">
+        <div class="ui button approve green register" data-value="generate">Register</div>
+        <div class="ui button approve blue authenticate" data-value="authenticate">Sign In</div>
+      </div>
+    </div>
+
+    <div class="ui small modal register">
+      <div class="header">Register</div>
+      <form class="ui form error segment register">
+        <div class="field">Select a username and a passphrase to encrypt your keys</div>
+        <div class="two fields">
+          <div class="field" style="display: none; color: red" id="registerError"></div>
+          <div class="field">
+            <label>Username</label>
+            <input type="text" name="username" class="username" placeholder="Username">
+          </div>
+          <div class="field">
+            <label>Real Name</label>
+            <input name="name" type="text" class="name" placeholder="Real Name">
+          </div>
+        </div>
+        <div class="field">
+          <label>Email</label>
+          <input type="email" name="email" class="email" placeholder="Email">
+        </div>
+        <div class="field">
+          <label>Password</label>
+          <input type="password" name="registerPassword" class="registerPassword" placeholder="Password">
+        </div>
+        <div class="field">
+          <label>Confirm Password</label>
+          <input type="password" name="confirmPassword" placeholder="Confirm Password">
+        </div>
+        <div class="actions">
+          <div class="ui green submit button">OK</div>
+          <div class="ui error message"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="ui small modal generate">
+      <div class="header">Generate</div>
+      <div class="content center">
+        <i class="notched circle loading icon"></i> Generating credentials (this may take a bit)
+      </div>
+    </div>
+
+    <div class="ui small modal unlock">
+      <div class="header">Unlock Credentials for <span class="username">your user</span></div>
+      <form class="ui form error content unlock">
+        <div class="field">Enter the passphrase you selected to decrypt your keys. You will be prompted for this password once more after you submit this form to sign in.</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="password">Password</label>
+          <input type="password" class="password" id="password">
+        </div>
+        <div class="actions">
+          <div class="ui submit button green decrypt">Decrypt</div>
+          <div class="ui error message"></div>
+        </div>
+      </form>
+    </div>
+
+    <div class="ui small modal authenticate">
+      <div class="header">Authenticate</div>
+      <div class="content">Please select your credentials</div>
+      <div class="actions">
+        <div class="ui button approve green" data-value="generate">Generate</div>
+        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+
+    <div class="ui small modal joinroom">
+      <div class="header">Authenticate</div>
+      <div class="content">Please select your credentials</div>
+      <div class="actions">
+        <div class="ui button approve green" data-value="generate">Generate</div>
+        <div class="ui button approve blue" data-value="authenticate">Authenticate</div>
+      </div>
+    </div>
+
+    <div class="ui small long modal join-room-list-modal">
+      <i class="close icon"></i></i>
+      <div class="header">Room List</div>
+      <div class="content">Select a room to join...</div>
+      <div class="ui list join-room-list">
+      </div>
+    </div>
+
+    <div class="ui basic modal createroom">
+      <i class="close icon"></i>
+      <div class="header">
+        Create a room
+      </div>
+      <div class="content">
+        <form class="ui form createroom">
+          <div class="ui segment">
+            <p style="color:black;">Please enter the information for your new room.</p>
+            <div class="wide field">
+              <label>Name</label>
+              <input type="text" name="name">
+            </div>
+            <div class="wide field">
+              <label>Topic</label>
+              <input type="text" name="topic">
+            </div>
+
+            <div class="field encryptionscheme">
+              <label>Please choose an encryption scheme</label>
+              <input name="encryptionscheme" type="hidden" value="clientkey">
+              <select class="ui search dropdown encryptionscheme">
+                <option value="clientkey">Client Key</option>
+                <option value="masterkey">Master Key</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Keep Message History</label>
+              <input name="messagehistory" type="hidden" value="keep">
+              <select class="ui search dropdown messagehistory">
+                <option value="keep">Keep</option>
+                <option value="dontkeep">Don't Keep</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Membership Required</label>
+              <input name="membershiprequired" type="hidden" value="private">
+              <select class="ui search dropdown membershiprequired">
+                <option value="private">Private</option>
+                <option value="public">Public</option>
+              </select>
+            </div>
+
+          </div>
+          <!-- Below tag is the placeholder/container for the error messages -->
+          <div class="ui error message"></div>
+        </form>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui cancel red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui ok green basic inverted button">
+            <i class="checkmark icon"></i>
+            Submit
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui small modal error">
+      <div class="header">Error</div>
+      <div class="content">Some horrible error occurred</div>
+      <div class="actions">
+        <div class="ui button approve blue cancel">
+          <i class="remove icon"></i>
+          Ok
+        </div>
+      </div>
+    </div>
+
+    <div class="ui small modal profile">
+      <div class="header">Profile</div>
+      <form class="ui form content profile">
+        <div class="field">Enter your information</div>
+        <div class="field" style="display: none; color: red" id="createError"></div>
+        <div class="field">
+          <label for="username">Username</label>
+          <input type="text" class="username" id="username">
+        </div>
+        <div class="field">
+          <label for="fullname">Full Name</label>
+          <input type="fullname" class="fullname" id="fullname">
+        </div>
+        <div class="field">
+          <label for="email">Email</label>
+          <input type="email" class="email" id="email">
+        </div>
+      </form>
+      <div class="actions">
+        <div class="ui button approve green go" data-value="go">Go</div>
+      </div>
+    </div>
+
+    <div class="ui popup left center transition hidden userPopup">
+      <div class="userPopupAvatar">
+          <div class="avatar" style="float: left"></div>
+      </div>
+      <div class="userPopupInfo">
+        <div class="userPopupNames">
+          <h2 class="fullName">Full Name</h2>
+          <h3 class="username"><a href="http://pipo.chat/users/username" target="_blank">username</a></h3>
+        </div>
+        <div class="userPopupStats">
+          5 followers  66 repos  4 following
+        </div>
+        <div class="userPopupContact">
+          <a class="email" href="mailto:email@address.com">email@address.com</a></div>
+          <div class="userPopupButtons">
+            <button class="privateChatButton buttonSmall" id="button-onetoone">
+              Chat Privately
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui form basic modal editroom">
+      <i class="close icon"></i>
+      <div class="header">
+        Editing Room
+      </div>
+      <div class="content">
+        <form class="ui form editroom">
+          <div class="ui segment">
+            <input name="id" type="hidden">
+            <div class="wide field">
+              <label>Name</label>
+              <input type="text" name="name">
+            </div>
+
+            <div class="wide field">
+              <label>Group</label>
+              <input type="text" name="group">
+            </div>
+
+            <div class="wide field">
+              <label>Topic</label>
+              <input type="text" name="topic">
+            </div>
+
+            <div class="field encryptionscheme">
+              <label>Encryption scheme</label>
+              <input name="encryptionscheme" type="hidden">
+              <select class="ui search dropdown encryptionscheme">
+                <option value="clientkey">Client Key</option>
+                <option value="masterkey">Master Key</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Message History</label>
+              <input name="keep-history" type="hidden">
+              <select class="ui search dropdown keephistory">
+                <option value="true">Keep</option>
+                <option value="false">Don't Keep</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Privacy</label>
+              <input name="membership-required" type="hidden">
+              <select class="ui search dropdown membershiprequired">
+                <option value="true">Private</option>
+                <option value="false">Public</option>
+              </select>
+            </div>
+
+          </div>
+          <!-- Below tag is the placeholder/container for the error messages -->
+          <div class="ui error message"></div>
+        </form>
+      </div>
+      <div class="actions">
+        <div class="two fluid ui inverted buttons">
+          <div class="ui cancel red basic inverted button">
+            <i class="remove icon"></i>
+            Cancel
+          </div>
+          <div class="ui ok green basic inverted button">
+            <i class="checkmark icon"></i>
+            Save
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="ui modal manage-members-modal">
+      <i class="close icon"></i>
+      <div class="header">
+        Manage Members
+      </div>
+      <div class="content">
+        <input class="roomname" type="hidden">
+        <div class="field" style="display: none; color: red" id="manageMembersError"></div>
+        <div class="field" style="display: none; color: green" id="manageMembersMessage"></div>
+        <div class="add-member-header">
+          Add Member
+        </div>
+        <div class="ui right labeled input">
+          <div class="ui search">
+            <div class="ui icon input">
+              <input class="prompt membername" type="text" placeholder="Username...">
+              <i class="search icon"></i>
+            </div>
+            <div class="results"></div>
+          </div>
+          <div class="ui dropdown label addmember">
+            <div class="text">member</div>
+            <i class="dropdown icon"></i>
+            <div class="menu membership">
+              <div class="item">member</div>
+              <div class="item">admin</div>
+              <div class="item">owner</div>
+            </div>
+          </div>
+        </div>
+        <button class="ui primary button addmember">
+          Add
+        </button>
+        <div class="manage-members-header">
+          Members
+        </div>
+        <ul class="manage-members-list">
+        </ul>
+      </div>
+      <div class="actions">
+      </div>
+    </div>
+
+
+    <!--><link href='//fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>-->
+    <link rel="stylesheet" href="css/semantic.css">
+    <link rel="stylesheet" href="css/pipo.css">
+    <link rel="stylesheet" href="css/highlight.js/styles/default.css">
+
+    <script>
+      try {
+        $ = jQuery = module.exports;
+        // If you want module.exports to be empty, uncomment:
+        // module.exports = {};
+      } catch(e) {}
+    </script>
+
+    <script src="js/lib/openpgp.js"></script>
+    <script src="js/lib/kbpgp.js"></script>
+    <script src="js/lib/jquery-1.11.1.js"></script>
+    <script src="js/lib/semantic.js"></script>
+
+    <script src="socket.io/socket.io.js"></script>
+    <script src="js/lib/async.js"></script>
+    <script src="js/lib/highlight.min.js"></script>
+    <script src="js/lib/moment.min.js"></script>
+    <script src="js/lib/livestamp.min.js"></script>
+    <script src="js/lib/marked.js"></script>
+    <script src="js/lib/FileSaver.js"></script>
+    <script src="js/lib/blob.js"></script>
+    <script src="js/lib/jquery.pulse.js"></script>
+
+    <!-- Load Modals -->
+    <script src="js/modals/registerUserPrompt.js"></script>
+    <script src="js/modals/unlockClientKeyPairModal.js"></script>
+
+    <script src="js/chatManager.js"></script>
+    <script src="js/clientNotification.js"></script>
+    <script src="js/socketClient.js"></script>
+    <script src="js/encryptionManager.js"></script>
+    <script src="js/authentication.js"></script>
+    <script src="js/serverCommand.js"></script>
+
+    <script>
+      hljs.initHighlightingOnLoad();
+      openpgp.initWorker('js/lib/openpgp.worker.js');
+    </script>
+
+
+  </body>
+</html>

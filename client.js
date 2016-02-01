@@ -21,7 +21,7 @@ function createWindow () {
   //});
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/views/chat.ejs');
+  mainWindow.loadURL('file://' + __dirname + '/dist/client.js');
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();

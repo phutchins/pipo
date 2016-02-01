@@ -8,7 +8,9 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "./node_modules/.bin/jasmine-node test",
-    "coverage": "istanbul cover --include-all-sources jasmine-node test"
+    "coverage": "istanbul cover --include-all-sources jasmine-node test",
+    "start-client": "electron dist/client.js",
+    "build": "gulp build"
   },
   "contributors": [
     {
@@ -48,6 +50,9 @@
   },
   "devDependencies": {
     "grunt": "^0.4.5",
-    "grunt-jasmine-node-coverage": "^0.4.1"
+    "grunt-jasmine-node-coverage": "^0.4.1",
+    "gulp-copy": "0.0.2",
+    "gulp-ejs-template": "^0.2.0",
+    "gulp-minify-css": "^1.2.3"
   }
 }

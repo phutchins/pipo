@@ -55,12 +55,13 @@ app.set('view engine', 'ejs');
 app.set('x-powered-by', false);
 
 //Middleware
-app.use(favicon(__dirname + '/public/img/favicon.ico'));
+app.use(favicon(__dirname + '/src/img/favicon.ico'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
 //Static assets
-app.use(express['static'](path.join(__dirname, 'public')));
+// TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
+app.use(express['static'](path.join(__dirname, 'src')));
 
 //Logger
 //app.use(morgan('dev'));

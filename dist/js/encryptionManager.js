@@ -638,7 +638,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
   console.log("Verifying remote public key for user '"+username+"'");
   $.ajax({
     type: "GET",
-    url: "/key/publickey",
+    url: "https://localhost:3030//key/publickey",
     dataType: "json",
     data: {
       username: username

@@ -560,19 +560,26 @@
     </div>
 
 
-    <!--><link href='//fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>-->
+    <!--><link href='//fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'> -->
     <link rel="stylesheet" href="css/semantic.css">
     <link rel="stylesheet" href="css/pipo.css">
     <link rel="stylesheet" href="css/highlight.js/styles/default.css">
 
+        <script>
+        window.$ = window.jQuery = require('jquery');
+        window.async = window.async = require('async');
+        io = require('socket.io-client');
+        </script>
+
+    <!-->
     <script>
       try {
         $ = jQuery = module.exports;
         // If you want module.exports to be empty, uncomment:
         // module.exports = {};
       } catch(e) {}
-      var socket = io();
     </script>
+    -->
 
     <script src="js/lib/openpgp.js"></script>
     <script src="js/lib/kbpgp.js"></script>

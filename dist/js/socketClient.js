@@ -1,8 +1,14 @@
+var config = require('../config/pipo')();
+
 function SocketClient() {
   var self = this;
   //var host = window.location.host;
-  var host = "https://localhost:3030";
-  this.socket = window.io(host + '/socket');
+  //var host = "https://localhost:3030";
+  //var host = "https://pipo.chat";
+  var host = "https://" + config.server;
+  console.log("Connecting to server: " + host);
+  //this.socket = window.io.connect(host + '/socket', { port: config.port });
+  this.socket = window.io(host + '/socket', { port: config.port });
 
   window.username = localStorage.getItem('username');
   window.email = localStorage.getItem('email');

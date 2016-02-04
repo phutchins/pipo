@@ -565,14 +565,6 @@
     <link rel="stylesheet" href="/css/pipo.css">
     <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
 
-    <script>
-      try {
-        $ = jQuery = module.exports;
-        // If you want module.exports to be empty, uncomment:
-        // module.exports = {};
-      } catch(e) {}
-    </script>
-
     <script src="/js/lib/openpgp.js"></script>
     <script src="/js/lib/kbpgp.js"></script>
     <script src="/js/lib/jquery-1.11.1.js"></script>

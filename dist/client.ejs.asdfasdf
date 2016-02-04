@@ -565,25 +565,10 @@
     <link rel="stylesheet" href="css/pipo.css">
     <link rel="stylesheet" href="css/highlight.js/styles/default.css">
 
-    <script>
-      // If we are in electron
-      if ('type' in process) {
-        window.$ = window.jQuery = require('jquery');
-        window.async = window.async = require('async');
-        io = require('socket.io-client');
-      } else {
-        // Otherwise, we're not in electron
-
-      }
-    </script>
-
     <script src="js/lib/openpgp.js"></script>
     <script src="js/lib/kbpgp.js"></script>
-    <script src="js/lib/jquery-1.11.1.js"></script>
     <script src="js/lib/semantic.js"></script>
 
-    <script src="socket.io/socket.io.js"></script>
-    <script src="js/lib/async.js"></script>
     <script src="js/lib/highlight.min.js"></script>
     <script src="js/lib/moment.min.js"></script>
     <script src="js/lib/livestamp.min.js"></script>

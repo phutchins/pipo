@@ -21,7 +21,7 @@ var pgp = require('kbpgp');
 var database = require('./database');
 
 //Configuration
-var configPipo = require('./config/pipo');
+var configPipo = require('./config/pipo')();
 var configMD = require('./config/markdown');
 var logger = require('./config/logger');
 var configHttp = require('./config/http');

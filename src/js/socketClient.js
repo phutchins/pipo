@@ -14,6 +14,7 @@ function SocketClient() {
   this.socket.on('certificate', function(certificate) {
     console.log("[socketClient] (certificate) Got server certificate. Verifying...");
     window.encryptionManager.verifyCertificate(certificate, function(err) {
+      // This should probably check for an error and not continue if we have an error...
       console.log("[socketClient] (certificate) Veritifed server certificate! Authenticating with server.");
       self.init();
     });

@@ -568,6 +568,7 @@
     <script>
       // If we are in electron
       if ('type' in process) {
+        // Maybe set the base dir for src includes here?
         window.$ = window.jQuery = require('jquery');
         window.async = window.async = require('async');
         io = require('socket.io-client');

@@ -10,7 +10,7 @@ var Message = require('./models/message');
 var Chat = require('./models/chat');
 
 // Config
-var config = require('./config/pipo');
+var config = require('./config/pipo')();
 var logger = require('./config/logger');
 
 // Admin Data
@@ -78,6 +78,7 @@ SocketServer.prototype.onSocket = function(socket) {
 
 SocketServer.prototype.init = function init() {
   var self = this;
+  console.log("bleh");
   if (config.encryptionScheme == 'masterKey') {
     // Do master key things
     this.initMasterKeyPair(function(err) {
@@ -1272,11 +1273,12 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var activeUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    activeUsers = this.namespace.adapter.rooms[chatId];
+    // Why are we assigning this twice here??
+    activeUsers = this.namespace.adapter.rooms[chatId].sockets;
 
     //logger.debug("[socketServer.getActiveUsers] activeUsers: ", activeUsers);
 
-    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId]).filter(function(sid) {
+    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
       //logger.debug("[socketServer.getActiveUsers] Looping filter namespace.adapter.rooms[chatId] - sid: ", sid);
       return activeUsers[sid];
     });
@@ -1285,6 +1287,7 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
 
     //Map sockets to users
     activeUsers = activeUsers.map(function(sid) {
+      logger.debug("[socketServer.getActiveUsers] sid: " + sid);
       return self.namespace.socketMap[sid].userId;
     });
 

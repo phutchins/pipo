@@ -16,9 +16,13 @@ function createWindow () {
   // Create the browser window.
   mainWindow = new BrowserWindow({width: 800, height: 600});
 
-  //mainWindow.webContents.on('did-start-loading', function() {
-  //  mainWindow.webContents.executeJavaScript("var $ = jQuery = require('jquery'), window.async = window.async = require('async'), io = require('socket.io-client'), mainWindow = require('remote').getCurrentWindow();");
-  //});
+  mainWindow.webContents.on('did-start-loading', function() {
+    //mainWindow.webContents.executeJavaScript("var $ = jQuery = require('jquery'), window.async = window.async = require('async'), io = require('socket.io-client'), mainWindow = require('remote').getCurrentWindow();");
+    mainWindow.webContents.executeJavaScript("var mainWindow = require('remote').getCurrentWindow();");
+    //mainWindow.webContents.executeJavaScript("window.$ = window.jQuery = require('jquery');");
+    //mainWindow.webContents.executeJavaScript("window.async = window.async = require('async');");
+    //mainWindow.webContents.executeJavaScript("window.io = io = require('socket.io-client');");
+  });
 
   // and load the index.html of the app.
   mainWindow.loadURL('file://' + __dirname + '/dist/client.ejs');

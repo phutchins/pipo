@@ -18,14 +18,14 @@ function createWindow () {
 
   mainWindow.webContents.on('did-start-loading', function() {
     //mainWindow.webContents.executeJavaScript("var $ = jQuery = require('jquery'), window.async = window.async = require('async'), io = require('socket.io-client'), mainWindow = require('remote').getCurrentWindow();");
-    mainWindow.webContents.executeJavaScript("var mainWindow = require('remote').getCurrentWindow();");
     //mainWindow.webContents.executeJavaScript("window.$ = window.jQuery = require('jquery');");
     //mainWindow.webContents.executeJavaScript("window.async = window.async = require('async');");
     //mainWindow.webContents.executeJavaScript("window.io = io = require('socket.io-client');");
+    mainWindow.webContents.executeJavaScript("var mainWindow = require('remote').getCurrentWindow();");
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/dist/client.ejs');
+  mainWindow.loadURL('file://' + __dirname + '/views/client.ejs');
 
   // Open the DevTools.
   mainWindow.webContents.openDevTools();

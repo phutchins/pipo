@@ -2,6 +2,74 @@
 <html>
   <head>
     <title>PiPo</title>
+    <script src="socket.io/socket.io.js"></script>
+
+    <script>
+      // If we are in electron
+      var libBasePath = '';
+      debugger;
+      if ('type' in process) {
+        // Maybe set the base dir for src includes here?
+        libBasePath = '../src/';
+        window.$ = window.jQuery = require('jquery');
+        window.async = window.async = require('async');
+        io = require('socket.io-client');
+      } else {
+        // Otherwise, we're not in electron
+
+      }
+
+      var JSFiles = [
+        'js/lib/openpgp.js',
+        'js/lib/kbpgp.js',
+        'js/lib/jquery-1.11.1.js',
+        'js/lib/semantic.js',
+        'js/lib/async.js',
+        'js/lib/highlight.min.js',
+        'js/lib/moment.min.js',
+        'js/lib/livestamp.min.js',
+        'js/lib/marked.js',
+        'js/lib/FileSaver.js',
+        'js/lib/blob.js',
+        'js/lib/jquery.pulse.js',
+        'js/modals/registerUserPrompt.js',
+        'js/modals/unlockClientKeyPairModal.js',
+        'js/chatManager.js',
+        'js/clientNotification.js',
+        'js/socketClient.js',
+        'js/encryptionManager.js',
+        'js/authentication.js',
+        'js/serverCommand.js'
+      ];
+
+      var CSSFiles = [
+        'css/google_fonts_roboto.css',
+        'css/semantic.css',
+        'css/pipo.css',
+        'css/highlight.js/styles/default.css'
+      ];
+
+      JSFiles.forEach(function(JSFile) {
+        var JSLink = libBasePath + JSFile;
+        var JSElement = document.createElement('script');
+        JSElement.src = JSLink;
+        document.getElementsByTagName('head')[0].appendChild(JSElement);
+      });
+
+      CSSFiles.forEach(function(CSSFile) {
+        var JSLink = libBasePath + CSSFile;
+        var JSElement = document.createElement('link');
+        JSElement.href = JSLink;
+        JSElement.type = 'text/css';
+        JSElement.rel = 'stylesheet';
+        document.getElementsByTagName('head')[0].appendChild(JSElement);
+      });
+
+      hljs.initHighlightingOnLoad();
+      openpgp.initWorker(libBasePath + 'js/lib/openpgp.worker.js');
+
+    </script>
+
   </head>
   <body>
     <div id="mainContainer">
@@ -559,55 +627,6 @@
       </div>
     </div>
 
-
-    <link rel="stylesheet" href='css/google_fonts_roboto.css' type='text/css'>
-    <link rel="stylesheet" href="css/semantic.css">
-    <link rel="stylesheet" href="css/pipo.css">
-    <link rel="stylesheet" href="css/highlight.js/styles/default.css">
-
-    <script>
-      // If we are in electron
-      if ('type' in process) {
-        // Maybe set the base dir for src includes here?
-        window.$ = window.jQuery = require('jquery');
-        window.async = window.async = require('async');
-        io = require('socket.io-client');
-      } else {
-        // Otherwise, we're not in electron
-
-      }
-    </script>
-
-    <script src="js/lib/openpgp.js"></script>
-    <script src="js/lib/kbpgp.js"></script>
-    <script src="js/lib/jquery-1.11.1.js"></script>
-    <script src="js/lib/semantic.js"></script>
-
-    <script src="socket.io/socket.io.js"></script>
-    <script src="js/lib/async.js"></script>
-    <script src="js/lib/highlight.min.js"></script>
-    <script src="js/lib/moment.min.js"></script>
-    <script src="js/lib/livestamp.min.js"></script>
-    <script src="js/lib/marked.js"></script>
-    <script src="js/lib/FileSaver.js"></script>
-    <script src="js/lib/blob.js"></script>
-    <script src="js/lib/jquery.pulse.js"></script>
-
-    <!-- Load Modals -->
-    <script src="js/modals/registerUserPrompt.js"></script>
-    <script src="js/modals/unlockClientKeyPairModal.js"></script>
-
-    <script src="js/chatManager.js"></script>
-    <script src="js/clientNotification.js"></script>
-    <script src="js/socketClient.js"></script>
-    <script src="js/encryptionManager.js"></script>
-    <script src="js/authentication.js"></script>
-    <script src="js/serverCommand.js"></script>
-
-    <script>
-      hljs.initHighlightingOnLoad();
-      openpgp.initWorker('js/lib/openpgp.worker.js');
-    </script>
 
 
   </body>

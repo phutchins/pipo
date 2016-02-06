@@ -50,8 +50,9 @@ var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.
 var io = socketIO(server);
 
 //Express
-app.set('view engine', 'ejs');
-//app.set('view cache', true);
+app.set('views', path.join(__dirname, 'views'));
+app.set('view engine', 'jade');
+
 app.set('x-powered-by', false);
 
 //Middleware

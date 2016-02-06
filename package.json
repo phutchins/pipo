@@ -33,6 +33,7 @@
     "gulp": "^3.8.11",
     "highlight": "^0.2.3",
     "istanbul": "^0.3.17",
+    "jade": "^1.11.0",
     "jasmine-node": "^1.14.5",
     "kbpgp": "^2.0.11",
     "kerberos": "0.0.18",

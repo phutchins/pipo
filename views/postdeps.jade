@@ -1,7 +1,3 @@
-link(rel='stylesheet', href='#{depRoot}css/google_fonts_roboto.css', type='text/css')
-link(rel='stylesheet', href='#{depRoot}css/semantic.css')
-link(rel='stylesheet', href='#{depRoot}css/pipo.css')
-link(rel='stylesheet', href='#{depRoot}css/highlight.js/styles/default.css')
 if(platform == "electron")
   script.
     window.config = !{JSON.stringify(config)};
@@ -37,4 +33,3 @@ script(src='#{depRoot}js/serverCommand.js')
 script.
   hljs.initHighlightingOnLoad();
   openpgp.initWorker('#{depRoot}js/lib/openpgp.worker.js');
-

@@ -2,7 +2,7 @@ doctype html
 html
   head
     title PiPo
-    |!{deps}
+    |!{preDeps}
   body
     #mainContainer
       ul#chat.chat-window
@@ -377,4 +377,4 @@ html
           | Members
         ul.manage-members-list
       .actions
-
+  |!{postDeps}

@@ -8,15 +8,16 @@ const app = electron.app;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 
-var depsFn = jade.compileFile('./views/deps.jade');
+var preDepsFn = jade.compileFile('./views/predeps.jade');
+var postDepsFn = jade.compileFile('./views/postdeps.jade');
 var clientConfig = require('./config/pipo.js')();
 
-var renderedDeps = depsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
-
-console.log("Deps: " + renderedDeps);
+var renderedPreDeps = preDepsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
+var renderedPostDeps = postDepsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
 
 var locals = {
-  deps: renderedDeps,
+  preDeps: renderedPreDeps,
+  postDeps: renderedPostDeps,
   config: clientConfig
 };
 

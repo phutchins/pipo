@@ -4,24 +4,33 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        server: "localhost",
-        port: 3030
+        server: {
+          ssl: false,
+          host: "localhost",
+          port: 3030
+        }
       };
 
     case 'production':
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        server: "pipo.chat",
-        port: 80
+        server: {
+          ssl: true,
+          host: "pipo.chat",
+          port: 443
+        }
     };
 
     default:
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        server: "localhost",
-        port: 3030
+        server: {
+          ssl: false,
+          host: "localhost",
+          port: 3030
+        }
       };
     }
 };

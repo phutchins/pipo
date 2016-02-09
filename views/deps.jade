@@ -4,15 +4,19 @@ link(rel='stylesheet', href='#{depRoot}css/pipo.css')
 link(rel='stylesheet', href='#{depRoot}css/highlight.js/styles/default.css')
 if(platform == "electron")
   script.
+    window.config = !{JSON.stringify(config)};
     window.$ = window.jQuery = require('jquery');
-    window.async = window.async = require('async');
-    io = require('socket.io-client');
+    window.io = io = require('socket.io-client');
+else
+  script(src='/socket.io/socket.io.js')
+  if(config)
+    script.
+      window.config = !{JSON.stringify(config)};
 script(src='#{depRoot}js/lib/openpgp.js')
 script(src='#{depRoot}js/lib/kbpgp.js')
 script(src='#{depRoot}js/lib/jquery-1.11.1.js')
 script(src='#{depRoot}js/lib/semantic.js')
 // This is not loading correctly in electron
-script(src='socket.io/socket.io.js')
 script(src='#{depRoot}js/lib/async.js')
 script(src='#{depRoot}js/lib/highlight.min.js')
 script(src='#{depRoot}js/lib/moment.min.js')

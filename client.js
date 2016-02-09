@@ -9,12 +9,15 @@ const app = electron.app;
 const BrowserWindow = electron.BrowserWindow;
 
 var depsFn = jade.compileFile('./views/deps.jade');
-var renderedDeps = depsFn({ depRoot: '../src/', platform: 'electron' })
+var clientConfig = require('./config/pipo.js')();
+
+var renderedDeps = depsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
 
 console.log("Deps: " + renderedDeps);
 
 var locals = {
-  deps: renderedDeps
+  deps: renderedDeps,
+  config: clientConfig
 };
 
 var ej = require('electron-jade')({ pretty: true }, locals);
@@ -39,7 +42,7 @@ function createWindow () {
   mainWindow.loadURL('file://' + __dirname + '/views/client.jade');
 
   // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

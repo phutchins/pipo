@@ -45,8 +45,13 @@ catch (e) {
 
 //Application
 var app = express();
-//var server = http.Server(app);
-var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+
+if (configPipo.server.ssl) {
+  var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+} else {
+  var server = http.Server(app);
+}
+
 var io = socketIO(server);
 
 //Express

@@ -1,7 +1,20 @@
 function SocketClient() {
   var self = this;
-  var host = window.location.host;
-  this.socket = window.io(host + '/socket');
+  var server = window.location.protocol + "//" + window.location.host;
+
+  if (window.config) {
+    var host = window.config.server.host;
+    var port = window.config.server.port;
+    var proto = "http";
+
+    if (window.config.server.ssl) {
+      proto = "https";
+    };
+    server = proto + "://" + host + ":" + port;;
+  }
+
+  console.log("Server: " + server);
+  this.socket = window.io(server + '/socket');
 
   window.username = localStorage.getItem('username');
   window.email = localStorage.getItem('email');

@@ -1,10 +1,23 @@
 'use strict';
 
+var jade = require('jade');
+
 const electron = require('electron');
 // Module to control application life.
 const app = electron.app;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
+
+var depsFn = jade.compileFile('./views/deps.jade');
+var renderedDeps = depsFn({ depRoot: '../src/', platform: 'electron' })
+
+console.log("Deps: " + renderedDeps);
+
+var locals = {
+  deps: renderedDeps
+};
+
+var ej = require('electron-jade')({ pretty: true }, locals);
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -23,7 +36,7 @@ function createWindow () {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/views/client.ejs');
+  mainWindow.loadURL('file://' + __dirname + '/views/client.jade');
 
   // Open the DevTools.
   //mainWindow.webContents.openDevTools();

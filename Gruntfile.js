@@ -63,6 +63,6 @@ module.exports = function(grunt) {
     }
   });
 
-  grunt.registerTask('electron', ['electron']);
+  grunt.registerTask('default', ['electron']);
   grunt.registerTask('lint', ['jslint']);
 };

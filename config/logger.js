@@ -34,7 +34,7 @@ if (process.env.NODE_ENV !== 'test') {
     colorize: true,
     silent: false,
     timestamp: true,
-    filename: './log/pipo.log',
+    filename: './pipo.log',
     maxsize: 40000,
     maxFiles: 10,
     json: false
@@ -55,7 +55,7 @@ if (process.env.NODE_ENV !== 'test') {
     colorize: true,
     silent: false,
     timestamp: true,
-    filename: './log/pipo.log',
+    filename: './pipo.log',
     maxsize: 40000,
     maxFiles: 10,
     json: false

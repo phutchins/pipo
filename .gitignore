@@ -4,6 +4,7 @@ node_modules
 adminData/
 pipo*.log
 log/pipo*.log
+log
 npm-debug.log
 dist/
 cache/

@@ -5,3 +5,6 @@ adminData/
 pipo*.log
 log/pipo*.log
 npm-debug.log
+dist/
+cache/
+out/

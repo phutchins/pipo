@@ -2,6 +2,10 @@
 <html>
   <head>
     <title>PiPo</title>
+    <!-- Need to use Jade to set the path for loading depLoader.js -->
+    <script src="socket.io/socket.io.js"></script>
+    <script src="#{depRoot}js/depLoader.js"></script>
+
   </head>
   <body>
     <div id="mainContainer">
@@ -558,44 +562,6 @@
       <div class="actions">
       </div>
     </div>
-
-
-    <link href='//fonts.googleapis.com/css?family=Source+Sans+Pro|Roboto' rel='stylesheet' type='text/css'>
-    <link rel="stylesheet" href="/css/semantic.css">
-    <link rel="stylesheet" href="/css/pipo.css">
-    <link rel="stylesheet" href="/css/highlight.js/styles/default.css">
-
-    <script src="/js/lib/openpgp.js"></script>
-    <script src="/js/lib/kbpgp.js"></script>
-    <script src="/js/lib/jquery-1.11.1.js"></script>
-    <script src="/js/lib/semantic.js"></script>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script src="/js/lib/async.js"></script>
-    <script src="/js/lib/highlight.min.js"></script>
-    <script src="/js/lib/moment.min.js"></script>
-    <script src="/js/lib/livestamp.min.js"></script>
-    <script src="/js/lib/marked.js"></script>
-    <script src="/js/lib/FileSaver.js"></script>
-    <script src="/js/lib/blob.js"></script>
-    <script src="/js/lib/jquery.pulse.js"></script>
-
-    <!-- Load Modals -->
-    <script src="/js/modals/registerUserPrompt.js"></script>
-    <script src="/js/modals/unlockClientKeyPairModal.js"></script>
-
-    <script src="/js/chatManager.js"></script>
-    <script src="/js/clientNotification.js"></script>
-    <script src="/js/socketClient.js"></script>
-    <script src="/js/encryptionManager.js"></script>
-    <script src="/js/authentication.js"></script>
-    <script src="/js/serverCommand.js"></script>
-
-    <script>
-      hljs.initHighlightingOnLoad();
-      openpgp.initWorker('/js/lib/openpgp.worker.js');
-    </script>
-
 
   </body>
 </html>

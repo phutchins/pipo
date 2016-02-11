@@ -1,7 +1,20 @@
 function SocketClient() {
   var self = this;
-  var host = window.location.host;
-  this.socket = window.io(host + '/socket');
+  var server = window.location.protocol + "//" + window.location.host;
+
+  if (window.config) {
+    var host = window.config.server.host;
+    var port = window.config.server.port;
+    var proto = "http";
+
+    if (window.config.server.ssl) {
+      proto = "https";
+    };
+    server = proto + "://" + host + ":" + port;;
+  }
+
+  console.log("Server: " + server);
+  this.socket = window.io(server + '/socket');
 
   window.username = localStorage.getItem('username');
   window.email = localStorage.getItem('email');
@@ -14,6 +27,7 @@ function SocketClient() {
   this.socket.on('certificate', function(certificate) {
     console.log("[socketClient] (certificate) Got server certificate. Verifying...");
     window.encryptionManager.verifyCertificate(certificate, function(err) {
+      // This should probably check for an error and not continue if we have an error...
       console.log("[socketClient] (certificate) Veritifed server certificate! Authenticating with server.");
       self.init();
     });

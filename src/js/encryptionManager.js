@@ -636,9 +636,24 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(usernam
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
 EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(username, publicKey, callback) {
   console.log("Verifying remote public key for user '"+username+"'");
+
+  var server = window.location.protocol + "//" + window.location.host;
+
+  if (window.config) {
+    var host = window.config.server.host;
+    var port = window.config.server.port;
+    var proto = "http";
+
+    if (window.config.server.ssl) {
+      proto = "https";
+    };
+
+    server = proto + "://" + host + ":" + port;
+  }
+
   $.ajax({
     type: "GET",
-    url: "/key/publickey",
+    url: server + "/key/publickey",
     dataType: "json",
     data: {
       username: username

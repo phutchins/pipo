@@ -21,7 +21,7 @@ var pgp = require('kbpgp');
 var database = require('./database');
 
 //Configuration
-var configPipo = require('./config/pipo');
+var configPipo = require('./config/pipo')();
 var configMD = require('./config/markdown');
 var logger = require('./config/logger');
 var configHttp = require('./config/http');
@@ -45,22 +45,29 @@ catch (e) {
 
 //Application
 var app = express();
-//var server = http.Server(app);
-var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+
+if (configPipo.server.ssl) {
+  var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
+} else {
+  var server = http.Server(app);
+}
+
 var io = socketIO(server);
 
 //Express
-app.set('view engine', 'ejs');
-//app.set('view cache', true);
+app.set('views', path.join(__dirname, 'src/views'));
+app.set('view engine', 'jade');
+
 app.set('x-powered-by', false);
 
 //Middleware
-app.use(favicon(__dirname + '/public/img/favicon.ico'));
+app.use(favicon(__dirname + '/src/img/favicon.ico'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
 //Static assets
-app.use(express['static'](path.join(__dirname, 'public')));
+// TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
+app.use(express['static'](path.join(__dirname, 'src')));
 
 //Logger
 //app.use(morgan('dev'));
@@ -76,7 +83,7 @@ console.log('');
 database.connect('development');
 
 // Load routes
-var routePath = './routes/';
+var routePath = './src/routes/';
 var routes = [];
 logger.info("[SERVER] Loading routes...");
 fs.readdirSync(routePath).forEach(function(file) {

@@ -1,4 +1,4 @@
-require('../config/database');
+require('../../config/database');
 
 module.exports = function(app) {
   app.post('/user/data', function(req, res) {

@@ -1,0 +1,35 @@
+if(platform == "electron")
+  script.
+    window.config = !{JSON.stringify(config)};
+    window.$ = window.jQuery = require('jquery');
+    window.io = io = require('socket.io-client');
+else
+  script(src='/socket.io/socket.io.js')
+  if(config)
+    script.
+      window.config = !{JSON.stringify(config)};
+script(src='#{depRoot}js/lib/openpgp.js')
+script(src='#{depRoot}js/lib/kbpgp.js')
+script(src='#{depRoot}js/lib/jquery-1.11.1.js')
+script(src='#{depRoot}js/lib/semantic.js')
+// This is not loading correctly in electron
+script(src='#{depRoot}js/lib/async.js')
+script(src='#{depRoot}js/lib/highlight.min.js')
+script(src='#{depRoot}js/lib/moment.min.js')
+script(src='#{depRoot}js/lib/livestamp.min.js')
+script(src='#{depRoot}js/lib/marked.js')
+script(src='#{depRoot}js/lib/FileSaver.js')
+script(src='#{depRoot}js/lib/blob.js')
+script(src='#{depRoot}js/lib/jquery.pulse.js')
+// Load Modals
+script(src='#{depRoot}js/modals/registerUserPrompt.js')
+script(src='#{depRoot}js/modals/unlockClientKeyPairModal.js')
+script(src='#{depRoot}js/chatManager.js')
+script(src='#{depRoot}js/clientNotification.js')
+script(src='#{depRoot}js/socketClient.js')
+script(src='#{depRoot}js/encryptionManager.js')
+script(src='#{depRoot}js/authentication.js')
+script(src='#{depRoot}js/serverCommand.js')
+script.
+  hljs.initHighlightingOnLoad();
+  openpgp.initWorker('#{depRoot}js/lib/openpgp.worker.js');

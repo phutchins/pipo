@@ -7,3 +7,4 @@ log/pipo*.log
 npm-debug.log
 dist/
 cache/
+out/

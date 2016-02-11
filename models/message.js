@@ -15,6 +15,7 @@ var logger = require('../config/logger');
 
 var messageSchema = new Schema({
   date: { type: Date, default: new Date() },
+  messageId: { type: String },
   _fromUser: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   _toUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   //_toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
@@ -34,6 +35,7 @@ messageSchema.statics.sanatize = function sanatize(message, callback) {
 
     var sanatizedMessage = {
       date: populatedMessage.date,
+      messageId: message.messageId,
       fromUser: populatedMessage._fromUser._id.toString(),
       toUsers: toUsersArray,
       //toChat: populatedMessage._toChat._id.toString(),

@@ -442,7 +442,7 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
   var keyRing = data.keyRing || this.keyRing;
 
   Object.keys(keyRing._keys).forEach(function(keyId) {
-    console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
+    //console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
   });
 
   // Add our own decrypted private key to the key manager so we can decrypt messages
@@ -666,7 +666,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
       200: function(data) {
         //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
         var remotePublicKey = data.publicKey;
-        console.log("Key exists on remote");
+        //console.log("Key exists on remote");
         //console.log("Remote Pub Key: "+data.publicKey);
         //console.log("Local Pub Key: "+publicKey);
         var regex = /\r?\n|\r/g

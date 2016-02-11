@@ -43,7 +43,7 @@ RegisterUserPrompt.init = function init(successCallback) {
           prompt : 'Please enter a username'
         },
         {
-          type : "regExp[^[a-z0-9_-]{3,32}$]",
+          type : "regExp[^[a-zA-Z0-9_-]{3,32}$]",
           prompt : 'Please enter a properly formatted username. Username can only contain regular letters and numbers, underscores and dashes and must be between 3 and 32 characters long.'
         }]
       },
@@ -110,8 +110,7 @@ RegisterUserPrompt.init = function init(successCallback) {
         //Hides modal on validation success
         $('.ui.modal.register').modal('hide');
 
-
-        ChatManager.disableChat();
+        ChatManager.updateChatStatus({ status: 'generating' });
 
         $('.ui.modal.generate').modal('show');
 
@@ -137,7 +136,6 @@ RegisterUserPrompt.init = function init(successCallback) {
             window.encryptionManager.clientCredentialsLoaded = false;
 
             //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
-            ChatManager.enableChat();
             socketClient.init();
           }
         });

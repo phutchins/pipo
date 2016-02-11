@@ -55,7 +55,7 @@ if (configPipo.server.ssl) {
 var io = socketIO(server);
 
 //Express
-app.set('views', path.join(__dirname, 'views'));
+app.set('views', path.join(__dirname, 'src/views'));
 app.set('view engine', 'jade');
 
 app.set('x-powered-by', false);
@@ -83,7 +83,7 @@ console.log('');
 database.connect('development');
 
 // Load routes
-var routePath = './routes/';
+var routePath = './src/routes/';
 var routes = [];
 logger.info("[SERVER] Loading routes...");
 fs.readdirSync(routePath).forEach(function(file) {

@@ -1,27 +1,21 @@
-grunt.initConfig({
-  jasmine_node: {
-    task_name: {
-      options: {
-        coverage: {},
-        forceExit: true,
-        match: '.',
-        matchAll: false,
-        specFolders: ['specs'],
-        extensions: 'js',
-        specNameMatcher: 'spec',
-        captureExceptions: true,
-        junitreport: {
-          report: false,
-          savePath : './build/reports/jasmine/',
-          useDotNotation: true,
-          consolidate: true
+module.exports = function(grunt) {
+  require('load-grunt-tasks')(grunt);
+  grunt.initConfig({
+    pkg: grunt.file.readJSON('package.json'),
+    electron: {
+      osxBuild: {
+        options: {
+          name: 'PiPo',
+          dir: '.',
+          out: 'dist',
+          version: '0.36.5',
+          platform: 'darwin',
+          icon: 'src/img/pipo.icns',
+          arch: 'x64'
         }
-      },
-      src: ['**/*.js']
+      }
     }
-  }
-});
+  });
 
-grunt.loadNpmTasks('grunt-jasmine-node-coverage');
-
-grunt.registerTask('default', 'jasmine_node');
+  grunt.registerTask('default', ['electron']);
+};

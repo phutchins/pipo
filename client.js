@@ -8,12 +8,14 @@ const app = electron.app;
 // Module to create native browser window.
 const BrowserWindow = electron.BrowserWindow;
 
-var preDepsFn = jade.compileFile('./views/predeps.jade');
-var postDepsFn = jade.compileFile('./views/postdeps.jade');
-var clientConfig = require('./config/pipo.js')();
+var appDir = app.getAppPath();
 
-var renderedPreDeps = preDepsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
-var renderedPostDeps = postDepsFn({ depRoot: '../src/', platform: 'electron', config: clientConfig })
+var preDepsFn = jade.compileFile(appDir + '/src/views/predeps.jade');
+var postDepsFn = jade.compileFile(appDir + '/src/views/postdeps.jade');
+var clientConfig = require(appDir + '/config/pipo.js')();
+
+var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
+var renderedPostDeps = postDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
 
 var locals = {
   preDeps: renderedPreDeps,
@@ -40,10 +42,10 @@ function createWindow () {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/views/client.jade');
+  mainWindow.loadURL('file://' + __dirname + '/src/views/client.jade');
 
   // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

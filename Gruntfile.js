@@ -1,4 +1,6 @@
-module.exports = function(grunt) {
+module.exports = function (grunt) {
+  'use strict';
+
   require('load-grunt-tasks')(grunt);
   grunt.loadNpmTasks('grunt-jslint');
   grunt.loadNpmTasks('grunt-contrib-clean');
@@ -11,15 +13,15 @@ module.exports = function(grunt) {
       server: {
         src: [
           '*.js',
-          'src/routes/*.js',
-          'managers/*.js',
-          'models/*.js',
-          'test/**/*.js'
+          'server/routes/*.js',
+          'server/js/**/*.js',
+          'server/models/*.js'
         ],
         exclude: [
         ],
         directives: { // example directives
           node: true,
+          indent: 2,
           todo: true
         },
         options: {
@@ -35,10 +37,11 @@ module.exports = function(grunt) {
       // lint your project's client code
       client: {
         src: [
-          'src/js/*.js'
+          'public/js/*.js'
         ],
         directives: {
           browser: true,
+          indent: 2,
           predef: [
             'jQuery'
           ]
@@ -65,12 +68,15 @@ module.exports = function(grunt) {
 
     clean: {
       build: ["out", "pipo.log"],
+      modules: ["node_modules"],
       release: ["dist"]
-    },
+    }
   });
 
 
 
-  grunt.registerTask('default', ['electron']);
+  grunt.registerTask('default', ['lint']);
+  grunt.registerTask('build', ['electron']);
+  grunt.registerTask('clean', ['clean']);
   grunt.registerTask('lint', ['jslint']);
 };

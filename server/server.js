@@ -7,7 +7,7 @@ var path = require('path');
 //Modules
 var express = require('express');
 var socketIO = require('socket.io');
-var openpgp = require('openpgp');
+//var openpgp = require('openpgp');
 var favicon = require('serve-favicon');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
@@ -18,14 +18,14 @@ var winston = require('winston');
 var pgp = require('kbpgp');
 
 //Local modules
-var database = require('./database');
+var database = require('./js/database');
 
 //Configuration
-var configPipo = require('./config/pipo')();
-var configMD = require('./config/markdown');
-var logger = require('./config/logger');
-var configHttp = require('./config/http');
-var configHttps = require('./config/https');
+var configPipo = require('../config/pipo')();
+var configMD = require('../config/markdown');
+var logger = require('../config/logger');
+var configHttp = require('../config/http');
+var configHttps = require('../config/https');
 
 //Models
 var KeyPair = require('./models/keypair');
@@ -33,10 +33,10 @@ var User = require('./models/user');
 var KeyId = require('./models/keyid');
 
 //Globals
-var SocketServer = require('./socketServer');
+var SocketServer = require('./js/socketServer');
 
 try {
-  var AdminCertificate = require('./adminData/adminCertificate');
+  var AdminCertificate = require('../config/adminData/adminCertificate');
 }
 catch (e) {
   console.log("Admin Certificate not yet configured, please run setup");
@@ -55,19 +55,19 @@ if (configPipo.server.ssl) {
 var io = socketIO(server);
 
 //Express
-app.set('views', path.join(__dirname, 'src/views'));
+app.set('views', path.join(__dirname, '../public/views'));
 app.set('view engine', 'jade');
 
 app.set('x-powered-by', false);
 
 //Middleware
-app.use(favicon(__dirname + '/src/img/favicon.ico'));
+app.use(favicon(__dirname + '/../public/img/favicon.ico'));
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({extended: true}));
 
 //Static assets
 // TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
-app.use(express['static'](path.join(__dirname, 'src')));
+app.use(express['static'](path.join(__dirname, '../public')));
 
 //Logger
 //app.use(morgan('dev'));
@@ -83,7 +83,7 @@ console.log('');
 database.connect('development');
 
 // Load routes
-var routePath = './src/routes/';
+var routePath = __dirname + '/routes/';
 var routes = [];
 logger.info("[SERVER] Loading routes...");
 fs.readdirSync(routePath).forEach(function(file) {

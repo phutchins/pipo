@@ -1,5 +1,5 @@
 var mongoose = require('mongoose');
-var openpgp = require('openpgp');
+//var openpgp = require('openpgp');
 var kbpgp = require('kbpgp');
 var KeyId = require('./keyid');
 var User = require('./user');

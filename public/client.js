@@ -10,8 +10,8 @@ const BrowserWindow = electron.BrowserWindow;
 
 var appDir = app.getAppPath();
 
-var preDepsFn = jade.compileFile(appDir + '/src/views/predeps.jade');
-var postDepsFn = jade.compileFile(appDir + '/src/views/postdeps.jade');
+var preDepsFn = jade.compileFile(appDir + '/public/views/predeps.jade');
+var postDepsFn = jade.compileFile(appDir + '/public/views/postdeps.jade');
 var clientConfig = require(appDir + '/config/pipo.js')();
 
 var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
@@ -42,7 +42,7 @@ function createWindow () {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/src/views/client.jade');
+  mainWindow.loadURL('file://' + __dirname + '/views/client.jade');
 
   // Open the DevTools.
   //mainWindow.webContents.openDevTools();

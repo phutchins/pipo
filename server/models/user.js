@@ -4,7 +4,7 @@ var bcrypt = require('bcrypt-nodejs');
 var crypto = require('crypto');
 var Room = require('./room');
 var Chat = require('./chat');
-var logger = require('../config/logger');
+var logger = require('../../config/logger');
 
 var userSchema = new Schema({
   username: { type: String },

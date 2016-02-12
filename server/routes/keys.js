@@ -1,6 +1,6 @@
 require('../../config/database');
-var KeyPair = require('../../models/keypair.js');
-var User = require('../../models/user.js');
+var KeyPair = require('../models/keypair.js');
+var User = require('../models/user.js');
 var Keys = require('events').EventEmitter;
 var logger = require('../../config/logger');
 

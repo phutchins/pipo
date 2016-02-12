@@ -8,6 +8,7 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "./node_modules/.bin/jasmine-node test",
+    "start": "node ./server/server.js",
     "coverage": "istanbul cover --include-all-sources jasmine-node test",
     "start-client": "electron ."
   },
@@ -43,7 +44,6 @@
     "mongoose": "^4.1.10",
     "morgan": "^1.5.3",
     "node-notifier": "^4.2.1",
-    "openpgp": "^1.0.1",
     "requirejs": "^2.1.17",
     "serve-favicon": "^2.2.1",
     "should": "^7.0.2",

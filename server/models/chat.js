@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-var logger = require('../config/logger');
+var logger = require('../../config/logger');
 var Message = require('./message');
 
 var chatSchema = new Schema({

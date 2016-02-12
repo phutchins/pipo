@@ -1,11 +1,11 @@
 // Configuration
-var configDB = require('./config/database');
+var configDB = require('../../config/database');
 
 // Modules
 var mongoose = require('mongoose');
 
 // Local modules
-var logger = require('./config/logger');
+var logger = require('../../config/logger');
 
 var connect = function(env) {
   var env = env;

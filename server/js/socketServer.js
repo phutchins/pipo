@@ -2,19 +2,19 @@
 
 
 // Models
-var User = require('./models/user');
-var KeyId = require('./models/keyid');
-var KeyPair = require('./models/keypair');
-var Room = require('./models/room');
-var Message = require('./models/message');
-var Chat = require('./models/chat');
+var User = require('../models/user');
+var KeyId = require('../models/keyid');
+var KeyPair = require('../models/keypair');
+var Room = require('../models/room');
+var Message = require('../models/message');
+var Chat = require('../models/chat');
 
 // Config
-var config = require('./config/pipo')();
-var logger = require('./config/logger');
+var config = require('../../config/pipo')();
+var logger = require('../../config/logger');
 
 // Admin Data
-var AdminCertificate = require('./adminData/adminCertificate');
+var AdminCertificate = require('../../config/adminData/adminCertificate');
 
 // Modules
 var mongoose = require('mongoose');

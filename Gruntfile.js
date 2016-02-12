@@ -1,6 +1,7 @@
 module.exports = function(grunt) {
   require('load-grunt-tasks')(grunt);
-  grunt.loadNpmTasks('grunt-jslint'); // load the task
+  grunt.loadNpmTasks('grunt-jslint');
+  grunt.loadNpmTasks('grunt-contrib-clean');
 
   grunt.initConfig({
     pkg: grunt.file.readJSON('package.json'),
@@ -56,12 +57,19 @@ module.exports = function(grunt) {
           out: 'dist',
           version: '0.36.5',
           platform: 'darwin',
-          icon: 'src/img/pipo.icns',
+          icon: 'public/img/pipo.icns',
           arch: 'x64'
         }
       }
-    }
+    },
+
+    clean: {
+      build: ["out", "pipo.log"],
+      release: ["dist"]
+    },
   });
+
+
 
   grunt.registerTask('default', ['electron']);
   grunt.registerTask('lint', ['jslint']);

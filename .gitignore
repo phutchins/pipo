@@ -1,10 +1,7 @@
-.idea
-config/pgpKeys.json
 node_modules
 adminData/
-pipo*.log
-log/pipo*.log
-npm-debug.log
+*.log
 dist/
 cache/
 out/
+.DS_Store

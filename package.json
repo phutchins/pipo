@@ -8,6 +8,7 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "./node_modules/.bin/jasmine-node test",
+    "start": "node ./server/server.js",
     "coverage": "istanbul cover --include-all-sources jasmine-node test",
     "start-client": "electron ."
   },
@@ -16,11 +17,15 @@
       "name": "Rob Riddle",
       "email": "rob@pipo.chat",
       "url": "https://github.com/unusualbob"
+    },
+    {
+      "name": "Pat Riley",
+      "email": "pat@pipo.chat"
     }
   ],
   "version": "0.1.0",
   "description": "Encrypted chat server/client",
-  "main": "client.js",
+  "main": "main.js",
   "dependencies": {
     "async": "^0.9.0",
     "attempt": "^1.0.1",
@@ -39,7 +44,6 @@
     "mongoose": "^4.1.10",
     "morgan": "^1.5.3",
     "node-notifier": "^4.2.1",
-    "openpgp": "^1.0.1",
     "requirejs": "^2.1.17",
     "serve-favicon": "^2.2.1",
     "should": "^7.0.2",
@@ -49,6 +53,7 @@
   },
   "devDependencies": {
     "grunt": "^0.4.5",
+    "grunt-contrib-clean": "^0.7.0",
     "grunt-electron": "^2.0.1",
     "grunt-jasmine-node-coverage": "^0.4.1",
     "grunt-jslint": "^1.1.14",

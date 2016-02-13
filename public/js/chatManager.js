@@ -1277,6 +1277,7 @@ ChatManager.updateRoomUsers = function updateRoomUsers(data) {
       console.log("[chatManager.updateRoomUsers] activeUsers is: ", ChatManager.chats[chatId].activeUsers);
       var active = isActive(userId);
 
+
       // FIgure out why active is set ot true when users are not active
 
       var user = ChatManager.userlist[userId];
@@ -1664,10 +1665,15 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     });
   };
 
+  debugger;
+
   if (ChatManager.chats[chatId]) {
     decrypt(chatId, encryptedMessage, function(message) {
       clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
 
+      // TODO:
+      // Use signature here to confirm the message and that it is from correct sender
+      debugger; // Determine if we're finding a chat and confirming the message
       ChatManager.addMessageToChat({ confirmed: true, messageId: messageId, type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
     });
   };
@@ -1690,7 +1696,8 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.arrayHash(participantIds, function(chatHash) {
       decrypt(chatId, encryptedMessage, function(message) {
         clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
-        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+        debugger; // Determine if we're finding a chat and confirming the message
+        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, confirmed: true, messageId: messageId, chatId: chatId, messageString: message, date: date });
       });
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
@@ -1717,7 +1724,7 @@ ChatManager.handleLocalMessage = function handleLocalMessage(data) {
   var fromUserId = data.fromUserId;
   var date = data.date;
 
-  // Should set the message to unconfirmed here (only if it's a local message tho
+  // Should set the message to unconfirmed here (only if it's a local message tho)
   ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
 

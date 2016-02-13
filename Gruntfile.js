@@ -61,7 +61,8 @@ module.exports = function (grunt) {
           version: '0.36.5',
           platform: 'darwin',
           icon: 'public/img/pipo.icns',
-          arch: 'x64'
+          arch: 'x64',
+          ignore: ['server', 'scripts', 'test', 'out', 'docs', 'dist']
         }
       }
     },

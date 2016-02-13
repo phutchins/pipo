@@ -484,6 +484,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   toUserIds.forEach(function(toUserId) {
     if (self.namespace.userMap[toUserId]) {
       if (self.namespace.userMap[toUserId] != self.socket.user._id.toString()) {
+        logger.debug("[socketServer.onPrivateMessage] Looping toUserIds to find socket - self.namespace.userMap[toUserId]: ", self.namespace.userMap[toUserId]);
         targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
       }
     } else {
@@ -501,11 +502,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     signature: data.signature
   };
 
-  //logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
+  logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
 
   var userMapKeys = Object.keys(self.namespace.userMap);
 
-  logger.debug("[SocketServer.onPrivateMessage] userMapKeys: " + userMapKeys);
+  logger.debug("[SocketServer.onPrivateMessage] userMapKeys: ", userMapKeys);
 
   logger.debug("[socketServer.onPrivateMessage] targetSockets: ", targetSockets);
 
@@ -524,6 +525,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
         return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ", toUserIds);
       };
 
+      if (chat) {
+        logger.debug("[socketServer.onPrivateMessage] Found chat with participantIds: ", toUserIds);
+      };
+
       if (!chat) {
         logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
         var chat = new Chat({
@@ -536,6 +541,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
       // For some reason, emitting to sockets, then getChat returns a chat that doesn't have the first message of a chat?
       // Looks like the server is not saving the messages after the first message but the client still gets it?
+
+      //TODO:
+      //Create a room from this chat and emit to the room instead of individual sockets save the room
+      //somewhere for later use...
       chat.save(function(err, savedChat) {
         emitToSockets(targetSockets, emitData);
       });
@@ -551,7 +560,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
-      self.socket.send(targetSocket).emit('privateMessage', emitData);
+      // BOOKMARK
+      // BUG
+      // This is not getting to the sending user for some reason... :-\
+      self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
 
     // Send the message back to the sender for confirmation
@@ -773,9 +785,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       });
     });
   } else {
+    // TODO:
     // Using client key encryption scheme
     // Move this to its own function (sanatizeRoomForClient)
-    // BOOKMARK
     Room.join({id: roomId, username: username}, function(err, data) {
       var auth = data.auth;
       var room = data.room;
@@ -1050,7 +1062,6 @@ SocketServer.prototype.membership = function membership(data) {
   var memberId = data.memberId;
   var membership = data.membership;
   var username = self.socket.user.username;
-  // BOOKMARK - Where should I be getting the userId from for the user doing the adding?
   var userId = self.socket.user.id;
 
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
@@ -1294,7 +1305,7 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
-    //logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
+    logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
     // Is this emitting to the right ID?
     self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
@@ -1310,17 +1321,20 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
  */
 SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var self = this;
+  var activeUserIds = [];
   var activeUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
-      return activeUsers[sid];
+    logger.debug("[socketServer.getActiveUsers] this.namespace.adapter.rooms[chatId]: ", this.namespace.adapter.rooms[chatId]);
+    activeUserIds = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
+      logger.debug("[socketServer.getActiveUsers] Looping active users, sid: ", sid);
+      return sid;
     });
 
     logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
 
     //Map sockets to users
-    activeUsers = activeUsers.map(function(sid) {
+    activeUsers = activeUserIds.map(function(sid) {
       logger.debug("[socketServer.getActiveUsers] sid: " + sid);
       return self.namespace.socketMap[sid].userId;
     });
@@ -1377,7 +1391,6 @@ SocketServer.prototype.disconnect = function disconnect() {
               return logger.info("User " + username + " failed to part room " + currentRoom.name);
             }
 
-            //BOOKMARK
             logger.info("User " + username + " successfully parted room " + currentRoom.name);
             // TODO: Should update all appropritae rooms here
             logger.info("Updating room users!");

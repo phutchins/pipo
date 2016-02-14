@@ -1665,15 +1665,10 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     });
   };
 
-  debugger;
-
   if (ChatManager.chats[chatId]) {
     decrypt(chatId, encryptedMessage, function(message) {
       clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
 
-      // TODO:
-      // Use signature here to confirm the message and that it is from correct sender
-      debugger; // Determine if we're finding a chat and confirming the message
       ChatManager.addMessageToChat({ confirmed: true, messageId: messageId, type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
     });
   };
@@ -1696,7 +1691,6 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.arrayHash(participantIds, function(chatHash) {
       decrypt(chatId, encryptedMessage, function(message) {
         clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
-        debugger; // Determine if we're finding a chat and confirming the message
         ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, confirmed: true, messageId: messageId, chatId: chatId, messageString: message, date: date });
       });
 

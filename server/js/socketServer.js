@@ -479,6 +479,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
+  logger.debug("[socketServer.onPrivateMessage] userMap: ", self.namespace.userMap);
+
   // Get the socketId's for each participant
   // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap
   toUserIds.forEach(function(toUserId) {
@@ -563,20 +565,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
       // BOOKMARK
       // BUG
       // This is not getting to the sending user for some reason... :-\
+      //self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
       self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
-
-    // Send the message back to the sender for confirmation
-    //logger.debug("[socketServer.onPrivateMessage] self.namespace.userMap: " + Object.keys(self.namespace.userMap));
-    //var socketMapKeys = Object.keys(self.namespace.socketMap);
-    //socketMapKeys.forEach(function(key) {
-    //  logger.debug("[socketServer.onPrivateMessage] asdf");
-    //});
-
-    //logger.debug("[socketServer.onPrivateMessage] self.namespace.socketMap: " + Object.keys(self.namespace.socketMap));
-
-    //logger.debug("[socketServer.onPrivateMessage] Senders socket ID is: " + self.socket.id);
-    //self.socket.emit('privateMessage', emitData);
+    self.socket.emit('privateMessage', emitData);
   };
 };
 

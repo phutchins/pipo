@@ -9,6 +9,8 @@ var Room = require('../models/room');
 var Message = require('../models/message');
 var Chat = require('../models/chat');
 
+// Libs
+
 // Config
 var config = require('../../config/pipo')();
 var logger = require('../../config/logger');
@@ -50,6 +52,10 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('updateClientKey', self.updateClientKey.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
+  socket.on('leaveRoom', function(id) {
+    logger.debug("[socketServer.on] leaveRoom - id: " + id);
+    self.leaveRoom(id).bind(self);
+  });
 
   socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.partRoom.bind(self));
@@ -568,7 +574,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
       //self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
       self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
-    self.socket.emit('privateMessage', emitData);
+    //self.socket.emit('privateMessage', emitData);
   };
 };
 
@@ -1344,6 +1350,11 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
 
 
 
+SocketServer.prototype.leaveRoom = function leaveRoom(roomId) {
+  logger.debug("[socketServer.leaveRoom] Got leave room for id: " + roomId);
+};
+
+
 SocketServer.prototype.disconnect = function disconnect() {
   var self = this;
   if (!self.socket) {
@@ -1370,6 +1381,7 @@ SocketServer.prototype.disconnect = function disconnect() {
 
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
+      logger.debug("[socketServer.disconnect] Looping room socket.rooms: ", Object.keys(self.socket.rooms));
       user.membership.rooms.forEach(function(roomMembership) {
         if (roomMembership.active) {
           var currentRoom = roomMembership._room;
@@ -1408,6 +1420,7 @@ SocketServer.prototype.disconnect = function disconnect() {
   } else {
     logger.info("WARNING! Someone left the room and we don't know who it was...");
   }
+
 };
 
 

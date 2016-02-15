@@ -174,7 +174,7 @@ SocketClient.prototype.addListeners = function() {
     //
 
     if (ChatManager.activeChat == chatId) {
-      ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });
+      window.Userlist.update({ chatId: chatId });
     }
   });
 

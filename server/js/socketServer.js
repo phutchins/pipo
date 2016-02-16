@@ -51,6 +51,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
 
   socket.on('updateClientKey', self.updateClientKey.bind(self));
+  socket.on('disconnecting', self.disconnecting.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
   socket.on('leaveRoom', function(id) {
     logger.debug("[socketServer.on] leaveRoom - id: " + id);
@@ -1301,14 +1302,30 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
  */
 SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
+  logger.debug("[socketServer.updateActiveUsers] Getting active users...");
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
     logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
     // Is this emitting to the right ID?
-    self.namespace.to(chatId).emit("activeUsersUpdate", {
-      chatId: chatId,
-      activeUsers: activeUsers
+    Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser _messages._toUsers').exec(function(err, room) {
+      if (err) {
+        logger.error("[socketServer.updateActiveUsers] Error getting room for updateActiveUsers: ", err);
+      }
+
+      if (room) {
+        logger.debug("[socketServer.udpateActiveUsers] Sanatizing room '" + room.name + "' with id '" + room.id + "'");
+        //logger.debug("[socketServer.updateActiveUsers] members: ", room.members);
+        self.sanatizeRoomsForClient( [ room ], function(sanatizedRooms) {
+          logger.debug("[socketServer.updateActiveUsers] sanatizedRoom: ", sanatizedRooms);
+          logger.debug("[socketServer.updateActiveUsers] Running roomUpdate from authenticate");
+          self.namespace.to(chatId).emit("roomUpdate", { rooms: sanatizedRooms });
+        });
+      }
     });
+    //self.namespace.to(chatId).emit("activeUsersUpdate", {
+    //  chatId: chatId,
+    //  activeUsers: activeUsers
+    //});
   });
 };
 
@@ -1352,6 +1369,28 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
 
 SocketServer.prototype.leaveRoom = function leaveRoom(roomId) {
   logger.debug("[socketServer.leaveRoom] Got leave room for id: " + roomId);
+};
+
+SocketServer.prototype.disconnecting = function(disconnecting) {
+  var self = this;
+  if (self.socket) {
+    var userId = self.socket.user.id;
+    var username = self.socket.user.username;
+    // BOOKMARK BOOKMARK BOOKMARK
+    var roomIds = Object.keys(self.socket.rooms).filter(function(room) {
+      return room.id;
+    });
+
+    logger.debug("[socketServer.disconnecting] roomIds: ", roomIds);
+
+    logger.debug("[socketServer.disconnecting] User '" + username + "' is disconnecting.");
+    logger.debug("[socketServer.disconnecting] rooms: ", Object.keys(self.socket.rooms));
+
+
+    roomIds.forEach(function(id) {
+      self.updateActiveUsers(id);
+    });
+  }
 };
 
 

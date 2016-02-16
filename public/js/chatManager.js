@@ -700,6 +700,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
     unreadCount = self.chats[room.id].unread;
   };
 
+  // Find a better way to only use passed attributes for a room if they exist, but also
+  // handle the case where the room isnt' created yet
+
+  var messages = (typeof room.messages === 'undefined') ? self.chats[room.id].messages : room.messages;
+
   self.chats[room.id] = { id: room.id,
     activeUsers: room.activeUsers,
     admins: room.admins,
@@ -711,7 +716,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     keepHistory: room.keepHistory,
     members: room.members,
     membershipRequired: room.membershipRequired,
-    messages: room.messages,
+    messages: messages,
     messageCache: '',
     name: room.name,
     owner: room.owner,
@@ -810,6 +815,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
       ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     }
   });
+
+  // DOES THIS BELONG HERE???!? FIX ME!!! :D
+  if (ChatManager.activeChat == room.id) {
+    window.Userlist.update({ chatId: room.id });
+  }
 
   self.updateRoomList(function(err) {
     console.log("Update room list done...");

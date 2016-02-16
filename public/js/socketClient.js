@@ -412,8 +412,14 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
 
     // Should we update the room selectively in initRoom or create a new method that handles only room updates
     // while initRoom only handles the initial room setup case?
+    console.log("[socketClient.handleRoomUpdate] Running initRoom from handleRoomUpdate");
+    debugger;
     ChatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
+
+      if (ChatManager.activeChat == id) {
+        window.Userlist.update({ chatId: id });
+      }
 
       ChatManager.updateRoomList(function() {
         console.log("[SocketClient.handleRoomUpdate] (1) Running ChatManager.updateChatStauts();");

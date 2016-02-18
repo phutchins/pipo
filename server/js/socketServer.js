@@ -813,8 +813,20 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           logger.debug("[socketServer.join] found username: " + username);
 
           logger.debug("[socketServer.join] index: " + user.membership.rooms.indexOf(room.id.toString()));
+          // Rooms here is an array of objects with room, active, lastSeen and accessLevel
+          // need to figure out exactly where to manage membership for each piece
+          // Maybe should remove accessLevel from here and leave that up to the room
+          //
+          // Do we really need this conditional? Should always update the last seen time?
+          // Should always update active and lastSeen
           if (user.membership.rooms.indexOf(room.id.toString()) < 0) {
-            user.membership.rooms.push(room.id.toString());
+            var currentDateTime = CURRENT DATE TIME;
+            var membershipData = {
+              _room: room._id,
+              active: true,
+              lastSeen: currentDateTime
+            };
+            user.membership.rooms.push(membershipData);
             user.save(function(err) {
               logger.debug("[socketServer.join] Saved membership to user '" + user.username + "'");
             });

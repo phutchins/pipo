@@ -51,7 +51,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
 
   socket.on('updateClientKey', self.updateClientKey.bind(self));
-  socket.on('disconnecting', self.disconnecting.bind(self));
+  //socket.on('disconnecting', self.disconnecting.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
   socket.on('leaveRoom', function(id) {
     logger.debug("[socketServer.on] leaveRoom - id: " + id);
@@ -802,6 +802,26 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         }
       }
 
+      logger.debug("[socketServer.join] Checking to see if we should add a memberhsip to this room for this user");
+      // If this is a public room and the user is not a member of the room yet, add this room to their membership
+      if (!room.membershipRequired) {
+        User.findOne({ username: username }, function(err, user) {
+          if (err) {
+            return logger.error("[socketServer.join] failed to find user while adding membership to '" + room.name);
+          }
+
+          logger.debug("[socketServer.join] found username: " + username);
+
+          logger.debug("[socketServer.join] index: " + user.membership.rooms.indexOf(room.id.toString()));
+          if (user.membership.rooms.indexOf(room.id.toString()) < 0) {
+            user.membership.rooms.push(room.id.toString());
+            user.save(function(err) {
+              logger.debug("[socketServer.join] Saved membership to user '" + user.username + "'");
+            });
+          }
+        });
+      };
+
       room._members.forEach(function(member) {
         logger.debug("[socketServer.joinRoom] Room has member: ",member.username);
       });
@@ -1307,6 +1327,7 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
     logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
     // Is this emitting to the right ID?
+    /*
     Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser _messages._toUsers').exec(function(err, room) {
       if (err) {
         logger.error("[socketServer.updateActiveUsers] Error getting room for updateActiveUsers: ", err);
@@ -1322,10 +1343,11 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
         });
       }
     });
-    //self.namespace.to(chatId).emit("activeUsersUpdate", {
-    //  chatId: chatId,
-    //  activeUsers: activeUsers
-    //});
+    */
+    self.namespace.to(chatId).emit("activeUsersUpdate", {
+      chatId: chatId,
+      activeUsers: activeUsers
+    });
   });
 };
 
@@ -1377,19 +1399,16 @@ SocketServer.prototype.disconnecting = function(disconnecting) {
     var userId = self.socket.user.id;
     var username = self.socket.user.username;
     // BOOKMARK BOOKMARK BOOKMARK
-    var roomIds = Object.keys(self.socket.rooms).filter(function(room) {
-      return room.id;
-    });
+    var roomIds = Object.keys(self.socket.rooms);
 
     logger.debug("[socketServer.disconnecting] roomIds: ", roomIds);
 
     logger.debug("[socketServer.disconnecting] User '" + username + "' is disconnecting.");
     logger.debug("[socketServer.disconnecting] rooms: ", Object.keys(self.socket.rooms));
 
-
-    roomIds.forEach(function(id) {
-      self.updateActiveUsers(id);
-    });
+    //roomIds.forEach(function(id) {
+    //  self.updateActiveUsers(id);
+    //});
   }
 };
 
@@ -1401,14 +1420,17 @@ SocketServer.prototype.disconnect = function disconnect() {
   }
 
   logger.info("[DISCONNECT] socket.id: " + self.socket.id);
-  self.socket.leaveAll();
+  // Is this necessary? Probably alreeady happens in socket
+  //self.socket.leaveAll();
 
+  // If there is a user and id in the socket
   if (self.socket.user && self.socket.user.id) {
     var userId = self.socket.user.id;
     var username = self.socket.user.username;
 
     logger.info("[SOCKET SERVER] (disconnect) username: "+username);
 
+    // Find the user object matching the user id that is disconnecting
     User.findOne({ _id: userId }).populate('membership.rooms._room').exec(function(err, user) {
       if (err) {
         return logger.info("ERROR finding user while parting room");
@@ -1420,26 +1442,23 @@ SocketServer.prototype.disconnect = function disconnect() {
 
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
-      logger.debug("[socketServer.disconnect] Looping room socket.rooms: ", Object.keys(self.socket.rooms));
-      user.membership.rooms.forEach(function(roomMembership) {
-        if (roomMembership.active) {
-          var currentRoom = roomMembership._room;
+      // Loop through the rooms that this user is a member of and part the user from the room
+      user.membership.rooms.forEach(function(room) {
+        logger.debug("[socketServer.disconnect] room name is: " + room.name );
+        Room.part({ userId: userId, chatId: room._id }, function(err, success) {
+          if (err) {
+            return logger.info("ERROR parting room: " + err);
+          }
 
-          Room.part({ userId: userId, chatId: roomMembership._room._id }, function(err, success) {
-            if (err) {
-              return logger.info("ERROR parting room: " + err);
-            }
+          if (!success) {
+            return logger.info("User " + username + " failed to part room " + room.name);
+          }
 
-            if (!success) {
-              return logger.info("User " + username + " failed to part room " + currentRoom.name);
-            }
-
-            logger.info("User " + username + " successfully parted room " + currentRoom.name);
-            // TODO: Should update all appropritae rooms here
-            logger.info("Updating room users!");
-            self.updateActiveUsers(currentRoom._id.toString());
-          })
-        }
+          logger.info("User " + username + " successfully parted room " + room.name);
+          // TODO: Should update all appropritae rooms here
+          logger.info("Updating room users!");
+          self.updateActiveUsers(room._id.toString());
+        })
       })
     })
 

@@ -805,7 +805,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       logger.debug("[socketServer.join] Checking to see if we should add a memberhsip to this room for this user");
       // If this is a public room and the user is not a member of the room yet, add this room to their membership
       if (!room.membershipRequired) {
-        User.findOne({ username: username }, function(err, user) {
+        User.findOne({ username: username }).populate('membership.rooms._room').exec( function(err, user) {
           if (err) {
             return logger.error("[socketServer.join] failed to find user while adding membership to '" + room.name);
           }
@@ -819,8 +819,18 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           //
           // Do we really need this conditional? Should always update the last seen time?
           // Should always update active and lastSeen
-          if (user.membership.rooms.indexOf(room.id.toString()) < 0) {
-            var currentDateTime = CURRENT DATE TIME;
+
+          //if (user.membership.rooms.indexOf(room.id.toString()) < 0) {
+          var membershipExists = false;
+          user.membership.rooms.forEach(function(membership) {
+            logger.debug("[socketServer.join] Looping membership: " + membership._room.id + " comparing to room: " + room.id);
+            if ( membership._room.id == room.id ) {
+              membershipExists = true;
+            }
+          });
+
+          if (!membershipExists) {
+            var currentDateTime = new Date().toString();
             var membershipData = {
               _room: room._id,
               active: true,
@@ -831,6 +841,8 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
               logger.debug("[socketServer.join] Saved membership to user '" + user.username + "'");
             });
           }
+
+          // Need to update last seen here and save user object
         });
       };
 

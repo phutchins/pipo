@@ -255,6 +255,7 @@ SocketClient.prototype.updateRoom = function(data, callback) {
     membershipRequired: data.membershipRequired
   };
   console.log("[UPDATE ROOM] Updating with data:",data);
+  debugger;
   self.socket.emit('updateRoom', data);
   callback(null);
 };

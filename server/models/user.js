@@ -307,11 +307,24 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
  */
 userSchema.statics.setActive = function setActive(data) {
   var userId = data.userId;
-  var chatId = data.chatId;
   var active = data.active;
 
-  // Should I be able to call this with user.setActive(true) and no user object? How would I get at that user object here?
+  // Check this in this current context to see if we have the user we were passed
+  logger.debug("[user.setActive] userId: " + userId + " active: " + active);
 
+  this.findOne({ _id: userId }, function(err, user) {
+    if (!user) {
+      return logger.error("[user.setActive] User not found");
+    }
+
+    user.active = active;
+    user.save(function(err) {
+      if (err) {
+        return logger.error("[user.setActive] Error while saving user after setting active");
+      }
+      logger.debug("[user.setActive] Set user active for '" + user.username + "' to '" + active + "'");
+    });
+  })
 };
 
 

@@ -243,11 +243,14 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     self.namespace.userMap[user._id.toString()].push(self.socket.id);
 
 
+    // Should call user.setActive(true) here
+    // Need to figure out how to call without passing user object?
+    User.setActive({ userId: user._id, active: true });
     // Mark the user as active in user.active
-    user.active = true;
+    //user.active = true;
 
     // Update users last seen time in user.lastSeen
-    user.lastSeen = new Date();
+    //user.lastSeen = new Date();
 
     logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user._id.toString()]);
 
@@ -1103,17 +1106,20 @@ SocketServer.prototype.updateRoom = function updateRoom(data) {
     }
     // TODO: This needs to emit room update with ID instead of name
     self.socket.emit('updateRoomComplete', { name: data.name });
-    logger.debug("Room updated : " + JSON.stringify(updatedRoom));
+    logger.debug("[socketServer.updateRoom] Room updated : " + JSON.stringify(updatedRoom));
     var rooms = {};
-    rooms[updatedRoom.name] = updatedRoom;
-    // TODO: Need to emit to members, not just the one who created the room
-    if (roomData.membershipRequired) {
-      // Emit membership update to user who created private room
-      self.socket.emit('roomUpdate', { rooms: rooms });
-    } else {
-      // Emit membership update to all users
-      self.namespace.emit('roomUpdate', { rooms: rooms });
-    }
+    self.sanatizeRoomForClient(updatedRoom, function(sanatizedRoom) {
+      logger.debug("[socketServer.updateRoom] Sanatized room sending back as updated room: ", sanatizedRoom);
+      rooms[sanatizedRoom.id] = updatedRoom;
+      // TODO: Need to emit to members, not just the one who created the room
+      if (roomData.membershipRequired) {
+        // Emit membership update to user who created private room
+        self.socket.emit('roomUpdate', { rooms: rooms });
+      } else {
+        // Emit membership update to all users
+        self.namespace.emit('roomUpdate', { rooms: rooms });
+      }
+    });
   })
 }
 

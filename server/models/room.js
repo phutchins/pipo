@@ -51,25 +51,32 @@ roomSchema.statics.create = function create(data, callback) {
       return logger.error("Could not find user " + ownerName + " while creating room " + roomName);
     }
 
-    // TODO: Add conditional to check if user is allowed to create rooms
-    var newRoom = new self({
-      name: roomName,
-      topic: topic,
-      encryptionScheme: encryptionScheme,
-      keepHistory: keepHistory,
-      membershipRequired: membershipRequired,
-      createDate: Date.now(),
-      _owner: owner,
-      _members: [],
-      _admins: []
-    })
+    // Make sure a room with this name doesn't already exist
+    mongoose.model('Room').findOne({ name: roomName }, function(err, room) {
+      if (room) {
+        return callback('room already exists', null);
+      }
 
-    newRoom._members.push(owner._id);
+      // TODO: Add conditional to check if user is allowed to create rooms
+      var newRoom = new self({
+        name: roomName,
+        topic: topic,
+        encryptionScheme: encryptionScheme,
+        keepHistory: keepHistory,
+        membershipRequired: membershipRequired,
+        createDate: Date.now(),
+        _owner: owner,
+        _members: [],
+        _admins: []
+      })
 
-    newRoom.save(function(err) {
-      mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _messages _members _admins').exec(function(err, myRoom) {
-        return callback(null, myRoom);
-      });
+      newRoom._members.push(owner._id);
+
+      newRoom.save(function(err) {
+        mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _messages _members _admins').exec(function(err, myRoom) {
+          return callback(null, myRoom);
+        });
+      })
     })
   })
 };
@@ -101,19 +108,20 @@ roomSchema.statics.update = function update(data, callback) {
       return callback(err);
     }
     if (!user) {
-      return logger.error("Could not find user " + data.username + " while updating creating room " + data.name);
+      return logger.error("[room.update] Could not find user " + data.username + " while updating creating room " + data.name);
     }
-    logger.debug("Looking for room '" + data.name + "' with id '" + data.id + "'");
-    mongoose.model('Room').findOne({ _id: data.id }, function(err, room) {
+    logger.debug("[room.update] Looking for room '" + data.name + "' with id '" + data.id + "'");
+    mongoose.model('Room').findOne({ _id: data.id }).populate('_owner _members _admins _activeUsers _subscribers').exec(function(err, room) {
       if (err) {
-        return logger.error('Error finding room to update:',err);
+        return logger.error('[room.update] Error finding room to update:',err);
       }
 
       if (!room) {
-        return logger.error("Could not find room '" + data.name + "' with id '" + data.id + "'");
+        return logger.error("[room.update] Could not find room '" + data.name + "' with id '" + data.id + "'");
       }
+      logger.debug("[room.update] Found room '" + room.name + "' with id '" + room.id + "'");
 
-      logger.debug("Updating room with data:",data);
+      logger.debug("[room.update] Updating room with data:",data);
 
       room.name = data.name;
       room.topic = data.topic;
@@ -123,11 +131,11 @@ roomSchema.statics.update = function update(data, callback) {
 
       room.save(function(err) {
         if (err) {
-          return logger.error("Error updating room:",err);
+          return logger.error("[room.update] Error updating room:",err);
         }
 
-        mongoose.model('Room').findOne({ _id: data.id }, function(err, room) {
-          logger.debug("Found room:",room);
+        mongoose.model('Room').findOne({ _id: data.id }).populate('_owner _members _admins _activeUsers _subscribers').exec( function(err, room) {
+          logger.debug("[room.update] Found room:",room.name);
           callback(null, room);
         });
       })

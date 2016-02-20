@@ -812,7 +812,6 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 
           logger.debug("[socketServer.join] found username: " + username);
 
-          logger.debug("[socketServer.join] index: " + user.membership.rooms.indexOf(room.id.toString()));
           // Rooms here is an array of objects with room, active, lastSeen and accessLevel
           // need to figure out exactly where to manage membership for each piece
           // Maybe should remove accessLevel from here and leave that up to the room
@@ -821,28 +820,38 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           // Should always update active and lastSeen
 
           //if (user.membership.rooms.indexOf(room.id.toString()) < 0) {
-          var membershipExists = false;
+
+          var currentDateTime = new Date().toString();
+          var membershipMatch = null;
+          var membershipIndex = null;
+
           user.membership.rooms.forEach(function(membership) {
             logger.debug("[socketServer.join] Looping membership: " + membership._room.id + " comparing to room: " + room.id);
+
+            membershipIndex = user.membership.rooms.indexOf(membership);
+            logger.debug("[socketServer.join] index: " + membershipIndex);
+
             if ( membership._room.id == room.id ) {
-              membershipExists = true;
+              logger.debug("[socketServer.join] Membership exists.");
+              membershipMatch = membership;
             }
           });
 
-          if (!membershipExists) {
-            var currentDateTime = new Date().toString();
+          if (!membershipMatch) {
             var membershipData = {
               _room: room._id,
               active: true,
               lastSeen: currentDateTime
             };
             user.membership.rooms.push(membershipData);
-            user.save(function(err) {
-              logger.debug("[socketServer.join] Saved membership to user '" + user.username + "'");
-            });
+          } else {
+            user.membership.rooms[membershipIndex].lastSeen = currentDateTime;
+            user.membership.rooms[membershipIndex].active = true;
           }
 
-          // Need to update last seen here and save user object
+          user.save(function(err) {
+            logger.debug("[socketServer.join] Saved membership to user '" + user.username + "'");
+          });
         });
       };
 

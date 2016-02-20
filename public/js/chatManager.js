@@ -210,7 +210,7 @@ var buildCreateRoomModal = function() {
 
 $(document).ready( buildCreateRoomModal );
 
-var formValidationRules = {
+var createRoomFormSettings = {
   name: {
     identifier : 'name',
     rules: [
@@ -231,9 +231,6 @@ var formValidationRules = {
     }
     ]
   },
-}
-
-var createRoomFormSettings = {
   onSuccess : function()
   {
     //Hides modal on validation success
@@ -257,7 +254,7 @@ var createRoomFormSettings = {
   }
 }
 
-$('.ui.form.createroom').form(formValidationRules, createRoomFormSettings);
+$('.ui.form.createroom').form(createRoomFormSettings);
 
 
 var buildRoomListModal = function() {
@@ -401,10 +398,7 @@ var editRoomFormSettings = {
       console.log("Sent request to update room " + data.name);
     })
     return false;
-  }
-}
-
-var editRoomFormValidationRules = {
+  },
   name: {
     identifier : 'name',
     rules: [
@@ -428,7 +422,7 @@ var editRoomFormValidationRules = {
 }
 
 // Binds the validation rules and form settings to the form
-$('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
+$('.ui.form.editroom').form(editRoomFormSettings);
 
 
 

@@ -803,6 +803,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       }
 
       logger.debug("[socketServer.join] Checking to see if we should add a memberhsip to this room for this user");
+
       // If this is a public room and the user is not a member of the room yet, add this room to their membership
       if (!room.membershipRequired) {
         User.findOne({ username: username }).populate('membership.rooms._room').exec( function(err, user) {
@@ -1348,6 +1349,28 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   })
 };
 
+/*
+ * TODO:
+ * updateActiveUsers might should be renamed to sendActiveUsersUpdate
+ *
+ * need to create a method that updates the active users for a room, or
+ * for all rooms.
+ *
+ * When we send the activeUsers data to a client on join or update, are
+ * there any places where we missed updating activeUsers?
+ *
+ * We need to add
+ * setting user.active to true or false when...
+ *  - User connects (to any socket)
+ *  - User disconnects (to any socket)
+ *
+ * Need to update room._activeUsers when...
+ *  - User joins a room
+ *  - User parts a room
+ *  - User starts a private chat
+ *  - User leaves a private chat
+ */
+
 
 
 /**
@@ -1355,28 +1378,13 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
  */
 SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
+
   logger.debug("[socketServer.updateActiveUsers] Getting active users...");
+
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
     logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
-    // Is this emitting to the right ID?
-    /*
-    Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser _messages._toUsers').exec(function(err, room) {
-      if (err) {
-        logger.error("[socketServer.updateActiveUsers] Error getting room for updateActiveUsers: ", err);
-      }
 
-      if (room) {
-        logger.debug("[socketServer.udpateActiveUsers] Sanatizing room '" + room.name + "' with id '" + room.id + "'");
-        //logger.debug("[socketServer.updateActiveUsers] members: ", room.members);
-        self.sanatizeRoomsForClient( [ room ], function(sanatizedRooms) {
-          logger.debug("[socketServer.updateActiveUsers] sanatizedRoom: ", sanatizedRooms);
-          logger.debug("[socketServer.updateActiveUsers] Running roomUpdate from authenticate");
-          self.namespace.to(chatId).emit("roomUpdate", { rooms: sanatizedRooms });
-        });
-      }
-    });
-    */
     self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
       activeUsers: activeUsers
@@ -1408,9 +1416,6 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
       logger.debug("[socketServer.getActiveUsers] sid: " + sid);
       return self.namespace.socketMap[sid].userId;
     });
-
-    //logger.debug("[socketServer.getActiveUsers] Mapped members to sockets: ", activeUsers);
-
   } else {
     logger.info("[GET USER LIST] User list is empty");
   };

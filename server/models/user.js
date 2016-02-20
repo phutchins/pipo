@@ -11,7 +11,8 @@ var userSchema = new Schema({
   usernameLowerCase: { type: String },
   fullName: { type: String },
   title: { type: String },
-  email: { type: String },
+  emai: { type: String },
+  active: { type: Boolean, default: false },
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
@@ -273,6 +274,30 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
     logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
     return callback(sanatizedUser);
   });
+};
+
+
+/*
+ * Set the user as active
+ *
+ * This is independent of channels. The user should have an active status and that combined
+ * with the users user membership (should rename?) which kees track of which rooms the user
+ * is currently joined in. We don't want to use the actual membership in the room object because
+ * to leave the room, their permisison to join it would be removed. Should also track membership required
+ * rooms and public rooms the same way.
+ *
+ * Should be set to TRUE when the user has active sockets
+ * Should be set to FALSE after a user has had no active sockets for
+ * a certain amount of time
+ *
+ * Should be used for online status and userlist
+ */
+userSchema.statics.setActive = function setActive(data) {
+  var userId = data.userId;
+  var chatId = data.chatId;
+  var active = data.active;
+
+
 };
 
 

@@ -203,8 +203,6 @@ roomSchema.statics.subscribe = function subscribe(data, callback) {
 
     return callback({ room: room });
   });
-
-
 };
 
 /*
@@ -221,6 +219,8 @@ roomSchema.statics.unsubscribe = function subscribe(data, callback) {
     return callback({ room: room });
   });
 };
+
+
 
 roomSchema.statics.part = function part(data, callback) {
   var userId = data.userId;

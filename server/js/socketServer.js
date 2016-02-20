@@ -235,12 +235,19 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       publicKey: user.publicKey
     };
 
-    // Add the user to the userMap if they do not exist
+    // Init the user in the userMap if they don't exist yet
     if (!self.namespace.userMap[user._id.toString()])
       self.namespace.userMap[user._id.toString()] = [];
 
     // Push the current socket to the users socketMap arary
     self.namespace.userMap[user._id.toString()].push(self.socket.id);
+
+
+    // Mark the user as active in user.active
+    user.active = true;
+
+    // Update users last seen time in user.lastSeen
+    user.lastSeen = new Date();
 
     logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user._id.toString()]);
 
@@ -805,6 +812,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       logger.debug("[socketServer.join] Checking to see if we should add a memberhsip to this room for this user");
 
       // If this is a public room and the user is not a member of the room yet, add this room to their membership
+      /*
       if (!room.membershipRequired) {
         User.findOne({ username: username }).populate('membership.rooms._room').exec( function(err, user) {
           if (err) {
@@ -855,10 +863,13 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           });
         });
       };
+      */
 
+      /*
       room._members.forEach(function(member) {
         logger.debug("[socketServer.joinRoom] Room has member: ",member.username);
       });
+      */
 
       logger.debug("[socketServer.joinRoom] sanatizeRoomForClient 3");
       self.sanatizeRoomForClient(room, function(sanatizedRoom) {
@@ -1349,28 +1360,6 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   })
 };
 
-/*
- * TODO:
- * updateActiveUsers might should be renamed to sendActiveUsersUpdate
- *
- * need to create a method that updates the active users for a room, or
- * for all rooms.
- *
- * When we send the activeUsers data to a client on join or update, are
- * there any places where we missed updating activeUsers?
- *
- * We need to add
- * setting user.active to true or false when...
- *  - User connects (to any socket)
- *  - User disconnects (to any socket)
- *
- * Need to update room._activeUsers when...
- *  - User joins a room
- *  - User parts a room
- *  - User starts a private chat
- *  - User leaves a private chat
- */
-
 
 
 /**
@@ -1481,6 +1470,7 @@ SocketServer.prototype.disconnect = function disconnect() {
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
       // Loop through the rooms that this user is a member of and part the user from the room
+      /*
       user.membership.rooms.forEach(function(room) {
         logger.debug("[socketServer.disconnect] room name is: " + room.name );
         Room.part({ userId: userId, chatId: room._id }, function(err, success) {
@@ -1498,6 +1488,7 @@ SocketServer.prototype.disconnect = function disconnect() {
           self.updateActiveUsers(room._id.toString());
         })
       })
+      */
     })
 
     // Delete disconnecting users socket from socket array

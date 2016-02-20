@@ -1,0 +1,62 @@
+
+Concepts
+
+- Membership
+Membership is what allows a user to join a room that is private
+
+- Active
+  User.active - Boolean
+Active should reflect whether the user is currently online or offline.
+Online is defined by a user having a current socket connection
+Offline is defined by a user having no active sockets
+
+(We may should have a period where if the user disconnects without sending
+the proper disconnect message, the server waits for a period of time for
+the user to reconnect before marking them disconnected. We can add this at
+a later time however)
+
+- Subscribed
+Subscribed is a setting that will give the user updates for a room while they are not signed in
+This should be default (maybe?) set when you are added to a room or join a room for the first time
+Should be able to turn it off and not have it turn back on again unless you explicitly turn it on
+
+
+
+
+TODO:
+updateActiveUsers might should be renamed to sendActiveUsersUpdate
+
+need to create a method that updates the active users for a room, or
+for all rooms.
+
+When we send the activeUsers data to a client on join or update, are
+there any places where we missed updating activeUsers?
+
+We need to add setting user.active to true or false when...
+ - User connects (to any socket)
+ - User disconnects (to any socket)
+
+Need to update room._activeUsers when...
+ - User joins a room
+ - User parts a room
+ - User starts a private chat
+ - User leaves a private chat
+
+
+
+- User connects to socket
+
+- User authenticates
+	- Mark user as active
+
+- User joins a room
+  - Private room
+		- Check room._members, room._admins, & room._owner and continue if we find user
+		- Add member to room._activeUsers
+		- Add user to room._subscribers
+
+- User parts a room
+
+- User disconnects
+
+- User disconnects without parting all of their rooms

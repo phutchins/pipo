@@ -6,6 +6,24 @@ var Room = require('./room');
 var Chat = require('./chat');
 var logger = require('../../config/logger');
 
+/*
+ * User Status Definitions
+ * active - If the user is currently connected to the server or not
+ * lastSeen - Last time the user was connected to the server (should be set on connection and disconnection?)
+ *
+ * User Membership Definitions
+ * _favoriteRooms - Rooms that should be joined upon sign-in
+ *
+ * Questions?
+ * rooms._room - Do we need to keep track of the room here for any reason?
+ * - Joining a public room?
+ *   If you're a member, you can leave the room and not auto join by not having it in _favoriteRooms
+ *   If you want to autojoin a room that you're a member of, just join it and click favorite
+ *
+ *   If the room is public, simply join it
+ *   Add to _favoriteRooms to set it to auto join
+ */
+
 var userSchema = new Schema({
   username: { type: String },
   usernameLowerCase: { type: String },
@@ -13,18 +31,13 @@ var userSchema = new Schema({
   title: { type: String },
   emai: { type: String },
   active: { type: Boolean, default: false },
+  lastSeen: { type: Date },
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
   _chats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat" }],
   membership: {
-    rooms: [{
-      _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
-      active: { type: Boolean, default: false },
-      lastSeen: { type: Date },
-      accessLevel: { type: String, default: 'none' }
-    }],
-    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }]
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
@@ -297,6 +310,7 @@ userSchema.statics.setActive = function setActive(data) {
   var chatId = data.chatId;
   var active = data.active;
 
+  // Should I be able to call this with user.setActive(true) and no user object? How would I get at that user object here?
 
 };
 

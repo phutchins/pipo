@@ -2,6 +2,18 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var logger = require('../../config/logger');
 
+/*
+ * Room Membership Definitions
+ * _owner - Owner of the room, there can only be one
+ * _admins - Array of admins for the room
+ * _members - Array of members of the room
+ *
+ * Room Status Definitions
+ * _activeUsers - Users that have a current connection and have joined the room
+ * _subscribers - Users that want to receive updates from the room even if they are not connected or joined
+ *
+ */
+
 var roomSchema = new Schema({
   name: { type: String },
   topic: { type: String, default: 'This is the default description. You should replace this with a snarky description.' },
@@ -142,14 +154,6 @@ roomSchema.statics.join = function join(data, callback) {
 
       if (!room) {
         logger.debug("Room with id " + id + " does not exist...");
-
-        //return self.create(data, function(err) {
-        //  if (err) {
-        //    return logger.error("Failed to create room " + data.name);
-        //  }
-
-        //  return self.join(data, callback);
-        //})
       }
 
       // Set isMember to true if the user is a member of this room
@@ -165,6 +169,7 @@ roomSchema.statics.join = function join(data, callback) {
         //mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
 
         var alreadySubscribed = (room._subscribers.indexOf(user._id) > -1);
+        // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
 

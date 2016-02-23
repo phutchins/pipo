@@ -143,7 +143,19 @@ SocketClient.prototype.addListeners = function() {
 
     ChatManager.userNameMap = userNameMap;
 
-    ChatManager.updateUserlist(userlist);
+    MasterUserlist.update(userlist, function(err) {
+      console.log("[socketClient.on userlistUpdate] Updated userlist");
+      // Update userlist if the current chat is a private chat
+      //   there is a better way to do this, should likely do this
+      //   the same way that we're doing it for rooms and issue an update
+      //   only for the private chats that the user is a part of
+      var activeChatId = ChatManager.activeChat;
+      debugger;
+      if (ChatManager.chats[activeChatId].type == 'chat') {
+        Userlist.update({ chatId: activeChatId });
+        console.log("[socketClient.on userlistUpdate] Updated userlist for private chat with id '" + activeChatId + "'");
+      };
+    });
   });
 
   this.socket.on('activeUsersUpdate', function(data) {
@@ -255,7 +267,6 @@ SocketClient.prototype.updateRoom = function(data, callback) {
     membershipRequired: data.membershipRequired
   };
   console.log("[UPDATE ROOM] Updating with data:",data);
-  debugger;
   self.socket.emit('updateRoom', data);
   callback(null);
 };
@@ -407,10 +418,6 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   Object.keys(rooms).forEach(function(id) {
     console.log("[socketClient.handleRoomUpdate] Adding room",id,"to array with data:",rooms[id]);
 
-    //
-    // BUG: This should not overwrite the entire room... It is nuking the messageCache
-    //
-
     console.log("[socketClient.handleRoomUpdate] (1) Running initRoom");
 
     // Should we update the room selectively in initRoom or create a new method that handles only room updates
@@ -428,23 +435,14 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
         ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
+      ChatHeader.update(id);
+
       ChatManager.buildRoomListModal;
 
       // if manageMembersModal is currently visible don't clear any error or ok messages
       ChatManager.populateManageMembersModal({ clearMessages: false });
     });
   })
-
-  /*
-  if (ChatManager.activeChat) {
-    activeChatId = ChatManager.activeChat.id;
-    activeChatName = ChatManager.chats[activeChatId].name;
-    console.log("[socketClient.handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
-    ChatManager.refreshChatContent(activeChatId);
-
-  }
-
-  */
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {

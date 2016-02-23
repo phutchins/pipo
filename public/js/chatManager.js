@@ -487,18 +487,6 @@ ChatManager.getCaret = function getCaret(el) {
 };
 
 
-ChatManager.updateUserlist = function updateUserlist(userlist) {
-  ChatManager.userlist = userlist;
-
-  Object.keys(userlist).forEach(function(userId) {
-    if (userlist[userId].publicKey) {
-      window.encryptionManager.getKeyInstance(userlist[userId].publicKey, function(keyInstance) {
-        ChatManager.userlist[userId].keyInstance = keyInstance;
-      });
-    };
-  });
-};
-
 
 /*
  * Create the room and give it focus
@@ -570,10 +558,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
     ChatManager.chats[room.id].keyRing = keyRing;
 
     console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
+
+    // TODO:
     // Display notice in the chatContainer that we are decrypting messages
     // ...or display an encrypted message representing each message and replace as they are decrypted
 
-    // BOOKMARK
     console.log("[ChatManager.initRoom] (1) Running ChatManager.updateChatStatus();");
     ChatManager.updateChatStatus({ chatId: room.id, status: 'decrypting' });
 
@@ -617,7 +606,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
             ChatManager.refreshChatContent(room.id);
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
-          // BOOKMARK ***
 
           console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name);
 
@@ -784,6 +772,7 @@ ChatManager.arrayHash = function arrayHash(array, callback) {
 };
 
 
+// move to util.dynamicSort (in utils.js) (( need to create ))
 function dynamicSort(property) {
     var sortOrder = 1;
     if(property[0] === "-") {
@@ -797,55 +786,6 @@ function dynamicSort(property) {
 }
 
 
-
-ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
-  var favorite = data.favorite;
-
-  if (favorite) {
-    $('.chat-header__buttons .star.icon').removeClass('empty');
-  };
-
-  if (!favorite) {
-    $('.chat-header__buttons .star.icon').addClass('empty');
-  };
-
-};
-
-
-ChatManager.updateChatHeader = function updateChatHeader(chatId) {
-  var self = this;
-  var chat = ChatManager.chats[chatId];
-  var headerAvatarHtml = '';
-  var chatTopic = '';
-  var chatHeaderTitle = '';
-  var activeChatId = ChatManager.activeChat;
-
-  if (chat.type == 'chat') {
-    headerAvatarHtml = '<i class="huge spy icon"></i>';
-    chatTopic = 'One to one encrypted chat with ' + chat.name;
-    chatHeaderTitle = 'pm' + '/' + chat.name;
-  } else {
-    headerAvatarHtml = '<i class="huge comments outline icon"></i>';
-    chatTopic = ChatManager.chats[chatId].topic;
-    chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
-  }
-
-  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
-  self.updateFavoriteButton({ favorite: isFavorite });
-
-  /*
-   * Catch clicks on favorite room button (star)
-   */
-  $('.chat-header__favorite').unbind().click(function(e) {
-    console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
-
-    socketClient.toggleFavorite({ chatId: activeChatId });
-  });
-
-  $('.chat-topic').text(chatTopic);
-  $('.chat-header__title').text(chatHeaderTitle);
-  $('.chat-header__avatar').html(headerAvatarHtml);
-}
 
 
 /*
@@ -1479,7 +1419,7 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
   $('#chat').html(messageCache);
-  ChatManager.updateChatHeader(chatId);
+  ChatHeader.update(chatId);
 }
 
 

@@ -1,0 +1,40 @@
+- Figure out how to detect when we can't fetch a gravatar avatar and load a default image
+- Load all fonts locally instead of from google fonts
+
+Crypto Problems to solve
+- How to do user/key verification in private chats
+- How to verify users in rooms created by a random user
+  - Might just use the chain from the main admin that added the user
+  - If the user was added by email address, they may have to pop on a confirmation list for someone to
+    verify their key in person or via an acceptable method before the user is added
+
+
+Private Chat join/part
+  - Private Chat Initiation
+    * User clicks the private chat button on user popup
+      - This emits getChat with the chatHash and waits for a chatUpdate
+    * User gets a private chat message
+  - Private Chat Destroy
+
+  - Private chat userlist status should go by user.active
+
+
+Recover from a crash
+  - At the very last moment when the server is shutting down, set some flag in the DB so we know there wasn't a crash and all methods have been completed
+  - On startup check this flag (maybe always do this) and check things to make sure they are in a godo state
+    - Check user.active status for all users (or clear all)
+    - Check user.membership._currentRooms (or clear all)
+
+
+Update Active Users
+  - Disconnect
+  - Connect
+  - Join
+    - Room
+    - Chat
+  - Part
+    - Room
+    - Chat
+
+
+Need to figure out how to force a space in jade for client.jade (line: 197)

@@ -14,6 +14,18 @@ var chatSchema = new Schema({
 });
 
 
+chatSchema.statics.join = function join(chat, callback) {
+  // Ensure that the user is allowed to join this chat
+    // Need to do something with signature of the user that created the chat
+    // Should sign the addition of the user to the chat
+    // Would use this signature when a user sends a message to one of the other users
+    // in the chat. How the heck do we do this? :)
+  // Join the socket namespace for this chat
+
+  //
+};
+
+
 /*
  * Sanatize a Chat object for sending to the client
 */

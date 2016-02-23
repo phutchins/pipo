@@ -37,6 +37,7 @@ var userSchema = new Schema({
   socketIds: [{ type: String }],
   _chats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat" }],
   membership: {
+    _currentRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
     _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }]
   },
   masterKeyPair: {
@@ -250,6 +251,7 @@ userSchema.statics.sanatize = function sanatize(user, callback) {
   var sanatizedUser = {
     id: user._id.toString(),
     username: user.username,
+    active: user.active,
     publicKey: user.publicKey,
     fullName: user.fullName,
     email: user.email,
@@ -305,7 +307,7 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
  *
  * Should be used for online status and userlist
  */
-userSchema.statics.setActive = function setActive(data) {
+userSchema.statics.setActive = function setActive(data, callback) {
   var userId = data.userId;
   var active = data.active;
 
@@ -314,15 +316,22 @@ userSchema.statics.setActive = function setActive(data) {
 
   this.findOne({ _id: userId }, function(err, user) {
     if (!user) {
-      return logger.error("[user.setActive] User not found");
+      var err = "User not found";
+
+      logger.error("[user.setActive] User not found");
+      return callback(err);
     }
 
     user.active = active;
     user.save(function(err) {
       if (err) {
-        return logger.error("[user.setActive] Error while saving user after setting active");
+        var err = "Error saving user";
+
+        logger.error("[user.setActive] Error while saving user after setting active");
+        return callback(err);
       }
       logger.debug("[user.setActive] Set user active for '" + user.username + "' to '" + active + "'");
+      return callback(null);
     });
   })
 };

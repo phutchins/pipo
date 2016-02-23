@@ -9,6 +9,7 @@ Userlist.update = function update(data) {
   var chatId = data.chatId;
   var socket = window.socketClient.socket;
   var chat = ChatManager.chats[chatId];
+  var type = chat.type;
   var members = chat.members;
   var participants = chat.participants;
   var subscribers = chat.subscribers;
@@ -16,7 +17,7 @@ Userlist.update = function update(data) {
   console.log("[userlist.update] members: "+JSON.stringify(members));
   console.log("[userlist.update] chats: ", Object.keys(ChatManager.chats));
 
-  if (type = 'room') {
+  if (type == 'room') {
     if (subscribers && subscribers.length > 0) {
       var userIdArray = [];
       var subscriberCount = subscribers.length;
@@ -26,13 +27,13 @@ Userlist.update = function update(data) {
         count++;
       });
       if (subscriberCount == count) {
-        this.build({ userIdArray: userIdArray, chatId: chatId });
+        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'room' });
         this.initPopups({ userIdArray: userIdArray });
       }
     }
   }
 
-  if (type = 'chat') {
+  if (type == 'chat') {
     if (participants && participants.length > 0) {
       var userIdArray = [];
       var participantCount = participants.length;
@@ -42,7 +43,8 @@ Userlist.update = function update(data) {
         count++;
       });
       if (participantCount == count) {
-        this.build({ userIdArray: userIdArray, chatId: chatId });
+        debugger;
+        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
         this.initPopups({ userIdArray: userIdArray });
       }
     }
@@ -53,15 +55,26 @@ Userlist.update = function update(data) {
 Userlist.build = function build(data) {
   var userIdArray = data.userIdArray;
   var chatId = data.chatId;
+  var type = data.type;
   var userListHtml = "";
 
   var isActive = function(userId) {
-    if (ChatManager.chats[chatId].activeUsers && ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
-      console.log("[userlist.update] Looping activeUsers for '" + userId + "' and indexOf is true");
-      return true;
+    // If this is a room, get the chat status from the rooms active users
+    if ( type == 'room' ) {
+      if (ChatManager.chats[chatId].activeUsers && ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
+        console.log("[userlist.update] activeUsers for '" + userId + "' and indexOf is true");
+        return true;
+      }
+      console.log("[userlist.update] activeUsers for '" + userId + "' and indexOf is false");
+      return false;
     }
-    console.log("[userlist.update] Looping activeUsers for '" + userId + "' and indexOf is false");
-    return false;
+
+    if ( type == 'chat' ) {
+      if (ChatManager.userlist[userId].active) {
+        return true;
+      }
+      return false;
+    }
   };
 
   userIdArray.forEach(function(userId) {
@@ -81,6 +94,8 @@ Userlist.build = function build(data) {
     if (user && user.emailHash) {
       var emailHash = user.emailHash;
     }
+
+    debugger;
 
     // If user is active class = active
     if (active) {

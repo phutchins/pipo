@@ -145,12 +145,177 @@ roomSchema.statics.update = function update(data, callback) {
 
 
 /*
+ * Convert all mongoose objects to arrays or hashes
+ * Users will be looked up on the client side using username or id
+ */
+roomSchema.statics.sanatize = function sanatize(room, callback) {
+  var self = this;
+
+  if (room._owner) {
+    var ownerusername = room._owner.username;
+  } else {
+    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
+    var ownerusername = null;
+  }
+
+  var membersLength = room._members.length;
+  var adminsLength = room._admins.length;
+  var activeUsersLength = room._activeUsers.length;
+  var subscribersLength = room._subscribers.length;
+
+  var membersArray = [];
+  var adminsArray = [];
+  var subscribersArray = [];
+  var activeUsersArray = [];
+  var messagesArray = [];
+
+  //logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
+  //logger.debug("[room.sanatize] room._members[0]: " + room._members[0]);
+
+  if (membersLength > 0) {
+    room._members.forEach(function(member) {
+      logger.debug("[room.sanatize] Pushing ", member.username," to membersArray");
+      logger.debug("[room.sanatize] Looping member: ",member._id);
+      membersArray.push(member._id.toString());
+    });
+  };
+
+  if (subscribersLength > 0) {
+    room._subscribers.forEach(function(subscriber) {
+      //logger.debug("[room.sanatize] Pushing ", subscriber.id, " to subscribersArray");
+      subscribersArray.push(subscriber._id.toString());
+    });
+  };
+
+  if (activeUsersLength > 0) {
+    room._activeUsers.forEach(function(activeUser) {
+      //logger.debug("[room.sanatize] Pushing ", activeUser.username, " to activeUsers");
+      activeUsersArray.push(activeUser._id.toString());
+    });
+  };
+
+  if (adminsLength > 0) {
+    room._admins.forEach(function(admin) {
+      //logger.debug("[room.sanatize] Pushing ", admin.username," to adminsArray");
+      adminsArray.push(admin._id.toString());
+    });
+  };
+
+  if (room._messages.length > 0) {
+    var processedMessages = 0;
+    room._messages.forEach(function(message) {
+      if (message._toUsers && message._toUsers.length > 0) {
+        var toUsersArray = [];
+        message._toUsers.forEach(function(toUser) {
+          //logger.debug("[room.sanatize] Looping toUsers, _toUser._id is: " + toUser._id.toString());
+          toUsersArray.push(toUser._id.toString());
+        });
+      };
+
+      // Should be able to remove this?
+      // bug when I do, i can't see finish() from this context... :-\
+      message.populate('_fromUser', function() {
+
+        //logger.debug("[room.sanatize] Looping messages, from user is : " + message._fromUser._id.toString());
+
+        var sanatizedMessage = {
+          date: message.date,
+          fromUser: message._fromUser.id.toString(),
+          toUsers: toUsersArray,
+          encryptedMessage: message.encryptedMessage
+        };
+
+        messagesArray.push(sanatizedMessage);
+        processedMessages++;
+
+        if (processedMessages == room._messages.length) {
+          finish();
+        };
+      });
+    });
+  };
+
+  var finish = function finish() {
+    logger.debug("[room.sanatize] Finishing...");
+
+    var sanatizedRoom = {
+      id: room._id.toString(),
+      type: 'room',
+      name: room.name,
+      topic: room.topic,
+      group: room.group,
+      messageCache: '',
+      messages: messagesArray.sort(dynamicSort("date")),
+      encryptionScheme: room.encryptionScheme,
+      keepHistory: room.keepHistory,
+      membershipRequired: room.membershipRequired,
+      members: membersArray,
+      activeUsers: activeUsersArray,
+      subscribers: subscribersArray,
+      admins: adminsArray,
+      owner: room._owner._id.toString()
+    };
+
+    return callback(sanatizedRoom);
+  }
+
+  if (room._messages.length == 0) {
+    finish();
+  };
+};
+
+
+function dynamicSort(property) {
+  var sortOrder = 1;
+  if(property[0] === "-") {
+    sortOrder = -1;
+    property = property.substr(1);
+  }
+  return function (a,b) {
+    var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+    return result * sortOrder;
+  }
+}
+
+
+
+roomSchema.statics.sanatizeRooms = function sanatizeRooms(rooms, callback) {
+  var self = this;
+  var sanatizedRooms = {};
+  var roomCount = rooms.length;
+  var count = 0;
+
+  logger.debug("[room.sanatizeRooms] Sanatizing " + rooms.length + " rooms");
+
+  rooms.forEach(function(room) {
+    logger.debug("[room.sanatizeRooms] Sanatizing room '" + room.name + "'");
+
+    mongoose.model('Room').sanatize(room, function(sanatizedRoom) {
+      logger.debug("[room.sanatizeRooms] Done sanatizing room and pushing '" + sanatizedRoom.name + "' to array...");
+      sanatizedRooms[sanatizedRoom.id] = sanatizedRoom;
+      count += 1;
+
+      logger.debug("[room.sanatizeRooms] Total rooms: " + roomCount + " count: " + count);
+
+      if (count == roomCount) {
+        logger.debug("[room.sanatizeRooms] Sanatized " + Object.keys(sanatizedRooms).length + " rooms and returning");
+        return callback(sanatizedRooms);
+      };
+    });
+
+  });
+};
+
+
+
+/*
  * Join a public room and add user as a member of that room
  * (Should move session type bits to a clientSessionStart and clientSessionEnd (or something similar))
  */
 roomSchema.statics.join = function join(data, callback) {
   var self = this;
   var username = data.username;
+  var socket = data.socket;
   var updated = false;
   var id = data.id;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
@@ -170,10 +335,20 @@ roomSchema.statics.join = function join(data, callback) {
       });
 
       if (isMember || !self.membershipRequired || room.name == 'pipo') {
+        socket.join(room._id.toString());
+
         logger.debug("[room.join] User " + username + " has joined #" + room.name);
 
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
+        user.membership._currentRooms.push(room._id);
+        user.save(function(err) {
+          if (err) {
+            logger.error("[room.join] Error while adding room to _currentRooms: " + err);
+          } else {
+            logger.debug("[room.join] Added room to users _currentRooms array");
+          }
+        });
         //mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
 
         var alreadySubscribed = (room._subscribers.indexOf(user._id) > -1);
@@ -238,8 +413,9 @@ roomSchema.statics.unsubscribe = function subscribe(data, callback) {
 roomSchema.statics.part = function part(data, callback) {
   var userId = data.userId;
   var chatId = data.chatId;
+  var socket = data.socket;
 
-  mongoose.model('User').findOne({ _id: userId }).populate('membership.rooms._room').exec(function(err, user) {
+  mongoose.model('User').findOne({ _id: userId }).populate('membership._currentRooms').exec(function(err, user) {
     if (err) {
       return callback(err, false);
     };
@@ -268,7 +444,10 @@ roomSchema.statics.part = function part(data, callback) {
         // Is this a good place to be referencing SocketServer from? Maybe the logic goes in the calling class or lib.
 
         mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user } } }, { '$members.active': false });
+        socket.leave(chatId);
       }
+
+      user.membership._currentRooms.pull(room._id);
 
       user.save(function(err) {
         logger.debug("User " + userId + " has parted #" + room.name + " successfully");

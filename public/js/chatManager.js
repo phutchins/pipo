@@ -1355,7 +1355,7 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
-      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, date: message.date, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
         ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
       });
     });

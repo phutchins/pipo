@@ -43,7 +43,6 @@ Userlist.update = function update(data) {
         count++;
       });
       if (participantCount == count) {
-        debugger;
         this.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
         this.initPopups({ userIdArray: userIdArray });
       }
@@ -94,8 +93,6 @@ Userlist.build = function build(data) {
     if (user && user.emailHash) {
       var emailHash = user.emailHash;
     }
-
-    debugger;
 
     // If user is active class = active
     if (active) {

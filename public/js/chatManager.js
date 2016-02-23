@@ -623,6 +623,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     if (messages.length == 0) {
       //ChatManager.setChatEnabled([room.id]);
       console.log("[ChatManager.initRoom] (3) Running ChatManager.updateChatStatus();");
+      console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name + ", no messages to decrypt");
       ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     }
   });

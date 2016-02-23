@@ -303,8 +303,13 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
+          // Go ahead and send the room objects to the user even if they haven't joined it yet
+          // - Need to figure out how to have the client only decrypt messages once when joining
+          //   as there is no need to decrypt twice. If there is a legit roomUpdate later tho,
+          //   we may want to decrypt messages again? When could this happen?
           Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
             logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
+            // self.socket.to(chat).emit('user connect',
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -808,6 +813,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 
         if (roomUpdated) {
           logger.debug("[socketServer.joinRoom] Running roomUpdate from joinRoom");
+
+          // Should not emit this to the joining user as it sends a double update
+          // Could create methods like doJoinUpdates, doConnectUpdates, etc... to
+          // keep all of the action notification triggers together
           self.namespace.emit('roomUpdate', { rooms: rooms });
         }
 

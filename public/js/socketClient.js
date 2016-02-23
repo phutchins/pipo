@@ -395,7 +395,7 @@ SocketClient.prototype.toggleFavorite = function(data) {
   self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
     console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
     self.socket.removeListener('toggleFavoriteComplete-' + chatId);
-    ChatManager.updateFavoriteButton({ favorite: data.favorite });
+    ChatHeader.updateFavoriteButton({ favorite: data.favorite });
   });
 };
 

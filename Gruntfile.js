@@ -73,9 +73,11 @@ module.exports = function (grunt) {
     }
 
     //cleanall: {
-    //  build: ["out", "pipo.log"],
-    //  release: ["dist"],
-    //  modules: ["node_modules"]
+    //  clean: {
+    //    build: ["out", "pipo.log"],
+    //    release: ["dist"],
+    //    modules: ["node_modules"]
+    //  }
     //}
   });
 
@@ -84,6 +86,7 @@ module.exports = function (grunt) {
   grunt.registerTask('default', 'Default task', ['lint']);
   grunt.registerTask('build', 'Build for Electron', ['electron']);
   grunt.registerTask('clean', 'Clean build files', ['clean']);
-  grunt.registerTask('cleanall', 'Clean all files', ['cleanall']);
+  grunt.registerTask('cleanrelease', 'Clean release files', ['cleanrelease']);
+  //grunt.registerTask('cleanall', 'Clean all files', ['cleanall']);
   grunt.registerTask('lint', 'Run linting', ['jslint']);
 };

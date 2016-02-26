@@ -559,13 +559,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
-      // BOOKMARK
-      // BUG
-      // This is not getting to the sending user for some reason... :-\
-      //self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
+
       self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
-    //self.socket.emit('privateMessage', emitData);
+    // Must emit to self becuase broadcast.to does not emit back to itself
+    self.socket.emit('privateMessage', emitData);
   };
 };
 

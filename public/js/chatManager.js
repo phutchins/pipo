@@ -178,87 +178,6 @@ $('#export-keypair-button').unbind().on('click', function() {
 });
 
 
-/*
- * Create Room Modal Setup
- */
-var buildCreateRoomModal = function() {
-  console.log("Building create room modal");
-  $('.modal.createroom').modal({
-    detachable: true,
-    //By default, if click outside of modal, modal will close
-    //Set closable to false to prevent this
-    closable: false,
-    transition: 'fade up',
-    //Callback function for the submit button, which has the class of "ok"
-    onApprove : function() {
-      //Submits the semantic ui form
-      //And pass the handling responsibilities to the form handlers, e.g. on form validation success
-      $('.ui.form.createroom').submit();
-      //Return false as to not close modal dialog
-      return false;
-    }
-  });
-  $('#add-room-button').unbind().click(function(e) {
-    //Resets form input fields
-    $('.ui.form.createroom').trigger("reset");
-    //Resets form error messages
-    $('.ui.form.createroom .field.error').removeClass( "error" );
-    $('.ui.form.createroom.error').removeClass( "error" );
-    $('.modal.createroom').modal('show');
-  });
-};
-
-$(document).ready( buildCreateRoomModal );
-
-var formValidationRules = {
-  name: {
-    identifier : 'name',
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room name'
-    }
-    ]
-  },
-  topic: {
-    identifier : 'topic',
-    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
-    optional   : true,
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room topic'
-    }
-    ]
-  },
-}
-
-var createRoomFormSettings = {
-  onSuccess : function()
-  {
-    //Hides modal on validation success
-    $('.modal.createroom').modal('hide');
-
-    var data = {
-      name: $('.ui.form.createroom input[name="name"]').val(),
-      topic: $('.ui.form.createroom input[name="topic"]').val(),
-      encryptionScheme: $('.dropdown.encryptionscheme .selected').data().value,
-      keepHistory: ($('.dropdown.messagehistory .selected').data().value === 'keep'),
-      membershipRequired: ($('.dropdown.membershiprequired .selected').data().value === 'private')
-    };
-
-    socketClient.createRoom(data, function(err) {
-      if (err) {
-        return console.log("Error creating room: " + err);
-      }
-      console.log("Sent request to create room " + data.name);
-    })
-    return false;
-  }
-}
-
-$('.ui.form.createroom').form(formValidationRules, createRoomFormSettings);
-
 
 var buildRoomListModal = function() {
   $('.modal.join-room-list-modal').modal({
@@ -333,102 +252,6 @@ $('.chat-header__settings .room-options.leave-room').unbind().click(function(e) 
 
   }
 });
-
-
-/*
- * Builds the edit room modal
- */
-var buildEditRoomModal = function() {
-  $('.modal.editroom').modal({
-    detachable: true,
-    //By default, if click outside of modal, modal will close
-    //Set closable to false to prevent this
-    closable: false,
-    transition: 'fade up',
-    //Callback function for the submit button, which has the class of "ok"
-    onApprove : function() {
-      //Submits the semantic ui form
-      //And pass the handling responsibilities to the form handlers, e.g. on form validation success
-      $('.ui.form.editroom').submit();
-      //Return false as to not close modal dialog
-      return false;
-    }
-  });
-
-  // Opens the edit room modal when edit room is clicked
-  $('.chat-header__settings .room-options.edit-room').unbind().click(function(e) {
-    var chatId = ChatManager.activeChat;
-    var populateFormData = {
-      id: chatId,
-      name: ChatManager.chats[chatId].name,
-      group: ChatManager.chats[chatId].group,
-      topic: ChatManager.chats[chatId].topic,
-      encryptionScheme: ChatManager.chats[chatId].encryptionScheme,
-      keepHistory: ChatManager.chats[chatId].keepHistory,
-      membershipRequired: ChatManager.chats[chatId].membershipRequired
-    };
-
-    // Reset the form before we show it
-    $('.modal.editroom .form').trigger('reset');
-
-    // Populate the fields of the form
-    ChatManager.populateEditRoomModal(populateFormData);
-
-    // Show modal
-    $('.modal.editroom').modal('show');
-  });
-};
-
-$(document).ready( buildEditRoomModal );
-
-var editRoomFormSettings = {
-  onSuccess : function()
-  {
-    //Hides modal on validation success
-    $('.modal.editroom').modal('hide');
-    var data = {
-      id: $('.ui.form.editroom input[name="id"]').val(),
-      name: $('.ui.form.editroom input[name="name"]').val(),
-      topic: $('.ui.form.editroom input[name="topic"]').val(),
-      encryptionScheme: $('.ui.form.editroom .dropdown.encryptionscheme .selected').data().value,
-      keepHistory: $('.ui.form.editroom .dropdown.keephistory .selected').data().value,
-      membershipRequired: $('.ui.form.editroom .dropdown.membershiprequired .selected').data().value
-    };
-    console.log("Sending room update socket request with data:", data);
-    socketClient.updateRoom(data, function(err) { if (err) {
-        return console.log("Error creating room: " + err);
-      }
-      console.log("Sent request to update room " + data.name);
-    })
-    return false;
-  }
-}
-
-var editRoomFormValidationRules = {
-  name: {
-    identifier : 'name',
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room name'
-    }
-    ]
-  },
-  topic: {
-    identifier : 'topic',
-    //Below line sets it so that it only validates when input is entered, and won't validate on blank input
-    optional   : true,
-    rules: [
-    {
-      type   : 'empty',
-      prompt : 'Please enter a valid room topic'
-    }
-    ]
-  },
-}
-
-// Binds the validation rules and form settings to the form
-$('.ui.form.editroom').form(editRoomFormValidationRules, editRoomFormSettings);
 
 
 
@@ -664,18 +487,6 @@ ChatManager.getCaret = function getCaret(el) {
 };
 
 
-ChatManager.updateUserlist = function updateUserlist(userlist) {
-  ChatManager.userlist = userlist;
-
-  Object.keys(userlist).forEach(function(userId) {
-    if (userlist[userId].publicKey) {
-      window.encryptionManager.getKeyInstance(userlist[userId].publicKey, function(keyInstance) {
-        ChatManager.userlist[userId].keyInstance = keyInstance;
-      });
-    };
-  });
-};
-
 
 /*
  * Create the room and give it focus
@@ -700,6 +511,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
     unreadCount = self.chats[room.id].unread;
   };
 
+  // Find a better way to only use passed attributes for a room if they exist, but also
+  // handle the case where the room isnt' created yet
+
+  var messages = (typeof room.messages === 'undefined') ? self.chats[room.id].messages : room.messages;
+
   self.chats[room.id] = { id: room.id,
     activeUsers: room.activeUsers,
     admins: room.admins,
@@ -711,7 +527,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     keepHistory: room.keepHistory,
     members: room.members,
     membershipRequired: room.membershipRequired,
-    messages: room.messages,
+    messages: messages,
     messageCache: '',
     name: room.name,
     owner: room.owner,
@@ -742,10 +558,11 @@ ChatManager.initRoom = function initRoom(room, callback) {
     ChatManager.chats[room.id].keyRing = keyRing;
 
     console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
+
+    // TODO:
     // Display notice in the chatContainer that we are decrypting messages
     // ...or display an encrypted message representing each message and replace as they are decrypted
 
-    // BOOKMARK
     console.log("[ChatManager.initRoom] (1) Running ChatManager.updateChatStatus();");
     ChatManager.updateChatStatus({ chatId: room.id, status: 'decrypting' });
 
@@ -789,7 +606,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
             ChatManager.refreshChatContent(room.id);
             chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
           }
-          // BOOKMARK ***
 
           console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name);
 
@@ -807,9 +623,15 @@ ChatManager.initRoom = function initRoom(room, callback) {
     if (messages.length == 0) {
       //ChatManager.setChatEnabled([room.id]);
       console.log("[ChatManager.initRoom] (3) Running ChatManager.updateChatStatus();");
+      console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name + ", no messages to decrypt");
       ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     }
   });
+
+  // DOES THIS BELONG HERE???!? FIX ME!!! :D
+  if (ChatManager.activeChat == room.id) {
+    window.Userlist.update({ chatId: room.id });
+  }
 
   self.updateRoomList(function(err) {
     console.log("Update room list done...");
@@ -951,6 +773,7 @@ ChatManager.arrayHash = function arrayHash(array, callback) {
 };
 
 
+// move to util.dynamicSort (in utils.js) (( need to create ))
 function dynamicSort(property) {
     var sortOrder = 1;
     if(property[0] === "-") {
@@ -964,55 +787,6 @@ function dynamicSort(property) {
 }
 
 
-
-ChatManager.updateFavoriteButton = function updateFavoriteButton(data) {
-  var favorite = data.favorite;
-
-  if (favorite) {
-    $('.chat-header__buttons .star.icon').removeClass('empty');
-  };
-
-  if (!favorite) {
-    $('.chat-header__buttons .star.icon').addClass('empty');
-  };
-
-};
-
-
-ChatManager.updateChatHeader = function updateChatHeader(chatId) {
-  var self = this;
-  var chat = ChatManager.chats[chatId];
-  var headerAvatarHtml = '';
-  var chatTopic = '';
-  var chatHeaderTitle = '';
-  var activeChatId = ChatManager.activeChat;
-
-  if (chat.type == 'chat') {
-    headerAvatarHtml = '<i class="huge spy icon"></i>';
-    chatTopic = 'One to one encrypted chat with ' + chat.name;
-    chatHeaderTitle = 'pm' + '/' + chat.name;
-  } else {
-    headerAvatarHtml = '<i class="huge comments outline icon"></i>';
-    chatTopic = ChatManager.chats[chatId].topic;
-    chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
-  }
-
-  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
-  self.updateFavoriteButton({ favorite: isFavorite });
-
-  /*
-   * Catch clicks on favorite room button (star)
-   */
-  $('.chat-header__favorite').unbind().click(function(e) {
-    console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
-
-    socketClient.toggleFavorite({ chatId: activeChatId });
-  });
-
-  $('.chat-topic').text(chatTopic);
-  $('.chat-header__title').text(chatHeaderTitle);
-  $('.chat-header__avatar').html(headerAvatarHtml);
-}
 
 
 /*
@@ -1088,11 +862,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
     ChatManager.chats[id].unreadCount = 0;
   };
 
-  if (ChatManager.chats[id].type == 'room') {
-    ChatManager.updateRoomUsers({ chatId: id });
-  } else if (type == 'chat') {
-
-  }
+  window.Userlist.update({ chatId: id });
 
   ChatManager.refreshChatContent(id);
   console.log("[ChatManager.focusChat] (1) Running ChatManager.updateChatStatus();");
@@ -1241,219 +1011,6 @@ ChatManager.updateChatList = function updateChatList() {
 
 };
 
-
-/*
- * Update the user list on the right bar
- */
-ChatManager.updateRoomUsers = function updateRoomUsers(data) {
-  var self = this;
-
-  var chatId = data.chatId;
-  var socket = data.socket;
-
-  var members = ChatManager.chats[chatId].members;
-  var subscribers = ChatManager.chats[chatId].subscribers;
-
-  var userListHtml = "";
-
-  console.log("[CHAT MANAGER] (updateRoomUsers) members: "+JSON.stringify(members));
-  console.log("[CHAT MANAGER] (updateRoomUsers) chats: ", Object.keys(ChatManager.chats));
-
-  var isActive = function(userId) {
-    if (ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
-      console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is true");
-      return true;
-    }
-    console.log("[chatManager.updateRoomUsers] Looping activeUsers for '" + userId + "' and indexOf is false");
-    return false;
-  };
-
-  // Make sure that activeUsers for the chat is updated before we build the userlist for the room below
-
-  if (subscribers.length > 0) {
-    subscribers.forEach(function(userId) {
-      var username = ChatManager.userlist[userId].username;
-
-      console.log("[chatManager.updateRoomUsers] activeUsers is: ", ChatManager.chats[chatId].activeUsers);
-      var active = isActive(userId);
-
-      // FIgure out why active is set ot true when users are not active
-
-      var user = ChatManager.userlist[userId];
-
-      console.log("[CHAT MANAGER] (updateRoomUsers) looping user:",username);
-
-      if ( !ChatManager.chats[userId] && username != window.username ) {
-        console.log("chat for ",username," was empty so initializing");
-        //console.log("[updateRoomUsers] GETCHAT - calling getChat from updateRoomUsers");
-
-        //socket.emit('getChat', { participantIds: [ ChatManager.userlist[username].id, ChatManager.userlist[window.username].id ]});
-
-        // Create the chat so that is iready for the new data we are getting from getChat
-        //ChatManager.chats[userId] = { name: username, type: 'chat', group: 'pm', messages: '', messageCache: '', topic: "One to one encrypted chat with " + username };
-
-        //ChatManager.updateChatList();
-      }
-
-      var emailHash = "0";
-
-      if (user && user.emailHash) {
-        var emailHash = user.emailHash;
-      }
-
-      // If user is active class = active
-      if (active) {
-        userListHtml += "<li class='user-list-li user-active' userId='" + userId + "' id='userlist-" + userId + "' name='" + username + "' data-content='" + username + "'>\n";
-      } else {
-        // If user is not active class = inactive
-        userListHtml += "<li class='user-list-li user-inactive' userId='" + userId + "' id='userlist-" + userId + "' name='" + username + "' data-content='" + username + "'>\n";
-      }
-      userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=''>\n";
-      userListHtml += "  </div>\n";
-      userListHtml += "</li>\n";
-    });
-  }
-
-  $('#user-list').html(userListHtml);
-
-  if (subscribers.length > 0) {
-    subscribers.forEach(function(userId) {
-      console.log("Setting up User Popup for '#userlist-" + userId + " .user-list-avatar'");
-      $('#userlist-' + userId + ' .user-list-avatar').popup({
-        inline: true,
-        position: 'left center',
-        hoverable: true,
-        target: '#userlist-' + userId,
-        popup: $('.ui.popup.userPopup'),
-        on: 'click'
-      })
-
-      $('#userlist-' + userId + ' .user-list-avatar').click(function() {
-        var userId = $( this ).parent().attr('userid');
-
-        console.log("Populating user popup for", username);
-        ChatManager.populateUserPopup({ userId: userId, socket: socket });
-      });
-    });
-  }
-};
-
-/*
- * Populates the popup when mousing over a users name or avatar on the user list
- */
-ChatManager.populateUserPopup = function populateUserPopup(data) {
-  var self = this;
-
-  var userId = data.userId;
-  var userObject = ChatManager.userlist[userId];
-
-  var username = userObject.username;;
-  var fullName = userObject.fullName;
-  var emailHash = userObject.emailHash;
-  var email = userObject.email;
-
-  var socket = data.socket;
-  var participantIds = [ userId, ChatManager.userNameMap[window.username] ];
-
-  var avatarHtml = "<img src='https://www.gravatar.com/avatar/" + emailHash + "?s=256' class='avatar-l'>";
-
-  $('.userPopup .avatar').html(avatarHtml);
-  $('.userPopup .fullName').text(fullName);
-  $('.userPopup .username').text(username);
-  $('.userPopup .email').text(email);
-  $('.userPopup .email').attr('href', 'mailto:' + email);
-
-  var usernameHtml = "<a href='http://pipo.chat/users/" + username + "' target='_blank'>" + username + "</a>";
-
-  $('.userPopup .username').html(usernameHtml);
-
-  $('.userPopup .privateChatButton').unbind().click(function() {
-    if (username !== window.username) {
-      // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
-      ChatManager.arrayHash(participantIds, function(chatHash) {
-        // Add to awaitingInit
-        //ChatManager.waitForInit(chatHash);
-
-        // Need to ensure that we're requesting the correct participantId's from the server here
-
-        window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
-
-        window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
-          console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");
-          self.setActiveChat(chatHash);
-          self.handleChatUpdate(data, function() {
-          });
-
-          window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
-        });
-
-        //socket.emit('getChat', { participantIds: participantIds });
-      });
-
-
-      $('.userPopup').removeClass('popover').addClass('popover-hidden');
-
-      //ChatManager.focusChat({ id: userId }, function(err) {
-      //  if ( !ChatManager.chats[userId] ) {
-      //    console.log("chat for " + username + " was empty so initializing");
-      //    ChatManager.chats[userId] = { name: username, id: userId, type: 'chat', group: 'pm', messages: "", topic: "One to one encrypted chat with " + username };
-      //  }
-      //  ChatManager.updateChatList();
-      //  // Done
-      //});
-    }
-  })
-};
-
-
-/*
-ChatManager.setChatEnabled = function setChatEnabled(roomIds) {
-  if (!roomIds) {
-    // Should change this to currently joined chats? (is this the same as ChatManager.chats?
-    var roomIds = Object.keys(ChatManager.chats);
-  };
-
-  roomIds.forEach(function(id) {
-    var enabled = ChatManager.chats[id].enabled;
-
-    if (enabled) {
-      console.log("[setChatEnabled] Trying to enable chat when it is already enabled");
-      return;
-    };
-
-    ChatManager.chats[id].enabled = true;
-    //
-    // If the chat we're looping is active, update the UI to reflect
-    if (ChatManager.activeChat == id) {
-      ChatManager.enableChat();
-    };
-  });
-};
-
-
-ChatManager.setChatDisabled = function setChatDisabled(roomIds) {
-  if (!roomIds) {
-    var roomIds = Object.keys(ChatManager.chats);
-  };
-
-  // Determine why enabled is not defined here sometimes
-
-  roomIds.forEach(function(id) {
-    var enabled = ChatManager.chats[id].enabled;
-
-    if (!enabled) {
-      console.log("[setChatDisabled] Trying to disable chat when it is already disabled");
-      return;
-    };
-
-    ChatManager.chats[id].enabled = false;
-
-    if (ChatManager.activeChat == id) {
-      ChatManager.disableChat();
-    };
-  });
-};
-*/
 
 
 /*
@@ -1690,7 +1247,7 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     ChatManager.arrayHash(participantIds, function(chatHash) {
       decrypt(chatId, encryptedMessage, function(message) {
         clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
-        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, confirmed: true, messageId: messageId, chatId: chatId, messageString: message, date: date });
       });
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
@@ -1717,7 +1274,7 @@ ChatManager.handleLocalMessage = function handleLocalMessage(data) {
   var fromUserId = data.fromUserId;
   var date = data.date;
 
-  // Should set the message to unconfirmed here (only if it's a local message tho
+  // Should set the message to unconfirmed here (only if it's a local message tho)
   ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
 };
 
@@ -1799,7 +1356,7 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
-      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, date: message.date, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
         ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
       });
     });
@@ -1863,7 +1420,7 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
   $('#chat').html(messageCache);
-  ChatManager.updateChatHeader(chatId);
+  ChatHeader.update(chatId);
 }
 
 
@@ -2078,8 +1635,8 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
       // Do something when registration is succcessful
     });
   });
-
 };
+
 
 ChatManager.promptForCredentials = function promptForCredentials(callback) {
   var self = this;

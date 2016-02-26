@@ -9,6 +9,8 @@ var Room = require('../models/room');
 var Message = require('../models/message');
 var Chat = require('../models/chat');
 
+// Libs
+
 // Config
 var config = require('../../config/pipo')();
 var logger = require('../../config/logger');
@@ -49,7 +51,12 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
 
   socket.on('updateClientKey', self.updateClientKey.bind(self));
+  //socket.on('disconnecting', self.disconnecting.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
+  socket.on('leaveRoom', function(id) {
+    logger.debug("[socketServer.on] leaveRoom - id: " + id);
+    self.leaveRoom(id).bind(self);
+  });
 
   socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.partRoom.bind(self));
@@ -228,12 +235,24 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       publicKey: user.publicKey
     };
 
-    // Add the user to the userMap if they do not exist
+    // Init the user in the userMap if they don't exist yet
     if (!self.namespace.userMap[user._id.toString()])
       self.namespace.userMap[user._id.toString()] = [];
 
     // Push the current socket to the users socketMap arary
     self.namespace.userMap[user._id.toString()].push(self.socket.id);
+
+    // Should call user.setActive(true) here
+    // Need to figure out how to call without passing user object?
+    User.setActive({ userId: user._id, active: true }, function(err) {
+      self.updateUserList({ scope: 'all' });
+    });
+    // Mark the user as active in user.active
+    //user.active = true;
+
+
+    // Update users last seen time in user.lastSeen
+    //user.lastSeen = new Date();
 
     logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user._id.toString()]);
 
@@ -257,8 +276,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
         logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
-        logger.debug("[socketServer.authenticate] sanatizeRoomForClient 1");
-        self.sanatizeRoomForClient(defaultRoom, function(sanatizedRoom) {
+        logger.debug("[socketServer.authenticate] sanatize 1");
+        Room.sanatize(defaultRoom, function(sanatizedRoom) {
           logger.debug("Sanatized default room #",sanatizedRoom.name,"running User.getAllUsers");
           User.getAllUsers({}, function(userlist) {
             logger.debug("[socketServer.authenticate] Got all users, running User.buildUserIdMap");
@@ -284,8 +303,13 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
           logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
 
-          self.sanatizeRoomsForClient(roomData.rooms, function(sanatizedRooms) {
+          // Go ahead and send the room objects to the user even if they haven't joined it yet
+          // - Need to figure out how to have the client only decrypt messages once when joining
+          //   as there is no need to decrypt twice. If there is a legit roomUpdate later tho,
+          //   we may want to decrypt messages again? When could this happen?
+          Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
             logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
+            // self.socket.to(chat).emit('user connect',
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -301,33 +325,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
   })
 };
 
-
-SocketServer.prototype.sanatizeRoomsForClient = function sanatizeRoomsForClient(rooms, callback) {
-  var self = this;
-  var sanatizedRooms = {};
-  var roomCount = rooms.length;
-  var count = 0;
-
-  logger.debug("[socketServer.sanatizeRoomsForClient] Sanatizing " + rooms.length + " rooms");
-
-  rooms.forEach(function(room) {
-    logger.debug("[socketServer.sanatizeRoomsForClient] Sanatizing room '" + room.name + "'");
-
-    self.sanatizeRoomForClient(room, function(sanatizedRoom) {
-      logger.debug("[socketServer.sanatizeRoomsForClient] Done sanatizing room and pushing '" + sanatizedRoom.name + "' to array...");
-      sanatizedRooms[sanatizedRoom.id] = sanatizedRoom;
-      count += 1;
-
-      logger.debug("[socketServer.sanatizeRoomsForClient] Total rooms: " + roomCount + " count: " + count);
-
-      if (count == roomCount) {
-        logger.debug("[socketServer.sanatizeRoomsForClient] Sanatized " + Object.keys(sanatizedRooms).length + " rooms and returning");
-        return callback(sanatizedRooms);
-      };
-    });
-
-  });
-};
 
 
 /*
@@ -479,11 +476,14 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
+  logger.debug("[socketServer.onPrivateMessage] userMap: ", self.namespace.userMap);
+
   // Get the socketId's for each participant
   // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap
   toUserIds.forEach(function(toUserId) {
     if (self.namespace.userMap[toUserId]) {
       if (self.namespace.userMap[toUserId] != self.socket.user._id.toString()) {
+        logger.debug("[socketServer.onPrivateMessage] Looping toUserIds to find socket - self.namespace.userMap[toUserId]: ", self.namespace.userMap[toUserId]);
         targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
       }
     } else {
@@ -501,11 +501,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     signature: data.signature
   };
 
-  //logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
+  logger.debug("[socketServer.onPrivateMessage] emitData: ", emitData);
 
   var userMapKeys = Object.keys(self.namespace.userMap);
 
-  logger.debug("[SocketServer.onPrivateMessage] userMapKeys: " + userMapKeys);
+  logger.debug("[SocketServer.onPrivateMessage] userMapKeys: ", userMapKeys);
 
   logger.debug("[socketServer.onPrivateMessage] targetSockets: ", targetSockets);
 
@@ -524,6 +524,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
         return logger.error("[onPrivateMessage] Error finding Chat with participantIds: ", toUserIds);
       };
 
+      if (chat) {
+        logger.debug("[socketServer.onPrivateMessage] Found chat with participantIds: ", toUserIds);
+      };
+
       if (!chat) {
         logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
         var chat = new Chat({
@@ -536,6 +540,10 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
       // For some reason, emitting to sockets, then getChat returns a chat that doesn't have the first message of a chat?
       // Looks like the server is not saving the messages after the first message but the client still gets it?
+
+      //TODO:
+      //Create a room from this chat and emit to the room instead of individual sockets save the room
+      //somewhere for later use...
       chat.save(function(err, savedChat) {
         emitToSockets(targetSockets, emitData);
       });
@@ -551,20 +559,11 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
-      self.socket.send(targetSocket).emit('privateMessage', emitData);
+
+      self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
-
-    // Send the message back to the sender for confirmation
-    //logger.debug("[socketServer.onPrivateMessage] self.namespace.userMap: " + Object.keys(self.namespace.userMap));
-    //var socketMapKeys = Object.keys(self.namespace.socketMap);
-    //socketMapKeys.forEach(function(key) {
-    //  logger.debug("[socketServer.onPrivateMessage] asdf");
-    //});
-
-    //logger.debug("[socketServer.onPrivateMessage] self.namespace.socketMap: " + Object.keys(self.namespace.socketMap));
-
-    //logger.debug("[socketServer.onPrivateMessage] Senders socket ID is: " + self.socket.id);
-    //self.socket.emit('privateMessage', emitData);
+    // Must emit to self becuase broadcast.to does not emit back to itself
+    self.socket.emit('privateMessage', emitData);
   };
 };
 
@@ -773,10 +772,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       });
     });
   } else {
+    // TODO:
     // Using client key encryption scheme
-    // Move this to its own function (sanatizeRoomForClient)
-    // BOOKMARK
-    Room.join({id: roomId, username: username}, function(err, data) {
+    // Move this to its own function (sanatize)
+    Room.join({ id: roomId, username: username, socket: self.socket }, function(err, data) {
       var auth = data.auth;
       var room = data.room;
       var roomUpdated = data.updated;
@@ -791,27 +790,17 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         }
       }
 
-      room._members.forEach(function(member) {
-        logger.debug("[socketServer.joinRoom] Room has member: ",member.username);
-      });
+      logger.debug("[socketServer.join] Checking to see if we should add a memberhsip to this room for this user");
 
-      logger.debug("[socketServer.joinRoom] sanatizeRoomForClient 3");
-      self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+      Room.sanatize(room, function(sanatizedRoom) {
         if (err) {
           return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
 
-        //logger.debug("[SOCKET SERVER] (joinRoom) Sanatized room is:",sanatizedRoom);
-        self.socket.join(room._id.toString());
-        logger.debug("[SOCKET SERVER] (joinRoom) Sending joinComplete in clientKey mode");
         var rooms = {};
 
         // Should only include the room users here as a join should only change that
-
         rooms[room.id] = sanatizedRoom;
-
-
-        logger.debug("[socketServer.joinRoom] Sending roomUpdate before joinComplete");
 
         // TODO: Should only do one of these probably
         //self.socket.emit('roomUpdate', { rooms: rooms } );
@@ -822,151 +811,22 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 
         if (roomUpdated) {
           logger.debug("[socketServer.joinRoom] Running roomUpdate from joinRoom");
+
+          // Should not emit this to the joining user as it sends a double update
+          // Could create methods like doJoinUpdates, doConnectUpdates, etc... to
+          // keep all of the action notification triggers together
           self.namespace.emit('roomUpdate', { rooms: rooms });
         }
 
         logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name);
 
-        // Emit room update to the namespace
-
-        // Is this needed?
         self.updateActiveUsers(room._id);
       })
     })
   };
 };
 
-/*
- * Convert all mongoose objects to arrays or hashes
- * Users will be looked up on the client side using username or id
- */
-SocketServer.prototype.sanatizeRoomForClient = function sanatizeRoomForClient(room, callback) {
-  var self = this;
 
-  if (room._owner) {
-    var ownerusername = room._owner.username;
-  } else {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
-    var ownerusername = null;
-  }
-
-  var membersLength = room._members.length;
-  var adminsLength = room._admins.length;
-  var activeUsersLength = room._activeUsers.length;
-  var subscribersLength = room._subscribers.length;
-
-  var membersArray = [];
-  var adminsArray = [];
-  var subscribersArray = [];
-  var activeUsersArray = [];
-  var messagesArray = [];
-
-  //logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
-  //logger.debug("[socketServer.sanatizeRoomForClient] room._members[0]: " + room._members[0]);
-
-  if (membersLength > 0) {
-    room._members.forEach(function(member) {
-      logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", member.username," to membersArray");
-      logger.debug("[socketServer.sanatizeRoomForClient] Looping member: ",member._id);
-      membersArray.push(member._id.toString());
-    });
-  };
-
-  if (subscribersLength > 0) {
-    room._subscribers.forEach(function(subscriber) {
-      //logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", subscriber.id, " to subscribersArray");
-      subscribersArray.push(subscriber._id.toString());
-    });
-  };
-
-  if (activeUsersLength > 0) {
-    room._activeUsers.forEach(function(activeUser) {
-      //logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", activeUser.username, " to activeUsers");
-      activeUsersArray.push(activeUser._id.toString());
-    });
-  };
-
-  if (adminsLength > 0) {
-    room._admins.forEach(function(admin) {
-      //logger.debug("[socketServer.sanatizeRoomForClient] Pushing ", admin.username," to adminsArray");
-      adminsArray.push(admin._id.toString());
-    });
-  };
-
-  if (room._messages.length > 0) {
-    var processedMessages = 0;
-    room._messages.forEach(function(message) {
-      if (message._toUsers && message._toUsers.length > 0) {
-        var toUsersArray = [];
-        message._toUsers.forEach(function(toUser) {
-          //logger.debug("[socketServer.sanatizeRoomForClient] Looping toUsers, _toUser._id is: " + toUser._id.toString());
-          toUsersArray.push(toUser._id.toString());
-        });
-      };
-
-      // Should be able to remove this?
-      // bug when I do, i can't see finish() from this context... :-\
-      message.populate('_fromUser', function() {
-
-        //logger.debug("[socketServer.sanatizeRoomForClient] Looping messages, from user is : " + message._fromUser._id.toString());
-
-        var sanatizedMessage = {
-          date: message.date,
-          fromUser: message._fromUser.id.toString(),
-          toUsers: toUsersArray,
-          encryptedMessage: message.encryptedMessage
-        };
-
-        messagesArray.push(sanatizedMessage);
-        processedMessages++;
-
-        if (processedMessages == room._messages.length) {
-          finish();
-        };
-      });
-    });
-  };
-
-  var finish = function finish() {
-    logger.debug("[socketServer.sanatizeRoomForClient] Finishing...");
-
-    var sanatizedRoom = {
-      id: room._id.toString(),
-      type: 'room',
-      name: room.name,
-      topic: room.topic,
-      group: room.group,
-      messageCache: '',
-      messages: messagesArray.sort(dynamicSort("date")),
-      encryptionScheme: room.encryptionScheme,
-      keepHistory: room.keepHistory,
-      membershipRequired: room.membershipRequired,
-      members: membersArray,
-      activeUsers: activeUsersArray,
-      subscribers: subscribersArray,
-      admins: adminsArray,
-      owner: room._owner._id.toString()
-    };
-
-    return callback(sanatizedRoom);
-  }
-
-  if (room._messages.length == 0) {
-    finish();
-  };
-}
-
-function dynamicSort(property) {
-    var sortOrder = 1;
-    if(property[0] === "-") {
-        sortOrder = -1;
-        property = property.substr(1);
-    }
-    return function (a,b) {
-        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
-        return result * sortOrder;
-    }
-}
 
 /*
  * Create a room if user has permission
@@ -991,8 +851,8 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     self.socket.emit('createRoomComplete', { room: { id: newRoom.id }});
     logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
-    logger.debug("[socketServer.createRoom] sanatizeRoomForClient 4");
-    self.sanatizeRoomForClient(newRoom, function(sanatizedRoom) {
+    logger.debug("[socketServer.createRoom] sanatize 4");
+    Room.sanatize(newRoom, function(sanatizedRoom) {
       rooms[newRoom._id.toString()] = sanatizedRoom;
       if (roomData.membershipRequired) {
         // Emit membership update to user who created private room
@@ -1027,17 +887,20 @@ SocketServer.prototype.updateRoom = function updateRoom(data) {
     }
     // TODO: This needs to emit room update with ID instead of name
     self.socket.emit('updateRoomComplete', { name: data.name });
-    logger.debug("Room updated : " + JSON.stringify(updatedRoom));
+    logger.debug("[socketServer.updateRoom] Room updated : " + JSON.stringify(updatedRoom));
     var rooms = {};
-    rooms[updatedRoom.name] = updatedRoom;
-    // TODO: Need to emit to members, not just the one who created the room
-    if (roomData.membershipRequired) {
-      // Emit membership update to user who created private room
-      self.socket.emit('roomUpdate', { rooms: rooms });
-    } else {
-      // Emit membership update to all users
-      self.namespace.emit('roomUpdate', { rooms: rooms });
-    }
+    Room.sanatize(updatedRoom, function(sanatizedRoom) {
+      logger.debug("[socketServer.updateRoom] Sanatized room sending back as updated room: ", sanatizedRoom);
+      rooms[sanatizedRoom.id] = sanatizedRoom;
+      // TODO: Need to emit to members, not just the one who created the room
+      if (roomData.membershipRequired) {
+        // Emit membership update to user who created private room
+        self.socket.emit('roomUpdate', { rooms: rooms });
+      } else {
+        // Emit membership update to all users
+        self.namespace.emit('roomUpdate', { rooms: rooms });
+      }
+    });
   })
 }
 
@@ -1050,7 +913,6 @@ SocketServer.prototype.membership = function membership(data) {
   var memberId = data.memberId;
   var membership = data.membership;
   var username = self.socket.user.username;
-  // BOOKMARK - Where should I be getting the userId from for the user doing the adding?
   var userId = self.socket.user.id;
 
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
@@ -1080,8 +942,8 @@ SocketServer.prototype.membership = function membership(data) {
       logger.debug("[socketServer.membership] Member added, finding room with '" + chatId + "' to return...");
 
       Room.findOne({ _id: chatId }).populate('_members _admins _owner _subscribers _activeUsers _messages _messages._fromUser _messages._toUsers').exec(function(err, room) {
-        logger.debug("[socketServer.membership] sanatizeRoomForClient 5");
-        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+        logger.debug("[socketServer.membership] sanatize 5");
+        Room.sanatize(room, function(sanatizedRoom) {
           var rooms = {};
           rooms[room._id.toString()] = sanatizedRoom;
           addResultData.rooms = rooms;
@@ -1128,8 +990,8 @@ SocketServer.prototype.membership = function membership(data) {
         })
         logger.debug("[SOCKET SERVER] (membership) Room admins: ",adminsArray);
         var rooms = {};
-        logger.debug("[socketServer.membership] sanatizeRoomForClient 6");
-        self.sanatizeRoomForClient(room, function(sanatizedRoom) {
+        logger.debug("[socketServer.membership] sanatize 6");
+        Room.sanatize(room, function(sanatizedRoom) {
           logger.debug("[SOCKET SERVER] (membership) Room sanatized. Adding to rooms list and sending roomUpdate to namespace");
           rooms[room._id.toString()] = sanatizedRoom;
 
@@ -1177,9 +1039,6 @@ SocketServer.prototype.partRoom = function partRoom(data) {
       return logger.info("Failed to part room with id'" + chatId + "'");
     }
     logger.info("User " + username + " parted room with id'" + chatId + "'");
-
-    // Remove the user from the rooms namespace
-    self.socket.leave(chatId);
 
     // Update the active users for the chat and emit the change to all users in that namespace
     self.updateActiveUsers(chatId);
@@ -1288,14 +1147,20 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
 
 
 /**
- * Update userlist for a room
+ * Update userlist for a room and emit an update to the client
+ *
+ * Should this go in the room or chat model?
+ * - may have to wait until room and chat are combined
  */
 SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
   var self = this;
+
+  logger.debug("[socketServer.updateActiveUsers] Getting active users...");
+
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
-    //logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
-    // Is this emitting to the right ID?
+    logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
+
     self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
       activeUsers: activeUsers
@@ -1310,32 +1175,62 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
  */
 SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var self = this;
+  var activeUserIds = [];
   var activeUsers = [];
+  var uniqueActiveUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    activeUsers = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
-      return activeUsers[sid];
+    logger.debug("[socketServer.getActiveUsers] this.namespace.adapter.rooms[chatId]: ", this.namespace.adapter.rooms[chatId]);
+    activeUserIds = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
+      logger.debug("[socketServer.getActiveUsers] Looping active users, sid: ", sid);
+      return sid;
     });
 
     logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
 
     //Map sockets to users
-    activeUsers = activeUsers.map(function(sid) {
+    activeUsers = activeUserIds.map(function(sid) {
       logger.debug("[socketServer.getActiveUsers] sid: " + sid);
       return self.namespace.socketMap[sid].userId;
     });
 
-    //logger.debug("[socketServer.getActiveUsers] Mapped members to sockets: ", activeUsers);
-
+    uniqueActiveUsers = activeUsers.filter(function(elem, pos) {
+      return activeUsers.indexOf(elem) == pos;
+    });
   } else {
     logger.info("[GET USER LIST] User list is empty");
   };
 
+  logger.debug("[socketServer.getActiveUsers] Uniquie Active activeUsers for chatId: '" + chatId + "' is: ", uniqueActiveUsers);
   logger.debug("[socketServer.getActiveUsers] Active activeUsers for chatId: '" + chatId + "' is: ", activeUsers);
 
-  callback(null, activeUsers);
+  callback(null, uniqueActiveUsers);
 };
 
+
+
+SocketServer.prototype.leaveRoom = function leaveRoom(roomId) {
+  logger.debug("[socketServer.leaveRoom] Got leave room for id: " + roomId);
+};
+
+SocketServer.prototype.disconnecting = function(disconnecting) {
+  var self = this;
+  if (self.socket) {
+    var userId = self.socket.user.id;
+    var username = self.socket.user.username;
+    // BOOKMARK BOOKMARK BOOKMARK
+    var roomIds = Object.keys(self.socket.rooms);
+
+    logger.debug("[socketServer.disconnecting] roomIds: ", roomIds);
+
+    logger.debug("[socketServer.disconnecting] User '" + username + "' is disconnecting.");
+    logger.debug("[socketServer.disconnecting] rooms: ", Object.keys(self.socket.rooms));
+
+    //roomIds.forEach(function(id) {
+    //  self.updateActiveUsers(id);
+    //});
+  }
+};
 
 
 SocketServer.prototype.disconnect = function disconnect() {
@@ -1345,15 +1240,18 @@ SocketServer.prototype.disconnect = function disconnect() {
   }
 
   logger.info("[DISCONNECT] socket.id: " + self.socket.id);
-  self.socket.leaveAll();
+  // Is this necessary? Probably alreeady happens in socket
+  //self.socket.leaveAll();
 
+  // If there is a user and id in the socket
   if (self.socket.user && self.socket.user.id) {
     var userId = self.socket.user.id;
     var username = self.socket.user.username;
 
     logger.info("[SOCKET SERVER] (disconnect) username: "+username);
 
-    User.findOne({ _id: userId }).populate('membership.rooms._room').exec(function(err, user) {
+    // Find the user object matching the user id that is disconnecting
+    User.findOne({ _id: userId }).populate('membership._currentRooms').exec(function(err, user) {
       if (err) {
         return logger.info("ERROR finding user while parting room");
       }
@@ -1364,26 +1262,28 @@ SocketServer.prototype.disconnect = function disconnect() {
 
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
-      user.membership.rooms.forEach(function(roomMembership) {
-        if (roomMembership.active) {
-          var currentRoom = roomMembership._room;
+      // Send an updated userlist to all users?
+      User.setActive({ userId: user._id, active: false }, function(err) {
+        self.updateUserList({ scope: 'all' });
+      });
 
-          Room.part({ userId: userId, chatId: roomMembership._room._id }, function(err, success) {
-            if (err) {
-              return logger.info("ERROR parting room: " + err);
-            }
+      // Loop through the rooms that this user is a member of and part the user from the room
+      user.membership._currentRooms.forEach(function(room) {
+        logger.debug("[socketServer.disconnect] room name is: " + room.name );
+        Room.part({ userId: userId, chatId: room._id }, function(err, success) {
+          if (err) {
+            return logger.info("ERROR parting room: " + err);
+          }
 
-            if (!success) {
-              return logger.info("User " + username + " failed to part room " + currentRoom.name);
-            }
+          if (!success) {
+            return logger.info("User " + username + " failed to part room " + room.name);
+          }
 
-            //BOOKMARK
-            logger.info("User " + username + " successfully parted room " + currentRoom.name);
-            // TODO: Should update all appropritae rooms here
-            logger.info("Updating room users!");
-            self.updateActiveUsers(currentRoom._id.toString());
-          })
-        }
+          logger.info("User " + username + " successfully parted room " + room.name);
+          // TODO: Should update all appropritae rooms here
+          logger.info("Updating room users!");
+          self.updateActiveUsers(room._id.toString());
+        })
       })
     })
 
@@ -1403,6 +1303,7 @@ SocketServer.prototype.disconnect = function disconnect() {
   } else {
     logger.info("WARNING! Someone left the room and we don't know who it was...");
   }
+
 };
 
 

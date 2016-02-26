@@ -37,7 +37,9 @@ Authentication.authenticated = function authenticated(data) {
   //  ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
   //}
 
-  ChatManager.updateUserlist(userlist);
+  MasterUserlist.update(userlist, function(err) {
+    console.log("[authentication.authenticated] Updated Main Userlist");
+  });
   ChatManager.userNameMap = userNameMap;
   ChatManager.userProfile = userProfile;
 

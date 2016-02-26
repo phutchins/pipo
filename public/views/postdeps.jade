@@ -24,12 +24,19 @@ script(src='#{depRoot}js/lib/jquery.pulse.js')
 // Load Modals
 script(src='#{depRoot}js/modals/registerUserPrompt.js')
 script(src='#{depRoot}js/modals/unlockClientKeyPairModal.js')
-script(src='#{depRoot}js/chatManager.js')
+script(src='#{depRoot}js/modals/createRoomModal.js')
+script(src='#{depRoot}js/modals/editRoomModal.js')
+// Load Helpers
+script(src='#{depRoot}js/userlist.js')
 script(src='#{depRoot}js/clientNotification.js')
-script(src='#{depRoot}js/socketClient.js')
-script(src='#{depRoot}js/encryptionManager.js')
+script(src='#{depRoot}js/MasterUserlist.js')
+script(src='#{depRoot}js/chatHeader.js')
 script(src='#{depRoot}js/authentication.js')
 script(src='#{depRoot}js/serverCommand.js')
+// Load main scripts
+script(src='#{depRoot}js/chatManager.js')
+script(src='#{depRoot}js/encryptionManager.js')
+script(src='#{depRoot}js/socketClient.js')
 script.
   hljs.initHighlightingOnLoad();
   openpgp.initWorker('#{depRoot}js/lib/openpgp.worker.js');

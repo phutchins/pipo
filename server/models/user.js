@@ -6,24 +6,39 @@ var Room = require('./room');
 var Chat = require('./chat');
 var logger = require('../../config/logger');
 
+/*
+ * User Status Definitions
+ * active - If the user is currently connected to the server or not
+ * lastSeen - Last time the user was connected to the server (should be set on connection and disconnection?)
+ *
+ * User Membership Definitions
+ * _favoriteRooms - Rooms that should be joined upon sign-in
+ *
+ * Questions?
+ * rooms._room - Do we need to keep track of the room here for any reason?
+ * - Joining a public room?
+ *   If you're a member, you can leave the room and not auto join by not having it in _favoriteRooms
+ *   If you want to autojoin a room that you're a member of, just join it and click favorite
+ *
+ *   If the room is public, simply join it
+ *   Add to _favoriteRooms to set it to auto join
+ */
+
 var userSchema = new Schema({
   username: { type: String },
   usernameLowerCase: { type: String },
   fullName: { type: String },
   title: { type: String },
-  email: { type: String },
+  emai: { type: String },
+  active: { type: Boolean, default: false },
+  lastSeen: { type: Date },
   emailHash: { type: String },
   publicKey: { type: String },
   socketIds: [{ type: String }],
   _chats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat" }],
   membership: {
-    rooms: [{
-      _room: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
-      active: { type: Boolean, default: false },
-      lastSeen: { type: Date },
-      accessLevel: { type: String, default: 'none' }
-    }],
-    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
+    _currentRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }]
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
@@ -236,6 +251,7 @@ userSchema.statics.sanatize = function sanatize(user, callback) {
   var sanatizedUser = {
     id: user._id.toString(),
     username: user.username,
+    active: user.active,
     publicKey: user.publicKey,
     fullName: user.fullName,
     email: user.email,
@@ -273,6 +289,51 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
     logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
     return callback(sanatizedUser);
   });
+};
+
+
+/*
+ * Set the user as active
+ *
+ * This is independent of channels. The user should have an active status and that combined
+ * with the users user membership (should rename?) which kees track of which rooms the user
+ * is currently joined in. We don't want to use the actual membership in the room object because
+ * to leave the room, their permisison to join it would be removed. Should also track membership required
+ * rooms and public rooms the same way.
+ *
+ * Should be set to TRUE when the user has active sockets
+ * Should be set to FALSE after a user has had no active sockets for
+ * a certain amount of time
+ *
+ * Should be used for online status and userlist
+ */
+userSchema.statics.setActive = function setActive(data, callback) {
+  var userId = data.userId;
+  var active = data.active;
+
+  // Check this in this current context to see if we have the user we were passed
+  logger.debug("[user.setActive] userId: " + userId + " active: " + active);
+
+  this.findOne({ _id: userId }, function(err, user) {
+    if (!user) {
+      var err = "User not found";
+
+      logger.error("[user.setActive] User not found");
+      return callback(err);
+    }
+
+    user.active = active;
+    user.save(function(err) {
+      if (err) {
+        var err = "Error saving user";
+
+        logger.error("[user.setActive] Error while saving user after setting active");
+        return callback(err);
+      }
+      logger.debug("[user.setActive] Set user active for '" + user.username + "' to '" + active + "'");
+      return callback(null);
+    });
+  })
 };
 
 

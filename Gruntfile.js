@@ -1,4 +1,6 @@
-module.exports = function(grunt) {
+module.exports = function (grunt) {
+  'use strict';
+
   require('load-grunt-tasks')(grunt);
   grunt.loadNpmTasks('grunt-jslint');
   grunt.loadNpmTasks('grunt-contrib-clean');
@@ -11,15 +13,15 @@ module.exports = function(grunt) {
       server: {
         src: [
           '*.js',
-          'src/routes/*.js',
-          'managers/*.js',
-          'models/*.js',
-          'test/**/*.js'
+          'server/routes/*.js',
+          'server/js/**/*.js',
+          'server/models/*.js'
         ],
         exclude: [
         ],
         directives: { // example directives
           node: true,
+          indent: 2,
           todo: true
         },
         options: {
@@ -35,10 +37,11 @@ module.exports = function(grunt) {
       // lint your project's client code
       client: {
         src: [
-          'src/js/*.js'
+          'public/js/*.js'
         ],
         directives: {
           browser: true,
+          indent: 2,
           predef: [
             'jQuery'
           ]
@@ -58,7 +61,8 @@ module.exports = function(grunt) {
           version: '0.36.5',
           platform: 'darwin',
           icon: 'public/img/pipo.icns',
-          arch: 'x64'
+          arch: 'x64',
+          ignore: ['server', 'scripts', 'test', 'out', 'docs', 'dist']
         }
       }
     },
@@ -66,11 +70,23 @@ module.exports = function(grunt) {
     clean: {
       build: ["out", "pipo.log"],
       release: ["dist"]
-    },
+    }
+
+    //cleanall: {
+    //  clean: {
+    //    build: ["out", "pipo.log"],
+    //    release: ["dist"],
+    //    modules: ["node_modules"]
+    //  }
+    //}
   });
 
 
 
-  grunt.registerTask('default', ['electron']);
-  grunt.registerTask('lint', ['jslint']);
+  grunt.registerTask('default', 'Default task', ['lint']);
+  grunt.registerTask('build', 'Build for Electron', ['electron']);
+  grunt.registerTask('clean', 'Clean build files', ['clean']);
+  grunt.registerTask('cleanrelease', 'Clean release files', ['cleanrelease']);
+  //grunt.registerTask('cleanall', 'Clean all files', ['cleanall']);
+  grunt.registerTask('lint', 'Run linting', ['jslint']);
 };

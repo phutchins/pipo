@@ -143,13 +143,26 @@ SocketClient.prototype.addListeners = function() {
 
     ChatManager.userNameMap = userNameMap;
 
-    ChatManager.updateUserlist(userlist);
+    MasterUserlist.update(userlist, function(err) {
+      console.log("[socketClient.on userlistUpdate] Updated userlist");
+      // Update userlist if the current chat is a private chat
+      //   there is a better way to do this, should likely do this
+      //   the same way that we're doing it for rooms and issue an update
+      //   only for the private chats that the user is a part of
+      var activeChatId = ChatManager.activeChat;
+      if (ChatManager.chats[activeChatId].type == 'chat') {
+        Userlist.update({ chatId: activeChatId });
+        console.log("[socketClient.on userlistUpdate] Updated userlist for private chat with id '" + activeChatId + "'");
+      };
+    });
   });
 
   this.socket.on('activeUsersUpdate', function(data) {
     var uniqueRoomUsersArray = [];
     var newRoomUsersArray = [];
     var chatId = data.chatId;
+
+    console.log("[SOCKET] activeUsersUpdate - Got SOCKET event");
 
     if (!ChatManager.chats[chatId]) {
       return;
@@ -174,7 +187,7 @@ SocketClient.prototype.addListeners = function() {
     //
 
     if (ChatManager.activeChat == chatId) {
-      ChatManager.updateRoomUsers({ chatId: chatId, socket: self.socket });
+      window.Userlist.update({ chatId: chatId });
     }
   });
 
@@ -382,7 +395,7 @@ SocketClient.prototype.toggleFavorite = function(data) {
   self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
     console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
     self.socket.removeListener('toggleFavoriteComplete-' + chatId);
-    ChatManager.updateFavoriteButton({ favorite: data.favorite });
+    ChatHeader.updateFavoriteButton({ favorite: data.favorite });
   });
 };
 
@@ -404,21 +417,24 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
   Object.keys(rooms).forEach(function(id) {
     console.log("[socketClient.handleRoomUpdate] Adding room",id,"to array with data:",rooms[id]);
 
-    //
-    // BUG: This should not overwrite the entire room... It is nuking the messageCache
-    //
-
     console.log("[socketClient.handleRoomUpdate] (1) Running initRoom");
 
     // Should we update the room selectively in initRoom or create a new method that handles only room updates
     // while initRoom only handles the initial room setup case?
+    console.log("[socketClient.handleRoomUpdate] Running initRoom from handleRoomUpdate");
     ChatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
+
+      if (ChatManager.activeChat == id) {
+        window.Userlist.update({ chatId: id });
+      }
 
       ChatManager.updateRoomList(function() {
         console.log("[SocketClient.handleRoomUpdate] (1) Running ChatManager.updateChatStauts();");
         ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
+
+      ChatHeader.update(id);
 
       ChatManager.buildRoomListModal;
 
@@ -426,17 +442,6 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
       ChatManager.populateManageMembersModal({ clearMessages: false });
     });
   })
-
-  /*
-  if (ChatManager.activeChat) {
-    activeChatId = ChatManager.activeChat.id;
-    activeChatName = ChatManager.chats[activeChatId].name;
-    console.log("[socketClient.handleRoomUpdate] Refreshing active chat '" + activeChatName + "'");
-    ChatManager.refreshChatContent(activeChatId);
-
-  }
-
-  */
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {

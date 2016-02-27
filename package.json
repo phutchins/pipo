@@ -44,7 +44,9 @@
     "mongoose": "^4.1.10",
     "morgan": "^1.5.3",
     "node-notifier": "^4.2.1",
+    "nonce": "^1.0.3",
     "passport": "^0.3.2",
+    "passport-publickey": "^1.0.3",
     "requirejs": "^2.1.17",
     "serve-favicon": "^2.2.1",
     "should": "^7.0.2",
@@ -59,7 +61,6 @@
     "grunt-jasmine-node-coverage": "^0.4.1",
     "grunt-jslint": "^1.1.14",
     "jquery": "^2.2.0",
-    "load-grunt-tasks": "^3.4.0",
-    "socket.io": "^1.4.5"
+    "load-grunt-tasks": "^3.4.0"
   }
 }

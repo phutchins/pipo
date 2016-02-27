@@ -7,7 +7,6 @@ var path = require('path');
 //Modules
 var express = require('express');
 var socketIO = require('socket.io');
-//var openpgp = require('openpgp');
 var favicon = require('serve-favicon');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
@@ -16,6 +15,11 @@ var marked = require('marked');
 var events = require('events');
 var winston = require('winston');
 var pgp = require('kbpgp');
+var passport = require('passport');
+var PublicKeyStrategy = require('passport-publickey');
+
+// Managers
+var AuthenticationManager = require('./js/managers/authentication');
 
 //Local modules
 var database = require('./js/database');
@@ -98,6 +102,29 @@ io.on('connection',function (socket) {
 });
 
 var ioMain = io.of('/socket');
+
+// Authentication
+passport.use(new PublicKeyStrategy(
+  function(nonce, signature, done) {
+    User.findByNonce(nonce, function (err, user) {
+      if (err) { return done(err); }
+      if (!user) { return done(null, false); }
+
+      var verifier = crypto.createVerify("RSA-SHA256");
+      verifier.update(nonceString);
+
+      var publicKeyBuf = new Buffer(user.public_key, 'base64');
+
+      var result = verifier.verify(publicKeyBuf, signature, "base64");
+
+      if (result) {
+        return done(null, user);
+      } else {
+        return done(null, false);
+      }
+    });
+  }
+));
 
 // Startup routine
 initServer();

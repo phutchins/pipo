@@ -29,7 +29,8 @@ var userSchema = new Schema({
   usernameLowerCase: { type: String },
   fullName: { type: String },
   title: { type: String },
-  emai: { type: String },
+  email: { type: String },
+  nonce: { type: String },
   active: { type: Boolean, default: false },
   lastSeen: { type: Date },
   emailHash: { type: String },
@@ -426,6 +427,13 @@ userSchema.methods.generateHash = function(publicKey) {
 
 userSchema.methods.checkPublicKey = function(publicKey) {
   return bcrypt.CompareSync(publicKey, this.local.publicKey);
+};
+
+userSchema.statics.findByNonce = function(nonce, callback) {
+  this.findOne({ nonce: nonce }, function(err, user) {
+    console.log("Found user '" + user.username + "'");
+    return callback(err, user);
+  });
 };
 
 module.exports = mongoose.model('User', userSchema);

@@ -429,9 +429,9 @@ userSchema.methods.checkPublicKey = function(publicKey) {
   return bcrypt.CompareSync(publicKey, this.local.publicKey);
 };
 
-userSchema.statics.findByNonce = function(nonce, callback) {
-  this.findOne({ nonce: nonce }, function(err, user) {
-    console.log("Found user '" + user.username + "'");
+userSchema.statics.findByUsername = function(username, callback) {
+  this.findOne({ username: username }, function(err, user) {
+    logger.debug("Found user '" + user.username + "'");
     return callback(err, user);
   });
 };

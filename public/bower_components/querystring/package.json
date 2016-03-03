@@ -1,0 +1,11 @@
+{
+ "name": "querystring",
+ "version": "3.46.1",
+ "main": "querystring.min.js",
+ "description": "'querystring' nodejs core module browserify-ied with `--standalone querystring`. Should support all module systems (commonjs, AMD & `window.querystring`) - check browserify docs.",
+ "keywords": [
+  "nodejs",
+  "browserify",
+  "querystring"
+ ]
+}

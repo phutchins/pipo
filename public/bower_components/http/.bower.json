@@ -1,0 +1,22 @@
+{
+  "name": "http",
+  "version": "3.24.10",
+  "main": "http.min.js",
+  "description": "'http' nodejs core module browserify-ied with `--standalone http`. Should support all module systems (commonjs, AMD & `window.http`) - check browserify docs.",
+  "keywords": [
+    "nodejs",
+    "browserify",
+    "http"
+  ],
+  "homepage": "https://github.com/anodynos/node2web_http",
+  "_release": "3.24.10",
+  "_resolution": {
+    "type": "version",
+    "tag": "3.24.10",
+    "commit": "e866fb0957c4bc784b8fe5aa714d16fdbc645b30"
+  },
+  "_source": "git://github.com/anodynos/node2web_http.git",
+  "_target": "~3.24.10",
+  "_originalSource": "http",
+  "_direct": true
+}

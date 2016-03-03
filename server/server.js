@@ -15,13 +15,12 @@ var marked = require('marked');
 var events = require('events');
 var winston = require('winston');
 var pgp = require('kbpgp');
-var passport = require('passport');
-var PublicKeyStrategy = require('passport-publickey');
 var crypto = require('crypto');
 var btoa = require('btoa');
 
 // Managers
 var AuthenticationManager = require('./js/managers/authentication');
+var EncryptionManager = require('./js/managers/encryption');
 
 //Local modules
 var database = require('./js/database');
@@ -88,50 +87,8 @@ console.log('');
 
 database.connect('development');
 
-app.use(passport.initialize());
-app.use(passport.session());
-
-passport.serializeUser(function(user, done) {
-    done(null, user);
-});
-
-passport.deserializeUser(function(user, done) {
-    done(null, user);
-});
-
-//
-// Authentication
-passport.use(new PublicKeyStrategy(
-  function(nonce, signature, done) {
-    console.log("[server.passport.publicKey] nonce: " + nonce + " signature: " + signature);
-    User.findByNonce(nonce, function (err, user) {
-      if (err) { return done(err); }
-      if (!user) { return done(null, false); }
-
-      var verifier = crypto.createVerify("RSA-SHA256");
-      verifier.update(nonce);
-
-      var sig = btoa(signature);
-      var publicKey = btoa(user.publicKey);
-      var publicKeyBuf = new Buffer(publicKey, 'base64');
-
-      //var result = verifier.verify(publicKeyBuf, sig, "base64");
-      //var result = verifier.verify(publicKey, signature);
-      var result = true;
-
-      var sessionUser = {
-        username: user.username,
-        publicKey: user.publicKey
-      }
-
-      if (result) {
-        return done(null, sessionUser);
-      } else {
-        return done(null, false);
-      }
-    });
-  }
-));
+// Initialize authentication framework
+AuthenticationManager.init(app);
 
 // Load routes
 var routePath = __dirname + '/routes/';

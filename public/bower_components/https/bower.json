@@ -1,0 +1,11 @@
+{
+ "name": "https",
+ "version": "3.46.1",
+ "main": "https.min.js",
+ "description": "'https' nodejs core module browserify-ied with `--standalone https`. Should support all module systems (commonjs, AMD & `window.https`) - check browserify docs.",
+ "keywords": [
+  "nodejs",
+  "browserify",
+  "https"
+ ]
+}

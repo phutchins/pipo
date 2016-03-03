@@ -49,6 +49,7 @@
     "nonce": "^1.0.3",
     "passport": "^0.3.2",
     "passport-publickey": "^1.0.3",
+    "querystring": "^0.2.0",
     "requirejs": "^2.1.17",
     "serve-favicon": "^2.2.1",
     "should": "^7.0.2",

@@ -429,6 +429,17 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
   }, callback);
 };
 
+EncryptionManager.prototype.sign = function encryptPrivateMessage(message, callback) {
+  var self = this;
+
+  window.kbpgp.box({
+    msg: message,
+    sign_with: window.encryptionManager.keyManager
+  }, function(err, result_string, result_buffer) {
+    return callback(err, result_string);
+  });
+};
+
 /**
  * Decrypts an incoming message with our key
  * @param encryptedMessage

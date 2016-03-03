@@ -12,6 +12,55 @@ Authentication.authenticate = function authenticate(data) {
   });
 };
 
+Authentication.apiAuth = function apiAuth(data) {
+  var username = data.username;
+  var nonce = '123456789';
+  var signature;
+
+  window.encryptionManager.sign(nonce, function(err, sig) {
+    signature = btoa(sig);
+
+    var postData = querystring.stringify({
+      'msg' : 'Hello World!'
+    });
+
+    var options = {
+      hostname: 'localhost',
+      port: 3030,
+      path: '/sessiontest',
+      method: 'POST',
+      encoding: 'utf8',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': postData.length,
+        'username': username,
+        'nonce': nonce,
+        'signature': signature
+      }
+    };
+
+    console.log("options: ", options);
+
+    var req = http.request(options, (res) => {
+      console.log(`STATUS: ${res.statusCode}`);
+      console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+      res.on('data', (chunk) => {
+        console.log(`BODY: ${chunk}`);
+      });
+      res.on('end', () => {
+        console.log('No more data in response.')
+      })
+    });
+
+    req.on('error', (e) => {
+      console.log(`problem with request: ${e.message}`);
+    });
+
+    // write data to request body
+    req.write(postData);
+    req.end();
+  });
+};
 
 Authentication.authenticated = function authenticated(data) {
   var favoriteRooms = data.favoriteRooms;

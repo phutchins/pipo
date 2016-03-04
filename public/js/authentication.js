@@ -12,9 +12,31 @@ Authentication.authenticate = function authenticate(data) {
   });
 };
 
+// This needs to be exported so that it's called every time and knows what last was
+Authentication.getNonce = function getNonce(length) {
+  var last = null
+  , repeat = 0
+
+  if (typeof length == 'undefined') length = 15
+
+  return function() {
+    var now = Math.pow(10, 2) * +new Date()
+
+    if (now == last) {
+      repeat++
+    } else {
+      repeat = 0
+      last = now
+    }
+
+    var s = (now + repeat).toString()
+    return +s.substr(s.length - length)
+  }
+}
+
 Authentication.apiAuth = function apiAuth(data) {
   var username = data.username;
-  var nonce = '123456789';
+  var nonce = this.getNonce(32)();
   var signature;
 
   window.encryptionManager.sign(nonce, function(err, sig) {
@@ -59,6 +81,27 @@ Authentication.apiAuth = function apiAuth(data) {
     // write data to request body
     req.write(postData);
     req.end();
+  });
+};
+
+Authentication.generateAuthHeaders = function generateAuthHeaders(data, callback) {
+  var username = data.username;
+  var nonce = this.getNonce(32)();
+  var signature;
+
+  window.encryptionManager.sign(nonce, function(err, sig) {
+    signature = btoa(sig);
+
+    // Should sign the length of the request also
+    var headers = {
+      'username': username,
+      'nonce': nonce,
+      'signature': signature
+    };
+
+    console.log("options: ", options);
+
+    return callback(headers);
   });
 };
 

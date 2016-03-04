@@ -2,6 +2,7 @@
 
 module.exports = function(app, pipo) {
 
+  // Serve the client code to the user
   app.get('/', function(req, res) {
     var username = 'default';
 
@@ -24,8 +25,13 @@ module.exports = function(app, pipo) {
     });
   });
 
+  // Send the client code to the user
+  // is this used?
+  /*
   app.get('/:username', function(req, res) {
     var username = req.param('username');
+
+    console.log("THIS IS USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
     res.render('preDeps.jade', { depRoot: '' }, function(err, preDeps) {
       if (err) { return console.log("Failed to render preDeps: " + err); }
@@ -41,5 +47,6 @@ module.exports = function(app, pipo) {
       });
     });
   })
+  */
 
 }

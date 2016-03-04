@@ -3,6 +3,7 @@ var KeyPair = require('../models/keypair.js');
 var User = require('../models/user.js');
 var Keys = require('events').EventEmitter;
 var logger = require('../../config/logger');
+var passport = require('passport');
 
 module.exports = function(app) {
   app.get('/key/publickey', function(req, res) {
@@ -23,7 +24,9 @@ module.exports = function(app) {
       }
     });
   });
-  app.post('/key/publickey', function(req, res) {
+  app.post('/key/publickey',
+    passport.authenticate('keyverify', { session: false }),
+    function(req, res) {
     // Accept users public key
     //TODO: Check to see if any master key needs to be regenerated
     var timestamp = new Date().toString();
@@ -66,7 +69,9 @@ module.exports = function(app) {
     };
   });
 
-  app.get('/key/masterKeyPair', function(req, res) {
+  app.get('/key/masterKeyPair',
+    passport.authenticate('keyverify', { session: false }),
+    function(req, res) {
     // Retrieve msater key encrypted to user that is requesting it if it exists
     var User = require('../models/user.js');
     var username = req.param('username');

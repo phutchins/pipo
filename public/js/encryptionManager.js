@@ -699,31 +699,36 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
   });
 };
 
+/*
 //TODO: Yes... I know this is a duplicate. Will deal with it later.
 EncryptionManager.prototype.updatePublicKeyOnRemote = function updatePublicKeyOnRemote(username, publicKey, callback) {
   console.log("Updating public key on remote");
-  $.ajax({
-    type: "POST",
-    url: "/key/publickey",
-    dataType: "json",
-    data: {
-      username: username,
-      publicKey: publicKey
-    },
-    success: function(data, textStatus, xhr) {
-    },
-    statusCode: {
-      404: function() {
-        console.log("Got 404 when updating public key on remote");
-        return callback("Error updating public key on remote");
+  Authentication.generateAuthHeaders(window.username, function(headers) {
+    $.ajax({
+      type: "POST",
+      url: "/key/publickey",
+      dataType: "json",
+      headers: headers,
+      data: {
+        username: username,
+        publicKey: publicKey
       },
-      200: function(data, textStatus, xhr) {
-        console.log("Updated remote publicKey successfully");
-        return callback(null);
+      success: function(data, textStatus, xhr) {
+      },
+      statusCode: {
+        404: function() {
+          console.log("Got 404 when updating public key on remote");
+          return callback("Error updating public key on remote");
+        },
+        200: function(data, textStatus, xhr) {
+          console.log("Updated remote publicKey successfully");
+          return callback(null);
+        }
       }
-    }
+    });
   });
 };
+*/
 
 EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certificate, callback) {
   var self = this;

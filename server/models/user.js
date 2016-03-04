@@ -61,7 +61,6 @@ userSchema.statics.create = function createUser(userData, callback) {
   }
 
   logger.debug("[USER] Creating user with username: "+userData.username+" usernameLowerCase: "+userData.username.toLowerCase(),"email:",userData.email);
-  logger.debug("[USER] userData is", userData);
 
   var username = userData.username;
   var email = userData.email;
@@ -109,7 +108,6 @@ userSchema.statics.create = function createUser(userData, callback) {
  * @param callback
  */
 userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) {
-  logger.debug("[USER] authenticateOrCreate");
   var self = this;
   if (typeof data != 'object' || !Object.keys(data).length || data == null) {
     return callback(new Error("No user data included in request"));
@@ -124,9 +122,7 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
-  logger.debug("About to find user...");
   this.findOne({username: data.username}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
-    logger.debug("done finding user");
     if (err) {
       logger.error("Error finding or creating user: ",err);
       return callback(err);
@@ -192,7 +188,6 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
  * Get the list of rooms that a user is a member of or able to join
  */
 userSchema.statics.availableRooms = function availableRooms(data, callback) {
-  logger.debug("[user.availableRooms] Data: ", data);
   logger.debug("[user.availableRooms] Building available rooms list for user '" + data.userId + "'...");
   var userId = data.userId;
   // TODO: This may should just return room ids
@@ -232,7 +227,6 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
     users.forEach(function(user) {
       self.sanatize(user, function(sanatizedUser) {
         userlist[user._id.toString()] =  sanatizedUser;
-      //userlist[user._id.toString()] = { id: user._id.toString(), username: user.username, publicKey: user.publicKey, fullName: user.fullName, email: user.email, emailHash: user.emailHash, title: user.title };
       });
     });
     return callback(userlist);
@@ -244,7 +238,6 @@ userSchema.statics.sanatize = function sanatize(user, callback) {
 
   if (user.membership._favoriteRooms.length > 0) {
     favoriteRoomIds = user.membership._favoriteRooms.map(function(room) {
-      logger.debug("[user.sanatize] Mapping favorite room to: ", room.toString());
       return room.id;
     });
   };

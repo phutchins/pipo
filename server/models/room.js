@@ -154,7 +154,7 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
   if (room._owner) {
     var ownerusername = room._owner.username;
   } else {
-    logger.debug("[SOCKET SERVER] (sanatizeRoomForClient) room owner does not exist");
+    logger.error("[room.sanatize] Room owner does not exist");
     var ownerusername = null;
   }
 
@@ -169,34 +169,26 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
   var activeUsersArray = [];
   var messagesArray = [];
 
-  //logger.debug("[sockerServer.sanatizeRoomForClient] room._members.length: ", room._members.length);
-  //logger.debug("[room.sanatize] room._members[0]: " + room._members[0]);
-
   if (membersLength > 0) {
     room._members.forEach(function(member) {
-      logger.debug("[room.sanatize] Pushing ", member.username," to membersArray");
-      logger.debug("[room.sanatize] Looping member: ",member._id);
       membersArray.push(member._id.toString());
     });
   };
 
   if (subscribersLength > 0) {
     room._subscribers.forEach(function(subscriber) {
-      //logger.debug("[room.sanatize] Pushing ", subscriber.id, " to subscribersArray");
       subscribersArray.push(subscriber._id.toString());
     });
   };
 
   if (activeUsersLength > 0) {
     room._activeUsers.forEach(function(activeUser) {
-      //logger.debug("[room.sanatize] Pushing ", activeUser.username, " to activeUsers");
       activeUsersArray.push(activeUser._id.toString());
     });
   };
 
   if (adminsLength > 0) {
     room._admins.forEach(function(admin) {
-      //logger.debug("[room.sanatize] Pushing ", admin.username," to adminsArray");
       adminsArray.push(admin._id.toString());
     });
   };
@@ -207,7 +199,6 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
       if (message._toUsers && message._toUsers.length > 0) {
         var toUsersArray = [];
         message._toUsers.forEach(function(toUser) {
-          //logger.debug("[room.sanatize] Looping toUsers, _toUser._id is: " + toUser._id.toString());
           toUsersArray.push(toUser._id.toString());
         });
       };
@@ -215,8 +206,6 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
       // Should be able to remove this?
       // bug when I do, i can't see finish() from this context... :-\
       message.populate('_fromUser', function() {
-
-        //logger.debug("[room.sanatize] Looping messages, from user is : " + message._fromUser._id.toString());
 
         var sanatizedMessage = {
           date: message.date,

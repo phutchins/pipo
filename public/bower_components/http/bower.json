@@ -1,0 +1,11 @@
+{
+ "name": "http",
+ "version": "3.24.10",
+ "main": "http.min.js",
+ "description": "'http' nodejs core module browserify-ied with `--standalone http`. Should support all module systems (commonjs, AMD & `window.http`) - check browserify docs.",
+ "keywords": [
+  "nodejs",
+  "browserify",
+  "http"
+ ]
+}

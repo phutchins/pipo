@@ -7,7 +7,6 @@ var path = require('path');
 //Modules
 var express = require('express');
 var socketIO = require('socket.io');
-//var openpgp = require('openpgp');
 var favicon = require('serve-favicon');
 var bodyParser = require('body-parser');
 var morgan = require('morgan');
@@ -16,6 +15,12 @@ var marked = require('marked');
 var events = require('events');
 var winston = require('winston');
 var pgp = require('kbpgp');
+var crypto = require('crypto');
+var btoa = require('btoa');
+
+// Managers
+var AuthenticationManager = require('./js/managers/authentication');
+var EncryptionManager = require('./js/managers/encryption');
 
 //Local modules
 var database = require('./js/database');
@@ -81,6 +86,9 @@ console.log('   |____|   |__||____|   \\____/    ');
 console.log('');
 
 database.connect('development');
+
+// Initialize authentication framework
+AuthenticationManager.init(app);
 
 // Load routes
 var routePath = __dirname + '/routes/';
@@ -186,4 +194,4 @@ server.on('listening', function listening() {
 });
 
 //https_server.listen(configHttps.port);
-server.listen(configHttp.port);
+server.listen(configPipo.server.port);

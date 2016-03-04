@@ -1,0 +1,22 @@
+{
+  "name": "https",
+  "version": "3.46.1",
+  "main": "https.min.js",
+  "description": "'https' nodejs core module browserify-ied with `--standalone https`. Should support all module systems (commonjs, AMD & `window.https`) - check browserify docs.",
+  "keywords": [
+    "nodejs",
+    "browserify",
+    "https"
+  ],
+  "homepage": "https://github.com/anodynos/node2web_https",
+  "_release": "3.46.1",
+  "_resolution": {
+    "type": "version",
+    "tag": "3.46.1",
+    "commit": "3e01fa57701f46321d24b20247eb4effe9ed3904"
+  },
+  "_source": "git://github.com/anodynos/node2web_https.git",
+  "_target": "~3.46.1",
+  "_originalSource": "https",
+  "_direct": true
+}

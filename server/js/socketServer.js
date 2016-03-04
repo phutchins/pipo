@@ -85,7 +85,6 @@ SocketServer.prototype.onSocket = function(socket) {
 
 SocketServer.prototype.init = function init() {
   var self = this;
-  console.log("bleh");
   if (config.encryptionScheme == 'masterKey') {
     // Do master key things
     this.initMasterKeyPair(function(err) {
@@ -247,14 +246,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     User.setActive({ userId: user._id, active: true }, function(err) {
       self.updateUserList({ scope: 'all' });
     });
-    // Mark the user as active in user.active
-    //user.active = true;
-
-
-    // Update users last seen time in user.lastSeen
-    //user.lastSeen = new Date();
-
-    logger.debug("[socketServer.authenticate] userMap for " + user.username + " is: ",self.namespace.userMap[user._id.toString()]);
 
     self.socket.user = user;
     logger.debug("[INIT] Init'd user " + user.username);
@@ -264,10 +255,9 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       if (populatedUser.membership._favoriteRooms.length > 0) {
         logger.debug("[socketServer.authenticate] populatedUser.membership._favoriteRooms.length: ", populatedUser.membership._favoriteRooms.length);
         logger.debug("[socketServer.authenticate] Building favorite rooms for " + user.username);
-        logger.debug("[socketServer.authenticate] Object.keys: ", Object.keys(populatedUser.membership._favoriteRooms));
         populatedUser.membership._favoriteRooms.forEach(function(room) {
           var roomId = room._id;
-          logger.info("Adding " + roomId + " to auto join array");
+          logger.debug("Adding room #" + room.name + " with id '" + roomId + "' to auto join array");
           favoriteRooms.push(roomId);
         })
       }
@@ -301,15 +291,12 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             return self.socket.emit('roomUpdate', { err: "Room update failed: " + err });
           }
 
-          logger.debug("[socketServer.authenticate] availableRooms returned: ", Object.keys(roomData.rooms));
-
           // Go ahead and send the room objects to the user even if they haven't joined it yet
           // - Need to figure out how to have the client only decrypt messages once when joining
           //   as there is no need to decrypt twice. If there is a legit roomUpdate later tho,
           //   we may want to decrypt messages again? When could this happen?
           Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
             logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
-            // self.socket.to(chat).emit('user connect',
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
 
@@ -1126,7 +1113,7 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
   var self = this;
   var scope = data.scope;
   User.getAllUsers({}, function(userlist) {
-    logger.debug("[socketServer.updateUserList] Got data for userlist update with scope '"+scope);
+    logger.debug("[socketServer.updateUserList] Got data for userlist update with scope '" + scope + "'");
     User.buildUserNameMap({userlist: userlist}, function(userNameMap) {
       logger.debug("[socketServer.updateUserList] Returning userIdMap");
       if (scope == 'all') {
@@ -1159,7 +1146,6 @@ SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
 
   self.getActiveUsers(chatId, function(err, activeUsers) {
     logger.debug("[socketServer.updateActiveUsers] Sending 'roomUsersUpdate' to namespace '" + chatId + "' after updating active members");
-    logger.debug("[socketServer.updateActiveUsers] Active users is: ", activeUsers);
 
     self.namespace.to(chatId).emit("activeUsersUpdate", {
       chatId: chatId,
@@ -1180,17 +1166,12 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   var uniqueActiveUsers = [];
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    logger.debug("[socketServer.getActiveUsers] this.namespace.adapter.rooms[chatId]: ", this.namespace.adapter.rooms[chatId]);
     activeUserIds = Object.keys(this.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
-      logger.debug("[socketServer.getActiveUsers] Looping active users, sid: ", sid);
       return sid;
     });
 
-    logger.debug("[socketServer.getActiveUsers] Got member SID's: ", activeUsers);
-
     //Map sockets to users
     activeUsers = activeUserIds.map(function(sid) {
-      logger.debug("[socketServer.getActiveUsers] sid: " + sid);
       return self.namespace.socketMap[sid].userId;
     });
 
@@ -1198,11 +1179,7 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
       return activeUsers.indexOf(elem) == pos;
     });
   } else {
-    logger.info("[GET USER LIST] User list is empty");
   };
-
-  logger.debug("[socketServer.getActiveUsers] Uniquie Active activeUsers for chatId: '" + chatId + "' is: ", uniqueActiveUsers);
-  logger.debug("[socketServer.getActiveUsers] Active activeUsers for chatId: '" + chatId + "' is: ", activeUsers);
 
   callback(null, uniqueActiveUsers);
 };
@@ -1213,6 +1190,7 @@ SocketServer.prototype.leaveRoom = function leaveRoom(roomId) {
   logger.debug("[socketServer.leaveRoom] Got leave room for id: " + roomId);
 };
 
+// This was from a version of socket.io that I hacked and won't get used until the MR is accepted
 SocketServer.prototype.disconnecting = function(disconnecting) {
   var self = this;
   if (self.socket) {

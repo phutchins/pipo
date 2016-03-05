@@ -77,24 +77,35 @@ function fitToContent(id, maxHeight) {
 
 
 $('#message-input').unbind().keyup(function (event) {
+  // Need to write this into a lib that can be applied to any textarea
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
     var caret = ChatManager.getCaret(this);
-    this.value = content.substring(0,caret)+content.substring(caret,content.length);
-    event.stopPropagation();
-    console.log("got shift+enter");
     var $messageInput = $('#message-input');
-    fitToContent('message-input', 156);
-    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-    return false;
+
+    this.value = content.substring(0,caret)+content.substring(caret,content.length);
+
+    event.stopPropagation();
+
+    console.log("got shift+enter");
+
+    event.preventDefault();
   } else if(event.keyCode == 13) {
     console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
+
     ChatManager.sendMessage(function() {
       fitToContent('message-input', 156);
+
+      event.preventDefault();
+
       return false;
     })
   }
+
+  // Resize messageInput on every keyup event
+  fitToContent('message-input', 156);
 });
+
 
 $('.dropdown')
   .dropdown({
@@ -1085,6 +1096,7 @@ ChatManager.enableMessageInput = function enableMessageInput() {
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
+  /*
   $("#input-container").find('textarea.message-input').keydown(function (event) {
     var element = this;
 
@@ -1098,6 +1110,7 @@ ChatManager.enableMessageInput = function enableMessageInput() {
 
       var $messageInput = $('#message-input');
       $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+      event.preventDefault();
       return false;
     }
     else if (event.keyCode === 13) {
@@ -1105,6 +1118,7 @@ ChatManager.enableMessageInput = function enableMessageInput() {
       return false;
     }
   });
+  */
 
   $('#send-button').unbind().on('click', function() {
     console.log("Got send button click!");

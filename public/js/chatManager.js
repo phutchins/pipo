@@ -76,6 +76,7 @@ function fitToContent(id, maxHeight) {
 }
 
 
+/*
 $('#message-input').unbind().keyup(function (event) {
   if (event.keyCode == 13 && event.shiftKey) {
     var content = this.value;
@@ -95,6 +96,8 @@ $('#message-input').unbind().keyup(function (event) {
     })
   }
 });
+*/
+
 
 $('.dropdown')
   .dropdown({
@@ -1077,6 +1080,8 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
 ChatManager.enableMessageInput = function enableMessageInput() {
   var self = this;
 
+  console.log("[chatManager.enableMessageInput] Enabling message input");
+
   // Add conditional to check if the generate modal is displayed
   $('.ui.modal.generate').modal('hide');
 
@@ -1085,24 +1090,58 @@ ChatManager.enableMessageInput = function enableMessageInput() {
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
+  /*
+  $('#message-input').unbind().keyup(function (event) {
+    if (event.keyCode == 13 && event.shiftKey) {
+      var content = this.value;
+      var caret = ChatManager.getCaret(this);
+      this.value = content.substring(0,caret)+content.substring(caret,content.length);
+      event.stopPropagation();
+      console.log("got shift+enter");
+      var $messageInput = $('#message-input');
+      fitToContent('message-input', 156);
+      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+      return false;
+    } else if(event.keyCode == 13) {
+      console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
+      ChatManager.sendMessage(function() {
+        fitToContent('message-input', 156);
+        return false;
+      })
+    }
+  });
+  */
+
   $("#input-container").find('textarea.message-input').keydown(function (event) {
     var element = this;
 
-    //Prevent shift+enter from sending
     if (event.keyCode === 13 && event.shiftKey) {
+      //Prevent shift+enter from sending, create a newline and resize the messageInput textarea
       var content = element.value;
       var caret = self.getCaret(this);
 
-      element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
+      this.value = content.substring(0,caret)+content.substring(caret,content.length);
+      //element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
       event.stopPropagation();
 
       var $messageInput = $('#message-input');
+
       $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-      return false;
+      fitToContent('message-input', 156);
+
+      event.preventDefault();
+      //return false;
     }
+
     else if (event.keyCode === 13) {
-      $('#main-input-form').submit();
-      return false;
+      // Catch enter key by itself
+      ChatManager.sendMessage(function() {
+        fitToContent('message-input', 156);
+        event.preventDefault;
+        //return false;
+      })
+      //$('#main-input-form').submit();
+      //return false;
     }
   });
 

@@ -76,25 +76,6 @@ function fitToContent(id, maxHeight) {
 }
 
 
-$('#message-input').unbind().keyup(function (event) {
-  if (event.keyCode == 13 && event.shiftKey) {
-    var content = this.value;
-    var caret = ChatManager.getCaret(this);
-    this.value = content.substring(0,caret)+content.substring(caret,content.length);
-    event.stopPropagation();
-    console.log("got shift+enter");
-    var $messageInput = $('#message-input');
-    fitToContent('message-input', 156);
-    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-    return false;
-  } else if(event.keyCode == 13) {
-    console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
-    ChatManager.sendMessage(function() {
-      fitToContent('message-input', 156);
-      return false;
-    })
-  }
-});
 
 $('.dropdown')
   .dropdown({
@@ -1073,6 +1054,27 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
   };
 };
 
+/*
+$('#message-input').unbind().keyup(function (event) {
+  if (event.keyCode == 13 && event.shiftKey) {
+    //var content = this.value;
+    //var caret = ChatManager.getCaret(this);
+    //this.value = content.substring(0,caret)+content.substring(caret,content.length);
+    //event.stopPropagation();
+    //console.log("got shift+enter");
+    //var $messageInput = $('#message-input');
+    //fitToContent('message-input', 156);
+    //$messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+    return false;
+  } else if(event.keyCode == 13) {
+    console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
+    ChatManager.sendMessage(function() {
+      fitToContent('message-input', 156);
+      return false;
+    })
+  }
+});
+*/
 
 ChatManager.enableMessageInput = function enableMessageInput() {
   var self = this;
@@ -1080,41 +1082,85 @@ ChatManager.enableMessageInput = function enableMessageInput() {
   // Add conditional to check if the generate modal is displayed
   $('.ui.modal.generate').modal('hide');
 
-  //Make input usable
+  // Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
-  $("#input-container").find('textarea.message-input').keydown(function (event) {
+  // Unbind all of the previously bound events on appropriate elements
+  $('#message-input').unbind();
+  $('#input-container').unbind();
+  $('#send-button').unbind();
+
+  $('#input-container').find('textarea.message-input').keypress(function (event) {
+    if (event.keyCode == 13 && event.shiftKey) {
+      // Catch Shift+Enter for adding newline in input textarea
+      var content = this.value;
+      var caret = ChatManager.getCaret(this);
+      var $messageInput = $('#message-input');
+
+      // Prevent default here and add the newline appropriately programatically
+      event.preventDefault();
+
+      this.value = content.substring(0,caret)+'\n'+content.substring(caret,content.length);
+
+      console.log('fitToContent - keyup SHIFT + ENTER');
+
+      // Is this needed?
+      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+
+      resize();
+    } else {
+      // Resizse for any other key also
+      // This still doesn't seem to resize until the keypress after our backspace
+      // can we resize after they field content has been changed?
+      //resize();
+    }
+  });
+
+  $('#input-container').find('textarea.message-input').on('input propertychage', function() {
+    resize();
+  });
+
+  $('#input-container').find('textarea.message-input').keydown(function (event) {
     var element = this;
 
-    //Prevent shift+enter from sending
-    if (event.keyCode === 13 && event.shiftKey) {
-      var content = element.value;
-      var caret = self.getCaret(this);
 
-      element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
-      event.stopPropagation();
+    // Catch Enter, send message and resize
+    if (event.keyCode === 13 && !event.shiftKey) {
+      // Catch enter key on its own for sending message
 
-      var $messageInput = $('#message-input');
-      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-      return false;
-    }
-    else if (event.keyCode === 13) {
-      $('#main-input-form').submit();
-      return false;
+      event.preventDefault();
+
+       send(function() {
+        resize();
+      });
+    } else {
+      // Resizse for any other key also
+      //resize();
     }
   });
 
-  $('#send-button').unbind().on('click', function() {
+  $('#send-button').on('click', function() {
     console.log("Got send button click!");
 
-    ChatManager.sendMessage(function() {
-      fitToContent('message-input', 156);
-      return false;
-    })
-    return false;
+    send(function() {
+      //resize();
+    });
+
+    event.preventDefault();
   });
+
+  var send = function(callback) {
+    ChatManager.sendMessage(function() {
+      callback();
+    })
+  }
+
+  var resize = function() {
+    console.log("fitToContent - any other key");
+    fitToContent('message-input', 156);
+  };
 };
 
 ChatManager.disableMessageInput = function disableMessageInput(data) {
@@ -1154,13 +1200,20 @@ ChatManager.getCaret = function getCaret(el) {
 
 
 ChatManager.prepareMessage = function prepareMessage(message, callback) {
-  var parsedMessage = window.marked(message).replace(/(<p>|<\/p>)/g, '');
+  console.log("[chatManager.prepareMessage] starting: " + message);
+
+  // Marked is removing multiple newlines. Why?
+  var parsedMessage = window.marked(message)
+    .replace(/(<p>|<\/p>)/g, '')
+    .replace(/(\r\n|\r|\n)/g, '<br />');
+
   var container = $('<div>').html(parsedMessage);
 
   // Check the hostname to make sure that it's not a local link...
   container.find('a').attr('target','_blank');
   container.find('code').addClass('hljs');
 
+  console.log("[chatManager.prepareMessage] finished: " + parsedMessage);
   callback(null, container.html());
 };
 
@@ -1372,6 +1425,11 @@ ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
   var date = data.date;
   var emailHash = ChatManager.userlist[fromUserId].emailHash || "00000000000";
 
+  console.log("Message is: " + messageString);
+
+  //process the message string for newlines
+  //var processedMessageString = messageString.replace(/(?:\r\n|\r|\n)/g, '<br />');
+
   var time = date || new Date().toISOString();
 
   var messageIdHtml = '';
@@ -1497,6 +1555,8 @@ ChatManager.sendMessage = function sendMessage(callback) {
 
         if (activeChatType == 'room') {
           console.log("Sending message to room #"+ activeChatName);
+
+          console.log("message before sending to server: " +preparedInput);
 
           // Add the message to the chat locally and wait for it to be confirmed
           ChatManager.handleLocalMessage({

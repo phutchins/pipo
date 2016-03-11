@@ -125,6 +125,7 @@ Lexer.rules = block;
 
 Lexer.lex = function(src, options) {
   var lexer = new Lexer(options);
+  console.log("[Marked] creating static lex function");
   return lexer.lex(src);
 };
 
@@ -133,12 +134,14 @@ Lexer.lex = function(src, options) {
  */
 
 Lexer.prototype.lex = function(src) {
+  console.log("[Marked] src before lex: " + src);
   src = src
     .replace(/\r\n|\r/g, '\n')
     .replace(/\t/g, '    ')
     .replace(/\u00a0/g, ' ')
     .replace(/\u2424/g, '\n');
 
+  console.log("[Marked] src after lex: " + src);
   return this.token(src, true);
 };
 
@@ -160,6 +163,7 @@ Lexer.prototype.token = function(src, top, bq) {
 
   while (src) {
     // newline
+    /*
     if (cap = this.rules.newline.exec(src)) {
       src = src.substring(cap[0].length);
       if (cap[0].length > 1) {
@@ -168,6 +172,7 @@ Lexer.prototype.token = function(src, top, bq) {
         });
       }
     }
+    */
 
     // code
     if (cap = this.rules.code.exec(src)) {
@@ -1133,7 +1138,9 @@ function merge(obj) {
  */
 
 function marked(src, opt, callback) {
+  console.log("[Marked] Running marked function start");
   if (callback || typeof opt === 'function') {
+    console.log("[Marked] callback exists and is a function");
     if (!callback) {
       callback = opt;
       opt = null;
@@ -1147,7 +1154,9 @@ function marked(src, opt, callback) {
       , i = 0;
 
     try {
+      console.log("[Marked] Running lexer in first try - src: " + src);
       tokens = Lexer.lex(src, opt)
+      console.log("[Marked] Done Running lexer in first try - src: " + src);
     } catch (e) {
       return callback(e);
     }
@@ -1155,6 +1164,7 @@ function marked(src, opt, callback) {
     pending = tokens.length;
 
     var done = function(err) {
+      console.log("[Marked] Done is running...");
       if (err) {
         opt.highlight = highlight;
         return callback(err);
@@ -1181,6 +1191,7 @@ function marked(src, opt, callback) {
 
     delete opt.highlight;
 
+
     if (!pending) return done();
 
     for (; i < tokens.length; i++) {
@@ -1200,9 +1211,11 @@ function marked(src, opt, callback) {
       })(tokens[i]);
     }
 
+    console.log("[Marked] Returning from main if");
     return;
   }
   try {
+    console.log("[Marked] before Parser.parse src is: " + src);
     if (opt) opt = merge({}, marked.defaults, opt);
     return Parser.parse(Lexer.lex(src, opt), opt);
   } catch (e) {

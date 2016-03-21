@@ -3,7 +3,7 @@ var passport = require('passport');
 
 module.exports = function(app) {
   app.post('/login',
-    passport.authenticate('publickey', { failureRedirect: '/login' }),
+    passport.authenticate('keyverify', { session: false }),
     function(req, res) {
       console.log("IT WORKEEEDDDDD");
       return res.sendStatus(200);
@@ -18,15 +18,5 @@ module.exports = function(app) {
     }
   );
 
-  function isAuthenticated(req, res, next) {
-    passport.authenticate('keyverify', { session: false }),
 
-    function(req, res) {
-      console.log("It worked!");
-      return next();
-    };
-
-    //console.log("User is unauthenticated");
-    //return res.sendStatus(401);
-  };
 };

@@ -5,6 +5,7 @@ Authentication.authenticate = function authenticate(data) {
 
   console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
 
+  // Generate a new unused nonce and sign it for verification
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
       socket.emit('authenticate', {username: window.username, fullName: window.fullName, publicKey: publicKey, email: window.email});
@@ -13,9 +14,10 @@ Authentication.authenticate = function authenticate(data) {
 };
 
 Authentication.apiAuth = function apiAuth(data) {
+  var self = this;
   var username = data.username;
   var nonce = '123456789';
-  var signature;
+  var signature = null;
 
   window.encryptionManager.sign(nonce, function(err, sig) {
     signature = btoa(sig);
@@ -41,24 +43,43 @@ Authentication.apiAuth = function apiAuth(data) {
 
     console.log("options: ", options);
 
-    var req = http.request(options, (res) => {
+    var req = http.request(options, function(res) {
       console.log(`STATUS: ${res.statusCode}`);
       console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-      res.on('data', (chunk) => {
+      res.on('data', function(chunk) {
         console.log(`BODY: ${chunk}`);
       });
-      res.on('end', () => {
-        console.log('No more data in response.')
-      })
+      res.on('end', function() {
+        console.log('No more data in response.');
+      });
     });
 
-    req.on('error', (e) => {
+    req.on('error', function(e) {
       console.log(`problem with request: ${e.message}`);
     });
 
     // write data to request body
     req.write(postData);
     req.end();
+  });
+};
+
+Authentication.getAuthHeader = function getAuthHeader(data, callback) {
+  var username = window.username;
+  var nonce = '123456789';
+  var signature = null;
+
+  window.encryptionManager.sign(nonce, function(err, sig) {
+    signature = btoa(sig);
+
+    var headers = {
+      'Content-Type': 'application/x-www-form-urlencoded',
+      'username': username,
+      'nonce': nonce,
+      'signature': signature
+    };
+
+    callback(headers);
   });
 };
 

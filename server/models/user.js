@@ -5,6 +5,7 @@ var crypto = require('crypto');
 var Room = require('./room');
 var Chat = require('./chat');
 var logger = require('../../config/logger');
+var AuthenticationManager = require('../js/managers/authentication');
 
 /*
  * User Status Definitions
@@ -109,6 +110,9 @@ userSchema.statics.create = function createUser(userData, callback) {
  * @param callback
  */
 userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) {
+  var nonce = data.nonce;
+  var signature = data.signature;
+
   logger.debug("[USER] authenticateOrCreate");
   var self = this;
   if (typeof data != 'object' || !Object.keys(data).length || data == null) {
@@ -138,11 +142,19 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     }
     if (user) {
       logger.debug("[USER] Found user '"+data.username+"'");
-      // TODO: Need to change all references to publicKey
       if ( user.publicKey == data.publicKey ) {
         logger.debug("[USER] User '"+data.username+"' has a public key that matches username");
-        //TODO: Check signature
-        return callback(null, { user: user } );
+
+        // Check thte users signature on provided nonce
+        // Need to get the nonce from the socket.io call above somewhere
+        AuthenticationManager.verify(user.username, nonce, signature, function(verified) {
+          logger.debug("[user.authenticateOrCreate] Verifying user signature. Verified is '" + verified + "'");
+          if (verified) {
+            return callback(null, { user: user } );
+          } else {
+            return callback("Authentication failure", null);
+          }
+        });
       }
       else {
         return callback(new Error("username and publicKey mismatch"));

@@ -48,6 +48,7 @@
     "node-notifier": "^4.2.1",
     "nonce": "^1.0.3",
     "passport": "^0.3.2",
+    "passport-keyverify": "0.0.2",
     "passport-publickey": "^1.0.3",
     "querystring": "^0.2.0",
     "requirejs": "^2.1.17",

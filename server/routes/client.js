@@ -1,9 +1,15 @@
 // routes/chat.js
+var logger = require('../../config/logger');
 
 module.exports = function(app, pipo) {
 
-  // Serve the client code to the user
+  /*
+   * Serve up the client code
+   * This shouldn't need auth as anyone should be able to pull this page
+   * This should be rate limited however
+   */
   app.get('/', function(req, res) {
+    logger.debug("[ROUTE] '/'");
     var username = 'default';
 
     res.render('preDeps.jade', { depRoot: '' }, function(err, preDeps) {
@@ -29,6 +35,7 @@ module.exports = function(app, pipo) {
   // is this used?
   /*
   app.get('/:username', function(req, res) {
+    logger.debug("[ROUTE] '/'");
     var username = req.param('username');
 
     console.log("THIS IS USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");

@@ -662,40 +662,44 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
     server = proto + "://" + host + ":" + port;
   }
 
-  $.ajax({
-    type: "GET",
-    url: server + "/key/publickey",
-    dataType: "json",
-    data: {
-      username: username
-    },
-    statusCode: {
-      404: function(data) {
-        console.log("No key found on remote");
-        return callback(null, false);
+  Authentication.getAuthData({}, function(headers) {
+
+    $.ajax({
+      type: "GET",
+      url: server + "/key/publickey",
+      dataType: "json",
+      headers: headers,
+      data: {
+        username: username
       },
-      200: function(data) {
-        //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
-        var remotePublicKey = data.publicKey;
-        //console.log("Key exists on remote");
-        //console.log("Remote Pub Key: "+data.publicKey);
-        //console.log("Local Pub Key: "+publicKey);
-        var regex = /\r?\n|\r/g
-        //console.log("pubKey: " + JSON.stringify(publicKey));
-        //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
-        var parsedPublicKey = publicKey.toString().replace(regex, '');
-        var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '');
-        if (parsedPublicKey == parsedRemotePublicKey) {
-          console.log("Key on remote matches local");
-          return callback(null, true);
-        } else {
-          console.log("parsedPublicKey: " + parsedPublicKey);
-          console.log("parsedRemotePublicKey: " + parsedRemotePublicKey);
-          console.log("Key on remote does not match");
+      statusCode: {
+        404: function(data) {
+          console.log("No key found on remote");
           return callback(null, false);
-        };
+        },
+        200: function(data) {
+          //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
+          var remotePublicKey = data.publicKey;
+          //console.log("Key exists on remote");
+          //console.log("Remote Pub Key: "+data.publicKey);
+          //console.log("Local Pub Key: "+publicKey);
+          var regex = /\r?\n|\r/g
+          //console.log("pubKey: " + JSON.stringify(publicKey));
+          //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
+          var parsedPublicKey = publicKey.toString().replace(regex, '');
+          var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '');
+          if (parsedPublicKey == parsedRemotePublicKey) {
+            console.log("Key on remote matches local");
+            return callback(null, true);
+          } else {
+            console.log("parsedPublicKey: " + parsedPublicKey);
+            console.log("parsedRemotePublicKey: " + parsedRemotePublicKey);
+            console.log("Key on remote does not match");
+            return callback(null, false);
+          };
+        }
       }
-    }
+    });
   });
 };
 

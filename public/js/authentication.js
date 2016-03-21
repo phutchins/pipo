@@ -1,13 +1,19 @@
 var Authentication = {};
 
 Authentication.authenticate = function authenticate(data) {
+  var self = this;
   var socket = data.socket;
 
   console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
 
+  // Generate a new unused nonce and sign it for verification
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      socket.emit('authenticate', {username: window.username, fullName: window.fullName, publicKey: publicKey, email: window.email});
+      self.getAuthData({}, function(data) {
+        console.log("[authentication.authenticate] Auth Data: " + data);
+
+        socket.emit('authenticate', {username: window.username, nonce: data.nonce, signature: data.signature, fullName: window.fullName, publicKey: publicKey, email: window.email});
+      });
     });
   });
 };
@@ -35,11 +41,12 @@ Authentication.getNonce = function getNonce(length) {
 }
 
 Authentication.apiAuth = function apiAuth(data) {
+  var self = this;
   var username = data.username;
-  var nonce = this.getNonce(32)();
+  var nonce = this.getNonce(8)();
   var signature;
 
-  window.encryptionManager.sign(nonce, function(err, sig) {
+  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
     signature = btoa(sig);
 
     var postData = querystring.stringify({
@@ -63,18 +70,18 @@ Authentication.apiAuth = function apiAuth(data) {
 
     console.log("options: ", options);
 
-    var req = http.request(options, (res) => {
+    var req = http.request(options, function(res) {
       console.log(`STATUS: ${res.statusCode}`);
       console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
-      res.on('data', (chunk) => {
+      res.on('data', function(chunk) {
         console.log(`BODY: ${chunk}`);
       });
-      res.on('end', () => {
-        console.log('No more data in response.')
-      })
+      res.on('end', function() {
+        console.log('No more data in response.');
+      });
     });
 
-    req.on('error', (e) => {
+    req.on('error', function(e) {
       console.log(`problem with request: ${e.message}`);
     });
 
@@ -84,24 +91,21 @@ Authentication.apiAuth = function apiAuth(data) {
   });
 };
 
-Authentication.generateAuthHeaders = function generateAuthHeaders(data, callback) {
-  var username = data.username;
+Authentication.getAuthData = function getAuthData(data, callback) {
+  var username = window.username;
   var nonce = this.getNonce(32)();
-  var signature;
+  var signature = null;
 
-  window.encryptionManager.sign(nonce, function(err, sig) {
+  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
     signature = btoa(sig);
 
-    // Should sign the length of the request also
-    var headers = {
+    var authData = {
       'username': username,
       'nonce': nonce,
       'signature': signature
     };
 
-    console.log("options: ", options);
-
-    return callback(headers);
+    return callback(authData);
   });
 };
 

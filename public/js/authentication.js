@@ -1,6 +1,7 @@
 var Authentication = {};
 
 Authentication.authenticate = function authenticate(data) {
+  var self = this;
   var socket = data.socket;
 
   console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
@@ -8,7 +9,11 @@ Authentication.authenticate = function authenticate(data) {
   // Generate a new unused nonce and sign it for verification
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      socket.emit('authenticate', {username: window.username, fullName: window.fullName, publicKey: publicKey, email: window.email});
+      self.getAuthData({}, function(data) {
+        console.log("[authentication.authenticate] Auth Data: " + data);
+
+        socket.emit('authenticate', {username: window.username, nonce: data.nonce, signature: data.signature, fullName: window.fullName, publicKey: publicKey, email: window.email});
+      });
     });
   });
 };
@@ -64,7 +69,7 @@ Authentication.apiAuth = function apiAuth(data) {
   });
 };
 
-Authentication.getAuthHeader = function getAuthHeader(data, callback) {
+Authentication.getAuthData = function getAuthData(data, callback) {
   var username = window.username;
   var nonce = '123456789';
   var signature = null;
@@ -72,14 +77,13 @@ Authentication.getAuthHeader = function getAuthHeader(data, callback) {
   window.encryptionManager.sign(nonce, function(err, sig) {
     signature = btoa(sig);
 
-    var headers = {
-      'Content-Type': 'application/x-www-form-urlencoded',
+    var authData = {
       'username': username,
       'nonce': nonce,
       'signature': signature
     };
 
-    callback(headers);
+    callback(authData);
   });
 };
 

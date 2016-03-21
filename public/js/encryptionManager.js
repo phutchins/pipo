@@ -662,7 +662,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
     server = proto + "://" + host + ":" + port;
   }
 
-  Authentication.getAuthHeader({}, function(headers) {
+  Authentication.getAuthData({}, function(headers) {
 
     $.ajax({
       type: "GET",

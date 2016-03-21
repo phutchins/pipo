@@ -6,7 +6,7 @@ var Keys = require('events').EventEmitter;
 var logger = require('../../config/logger');
 
 module.exports = function(app) {
-  app.get('/key/publickey', function(req, res) {
+  app.get('/key/publickey', passport.authenticate('keyverify', { session: false }), function(req, res) {
     var timestamp = new Date().toString();
     var username = req.param('username');
     logger.debug("[API] [GET] [/key/publickey] Getting publickey for user "+username);
@@ -26,7 +26,6 @@ module.exports = function(app) {
   });
   app.post('/key/publickey', passport.authenticate('keyverify', { session: false }), function(req, res) {
     // Accept users public key
-    //TODO: Check to see if any master key needs to be regenerated
     logger.debug("[ROUTE/key/publickey] Auth verified");
 
     var timestamp = new Date().toString();

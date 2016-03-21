@@ -204,8 +204,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
   logger.debug("Authenticating new socket");
 
   User.authenticateOrCreate(data, function(err, authData) {
-    if (!authData) {
-      return self.socket.emit('errorMessage', {message: 'auth data provided was not sufficent to authenticate: ' + err});
+    if (err) {
+      return self.socket.emit('errorMessage', {message: 'authentication failed: ' + err});
     }
 
     var user = new User;

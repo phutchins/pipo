@@ -2,6 +2,7 @@ var User = require('../../models/user');
 var passport = require('passport');
 var KeyVerifyStrategy = require('passport-keyverify').Strategy;
 var EncryptionManager = require('./encryption');
+var logger = require('../../../config/logger');
 
 function AuthenticationManager() {
   this.init = function ( app ) {
@@ -23,7 +24,7 @@ function AuthenticationManager() {
     passport.use(new KeyVerifyStrategy( this.verify ));
   };
 
-  this.verify = function (username, nonce, signature, callback) {
+  this.verify = function(username, nonce, signature, callback) {
     console.log("[server.passport.keyVerify] nonce: " + nonce + " signature: " + signature);
     User.findByUsername(username, function (err, user) {
       if (err) { return done(err); }
@@ -36,14 +37,14 @@ function AuthenticationManager() {
 
       var publicKey = user.publicKey;
       EncryptionManager.verifyMessageSignature(sigString, publicKey, nonce, function(err, signatureFingerprint) {
-        if (err) { return console.log("[AuthenticationManager.verifySignature] ERROR: " + err); };
-        console.log("[AuthenticationManager.verifySignature] signatureFingerprint: " + signatureFingerprint);
+        if (err) { return callback("[AuthenticationManager.verifySignature] ERROR: " + err, false); };
 
         var sessionUser = user.id;
 
-        console.log("[authentication.init] signatureFingerprint: " + signatureFingerprint);
         if (signatureFingerprint) {
-          return callback(null, sessionUser);
+          logger.debug("[authentication.verify] User '" + user.username + "' verification SUCCESS with signature fingerprint '" + signatureFingerprint + "'");
+          return callback(null, true);
+          logger.debug("[authentication.verify] User '" + user.username + "' verification FAILED!");
         } else {
           return callback(null, false);
         }

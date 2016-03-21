@@ -150,7 +150,9 @@ SocketClient.prototype.addListeners = function() {
       //   the same way that we're doing it for rooms and issue an update
       //   only for the private chats that the user is a part of
       var activeChatId = ChatManager.activeChat;
-      if (ChatManager.chats[activeChatId].type == 'chat') {
+      console.log("activeChatId: " + activeChatId);
+      // Do we actaully ever need to do this?
+      if (ChatManager.chats[activeChatId] && ChatManager.chats[activeChatId].type == 'chat') {
         Userlist.update({ chatId: activeChatId });
         console.log("[socketClient.on userlistUpdate] Updated userlist for private chat with id '" + activeChatId + "'");
       };

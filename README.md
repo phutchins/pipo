@@ -75,7 +75,7 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
   + this token is sha256 hashed and sent to the server,
   + the client pgp encrpts the non-hashed token and sends it to the invitee
   + then only the invitee can decrypt the token and then can send it to the server,
-  + which can do a sha256 and say oh yeah thats right
+  + which can do a sha256
 + authenticate and sign of request using pgp keys?
 + node_http_signature
   + Positives

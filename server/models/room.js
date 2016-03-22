@@ -330,7 +330,9 @@ roomSchema.statics.join = function join(data, callback) {
 
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
+
         user.membership._currentRooms.push(room._id);
+
         user.save(function(err) {
           if (err) {
             logger.error("[room.join] Error while adding room to _currentRooms: " + err);
@@ -338,12 +340,18 @@ roomSchema.statics.join = function join(data, callback) {
             logger.debug("[room.join] Added room to users _currentRooms array");
           }
         });
-        //mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
 
+        // Does this work? Needed?
         var alreadySubscribed = (room._subscribers.indexOf(user._id) > -1);
+
+
         // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
+
+          var sortedMessages = updatedRoom._messages.sort(function(m2, m1) { return m1.date - m2.date; });
+          var prunedMessages = sortedMessages.slice(0,10);
+          updatedRoom._messages = prunedMessages;
 
           if (data.err) {
             logger.error("[room.join] Error: data.err");

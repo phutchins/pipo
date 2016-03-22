@@ -1060,6 +1060,7 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
 
     if (chatId == activeChatId) {
       if (ChatManager.chats[activeChatId].status == 'enabled') {
+        ChatManager.enableScrollback();
         return ChatManager.enableMessageInput();
       };
 
@@ -1071,6 +1072,20 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
   } else {
     console.log("[ChatManager.updateChatStatus] Currently no active chat...");
   };
+};
+
+
+ChatManager.enableScrollback = function enableScrollback() {
+	jQuery(
+    function($) {
+      $('.chat-window').bind('scroll', function() {
+				// This needs to be opposite, when scrolled all the way up (and even if the window is not scrollable
+ 			  if($(this).scrollTop() + $(this).innerHeight()>=$(this)[0].scrollHeight) {
+          alert('end reached');
+        }
+      })
+    }
+  )
 };
 
 

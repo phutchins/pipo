@@ -759,9 +759,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
       });
     });
   } else {
-    // TODO:
     // Using client key encryption scheme
-    // Move this to its own function (sanatize)
     Room.join({ id: roomId, username: username, socket: self.socket }, function(err, data) {
       var auth = data.auth;
       var room = data.room;
@@ -789,19 +787,12 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         // Should only include the room users here as a join should only change that
         rooms[room.id] = sanatizedRoom;
 
-        // TODO: Should only do one of these probably
-        //self.socket.emit('roomUpdate', { rooms: rooms } );
-        // Emit roomUpdate to the namespace so existing users receive the change if there is one
-        // We should eventually only do this if there are changes in the room...
-
         self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
 
         if (roomUpdated) {
           logger.debug("[socketServer.joinRoom] Running roomUpdate from joinRoom");
 
-          // Should not emit this to the joining user as it sends a double update
-          // Could create methods like doJoinUpdates, doConnectUpdates, etc... to
-          // keep all of the action notification triggers together
+          // The joining user will get a double update but there isn't much better of a way to do this easily
           self.namespace.emit('roomUpdate', { rooms: rooms });
         }
 

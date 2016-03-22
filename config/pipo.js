@@ -4,6 +4,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
+        defaults: {
+          messageHistoryRange: 50
+        },
         server: {
           ssl: false,
           host: "localhost",
@@ -15,6 +18,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
+        defaults: {
+          messageHistoryRange: 50
+        },
         server: {
           ssl: true,
           host: "pipo.chat",
@@ -26,6 +32,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
+        defaults: {
+          messageHistoryRange: 50
+        },
         server: {
           ssl: false,
           host: "localhost",

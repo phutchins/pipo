@@ -394,6 +394,8 @@ SocketServer.prototype.onMessage = function onMessage(data) {
       // Add message to room.messages
       if (room.keepHistory) {
         var message = new Message({
+          _room: chatId,
+          type: 'room',
           _fromUser: user,
           messageId: data.messageId,
           date: new Date(),
@@ -403,8 +405,8 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
         message.save(function(err) {
           logger.debug("[MSG] Pushing message to room message history");
-          room._messages.push(message);
-          room.save();
+          //room._messages.push(message);
+          //room.save();
         })
       }
 
@@ -458,7 +460,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   var message = new Message({
     _fromUser: self.socket.user,
     _toUsers: toUserIds,
-    //_toChat: chatId,
+    _chat: chatId,
+    type: 'chat',
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
@@ -480,6 +483,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
   var emitData = {
     fromUserId: self.socket.user._id.toString(),
+    type: 'chat',
     chatId: chatId,
     messageId: messageId,
     toUserIds: toUserIds,

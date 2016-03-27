@@ -145,6 +145,33 @@ roomSchema.statics.update = function update(data, callback) {
 
 
 /*
+ * Get page or pages of messages for a chat
+ */
+roomSchema.statics.getMessages = function getMessages(data, callback) {
+  var self = this;
+  var roomId = data.roomId;
+  var pages = data.pages || 1;
+  var pageNumber = data.pageNumber || 1;
+  var referenceMessage = data.referenceMessage;
+  var messagesPerPage = data.messagesPerPage;
+
+  // Get all messages
+  var messagesQuery = {
+  };
+
+  // If reference message is null, start with latest message
+  message
+    .find()
+    .sort('-id')
+    .limit(messagesPerPage)
+    .skip(pages * messagesPerPage)
+    .exec(function(err, messages) {
+      return callback(messages);
+    });
+};
+
+
+/*
  * Convert all mongoose objects to arrays or hashes
  * Users will be looked up on the client side using username or id
  */

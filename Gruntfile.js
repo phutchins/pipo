@@ -2,6 +2,7 @@ module.exports = function (grunt) {
   'use strict';
 
   require('load-grunt-tasks')(grunt);
+  grunt.loadNpmTasks('grunt-env');
   grunt.loadNpmTasks('grunt-jslint');
   grunt.loadNpmTasks('grunt-contrib-clean');
 
@@ -55,6 +56,7 @@ module.exports = function (grunt) {
     electron: {
       osxBuild: {
         options: {
+          NODE_ENV: 'production',
           name: 'PiPo',
           dir: '.',
           out: 'dist',
@@ -62,7 +64,7 @@ module.exports = function (grunt) {
           platform: 'darwin',
           icon: 'public/img/pipo.icns',
           arch: 'x64',
-          ignore: ['server', 'scripts', 'test', 'out', 'docs', 'dist']
+          ignore: []
         }
       }
     },
@@ -85,7 +87,7 @@ module.exports = function (grunt) {
 
   grunt.registerTask('default', 'Default task', ['lint']);
   grunt.registerTask('build', 'Build for Electron', ['electron']);
-  grunt.registerTask('clean', 'Clean build files', ['clean']);
+  grunt.registerTask('cleanall', 'Clean build files', ['clean']);
   grunt.registerTask('cleanrelease', 'Clean release files', ['cleanrelease']);
   //grunt.registerTask('cleanall', 'Clean all files', ['cleanall']);
   grunt.registerTask('lint', 'Run linting', ['jslint']);

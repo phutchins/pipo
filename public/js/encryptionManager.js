@@ -819,7 +819,6 @@ EncryptionManager.prototype.loadAdminKeys = function loadadminKeys(certificate, 
   if (!adminKeyData) {
     return console.error("No known admin keys!", adminKeyData);
   }
-
   window.async.each(adminKeyData, function(keyData, callback) {
     var rawKey = atob(keyData.data);
     window.kbpgp.KeyManager.import_from_armored_pgp({

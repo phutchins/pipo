@@ -497,6 +497,9 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var joined = false;
   var unread = false;
   var unreadCount = 0;
+  var pagesLoaded = 1;
+  var initialLoadedMessageId = room.messages[0];
+  var oldestLoadedMessageId = room.messages.last;
   console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
 
   // TODO: Should store online status for members and messages in an object or array also
@@ -509,6 +512,9 @@ ChatManager.initRoom = function initRoom(room, callback) {
     joined = self.chats[room.id].joined;
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
+    pagesLoaded = self.chats[room.id].pagesLoaded;
+    initialLoadedMessageId = self.chats[room.id].initialLoadedMessageId;
+    oldestLoadedMesageId = self.chats[room.id].oldestLoadedMessageId;
   };
 
   // Find a better way to only use passed attributes for a room if they exist, but also
@@ -534,6 +540,9 @@ ChatManager.initRoom = function initRoom(room, callback) {
     subscribers: room.subscribers,
     type: 'room',
     topic: room.topic,
+    pagesLoaded: pagesLoaded,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId,
     unread: unread,
     unreadCount: unreadCount,
   };
@@ -1065,6 +1074,7 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
       };
 
       if (ChatManager.chats[activeChatId].status != 'enabled') {
+        ChatManager.disableScrollback();
         return ChatManager.disableMessageInput({ status: ChatManager.chats[activeChatId].status });
       };
       console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
@@ -1079,13 +1089,31 @@ ChatManager.enableScrollback = function enableScrollback() {
 	jQuery(
     function($) {
       $('.chat-window').bind('scroll', function() {
-				// This needs to be opposite, when scrolled all the way up (and even if the window is not scrollable
- 			  if($(this).scrollTop() + $(this).innerHeight()>=$(this)[0].scrollHeight) {
-          alert('end reached');
+ 			  if($(this).scrollTop() == 0) {
+          // Load the previous page of messages
+          //   May should pass the chat id that we're loading the previous page for
+          //   in case we switch chats before the response comes back
+          var chatId = ChatManager.activeChat;
+          ChatManager.loadPreviousPage();
         }
       })
     }
   )
+};
+
+ChatManager.disableScrollback = function disableScrollback() {
+  $('.chat-window').unbind();
+};
+
+ChatManager.loadPreviousPage = function loadPreviousPage(data) {
+  var chatId = data.chatId;
+  var currentPage = this.chats[chatId].currentPage;
+
+  // Emit event to server asking for the previous page of messages from the server
+  window.socketClient.socket.emit('previousPage', {
+    chatId: chatId,
+    currentPage: currentPage
+  });
 };
 
 

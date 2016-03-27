@@ -16,11 +16,15 @@ var logger = require('../../config/logger');
 var messageSchema = new Schema({
   date: { type: Date, default: new Date() },
   messageId: { type: String },
+  type: { type: String },
+  _room: { type: mongoose.SchemaTypes.ObjectId, ref: "room", index: true },
+  _chat: { type: mongoose.SchemaTypes.ObjectId, ref: "chat", index: true },
   _fromUser: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   _toUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   //_toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
   encryptedMessage: { type: String }
 });
+
 
 messageSchema.statics.sanatize = function sanatize(message, callback) {
   var toUsersArray = [];

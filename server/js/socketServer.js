@@ -250,6 +250,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
     self.socket.user = user;
     logger.debug("[INIT] Init'd user " + user.username);
 
+    // TODO: Split this off into it's own method
+    // TODO: enable this to get messages to add to each room before sending
     var favoriteRooms = [];
     User.populate(user, { path: 'membership._favoriteRooms' }, function(err, populatedUser) {
       if (populatedUser.membership._favoriteRooms.length > 0) {
@@ -266,17 +268,26 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       logger.debug("[INIT] getting userlist for user...");
       self.getDefaultRoom(function(defaultRoom) {
         logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
-        logger.debug("[socketServer.authenticate] sanatize 1");
-        Room.sanatize(defaultRoom, function(sanatizedRoom) {
-          logger.debug("Sanatized default room #",sanatizedRoom.name,"running User.getAllUsers");
-          User.getAllUsers({}, function(userlist) {
-            logger.debug("[socketServer.authenticate] Got all users, running User.buildUserIdMap");
-            User.buildUserNameMap({ userlist: userlist}, function(userNameMap) {
-              logger.debug("[socketServer.authenticate] Built user ID Map, running user.buildProfile");
-              User.buildProfile({ user: user }, function(userProfile) {
-                // Should send userProfile separate from userlist
-                logger.debug("[socketServer.authenticate] Done building users profile, sending 'authenticated' to " + user.username);
-                self.socket.emit('authenticated', {message: 'ok', userProfile: userProfile, favoriteRooms: favoriteRooms, userlist: userlist, userNameMap: userNameMap, defaultRoomId: sanatizedRoom.id });
+
+        // Probabaly don't need to get messages here? The client simply calls get room?
+        Room.getMessages({ roomId: defaultRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+          defaultRoom._messages = messages;
+          // Check that we're getting messages here
+          // Are messages making it here??
+
+          logger.debug("[socketServer.authenticate] sanatize 1");
+
+          Room.sanatize(defaultRoom, function(sanatizedRoom) {
+            logger.debug("Sanatized default room #",sanatizedRoom.name,"running User.getAllUsers");
+            User.getAllUsers({}, function(userlist) {
+              logger.debug("[socketServer.authenticate] Got all users, running User.buildUserIdMap");
+              User.buildUserNameMap({ userlist: userlist}, function(userNameMap) {
+                logger.debug("[socketServer.authenticate] Built user ID Map, running user.buildProfile");
+                User.buildProfile({ user: user }, function(userProfile) {
+                  // Should send userProfile separate from userlist
+                  logger.debug("[socketServer.authenticate] Done building users profile, sending 'authenticated' to " + user.username);
+                  self.socket.emit('authenticated', {message: 'ok', userProfile: userProfile, favoriteRooms: favoriteRooms, userlist: userlist, userNameMap: userNameMap, defaultRoomId: sanatizedRoom.id });
+                });
               });
             });
           });

@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var message = require('./message');
 var logger = require('../../config/logger');
 
 /*
@@ -151,7 +152,7 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
   var self = this;
   var roomId = data.roomId;
   var pages = data.pages || 1;
-  var pageNumber = data.pageNumber || 1;
+  var page = data.page || 0;
   var referenceMessage = data.referenceMessage;
   var messagesPerPage = data.messagesPerPage;
 
@@ -159,14 +160,26 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
   var messagesQuery = {
   };
 
+  logger.debug("[room.getMessages] pages: " + pages + " page: " + page + " referenceMessage: " + referenceMessage + " messagesPerPage: " + messagesPerPage);
+
+  /*
+  message
+  .find({ _room: roomId })
+  .sort('-id')
+  .exec(function(err, messages) {
+    logger.debug("[room.getMessages] Simple query message count: " + messages.length);
+  });
+  */
+
   // If reference message is null, start with latest message
   message
-    .find()
+    .find({ _room: roomId })
     .sort('-id')
-    .limit(messagesPerPage)
-    .skip(pages * messagesPerPage)
+    .limit(pages * messagesPerPage)
+    .skip(page * messagesPerPage)
     .exec(function(err, messages) {
-      return callback(messages);
+      logger.debug("[room.getMessages] Message count found: "+ messages.length);
+      return callback(err, messages);
     });
 };
 
@@ -336,7 +349,7 @@ roomSchema.statics.join = function join(data, callback) {
   var id = data.id;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     var user = user;
-    mongoose.model('Room').findOne({ _id: id }).populate('_members _owner _admins _messages').exec(function(err, room) {
+    mongoose.model('Room').findOne({ _id: id }).populate('_members _owner _admins').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
@@ -375,22 +388,22 @@ roomSchema.statics.join = function join(data, callback) {
         // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
+          mongoose.model('Room').getMessages({ roomId: updatedRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+            updatedRoom._messages = messages;
+            //var sortedMessages = messages.sort(function(m2, m1) { return m1.date - m2.date; });
 
-          var sortedMessages = updatedRoom._messages.sort(function(m2, m1) { return m1.date - m2.date; });
-          var prunedMessages = sortedMessages.slice(0,10);
-          updatedRoom._messages = prunedMessages;
+            if (data.err) {
+              logger.error("[room.join] Error: data.err");
+              return callback(data.err, { auth: false, updated: updated, room: { name: name } } );
+            }
 
-          if (data.err) {
-            logger.error("[room.join] Error: data.err");
-            return callback(data.err, { auth: false, updated: updated, room: { name: name } } );
-          }
+            if (!alreadySubscribed) {
+              updated = true;
+            };
 
-          if (!alreadySubscribed) {
-            updated = true;
-          };
-
-          logger.debug("[room.join] Successfully subscribed " + user.username + " to #" + updatedRoom.name + ". Returning updated room with auth true");
-          return callback(null, { auth: true, updated: updated, room: updatedRoom });
+            logger.debug("[room.join] Successfully subscribed " + user.username + " to #" + updatedRoom.name + ". Returning updated room with auth true");
+            return callback(null, { auth: true, updated: updated, room: updatedRoom });
+          });
         });
       } else {
         logger.debug("User " + username + " unable to join #" + room.name + " due to incorrect membership");

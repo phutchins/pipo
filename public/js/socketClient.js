@@ -82,6 +82,10 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.handleChatUpdate(data);
   });
 
+  this.socket.on('previousPageUpdate', function(data) {
+    ChatManager.handlePreviousPageUpdate(data);
+  });
+
   this.socket.on('serverCommandComplete', function(data) {
     console.log("[SOCKET] serverCommandComplete");
     self.serverCommandComplete(data);

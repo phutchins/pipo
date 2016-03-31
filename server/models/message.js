@@ -50,4 +50,25 @@ messageSchema.statics.sanatize = function sanatize(message, callback) {
   });
 };
 
+messageSchema.statics.bulkSanatize = function bulkSanatize(messages, callback) {
+  var self = this;
+  var sanatizedMessages = [];
+  var count = 0;
+
+  messages.forEach(function(message) {
+    self.sanatize(message, function(sanatizedMessage) {
+      sanatizedMessages.push(sanatizedMessage);
+      count++;
+
+      if (count == messages.length) {
+        finish();
+      };
+    });
+  });
+
+  var finish = function() {
+    return callback(sanatizedMessages);
+  };
+};
+
 module.exports = mongoose.model('Message', messageSchema);

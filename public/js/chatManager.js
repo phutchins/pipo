@@ -93,7 +93,9 @@ $('#message-input').unbind().keyup(function (event) {
       fitToContent('message-input', 156);
       return false;
     })
-  }
+  } else {
+    fitToContent('message-input', 156);
+  };
 });
 
 $('.dropdown')
@@ -1086,6 +1088,7 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
 
 
 ChatManager.enableScrollback = function enableScrollback() {
+  var self = this;
 	jQuery(
     function($) {
       $('.chat-window').bind('scroll', function() {
@@ -1094,7 +1097,7 @@ ChatManager.enableScrollback = function enableScrollback() {
           //   May should pass the chat id that we're loading the previous page for
           //   in case we switch chats before the response comes back
           var chatId = ChatManager.activeChat;
-          ChatManager.loadPreviousPage();
+          ChatManager.loadPreviousPage({ chatId: self.activeChat });
         }
       })
     }
@@ -1107,12 +1110,12 @@ ChatManager.disableScrollback = function disableScrollback() {
 
 ChatManager.loadPreviousPage = function loadPreviousPage(data) {
   var chatId = data.chatId;
-  var currentPage = this.chats[chatId].currentPage;
+  var oldestLoadedMessageId = this.chats[chatId].oldestLoadedMessageId;
 
   // Emit event to server asking for the previous page of messages from the server
-  window.socketClient.socket.emit('previousPage', {
+  window.socketClient.socket.emit('getPreviousPage', {
     chatId: chatId,
-    currentPage: currentPage
+    referenceMessageId: oldestLoadedMessageId
   });
 };
 
@@ -1463,6 +1466,11 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
   $('#chat').html(messageCache);
+
+  // Add padding above messages if needed to keep newest message at the bottom
+  // If not needed, only take up a small space for displaying pulling older messages notice
+
+
   ChatHeader.update(chatId);
 }
 
@@ -1494,6 +1502,21 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
     return callback();
   });
 
+};
+
+
+ChatManager.handlePreviousPageUpdate = function handlePreviousPageUpdate(data) {
+  var messages = data.messages;
+  var chatId = data.chatId;
+
+  messages.forEach(function(message) {
+    ChatManager.chats[chatId].messages.push(message);
+  });
+
+  debugger;
+
+  ChatManager.populateMessageCache(chatId);
+  ChatManager.refreshChatContent(chatId);
 };
 
 

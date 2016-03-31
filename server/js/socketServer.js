@@ -65,6 +65,7 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('updateRoom', self.updateRoom.bind(self));
 
   socket.on('getChat', self.getChat.bind(self));
+  socket.on('getPreviousPage', self.getPreviousPage.bind(self));
 
   socket.on('membership', self.membership.bind(self));
 
@@ -645,6 +646,29 @@ SocketServer.prototype.getChat = function getChat(data) {
       });
     };
   };
+};
+
+
+SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
+  var self = this;
+  var chatId = data.chatId;
+  var referenceMessageId = data.referenceMessageId;
+
+  Room.getMessages({
+    roomId: chatId,
+    messagesPerPage: 10,
+    pages: 1
+  }, function(err, messages) {
+    logger.debug("[socktServer.getPreviousPage] messages: ", messages);
+    Message.bulkSanatize(messages, function(sanatizedMessages) {
+      logger.debug("[socketServer.getPreviousPage] sanatizedMessages: ", sanatizedMessages);
+
+      return self.socket.emit('previousPageUpdate', {
+        chatId: chatId,
+        messages: sanatizedMessages
+      });
+    });
+  });
 };
 
 

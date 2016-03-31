@@ -153,14 +153,14 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
   var roomId = data.roomId;
   var pages = data.pages || 1;
   var page = data.page || 0;
-  var referenceMessage = data.referenceMessage;
+  var referenceMessageId = data.referenceMessageId;
   var messagesPerPage = data.messagesPerPage;
 
   // Get all messages
   var messagesQuery = {
   };
 
-  logger.debug("[room.getMessages] pages: " + pages + " page: " + page + " referenceMessage: " + referenceMessage + " messagesPerPage: " + messagesPerPage);
+  //logger.debug("[room.getMessages] pages: " + pages + " page: " + page + " referenceMessage: " + referenceMessage + " messagesPerPage: " + messagesPerPage);
 
   /*
   message
@@ -172,15 +172,25 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
   */
 
   // If reference message is null, start with latest message
-  message
-    .find({ _room: roomId })
-    .sort('-id')
-    .limit(pages * messagesPerPage)
-    .skip(page * messagesPerPage)
-    .exec(function(err, messages) {
-      logger.debug("[room.getMessages] Message count found: "+ messages.length);
-      return callback(err, messages);
-    });
+  if (referenceMessageId) {
+    message.find({ _room: roomId, _id: { $gt: referenceMessageId } })
+      .sort('-_id')
+      .limit(pages * messagesPerPage)
+      .exec(function(err, messages) {
+        logger.debug("[room.getMessages] Message count found: " + messages.length);
+        return callback(err, messages);
+      });
+  } else {
+    message
+      .find({ _room: roomId })
+      .sort('-_id')
+      .skip(page * messagesPerPage)
+      .limit(pages * messagesPerPage)
+      .exec(function(err, messages) {
+        logger.debug("[room.getMessages] Message count found: "+ messages.length);
+        return callback(err, messages);
+      });
+  }
 };
 
 

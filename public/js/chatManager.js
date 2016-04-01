@@ -505,8 +505,8 @@ ChatManager.initRoom = function initRoom(room, callback) {
   console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
 
   if (room.messages && room.messages.length > 0) {
+    initialLoadedMessageId = room.messages[room.messages.length - 1].messageId;
     oldestLoadedMessageId = room.messages[0].messageId;
-    initialLoadedMessageId = room.messages[0].messageId;
   }
 
   // TODO: Should store online status for members and messages in an object or array also
@@ -520,8 +520,6 @@ ChatManager.initRoom = function initRoom(room, callback) {
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
     pagesLoaded = self.chats[room.id].pagesLoaded;
-    initialLoadedMessageId = self.chats[room.id].initialLoadedMessageId;
-    oldestLoadedMessageId = self.chats[room.id].oldestLoadedMessageId;
   };
 
   // Find a better way to only use passed attributes for a room if they exist, but also
@@ -1443,8 +1441,10 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
   if (messageCount > 0) {
 
     sortedMessages = messages.sort(function(a,b) {
-      return new Date(b.date) - new Date(a.date);
+      return new Date(a.date) - new Date(b.date);
     });
+
+    ChatManager.chats[chatId].oldestLoadedMessageId = sortedMessages[0].messageId;
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;

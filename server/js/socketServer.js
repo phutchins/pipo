@@ -658,12 +658,10 @@ SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
   Room.getMessages({
     roomId: chatId,
     messagesPerPage: 10,
+    referenceMessageId: referenceMessageId,
     pages: 1
   }, function(err, messages) {
-    logger.debug("[socktServer.getPreviousPage] messages: ", messages);
     Message.bulkSanatize(messages, function(sanatizedMessages) {
-      logger.debug("[socketServer.getPreviousPage] sanatizedMessages: ", sanatizedMessages);
-
       return self.socket.emit('previousPageUpdate', {
         chatId: chatId,
         messages: sanatizedMessages

@@ -171,8 +171,10 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
   */
 
   // If reference message is null, start with latest message
+
   if (referenceMessageId) {
-    Messasge.findOne({ _room: roomId, messageId: referenceMessageId }, function(err, message) {
+    logger.debug("[room.getMessages] Getting messages using referenceMessageId '" + referenceMessageId + "'");
+    Message.findOne({ _room: roomId, messageId: referenceMessageId }, function(err, message) {
       Message.find({ _room: roomId, date: { $lt: message.date } })
         .sort('-_id')
         .limit(pages * messagesPerPage)
@@ -182,6 +184,7 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
         })
     });
   } else {
+    logger.debug("[room.getMessages] No referenceMessageId provided");
     Message
       .find({ _room: roomId })
       .sort('-_id')

@@ -37,6 +37,7 @@ messageSchema.statics.sanatize = function sanatize(message, callback) {
       });
     }
 
+    // Consider changing messageId to id
     var sanatizedMessage = {
       date: populatedMessage.date,
       messageId: message.messageId,

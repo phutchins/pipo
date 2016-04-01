@@ -270,9 +270,10 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.getDefaultRoom(function(defaultRoom) {
         logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
 
-        // Probabaly don't need to get messages here? The client simply calls get room?
         Room.getMessages({ roomId: defaultRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
-          defaultRoom._messages = messages;
+          logger.debug("[socketServer.authenticate] Got messages for default room. Message count is " + messages.length);
+
+          defaultRoom.messages = messages;
           // Check that we're getting messages here
           // Are messages making it here??
 

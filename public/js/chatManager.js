@@ -500,9 +500,14 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var unread = false;
   var unreadCount = 0;
   var pagesLoaded = 1;
-  var initialLoadedMessageId = room.messages[0];
-  var oldestLoadedMessageId = room.messages.last;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
   console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
+
+  if (room.messages && room.messages.length > 0) {
+    oldestLoadedMessageId = room.messages[0].messageId;
+    initialLoadedMessageId = room.messages[0].messageId;
+  }
 
   // TODO: Should store online status for members and messages in an object or array also
 
@@ -516,7 +521,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     unreadCount = self.chats[room.id].unread;
     pagesLoaded = self.chats[room.id].pagesLoaded;
     initialLoadedMessageId = self.chats[room.id].initialLoadedMessageId;
-    oldestLoadedMesageId = self.chats[room.id].oldestLoadedMessageId;
+    oldestLoadedMessageId = self.chats[room.id].oldestLoadedMessageId;
   };
 
   // Find a better way to only use passed attributes for a room if they exist, but also
@@ -763,6 +768,46 @@ ChatManager.initChat = function initChat(chat, callback) {
     });
   });
 };
+
+
+
+ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback) {
+  var chatId = data.chatId;
+  var messagesArray = data.messages;
+  var messageCount = messagesArray.length;
+  var count = 0;
+
+  if (messageCount == 0) {
+    finish();
+  }
+
+  messagesArray.forEach(function(message, key) {
+    var encryptedMessage = message.encryptedMessage;
+
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, decryptedMessage) {
+      count ++;
+
+      if (err) {
+        decryptedMessage = 'Unable to decrypt...\n';
+        console.log("Error decrypting message: ", err);
+      }
+
+      messagesArray[key].decryptedMessage = decryptedMessage.toString();
+
+      if (messageCount === count) {
+        finish();
+      }
+    })
+  })
+
+  var finish = function() {
+    return callback(messagesArray);
+  }
+};
+
 
 
 /*
@@ -1396,9 +1441,10 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
   ChatManager.chats[chatId].messageCache = '';
 
   if (messageCount > 0) {
-    //sortedMessages = messages.sort(function(a,b) {
-    //  return new Date(b.date) - new Date(a.date);
-    //});
+
+    sortedMessages = messages.sort(function(a,b) {
+      return new Date(b.date) - new Date(a.date);
+    });
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
@@ -1509,14 +1555,12 @@ ChatManager.handlePreviousPageUpdate = function handlePreviousPageUpdate(data) {
   var messages = data.messages;
   var chatId = data.chatId;
 
-  messages.forEach(function(message) {
-    ChatManager.chats[chatId].messages.push(message);
+  ChatManager.decryptMessagesArray({ chatId: chatId, messages: messages }, function(decryptedMessages) {
+    ChatManager.chats[chatId].messages = decryptedMessages.concat(ChatManager.chats[chatId].messages);
+
+    ChatManager.populateMessageCache(chatId);
+    ChatManager.refreshChatContent(chatId);
   });
-
-  debugger;
-
-  ChatManager.populateMessageCache(chatId);
-  ChatManager.refreshChatContent(chatId);
 };
 
 

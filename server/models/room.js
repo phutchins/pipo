@@ -1,6 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-var message = require('./message');
+var Message = require('./message');
 var logger = require('../../config/logger');
 
 /*
@@ -27,8 +27,7 @@ var roomSchema = new Schema({
   _admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   _members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   _activeUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _subscribers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message", default: [] }]
+  _subscribers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }]
 });
 
 roomSchema.statics.create = function create(data, callback) {
@@ -74,7 +73,7 @@ roomSchema.statics.create = function create(data, callback) {
       newRoom._members.push(owner._id);
 
       newRoom.save(function(err) {
-        mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _messages _members _admins').exec(function(err, myRoom) {
+        mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _members _admins').exec(function(err, myRoom) {
           return callback(null, myRoom);
         });
       })
@@ -87,7 +86,7 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 
   logger.debug("[ROOM] (getByName) Finding room #" + name + " by name");
   mongoose.model('Room').findOne({ name: name })
-    .populate('_members _owner _admins _subscribers _activeUsers _messages')
+    .populate('_members _owner _admins _subscribers _activeUsers')
     .exec(function(err, room) {
     if (err) {
       return logger.error("[ROOM] (getByName) Error getting room:",err);
@@ -173,15 +172,17 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
 
   // If reference message is null, start with latest message
   if (referenceMessageId) {
-    message.find({ _room: roomId, _id: { $gt: referenceMessageId } })
-      .sort('-_id')
-      .limit(pages * messagesPerPage)
-      .exec(function(err, messages) {
-        logger.debug("[room.getMessages] Message count found: " + messages.length);
-        return callback(err, messages);
-      });
+    Messasge.findOne({ _room: roomId, messageId: referenceMessageId }, function(err, message) {
+      Message.find({ _room: roomId, date: { $lt: message.date } })
+        .sort('-_id')
+        .limit(pages * messagesPerPage)
+        .exec(function(err, messages) {
+          logger.debug("[room.getMessages] Message count found: " + messages.length);
+          return callback(err, messages);
+        })
+    });
   } else {
-    message
+    Message
       .find({ _room: roomId })
       .sort('-_id')
       .skip(page * messagesPerPage)
@@ -243,34 +244,12 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
     });
   };
 
-  if (room._messages.length > 0) {
+  if (room.messages && room.messages.length > 0) {
     var processedMessages = 0;
-    room._messages.forEach(function(message) {
-      if (message._toUsers && message._toUsers.length > 0) {
-        var toUsersArray = [];
-        message._toUsers.forEach(function(toUser) {
-          toUsersArray.push(toUser._id.toString());
-        });
-      };
+    mongoose.model('Message').bulkSanatize(room.messages, function(sanatizedMessages) {
+      messagesArray = sanatizedMessages;
 
-      // Should be able to remove this?
-      // bug when I do, i can't see finish() from this context... :-\
-      message.populate('_fromUser', function() {
-
-        var sanatizedMessage = {
-          date: message.date,
-          fromUser: message._fromUser.id.toString(),
-          toUsers: toUsersArray,
-          encryptedMessage: message.encryptedMessage
-        };
-
-        messagesArray.push(sanatizedMessage);
-        processedMessages++;
-
-        if (processedMessages == room._messages.length) {
-          finish();
-        };
-      });
+      finish();
     });
   };
 
@@ -298,7 +277,8 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
     return callback(sanatizedRoom);
   }
 
-  if (room._messages.length == 0) {
+  // If there are no messages or the messages array is empty, go ahead and finish
+  if (!room.messages || ( room.messages && room.messages.length == 0 )) {
     finish();
   };
 };
@@ -399,7 +379,7 @@ roomSchema.statics.join = function join(data, callback) {
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
           mongoose.model('Room').getMessages({ roomId: updatedRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
-            updatedRoom._messages = messages;
+            updatedRoom.messages = messages;
             //var sortedMessages = messages.sort(function(m2, m1) { return m1.date - m2.date; });
 
             if (data.err) {

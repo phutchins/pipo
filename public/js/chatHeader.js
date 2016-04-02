@@ -32,7 +32,7 @@ ChatHeader.update = function update(chatId) {
     chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
   }
 
-  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
+  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1) || false;
   self.updateFavoriteButton({ favorite: isFavorite });
 
   /*

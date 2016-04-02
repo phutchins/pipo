@@ -10,8 +10,12 @@ var chatSchema = new Schema({
   group: { type: String, default: 'GRP' },
   chatHash: { type: String },
   _participants: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User" }],
-  _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message" }]
 });
+
+
+// TODO:
+// Need to move adding messages to private chats and grab them all with Message.get
+// Need to check everywhere for getChat and change to Chat.get
 
 
 chatSchema.statics.join = function join(chat, callback) {
@@ -24,6 +28,47 @@ chatSchema.statics.join = function join(chat, callback) {
 
   //
 };
+
+
+chatSchema.statics.create = function create(data, callback) {
+  var newChat = new Chat({
+    _participants: data.participantIds,
+    chatHash: data.chatHash,
+    type: data.type,
+  });
+
+  // Save it
+  newChat.save(function(err, savedChat) {
+    logger.debug("[getChat] saved chat: ",savedChat._id);
+    return callback(err, savedChat);
+  });
+};
+
+
+chatSchema.statics.get = function getByHash(hash, callback) {
+  var self = this;
+
+  // How do we find the chat using the participants (or some other thing)?
+  var chatId = data.chatId;
+  var chatHash = data.chatHash;
+  var participantIds = data.participantIds;
+
+  logger.debug("[chat.get] Got socket 'getChat' request");
+
+  if (chatHash) {
+    logger.debug("[chat.get] Getting chat by chat hash: '" + chatHash + "'");
+
+    mongoose.model('Chat').findOne({ chatHash: chatHash }).populate('_participants').exec(function(err, chat) {
+      return callback(err, chat)
+    });
+  };
+};
+
+
+chatSchema.statics.getSanatied = function getSanatized(hash, callback) {
+
+
+}
 
 
 /*

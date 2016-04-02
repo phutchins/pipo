@@ -26,6 +26,67 @@ var messageSchema = new Schema({
 });
 
 
+messageSchema.statics.get = function get(data, callback) {
+  var self = this;
+  var chatId = data.chatId;
+  var type = data.type;
+
+  if ( !type ){
+    logger.error("[message.getMessages] No type provided");
+    return callback("Must provide roomId or chatId", null);
+  }
+
+  var pages = data.pages || 1;
+  var page = data.page || 0;
+  var referenceMessageId = data.referenceMessageId;
+  var messagesPerPage = data.messagesPerPage;
+
+  if (referenceMessageId) {
+    logger.debug("[message.getMessages] Getting messages using referenceMessageId '" + referenceMessageId + "'");
+    if (type == 'room') {
+      mongoose.model('Message').findOne({ _room: chatId, messageId: referenceMessageId }, function(err, message) {
+        mongoose.model('Message').find({ _room: chatId, date: { $lt: message.date } })
+          .sort('-_id')
+          .limit(pages * messagesPerPage)
+          .exec(function(err, messages) {
+            return callback(err, messages);
+          })
+      });
+    } else if (type == 'chat') {
+      mongoose.model('Message').findOne({ _chat: chatId, messageId: referenceMessageId }, function(err, message) {
+        mongoose.model('Message').find({ _chat: chatId, date: { $lt: message.date } })
+          .sort('-_id')
+          .limit(pages * messagesPerPage)
+          .exec(function(err, messages) {
+            return callback(err, messages);
+          })
+      });
+    }
+  } else {
+    logger.debug("[message.getMessages] No referenceMessageId provided");
+    if (type == 'room') {
+      mongoose.model('Message')
+        .find({ _room: chatId })
+        .sort('-_id')
+        .skip(page * messagesPerPage)
+        .limit(pages * messagesPerPage)
+        .exec(function(err, messages) {
+          return callback(err, messages);
+        });
+    } else if (type == 'chat') {
+        mongoose.model('Message')
+          .find({ _chat: chatId })
+          .sort('-_id')
+          .skip(page * messagesPerPage)
+          .limit(pages * messagesPerPage)
+          .exec(function(err, messages) {
+            return callback(err, messages);
+          });
+    }
+  }
+};
+
+
 messageSchema.statics.sanatize = function sanatize(message, callback) {
   var toUsersArray = [];
 

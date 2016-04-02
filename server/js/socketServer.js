@@ -270,7 +270,8 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.getDefaultRoom(function(defaultRoom) {
         logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
 
-        Room.getMessages({ roomId: defaultRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+
+        Message.get({ chatId: defaultRoom.id, type: 'room', messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
           logger.debug("[socketServer.authenticate] Got messages for default room. Message count is " + messages.length);
 
           defaultRoom.messages = messages;
@@ -478,6 +479,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     encryptedMessage: data.pgpMessage
   });
 
+  logger.debug("[socketServer.onPrivateMessage] fromUser: " + self.socket.user._id + " _toUsers: " + toUserIds + " _chat: " + chatId + " type: " + message.type + " date: " + message.date + "encryptedMessage: " + message.encryptedMessage );
+
   // Get the socketId's for each participant
   // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap
   toUserIds.forEach(function(toUserId) {
@@ -512,7 +515,13 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 
   message.save(function(err) {
     if (err) {
-      return logger.error("[ERROR] Error saving message: ", err);
+      if (err.name == 'ValidationError') {
+        for (field in err.errors) {
+          logger.error("[socketServer.onPrivateMessage] Error saving message: " + field);
+        }
+      } else {
+        return logger.error("[ERROR] Error saving message: ", err);
+      }
     }
 
     logger.debug("[onPrivateMessage] Saved private message");
@@ -580,65 +589,45 @@ SocketServer.prototype.getChat = function getChat(data) {
   var chatHash = data.chatHash;
   var participantIds = data.participantIds;
 
-  logger.debug("[getChat] Got socket 'getChat' request");
+  Chat.getSanatized({
+    chatId: chatId,
+    chatHash: chatHash,
+    participantIds: participantIds
+  }, function(err, chat) {
+    if (err) {
+      self.socket.emit('chatUpdate-' + chatHash, null);
+      return logger.error("[socketServer.getChat] Error getting chat: " + err);
+    };
 
-  if (chatHash) {
-    logger.debug("[getChat] Getting chat by chat hash: '" + chatHash + "'");
+    if (!chat) {
+      logger.debug("[socketServer.getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
+    }
 
-    Chat.findOne({ chatHash: chatHash }).populate('_participants _messages').exec(function(err, chat) {
-      if (err) {
-        self.socket.emit('chatUpdate-' + chatHash, null);
-        return logger.error("[getChat] Error getting chat: " + err);
-      }
-
-      if (!chat) {
-        logger.debug("[getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
-      }
-
-      finish(chat);
-    });
-  };
+    finish(chat);
+  });
 
   var finish = function finish(chat) {
-    // Sanatize the chat
-    var chat = chat;
-
-    logger.debug("[getChat finish] Starting to finish...");
+    logger.debug("[socketServer.getChat finish] Starting to finish...");
     if (chat) {
-      logger.debug("[getChat finish] Have a chat, sanatizing now...");
-      Chat.sanatize(chat, function(sanatizedChat) {
-        logger.debug("[getChat finish] Finishing with a valid chat");
-        if (chatHash) {
-          logger.debug("[getChat.finish] We have chatHash '" + chatHash + "'");
-          return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
-        } else {
-          logger.debug("[getChat.finish] We have no chatHash");
-          return self.socket.emit('chatUpdate', { chat: sanatizedChat });
-        };
-      })
+      if (chatHash) {
+        logger.debug("[getChat.finish] We have chatHash '" + chatHash + "'");
+        return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+      } else {
+        logger.debug("[socketServer.getChat.finish] We have no chatHash");
+        return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+      };
     } else {
-      logger.debug("[getChat finish] Finishing without a chat");
+      logger.debug("[socketServer.getChat finish] Finishing without a chat");
 
       // This may be redundant as the client is doing the array hash also but we could check it here to make sure it matches?
       self.arrayHash(participantIds, function(chatHash) {
-
-        // Create a new chat
-        var newChat = new Chat({
-          _participants: participantIds,
-          _messages: [],
+        Chat.create({
+          participantIds: participantIds,
           chatHash: chatHash,
-          type: 'chat',
-        });
-
-        // Save it
-        newChat.save(function(err, savedChat) {
-          logger.debug("[getChat] saved chat: ",savedChat._id);
-          Chat.findOne({ _id: savedChat._id }).populate("_messages _participants").exec(function(err, populatedChat) {
-            //logger.debug("[getChat] Created new chat with _participants:",populatedChat._participants);
-            Chat.sanatize(populatedChat, function(sanatizedChat) {
-              logger.debug("[getChat] Sending 'chatUpdate' to client");
-              return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
-            });
+          type: 'chat'
+        }, function(err, newChat) {
+          Chat.sanatize(newChat, function(sanatizedChat) {
+            return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
           });
         });
       });
@@ -650,11 +639,13 @@ SocketServer.prototype.getChat = function getChat(data) {
 SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
   var self = this;
   var chatId = data.chatId;
+  var type = data.type;
   var referenceMessageId = data.referenceMessageId;
 
-  Room.getMessages({
-    roomId: chatId,
+  Message.get({
+    chatId: chatId,
     messagesPerPage: 10,
+    type: type,
     referenceMessageId: referenceMessageId,
     pages: 1
   }, function(err, messages) {

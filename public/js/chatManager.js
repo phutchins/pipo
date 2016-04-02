@@ -770,6 +770,7 @@ ChatManager.initChat = function initChat(chat, callback) {
 
 
 ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback) {
+  var self = this;
   var chatId = data.chatId;
   var messagesArray = data.messages;
   var count = 0;
@@ -780,7 +781,8 @@ ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback)
   }
 
   if (messageCount == 0) {
-    finish();
+    console.log("[chatManager.decryptMessagesArray] No messages provided for decrypting. Finishing.");
+    return finish();
   }
 
   messagesArray.forEach(function(message, key) {
@@ -800,12 +802,12 @@ ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback)
       messagesArray[key].decryptedMessage = decryptedMessage.toString();
 
       if (messageCount === count) {
-        finish();
+        return finish();
       }
     })
   })
 
-  var finish = function() {
+  var finish = function finish() {
     return callback(messagesArray);
   }
 };
@@ -1157,11 +1159,13 @@ ChatManager.disableScrollback = function disableScrollback() {
 
 ChatManager.loadPreviousPage = function loadPreviousPage(data) {
   var chatId = data.chatId;
+  var type = ChatManager.chats[chatId].type;
   var oldestLoadedMessageId = this.chats[chatId].oldestLoadedMessageId;
 
   // Emit event to server asking for the previous page of messages from the server
   window.socketClient.socket.emit('getPreviousPage', {
     chatId: chatId,
+    type: type,
     referenceMessageId: oldestLoadedMessageId
   });
 };

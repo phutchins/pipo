@@ -144,57 +144,6 @@ roomSchema.statics.update = function update(data, callback) {
 };
 
 
-/*
- * Get page or pages of messages for a chat
- */
-roomSchema.statics.getMessages = function getMessages(data, callback) {
-  var self = this;
-  var roomId = data.roomId;
-  var pages = data.pages || 1;
-  var page = data.page || 0;
-  var referenceMessageId = data.referenceMessageId;
-  var messagesPerPage = data.messagesPerPage;
-
-  // Get all messages
-  var messagesQuery = {
-  };
-
-  //logger.debug("[room.getMessages] pages: " + pages + " page: " + page + " referenceMessage: " + referenceMessage + " messagesPerPage: " + messagesPerPage);
-
-  /*
-  message
-  .find({ _room: roomId })
-  .sort('-id')
-  .exec(function(err, messages) {
-    logger.debug("[room.getMessages] Simple query message count: " + messages.length);
-  });
-  */
-
-  // If reference message is null, start with latest message
-
-  if (referenceMessageId) {
-    logger.debug("[room.getMessages] Getting messages using referenceMessageId '" + referenceMessageId + "'");
-    Message.findOne({ _room: roomId, messageId: referenceMessageId }, function(err, message) {
-      Message.find({ _room: roomId, date: { $lt: message.date } })
-        .sort('-_id')
-        .limit(pages * messagesPerPage)
-        .exec(function(err, messages) {
-          return callback(err, messages);
-        })
-    });
-  } else {
-    logger.debug("[room.getMessages] No referenceMessageId provided");
-    Message
-      .find({ _room: roomId })
-      .sort('-_id')
-      .skip(page * messagesPerPage)
-      .limit(pages * messagesPerPage)
-      .exec(function(err, messages) {
-        return callback(err, messages);
-      });
-  }
-};
-
 
 /*
  * Convert all mongoose objects to arrays or hashes
@@ -379,7 +328,7 @@ roomSchema.statics.join = function join(data, callback) {
         // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
-          mongoose.model('Room').getMessages({ roomId: updatedRoom.id, messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+          mongoose.model('Message').get({ chatId: updatedRoom.id, type: 'room', messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
             updatedRoom.messages = messages;
             //var sortedMessages = messages.sort(function(m2, m1) { return m1.date - m2.date; });
 

@@ -301,6 +301,30 @@ SocketClient.prototype.sendMessage = function(data) {
   });
 };
 
+
+SocketClient.prototype.sendPrivateMessage = function(data) {
+  var self = this;
+  var messageId = data.messageId;
+  var chatId = data.chatId;
+  var toUserIds = data.toUserIds;
+  var message = data.message;
+
+  ChatManager.prepareMessage(message, function(err, preparedMessage) {
+    window.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
+      if (err) {
+        console.log("Error Encrypting Message: " + err);
+      }
+
+      else {
+        // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
+        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
+        $('#message-input').val('');
+      }
+    });
+  });
+};
+
+
 SocketClient.prototype.joinComplete = function(data) {
   var self = this;
   var err = data.err;
@@ -487,28 +511,6 @@ SocketClient.prototype.membership = function(data) {
 
   console.log("[MEMBERSHIP] Emitting membership");
   self.socket.emit('membership', data);
-};
-
-SocketClient.prototype.sendPrivateMessage = function(data) {
-  var self = this;
-  var messageId = data.messageId;
-  var chatId = data.chatId;
-  var toUserIds = data.toUserIds;
-  var message = data.message;
-
-  ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
-      if (err) {
-        console.log("Error Encrypting Message: " + err);
-      }
-
-      else {
-        // Only leaving toUsername until I migrate the server side to tracking users by id instead of name
-        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
-        $('#message-input').val('');
-      }
-    });
-  });
 };
 
 SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {

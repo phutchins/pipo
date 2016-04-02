@@ -56,6 +56,10 @@ messageSchema.statics.bulkSanatize = function bulkSanatize(messages, callback) {
   var sanatizedMessages = [];
   var count = 0;
 
+  if (!messages) {
+    return callback(null);
+  };
+
   messages.forEach(function(message) {
     self.sanatize(message, function(sanatizedMessage) {
       sanatizedMessages.push(sanatizedMessage);

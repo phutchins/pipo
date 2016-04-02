@@ -772,8 +772,12 @@ ChatManager.initChat = function initChat(chat, callback) {
 ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback) {
   var chatId = data.chatId;
   var messagesArray = data.messages;
-  var messageCount = messagesArray.length;
   var count = 0;
+  var messageCount = 0;
+
+  if (messagesArray) {
+    messageCount = messagesArray.length;
+  }
 
   if (messageCount == 0) {
     finish();

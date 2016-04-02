@@ -179,7 +179,6 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
         .sort('-_id')
         .limit(pages * messagesPerPage)
         .exec(function(err, messages) {
-          logger.debug("[room.getMessages] Message count found: " + messages.length);
           return callback(err, messages);
         })
     });
@@ -191,7 +190,6 @@ roomSchema.statics.getMessages = function getMessages(data, callback) {
       .skip(page * messagesPerPage)
       .limit(pages * messagesPerPage)
       .exec(function(err, messages) {
-        logger.debug("[room.getMessages] Message count found: "+ messages.length);
         return callback(err, messages);
       });
   }

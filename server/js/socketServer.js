@@ -452,20 +452,19 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   }
 
   var fromUser = self.socket.user._id.toString();
-  logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
+  //logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
 
   //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
   var chatId = data.chatId;
-  logger.debug("[SocketServer.onPrivateMessage] chatId: " + chatId);
-  logger.debug("[SocketServer.onPrivateMessage] data.toUserIds: " + data.toUserIds.toString());
+  //logger.debug("[SocketServer.onPrivateMessage] chatId: " + chatId);
   var toUserIds = data.toUserIds;
 
-  logger.debug("[SocketServer.onPrivateMessage] toUserIds: " + toUserIds.toString());
+  //logger.debug("[SocketServer.onPrivateMessage] toUserIds: " + toUserIds.toString());
 
   // Need to get the target socket using user id!
   // BUG
   // SUPER HACKY FIX
-  logger.debug("[socketServer.onPrivateMessage] data is: ", data);
+  //logger.debug("[socketServer.onPrivateMessage] data is: ", data);
   //logger.debug("[socketServer.onPrivateMessage] Object.keys(self.namespace.userMap): ", Object.keys(self.namespace.userMap));
   logger.debug("[socketServer.onPrivateMessage] Handling private message from " + fromUser + " to chat " + chatId + ".");
 
@@ -478,8 +477,6 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     date: new Date(),
     encryptedMessage: data.pgpMessage
   });
-
-  logger.debug("[socketServer.onPrivateMessage] userMap: ", self.namespace.userMap);
 
   // Get the socketId's for each participant
   // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap

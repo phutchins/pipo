@@ -45,7 +45,7 @@ chatSchema.statics.create = function create(data, callback) {
 };
 
 
-chatSchema.statics.get = function getByHash(hash, callback) {
+chatSchema.statics.get = function get(data, callback) {
   var self = this;
 
   // How do we find the chat using the participants (or some other thing)?
@@ -65,9 +65,12 @@ chatSchema.statics.get = function getByHash(hash, callback) {
 };
 
 
-chatSchema.statics.getSanatied = function getSanatized(hash, callback) {
-
-
+chatSchema.statics.getSanatized = function getSanatized(data, callback) {
+  this.get(data, function(err, chat) {
+    this.sanatize(chat, function(sanatizedChat) {
+      callback(err, sanatizedChat);
+    });
+  });
 }
 
 

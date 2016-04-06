@@ -314,41 +314,6 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 };
 
 
-/**
- * Encrypts a message to all keys in the room
- * @param room
- * @param message
- * @param callback
- */
-EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(data, callback) {
-  var chatId = data.chatId;
-  var message = data.message;
-  var self = this;
-
-  //Encrypt the message
-  if (ChatManager.chats[chatId].encryptionScheme == "masterKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
-
-    self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else if (ChatManager.chats[chatId].encryptionScheme == "clientKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
-    console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
-
-    // Make sure that we are encrypting message to the user as well as our self here
-
-    self.encryptClientKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else {
-    console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
-
-    self.encryptClientKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  }
-};
 
 /**
  * Encrypts messages to the master key if we are using
@@ -367,8 +332,8 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var self = this;
   var chatId = data.chatId;
   var message = data.message;
-  var keys = [];
-  var keysTest = [];
+  //var keys = [];
+  var keys = data.keys;
   var keyFingerPrints = {};
 
 
@@ -377,24 +342,72 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   // Chats: For chats it would be the creator of the chat or initiator of the chat
   //
 
+  /*
   Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(id) {
     keys.push(ChatManager.chats[chatId].keyRing._kms[id]);
   });
+  */
 
-  ChatManager.chats[chatId].subscribers.forEach(function(userId) {
-    keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
-  });
+  /*
+  if (ChatManager.chats[chatId].subscribers) {
+    ChatManager.chats[chatId].subscribers.forEach(function(userId) {
+      keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+    });
+  };
 
   console.log("[encryptionManager.encryptClientKeyMessage] Encrypting client key message to users: ", keyFingerPrints);
+  */
 
   //Add our own key to the mix so that we can read the message as well
   keys.push(self.keyManager);
 
-  window.kbpgp.box({
-    msg: message,
+  window.kbpgp.box({ msg: message,
     encrypt_for: keys,
     sign_with: self.keyManager
   }, callback);
+};
+
+/**
+ * Encrypts a message to all keys in the room
+ * @param room
+ * @param message
+ * @param callback
+ */
+EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(data, callback) {
+  var chatId = data.chatId;
+  var message = data.message;
+  var keys = [];
+  var self = this;
+
+  //Encrypt the message
+  if (ChatManager.chats[chatId].encryptionScheme == "masterKey") {
+    console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
+
+    self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+      callback(err, pgpMessage );
+    });
+  } else if (ChatManager.chats[chatId].encryptionScheme == "clientKey") {
+    console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
+    console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
+
+    // Make sure that we are encrypting message to the user as well as our self here
+    Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(id) {
+      keys.push(ChatManager.chats[chatId].keyRing._kms[id]);
+    });
+
+    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
+      callback(err, pgpMessage );
+    });
+  } else {
+    console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
+    Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(id) {
+      keys.push(ChatManager.chats[chatId].keyRing._kms[id]);
+    });
+
+    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
+      callback(err, pgpMessage );
+    });
+  }
 };
 
 EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(data, callback) {
@@ -422,11 +435,17 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 
   //console.log("[encryptionManager.encryptPrivateMessage] Encrypting private message to keys: ",keyFingerPrints);
 
+  /*
   window.kbpgp.box({
     msg: message,
     encrypt_for: keys,
     sign_with: self.keyManager
   }, callback);
+  */
+
+  self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
+    callback(err, pgpMessage );
+  });
 };
 
 EncryptionManager.prototype.sign = function encryptPrivateMessage(message, callback) {
@@ -819,7 +838,6 @@ EncryptionManager.prototype.loadAdminKeys = function loadadminKeys(certificate, 
   if (!adminKeyData) {
     return console.error("No known admin keys!", adminKeyData);
   }
-
   window.async.each(adminKeyData, function(keyData, callback) {
     var rawKey = atob(keyData.data);
     window.kbpgp.KeyManager.import_from_armored_pgp({

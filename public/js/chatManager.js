@@ -93,7 +93,9 @@ $('#message-input').unbind().keyup(function (event) {
       fitToContent('message-input', 156);
       return false;
     })
-  }
+  } else {
+    fitToContent('message-input', 156);
+  };
 });
 
 $('.dropdown')
@@ -497,7 +499,15 @@ ChatManager.initRoom = function initRoom(room, callback) {
   var joined = false;
   var unread = false;
   var unreadCount = 0;
+  var pagesLoaded = 1;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
   console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
+
+  if (room.messages && room.messages.length > 0) {
+    initialLoadedMessageId = room.messages[room.messages.length - 1].messageId;
+    oldestLoadedMessageId = room.messages[0].messageId;
+  }
 
   // TODO: Should store online status for members and messages in an object or array also
 
@@ -509,6 +519,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
     joined = self.chats[room.id].joined;
     unread = self.chats[room.id].unreadCount;
     unreadCount = self.chats[room.id].unread;
+    pagesLoaded = self.chats[room.id].pagesLoaded;
   };
 
   // Find a better way to only use passed attributes for a room if they exist, but also
@@ -534,6 +545,9 @@ ChatManager.initRoom = function initRoom(room, callback) {
     subscribers: room.subscribers,
     type: 'room',
     topic: room.topic,
+    pagesLoaded: pagesLoaded,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId,
     unread: unread,
     unreadCount: unreadCount,
   };
@@ -647,11 +661,18 @@ ChatManager.initChat = function initChat(chat, callback) {
   var chatName = '';
   var unread = false;
   var unreadCount = 0;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
   //var messages = chat.messages || [];
   var messages = chat.messages.sort(dynamicSort("date"));
   var participants = chat.participants || [];
 
   console.log("Running init on chat " + chatId);
+
+  if (chat.messages && chat.messages.length > 0) {
+    initialLoadedMessageId = chat.messages[chat.messages.length - 1].messageId;
+    oldestLoadedMessageId = chat.messages[0].messageId;
+  }
 
   // Persist certain values through an init chat if we've already constructed a chat object
   if (ChatManager.chats[chatId]) {
@@ -688,6 +709,8 @@ ChatManager.initChat = function initChat(chat, callback) {
     type: 'chat',
     unread: unread,
     unreadCount: unreadCount,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId
   };
 
   var count = 0;
@@ -752,6 +775,52 @@ ChatManager.initChat = function initChat(chat, callback) {
     });
   });
 };
+
+
+
+ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback) {
+  var self = this;
+  var chatId = data.chatId;
+  var messagesArray = data.messages;
+  var count = 0;
+  var messageCount = 0;
+
+  var finish = function finish() {
+    return callback(messagesArray);
+  }
+
+  if (messagesArray) {
+    messageCount = messagesArray.length;
+  }
+
+  if (messageCount == 0) {
+    console.log("[chatManager.decryptMessagesArray] No messages provided for decrypting. Finishing.");
+    return finish();
+  }
+
+  messagesArray.forEach(function(message, key) {
+    var encryptedMessage = message.encryptedMessage;
+
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, decryptedMessage) {
+      count ++;
+
+      if (err) {
+        decryptedMessage = 'Unable to decrypt...\n';
+        console.log("Error decrypting message: ", err);
+      }
+
+      messagesArray[key].decryptedMessage = decryptedMessage.toString();
+
+      if (messageCount === count) {
+        return finish();
+      }
+    })
+  })
+};
+
 
 
 /*
@@ -1060,10 +1129,12 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
 
     if (chatId == activeChatId) {
       if (ChatManager.chats[activeChatId].status == 'enabled') {
+        ChatManager.enableScrollback();
         return ChatManager.enableMessageInput();
       };
 
       if (ChatManager.chats[activeChatId].status != 'enabled') {
+        ChatManager.disableScrollback();
         return ChatManager.disableMessageInput({ status: ChatManager.chats[activeChatId].status });
       };
       console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
@@ -1071,6 +1142,43 @@ ChatManager.updateChatStatus = function updateChatStatus(data) {
   } else {
     console.log("[ChatManager.updateChatStatus] Currently no active chat...");
   };
+};
+
+
+ChatManager.enableScrollback = function enableScrollback() {
+  var self = this;
+	jQuery(
+    function($) {
+      $('.chat-window').unbind().bind('scroll', function() {
+ 			  if($(this).scrollTop() == 0) {
+          // Load the previous page of messages
+          //   May should pass the chat id that we're loading the previous page for
+          //   in case we switch chats before the response comes back
+          var chatId = ChatManager.activeChat;
+          ChatManager.loadPreviousPage({ chatId: self.activeChat });
+        }
+      })
+    }
+  )
+};
+
+ChatManager.disableScrollback = function disableScrollback() {
+  $('.chat-window').unbind();
+};
+
+ChatManager.loadPreviousPage = function loadPreviousPage(data) {
+  var chatId = data.chatId;
+  var type = ChatManager.chats[chatId].type;
+  var oldestLoadedMessageId = this.chats[chatId].oldestLoadedMessageId;
+
+  console.log("[chatManager.loadPreviousPage] Loading previous page of messages prior to message with id '" + oldestLoadedMessageId + "'");
+
+  // Emit event to server asking for the previous page of messages from the server
+  window.socketClient.socket.emit('getPreviousPage', {
+    chatId: chatId,
+    type: type,
+    referenceMessageId: oldestLoadedMessageId
+  });
 };
 
 
@@ -1350,9 +1458,12 @@ ChatManager.populateMessageCache = function populateMessageCache(chatId) {
   ChatManager.chats[chatId].messageCache = '';
 
   if (messageCount > 0) {
-    //sortedMessages = messages.sort(function(a,b) {
-    //  return new Date(b.date) - new Date(a.date);
-    //});
+
+    sortedMessages = messages.sort(function(a,b) {
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    ChatManager.chats[chatId].oldestLoadedMessageId = sortedMessages[0].messageId;
 
     messages.forEach(function(message) {
       var fromUsername = ChatManager.userlist[message.fromUser].username;
@@ -1420,6 +1531,11 @@ ChatManager.refreshChatContent = function refreshChatContent(chatId) {
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
   $('#chat').html(messageCache);
+
+  // Add padding above messages if needed to keep newest message at the bottom
+  // If not needed, only take up a small space for displaying pulling older messages notice
+
+
   ChatHeader.update(chatId);
 }
 
@@ -1454,11 +1570,30 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 };
 
 
+/*
+ * Should call this PageUpdate or something?
+ */
+ChatManager.handlePreviousPageUpdate = function handlePreviousPageUpdate(data) {
+  var messages = data.messages;
+  var chatId = data.chatId;
+
+  ChatManager.decryptMessagesArray({ chatId: chatId, messages: messages }, function(decryptedMessages) {
+    if (decryptedMessages) {
+      ChatManager.chats[chatId].messages = decryptedMessages.concat(ChatManager.chats[chatId].messages);
+    }
+
+    ChatManager.populateMessageCache(chatId);
+    ChatManager.refreshChatContent(chatId);
+  });
+};
+
+
 ChatManager.sendMessage = function sendMessage(callback) {
   var input = $('#message-input').val();
 
   // Is one of these faster? Both seem to work just fine...
   //$('#message-input').val('');
+  console.log("Clearing message-input...");
   document.getElementById('message-input').value='';
 
   setTimeout(function() {
@@ -1491,9 +1626,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
         var date = new Date().toISOString();
 
         // Create a message ID using the current time and a random number
-        var timeString = (new Date().getTime()).toString();
-        var rand = Math.floor((Math.random() * 1000) + 1).toString();
-        var messageId = timeString.concat(rand);
+        var messageId = ChatManager.createMessageId();
 
         if (activeChatType == 'room') {
           console.log("Sending message to room #"+ activeChatName);
@@ -1536,6 +1669,16 @@ ChatManager.sendMessage = function sendMessage(callback) {
     }
   }, 0);
 };
+
+
+ChatManager.createMessageId = function createMessageId() {
+  var timeString = (new Date().getTime()).toString();
+  var rand = Math.floor((Math.random() * 1000) + 1).toString();
+  var messageId = timeString.concat(rand);
+
+  return messageId;
+  //return callback(messageId);
+}
 
 
 

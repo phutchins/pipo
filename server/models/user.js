@@ -444,8 +444,15 @@ userSchema.methods.checkPublicKey = function(publicKey) {
 
 userSchema.statics.findByUsername = function(username, callback) {
   this.findOne({ username: username }, function(err, user) {
-    logger.debug("Found user '" + user.username + "'");
-    return callback(err, user);
+    if (!user) {
+      logger.debug("[user.findByUsername] No user found");
+      return callback(err, null);
+    }
+
+    if (user) {
+      logger.debug("Found user '" + user.username + "'");
+      return callback(err, user);
+    }
   });
 };
 

@@ -1,5 +1,6 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
+var Message = require('./message');
 var logger = require('../../config/logger');
 
 /*
@@ -26,8 +27,7 @@ var roomSchema = new Schema({
   _admins: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   _members: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
   _activeUsers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _subscribers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }],
-  _messages: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Message", default: [] }]
+  _subscribers: [{ type: mongoose.SchemaTypes.ObjectId, ref: "User", default: [] }]
 });
 
 roomSchema.statics.create = function create(data, callback) {
@@ -73,7 +73,7 @@ roomSchema.statics.create = function create(data, callback) {
       newRoom._members.push(owner._id);
 
       newRoom.save(function(err) {
-        mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _messages _members _admins').exec(function(err, myRoom) {
+        mongoose.model('Room').findOne({ name: newRoom.name }).populate('_owner _members _admins').exec(function(err, myRoom) {
           return callback(null, myRoom);
         });
       })
@@ -86,7 +86,7 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 
   logger.debug("[ROOM] (getByName) Finding room #" + name + " by name");
   mongoose.model('Room').findOne({ name: name })
-    .populate('_members _owner _admins _subscribers _activeUsers _messages')
+    .populate('_members _owner _admins _subscribers _activeUsers')
     .exec(function(err, room) {
     if (err) {
       return logger.error("[ROOM] (getByName) Error getting room:",err);
@@ -144,6 +144,7 @@ roomSchema.statics.update = function update(data, callback) {
 };
 
 
+
 /*
  * Convert all mongoose objects to arrays or hashes
  * Users will be looked up on the client side using username or id
@@ -193,34 +194,12 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
     });
   };
 
-  if (room._messages.length > 0) {
+  if (room.messages && room.messages.length > 0) {
     var processedMessages = 0;
-    room._messages.forEach(function(message) {
-      if (message._toUsers && message._toUsers.length > 0) {
-        var toUsersArray = [];
-        message._toUsers.forEach(function(toUser) {
-          toUsersArray.push(toUser._id.toString());
-        });
-      };
+    mongoose.model('Message').bulkSanatize(room.messages, function(sanatizedMessages) {
+      messagesArray = sanatizedMessages;
 
-      // Should be able to remove this?
-      // bug when I do, i can't see finish() from this context... :-\
-      message.populate('_fromUser', function() {
-
-        var sanatizedMessage = {
-          date: message.date,
-          fromUser: message._fromUser.id.toString(),
-          toUsers: toUsersArray,
-          encryptedMessage: message.encryptedMessage
-        };
-
-        messagesArray.push(sanatizedMessage);
-        processedMessages++;
-
-        if (processedMessages == room._messages.length) {
-          finish();
-        };
-      });
+      finish();
     });
   };
 
@@ -248,7 +227,8 @@ roomSchema.statics.sanatize = function sanatize(room, callback) {
     return callback(sanatizedRoom);
   }
 
-  if (room._messages.length == 0) {
+  // If there are no messages or the messages array is empty, go ahead and finish
+  if (!room.messages || ( room.messages && room.messages.length == 0 )) {
     finish();
   };
 };
@@ -309,7 +289,7 @@ roomSchema.statics.join = function join(data, callback) {
   var id = data.id;
   mongoose.model('User').findOne({ username: username }, function(err, user) {
     var user = user;
-    mongoose.model('Room').findOne({ _id: id }).populate('_members _owner _admins _messages').exec(function(err, room) {
+    mongoose.model('Room').findOne({ _id: id }).populate('_members _owner _admins').exec(function(err, room) {
       if (err) {
         return callback(err, { auth: false });
       }
@@ -330,7 +310,9 @@ roomSchema.statics.join = function join(data, callback) {
 
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
+
         user.membership._currentRooms.push(room._id);
+
         user.save(function(err) {
           if (err) {
             logger.error("[room.join] Error while adding room to _currentRooms: " + err);
@@ -338,24 +320,33 @@ roomSchema.statics.join = function join(data, callback) {
             logger.debug("[room.join] Added room to users _currentRooms array");
           }
         });
-        //mongoose.model('Room').findOneAndUpdate({ 'members': { $elemMatch: { '_member': user  } } }, { '$members.active': true });
 
+        // Does this work? Needed?
         var alreadySubscribed = (room._subscribers.indexOf(user._id) > -1);
+
+
         // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
+          mongoose.model('Message').get({
+            chatId: updatedRoom.id,
+            type: 'room'
+          }, function(err, messages) {
+            updatedRoom.messages = messages;
+            //var sortedMessages = messages.sort(function(m2, m1) { return m1.date - m2.date; });
 
-          if (data.err) {
-            logger.error("[room.join] Error: data.err");
-            return callback(data.err, { auth: false, updated: updated, room: { name: name } } );
-          }
+            if (data.err) {
+              logger.error("[room.join] Error: data.err");
+              return callback(data.err, { auth: false, updated: updated, room: { name: name } } );
+            }
 
-          if (!alreadySubscribed) {
-            updated = true;
-          };
+            if (!alreadySubscribed) {
+              updated = true;
+            };
 
-          logger.debug("[room.join] Successfully subscribed " + user.username + " to #" + updatedRoom.name + ". Returning updated room with auth true");
-          return callback(null, { auth: true, updated: updated, room: updatedRoom });
+            logger.debug("[room.join] Successfully subscribed " + user.username + " to #" + updatedRoom.name + ". Returning updated room with auth true");
+            return callback(null, { auth: true, updated: updated, room: updatedRoom });
+          });
         });
       } else {
         logger.debug("User " + username + " unable to join #" + room.name + " due to incorrect membership");

@@ -1593,6 +1593,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
 
   // Is one of these faster? Both seem to work just fine...
   //$('#message-input').val('');
+  console.log("Clearing message-input...");
   document.getElementById('message-input').value='';
 
   setTimeout(function() {

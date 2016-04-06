@@ -76,9 +76,6 @@ chatSchema.statics.get = function get(data, callback) {
       mongoose.model('Message').get({
         chatId: chat.id,
         type: 'chat',
-        messagesPerPage: 10,
-        page: 0,
-        pages: 1
       }, function(err, messages) {
         if (err) {
           logger.debug("[chat.get] Error getting messages by chatId with chatHash");

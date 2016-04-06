@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var logger = require('../../config/logger');
+var config = require('../../config/pipo')();
 
 /*
  * Things to add...
@@ -36,10 +37,10 @@ messageSchema.statics.get = function get(data, callback) {
     return callback("Must provide roomId or chatId", null);
   }
 
-  var pages = data.pages || 1;
-  var page = data.page || 0;
+  var page = 0;
+  var pages = data.pages || config.chats.initialPagesToLoad;
   var referenceMessageId = data.referenceMessageId;
-  var messagesPerPage = data.messagesPerPage;
+  var messagesPerPage = data.messagesPerPage || config.chats.messagesPerPage;
 
   logger.debug("*********************");
   logger.debug("[message.get] Getting messages for chat id: " + chatId + " which should be type: " + type);
@@ -85,14 +86,14 @@ messageSchema.statics.get = function get(data, callback) {
           return callback(err, messages);
         });
     } else if (type == 'chat') {
-        mongoose.model('Message')
-          .find({ _chat: chatId })
-          .sort('-_id')
-          .skip(page * messagesPerPage)
-          .limit(pages * messagesPerPage)
-          .exec(function(err, messages) {
-            return callback(err, messages);
-          });
+      mongoose.model('Message')
+        .find({ _chat: chatId })
+        .sort('-_id')
+        .skip(page * messagesPerPage)
+        .limit(pages * messagesPerPage)
+        .exec(function(err, messages) {
+          return callback(err, messages);
+        });
     }
   }
 };

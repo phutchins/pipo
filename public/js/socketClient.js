@@ -296,7 +296,7 @@ SocketClient.prototype.sendMessage = function(data) {
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
       self.socket.emit('roomMessage', { messageId: messageId, chatId: chatId, pgpMessage: pgpMessage});
-      $('#message-input').val('');
+      //$('#message-input').val('');
     }
   });
 };

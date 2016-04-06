@@ -328,7 +328,10 @@ roomSchema.statics.join = function join(data, callback) {
         // Should only subscribe if not already subscribed
         self.subscribe({ userId: user._id, roomId: room._id }, function(data) {
           var updatedRoom = data.room;
-          mongoose.model('Message').get({ chatId: updatedRoom.id, type: 'room', messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+          mongoose.model('Message').get({
+            chatId: updatedRoom.id,
+            type: 'room'
+          }, function(err, messages) {
             updatedRoom.messages = messages;
             //var sortedMessages = messages.sort(function(m2, m1) { return m1.date - m2.date; });
 

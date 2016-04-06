@@ -271,7 +271,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
 
 
-        Message.get({ chatId: defaultRoom.id, type: 'room', messagesPerPage: 10, page: 0, pages: 1 }, function(err, messages) {
+        Message.get({ chatId: defaultRoom.id, type: 'room' }, function(err, messages) {
           logger.debug("[socketServer.authenticate] Got messages for default room. Message count is " + messages.length);
 
           defaultRoom.messages = messages;
@@ -654,10 +654,8 @@ SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
 
   Message.get({
     chatId: chatId,
-    messagesPerPage: 10,
     type: type,
     referenceMessageId: referenceMessageId,
-    pages: 1
   }, function(err, messages) {
     Message.bulkSanatize(messages, function(sanatizedMessages) {
       return self.socket.emit('previousPageUpdate', {

@@ -4,8 +4,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        defaults: {
-          messageHistoryRange: 50
+        chats: {
+          messagesPerPage: 50,
+          initialPagesToLoad: 1
         },
         server: {
           ssl: false,
@@ -18,8 +19,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        defaults: {
-          messageHistoryRange: 50
+        chats: {
+          messagesPerPage: 50,
+          initialPagesToLoad: 1
         },
         server: {
           ssl: true,
@@ -32,8 +34,9 @@ module.exports = function(){
       return {
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
-        defaults: {
-          messageHistoryRange: 50
+        chats: {
+          messagesPerPage: 50,
+          initialPagesToLoad: 1
         },
         server: {
           ssl: false,

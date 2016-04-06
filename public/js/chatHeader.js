@@ -32,8 +32,16 @@ ChatHeader.update = function update(chatId) {
     chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
   }
 
-  var isFavorite = (ChatManager.userProfile.membership.favoriteRooms.indexOf(chatId) > -1) || false;
-  self.updateFavoriteButton({ favorite: isFavorite });
+  var isFavorite = function(chatId) {
+    var userProfile = ChatManager.userProfile;
+    if (userProfile && userProfile.favoriteRooms && ( userProfile.favoriteRooms.length > 0 )) {
+      return (userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
+    } else {
+      return false;
+    }
+  }
+
+  self.updateFavoriteButton({ favorite: isFavorite(chatId) });
 
   /*
    * Catch clicks on favorite room button (star)

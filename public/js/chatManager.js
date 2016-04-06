@@ -661,11 +661,18 @@ ChatManager.initChat = function initChat(chat, callback) {
   var chatName = '';
   var unread = false;
   var unreadCount = 0;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
   //var messages = chat.messages || [];
   var messages = chat.messages.sort(dynamicSort("date"));
   var participants = chat.participants || [];
 
   console.log("Running init on chat " + chatId);
+
+  if (chat.messages && chat.messages.length > 0) {
+    initialLoadedMessageId = chat.messages[chat.messages.length - 1].messageId;
+    oldestLoadedMessageId = chat.messages[0].messageId;
+  }
 
   // Persist certain values through an init chat if we've already constructed a chat object
   if (ChatManager.chats[chatId]) {
@@ -702,6 +709,8 @@ ChatManager.initChat = function initChat(chat, callback) {
     type: 'chat',
     unread: unread,
     unreadCount: unreadCount,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId
   };
 
   var count = 0;
@@ -776,6 +785,10 @@ ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback)
   var count = 0;
   var messageCount = 0;
 
+  var finish = function finish() {
+    return callback(messagesArray);
+  }
+
   if (messagesArray) {
     messageCount = messagesArray.length;
   }
@@ -806,10 +819,6 @@ ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback)
       }
     })
   })
-
-  var finish = function finish() {
-    return callback(messagesArray);
-  }
 };
 
 
@@ -1140,7 +1149,7 @@ ChatManager.enableScrollback = function enableScrollback() {
   var self = this;
 	jQuery(
     function($) {
-      $('.chat-window').bind('scroll', function() {
+      $('.chat-window').unbind().bind('scroll', function() {
  			  if($(this).scrollTop() == 0) {
           // Load the previous page of messages
           //   May should pass the chat id that we're loading the previous page for
@@ -1161,6 +1170,8 @@ ChatManager.loadPreviousPage = function loadPreviousPage(data) {
   var chatId = data.chatId;
   var type = ChatManager.chats[chatId].type;
   var oldestLoadedMessageId = this.chats[chatId].oldestLoadedMessageId;
+
+  console.log("[chatManager.loadPreviousPage] Loading previous page of messages prior to message with id '" + oldestLoadedMessageId + "'");
 
   // Emit event to server asking for the previous page of messages from the server
   window.socketClient.socket.emit('getPreviousPage', {
@@ -1559,12 +1570,17 @@ ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
 };
 
 
+/*
+ * Should call this PageUpdate or something?
+ */
 ChatManager.handlePreviousPageUpdate = function handlePreviousPageUpdate(data) {
   var messages = data.messages;
   var chatId = data.chatId;
 
   ChatManager.decryptMessagesArray({ chatId: chatId, messages: messages }, function(decryptedMessages) {
-    ChatManager.chats[chatId].messages = decryptedMessages.concat(ChatManager.chats[chatId].messages);
+    if (decryptedMessages) {
+      ChatManager.chats[chatId].messages = decryptedMessages.concat(ChatManager.chats[chatId].messages);
+    }
 
     ChatManager.populateMessageCache(chatId);
     ChatManager.refreshChatContent(chatId);
@@ -1609,9 +1625,7 @@ ChatManager.sendMessage = function sendMessage(callback) {
         var date = new Date().toISOString();
 
         // Create a message ID using the current time and a random number
-        var timeString = (new Date().getTime()).toString();
-        var rand = Math.floor((Math.random() * 1000) + 1).toString();
-        var messageId = timeString.concat(rand);
+        var messageId = ChatManager.createMessageId();
 
         if (activeChatType == 'room') {
           console.log("Sending message to room #"+ activeChatName);
@@ -1654,6 +1668,16 @@ ChatManager.sendMessage = function sendMessage(callback) {
     }
   }, 0);
 };
+
+
+ChatManager.createMessageId = function createMessageId() {
+  var timeString = (new Date().getTime()).toString();
+  var rand = Math.floor((Math.random() * 1000) + 1).toString();
+  var messageId = timeString.concat(rand);
+
+  return messageId;
+  //return callback(messageId);
+}
 
 
 

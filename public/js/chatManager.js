@@ -1274,33 +1274,55 @@ ChatManager.prepareMessage = function prepareMessage(message, callback) {
 
 
 ChatManager.handleMessage = function handleMessage(data) {
+  var self = this;
+  var message = data.message;
   var messageId = data.messageId;
+  var chatId = data.chatId;
   var fromUserId = data.fromUserId;
   var fromUserName = ChatManager.userlist[fromUserId].username;
-  var messageString = data.messageString;
-  var chatId = data.chatId;
-  var messages = $('#chat');
   var date = data.date || new Date().toISOString();
-
   var mentionRegexString = '.*@' + window.username + '.*';
   var mentionRegex = new RegExp(mentionRegexString);
-  console.log("Running mention regex: " + messageString.match(mentionRegex));
-  if (messageString.match(mentionRegex)) {
-    clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
-  };
 
-  this.addMessageToChat({ confirmed: true, messageId: messageId, type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
+  window.encryptionManager.decryptMessage({
+    keyRing: ChatManager.chats[chatId].keyRing,
+    encryptedMessage: data.message
+  }, function(err, messageLiterals) {
+    if (err) {
+      console.log(err);
+    }
+    var ds = km = null;
+    ds = messageLiterals[0].get_data_signer();
+    if (ds) { km = ds.get_key_manager(); }
+    if (km) {
+      console.log("socketClient.handleMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
+      console.log(km.get_pgp_fingerprint().toString('hex'));
+      return finish(messageLiterals);
+    } else {
+      return console.log("[socketClient.handleMessage] WARNING: Message signature invalid!");
+    }
+  });
+
+  var finish = function(messageLiterals) {
+    var messageString = messageLiterals.toString();
+    console.log("Running mention regex: " + messageString.match(mentionRegex));
+    if (messageString.match(mentionRegex)) {
+      clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
+    };
+
+    self.addMessageToChat({ confirmed: true, messageId: messageId, type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
+  };
 };
 
 
 
 /*
- * Handle an incoming one to one message (privateMessage)
- *
- * When receiving a message that we sent, we should change the message that we already
- * added to our local chat from grey to black to show that it has been sent or received
- * by the other user
- */
+* Handle an incoming one to one message (privateMessage)
+*
+* When receiving a message that we sent, we should change the message that we already
+* added to our local chat from grey to black to show that it has been sent or received
+* by the other user
+*/
 ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
   var self = this;
   //var socket = data.socket;
@@ -1320,17 +1342,26 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
     window.encryptionManager.decryptMessage({
       keyRing: ChatManager.chats[chatId].keyRing,
       encryptedMessage: encryptedMessage
-    }, function(err, message) {
+    }, function(err, messageLiterals) {
       if (err) {
-        console.log(err);
+        return console.log(err);
       };
-
-      callback(message);
+      var ds = km = null;
+      ds = messageLiterals[0].get_data_signer();
+      if (ds) { km = ds.get_key_manager(); }
+      if (km) {
+        console.log("socketClient.handlePrivateMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
+        console.log(km.get_pgp_fingerprint().toString('hex'));
+        return callback(null, messageLiterals);
+      } else {
+        console.log("[socketClient.handlePrivateMessage] WARNING: Message signature invalid!");
+        return callback("Invalid message signature", messageLiterals);
+      }
     });
   };
 
   if (ChatManager.chats[chatId]) {
-    decrypt(chatId, encryptedMessage, function(message) {
+    decrypt(chatId, encryptedMessage, function(err, message) {
       clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
 
       ChatManager.addMessageToChat({ confirmed: true, messageId: messageId, type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
@@ -1372,8 +1403,8 @@ ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
 
 
 /*
- * Display an outgoing message locally greyed out then wait for it to be confirmed as sent by the server
- */
+* Display an outgoing message locally greyed out then wait for it to be confirmed as sent by the server
+*/
 ChatManager.handleLocalMessage = function handleLocalMessage(data) {
   var messageId = data.messageId;
   var chatId = data.chatId;

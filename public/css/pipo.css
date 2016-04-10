@@ -556,6 +556,16 @@ body, html { padding: 0; margin: 0; }
   transition: opacity .2s ease-in-out;
 }
 
+.message-input__add {
+}
+
+.message-input__add i {
+  cursor: pointer;
+  opacity: .4;
+  -webkit-transition: opacity .2s ease-in-out;
+  transition: opacity .2s ease-in-out;
+}
+
 .chat-header__content {
   -webkit-box-sizing: border-box;
   box-sizing: border-box;
@@ -888,6 +898,11 @@ h1, h2, h3, h4, h5 {
 }
 
 #loading-icon {
+  left: 30px;
+  padding-right: 8px;
+}
+
+#add-button {
   left: 0px;
   padding-right: 10px;
 }

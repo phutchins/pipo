@@ -257,11 +257,15 @@ $('.chat-header__settings .room-options.leave-room').unbind().click(function(e) 
 
 
 
-
 $('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
   ChatManager.populateManageMembersModal({ chatId: ChatManager.activeChat, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
+});
+
+
+$('.message_input__add .add-button.send').unbind().click(function(e) {
+  SendFileModal.show();
 });
 
 
@@ -1190,6 +1194,7 @@ ChatManager.enableMessageInput = function enableMessageInput() {
 
   //Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
+  $('#add-button').prop('disabled', false);
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
@@ -1223,6 +1228,10 @@ ChatManager.enableMessageInput = function enableMessageInput() {
     })
     return false;
   });
+
+  $('#add-button').unbind().on('click', function() {
+    console.log("Got add button click!");
+  });
 };
 
 ChatManager.disableMessageInput = function disableMessageInput(data) {
@@ -1238,6 +1247,7 @@ ChatManager.disableMessageInput = function disableMessageInput(data) {
 
   $('textarea').off("keydown", "**");
   $('#message-input').attr('placeHolder', statusMessages[status]).prop('disabled', true);
+  $('#add-button').prop('disabled', true);
   $('#send-button').prop('disabled', true);
   $('#loading-icon').show();
 };

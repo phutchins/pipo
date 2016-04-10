@@ -104,19 +104,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('roomMessage', function(data) {
-    var message = data.message;
-    var messageId = data.messageId;
-    var chatId = data.chatId;
-
-    window.encryptionManager.decryptMessage({
-      keyRing: ChatManager.chats[chatId].keyRing,
-      encryptedMessage: data.message
-    }, function(err, messageString) {
-      if (err) {
-        console.log(err);
-      }
-      ChatManager.handleMessage({ messageId: messageId, messageString: messageString.toString(), date: message.date, fromUserId: data.fromUserId, chatId: chatId });
-    });
+    ChatManager.handleMessage(data);
   });
 
   this.socket.on('privateMessage', function(data) {

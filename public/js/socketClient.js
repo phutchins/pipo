@@ -22,6 +22,7 @@ function SocketClient() {
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
+    window.delivery = new Delivery(window.socketClient.socket);
   });
 
   this.socket.on('certificate', function(certificate) {
@@ -105,6 +106,21 @@ SocketClient.prototype.addListeners = function() {
 
   this.socket.on('roomMessage', function(data) {
     ChatManager.handleMessage(data);
+  });
+
+  this.socket.on('connect', function(){
+    var delivery = new Delivery(socket);
+
+    delivery.on('receive.start',function(fileUID){
+      console.log('receiving a file!');
+    });
+
+    delivery.on('receive.success',function(file){
+      var params = file.params;
+      if (file.isImage()) {
+        $('img').attr('src', file.dataURL());
+      };
+    });
   });
 
   this.socket.on('privateMessage', function(data) {
@@ -194,6 +210,16 @@ SocketClient.prototype.addListeners = function() {
 
 };
 
+SocketClient.prototype.addFileListeners = function() {
+  delivery.on('send.success',function(fileUID){
+    console.log("file was successfully sent.");
+  });
+
+  delivery.on('delivery.connect',function(delivery){
+    console.log("[socketClient.addFileListeners] File delivery system connected");
+  });
+}
+
 SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
@@ -213,6 +239,10 @@ SocketClient.prototype.init = function() {
     }
     if (!self.listeners) {
       self.addListeners();
+    }
+
+    if (!self.fileListeners) {
+      self.addFileListeners();
     }
 
     return Authentication.authenticate({ socket: self.socket });

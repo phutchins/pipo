@@ -8,6 +8,8 @@ var KeyPair = require('../models/keypair');
 var Room = require('../models/room');
 var Message = require('../models/message');
 var Chat = require('../models/chat');
+var dl = require('delivery');
+var fs = require('fs');
 
 // Libs
 
@@ -75,6 +77,13 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('toggleFavorite', self.toggleFavorite.bind(self));
 
   socket.on('serverCommand', self.onServerCommand.bind(self));
+
+  socket.on('sendFile', self.onSendFile.bind(self));
+  socket.on('getFile', self.onGetFile.bind(self));
+
+  var delivery = dl.listen(socket);
+
+  delivery.on('receive.success', self.onFileReceiveSuccess.bind(self));
 
   /**
    * ADMIN COMMANDS
@@ -574,6 +583,52 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     // Must emit to self becuase broadcast.to does not emit back to itself
     self.socket.emit('privateMessage', emitData);
   };
+};
+
+SocketServer.prototype.onSendFile = function(emitData){
+  var fileBuffer = emitData.buffer;
+  var fileName = emitData.fileName;
+
+  logger.debug("[socketServer.onSendFile] Got onSendFile!");
+
+  logger.debug("[socketServer.onSendFile] fileBuffer is: ", fileBuffer);
+
+  fs.writeFile(fileName, fileBuffer, function(err) {
+    if (err) {
+      return console.log("[socketServer.onSendFile] Error saving file: " + err);
+    }
+
+    console.log("[socketServer.onSendFile] File " + fileName + " saved!");
+  });
+};
+
+SocketServer.prototype.onGetFile = function(socket){
+  var delivery = dl.listen(socket);
+  delivery.on('delivery.connect',function(delivery){
+
+    delivery.send({
+      name: 'sample-image.jpg',
+      path : './sample-image.jpg',
+      params: {foo: 'bar'}
+    });
+
+    delivery.on('send.success',function(file){
+      console.log('File successfully sent to client!');
+    });
+
+  });
+};
+
+SocketServer.prototype.onFileReceiveSuccess = function onFileReceiveSuccess(file) {
+  var params = file.params;
+  logger.debug("[socketServer.onFileReceiveSuccess] File params is: ", params);
+  fs.writeFile(file.name,file.buffer, function(err){
+    if(err){
+      console.log('File could not be saved.');
+    }else{
+      console.log('File saved.');
+    };
+  });
 };
 
 

@@ -336,28 +336,6 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
   var keys = data.keys;
   var keyFingerPrints = {};
 
-
-  // TODO: Need to confirm the admin signature that added the user to this chat here
-  // Rooms: For rooms it would be one of the admins of the room
-  // Chats: For chats it would be the creator of the chat or initiator of the chat
-  //
-
-  /*
-  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(id) {
-    keys.push(ChatManager.chats[chatId].keyRing._kms[id]);
-  });
-  */
-
-  /*
-  if (ChatManager.chats[chatId].subscribers) {
-    ChatManager.chats[chatId].subscribers.forEach(function(userId) {
-      keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
-    });
-  };
-
-  console.log("[encryptionManager.encryptClientKeyMessage] Encrypting client key message to users: ", keyFingerPrints);
-  */
-
   //Add our own key to the mix so that we can read the message as well
   keys.push(self.keyManager);
 
@@ -431,20 +409,31 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
     keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
   });
 
-  keys.push(self.keyManager);
-
-  //console.log("[encryptionManager.encryptPrivateMessage] Encrypting private message to keys: ",keyFingerPrints);
-
-  /*
-  window.kbpgp.box({
-    msg: message,
-    encrypt_for: keys,
-    sign_with: self.keyManager
-  }, callback);
-  */
-
   self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
     callback(err, pgpMessage );
+  });
+};
+
+
+EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
+  var self = this;
+  var file = data.file;
+  var fileBuffer = new kbpgp.Buffer(file);
+  var chatId = data.chatId;
+  var keys = [];
+  var keyFingerPrints = {};
+
+  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+  });
+
+  keys.push(self.keyManager);
+
+  window.kbpgp.box({ msg: fileBuffer,
+    encrypt_for: keys,
+    sign_with: self.keyManager
+  }, function(err, pgpFile) {
+    callback(err, pgpFile);
   });
 };
 

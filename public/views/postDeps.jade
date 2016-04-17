@@ -25,11 +25,14 @@ script(src='#{depRoot}bower_components/http/http.js')
 script(src='#{depRoot}bower_components/https/https.js')
 script(src='#{depRoot}bower_components/base64/base64.js')
 script(src='#{depRoot}bower_components/async/lib/async.js')
+script(src='#{depRoot}bower_components/buffer/buffer.js')
 // Load Modals
+script(src='#{depRoot}js/delivery.js')
 script(src='#{depRoot}js/modals/registerUserPrompt.js')
 script(src='#{depRoot}js/modals/unlockClientKeyPairModal.js')
 script(src='#{depRoot}js/modals/createRoomModal.js')
 script(src='#{depRoot}js/modals/editRoomModal.js')
+script(src='#{depRoot}js/modals/sendFileModal.js')
 // Load Helpers
 script(src='#{depRoot}js/userlist.js')
 script(src='#{depRoot}js/clientNotification.js')
@@ -41,6 +44,7 @@ script(src='#{depRoot}js/serverCommand.js')
 script(src='#{depRoot}js/chatManager.js')
 script(src='#{depRoot}js/encryptionManager.js')
 script(src='#{depRoot}js/socketClient.js')
+script(src='#{depRoot}js/fileManager.js')
 script.
   hljs.initHighlightingOnLoad();
   openpgp.initWorker('#{depRoot}js/lib/openpgp.worker.js');

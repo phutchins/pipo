@@ -5,17 +5,21 @@ FileManager.sendFile = function sendFile(data, callback) {
 
   var file = data.file;
   var fileName = data.file.name;
-  var toChat = data.toChat;
-  var params = {foo: 'bar'};
+  var toChatId = data.toChatId;
+  var description = data.description;
+  var fileData = {
+    fileName: fileName,
+    toChatId: toChatId,
+    uploadedBy: ChatManager.userProfile.id,
+    description: description
+  };
 
   window.encryptionManager.encryptFile({
     file: file,
-    chatId: toChat
+    chatId: toChatId
   }, function(err, encryptedFile) {
-    var fileBuffer = new window.buffer.Buffer(encryptedFile);
-    debugger;
-    window.socketClient.socket.emit('sendFile', { buffer: fileBuffer, fileName: fileName, params: params });
-    //window.delivery.sendAsText(encryptedFile, params);
+    fileData.fileBuffer = new window.buffer.Buffer(encryptedFile);
+    window.socketClient.socket.emit('sendFile', fileData);
   });
 
   callback(null);

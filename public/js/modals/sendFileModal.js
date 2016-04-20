@@ -14,26 +14,21 @@ SendFileModal.init = function init(successCallback) {
       console.log("[sendFileModal.init] Form success!");
 
       // Should make this handle more than one file
-      var toChat = ChatManager.chats[ChatManager.activeChat].id;
+      var toChatId = ChatManager.chats[ChatManager.activeChat].id;
       var sendFiles = document.getElementById('sendfile-file-input').files;
       var filesProcessed = 0;
-      //var reader = new FileReader();
 
       console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
       for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
-        console.log("[sendFileModal.init] Processing file number " + i);
         var file = sendFiles[i];
-
         var description = "this is the files description";
 
-        console.log("[sendFileModal.init] File loaded as Data URL");
-
-        debugger;
+        console.log("[sendFileModal.init] Processing file number " + i);
 
         // Send file
         FileManager.sendFile({
           file: file,
-          toChat: toChat,
+          toChatId: toChatId,
           description: description
         }, function(err) {
           if (err) {

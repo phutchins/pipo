@@ -6,6 +6,7 @@ var User = require('../models/user');
 var KeyId = require('../models/keyid');
 var KeyPair = require('../models/keypair');
 var Room = require('../models/room');
+var PFile = require('../models/pfile');
 var Message = require('../models/message');
 var Chat = require('../models/chat');
 var dl = require('delivery');
@@ -591,14 +592,16 @@ SocketServer.prototype.onSendFile = function(emitData){
 
   logger.debug("[socketServer.onSendFile] Got onSendFile!");
 
-  logger.debug("[socketServer.onSendFile] fileBuffer is: ", fileBuffer);
+  var pfileData = emitData;
 
-  fs.writeFile(fileName, fileBuffer, function(err) {
+  // Create PFile object to keep track of the file
+  // This way all members of that chat can list files that they have access to.
+  PFile.create(pfileData, function(err) {
     if (err) {
       return console.log("[socketServer.onSendFile] Error saving file: " + err);
     }
 
-    console.log("[socketServer.onSendFile] File " + fileName + " saved!");
+    logger.debug("[socketServer.onSendFile] pfile Created");
   });
 };
 

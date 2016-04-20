@@ -25,15 +25,12 @@ function AuthenticationManager() {
   };
 
   this.verify = function(username, nonce, signature, callback) {
-    console.log("[server.passport.keyVerify] nonce: " + nonce + " signature: " + signature);
     User.findByUsername(username, function (err, user) {
       if (err) { return done(err); }
       if (!user) { return done(null, false); }
 
       var sigBuffer = new Buffer(signature, 'base64');
       var sigString = sigBuffer.toString();
-
-      console.log("[server.passport.keyVerify] sigString: " + sigString);
 
       var publicKey = user.publicKey;
       EncryptionManager.verifyMessageSignature(sigString, publicKey, nonce, function(err, signatureFingerprint) {

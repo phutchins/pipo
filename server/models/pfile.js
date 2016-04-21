@@ -30,10 +30,7 @@ pfileSchema.statics.create = function create(data, callback) {
     // Create md5 hash of the data so that we can name the file uniquely and ensure that we
     // don't already have a copy of the file. If we do have a file where the hash matches, that
     // means that it is already encrypted to the same people.
-    var hasher = crypto.createHash('md5');
-
-    hasher.update(Buffer(fileBuffer.data)).digest("hex");
-    var fileHash = hasher.read();
+    var fileHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest("hex");
 
     console.log("[pfile.create] fileHash: " + fileHash);
     // Create new pfile from data
@@ -54,7 +51,7 @@ pfileSchema.statics.create = function create(data, callback) {
       }
       // Need to move this directory to the config
       fs.writeFile("files/" + fileHash, Buffer(fileBuffer.data), function(err) {
-        return callback(err);
+        return callback(err, myPFile);
       });
     });
   });

@@ -12,7 +12,8 @@ var Chat = require('../models/chat');
 var dl = require('delivery');
 var fs = require('fs');
 
-// Libs
+// Managers
+var FileManager = require('./managers/file');
 
 // Config
 var config = require('../../config/pipo')();
@@ -587,6 +588,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 };
 
 SocketServer.prototype.onSendFile = function(emitData){
+  var self = this;
   var fileBuffer = emitData.buffer;
   var fileName = emitData.fileName;
 
@@ -596,30 +598,27 @@ SocketServer.prototype.onSendFile = function(emitData){
 
   // Create PFile object to keep track of the file
   // This way all members of that chat can list files that they have access to.
-  PFile.create(pfileData, function(err) {
+  PFile.create(pfileData, function(err, pfile) {
     if (err) {
       return console.log("[socketServer.onSendFile] Error saving file: " + err);
     }
 
     logger.debug("[socketServer.onSendFile] pfile Created");
+
+    FileManager.notifyNewFile({ socket: self.socket, pfile: pfile });
   });
 };
 
-SocketServer.prototype.onGetFile = function(socket){
-  var delivery = dl.listen(socket);
-  delivery.on('delivery.connect',function(delivery){
+SocketServer.prototype.onGetFile = function(emitData){
+  var self = this;
+  var fileName = emitData.fileName;
 
-    delivery.send({
-      name: 'sample-image.jpg',
-      path : './sample-image.jpg',
-      params: {foo: 'bar'}
-    });
+  // Determine if the user actually has access to the requested file and that it exists
 
-    delivery.on('send.success',function(file){
-      console.log('File successfully sent to client!');
-    });
-
-  });
+  // Get the file from disk
+  // Create a Buffer out of the file
+  // Send the file to the user with socket.emit
+  self.socket.emit('file', fileData);
 };
 
 SocketServer.prototype.onFileReceiveSuccess = function onFileReceiveSuccess(file) {

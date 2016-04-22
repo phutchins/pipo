@@ -1,7 +1,10 @@
+var NotifyManager = require('./notify');
+
 function FileManager() {
   this.notifyNewFile = function(data) {
     var socket = data.socket;
     var pfile = data.pfile;
+    var signingKeyManager = data.signingKeyManager;
 
     // Create the message to be displayed
     var pfileMessage = "Hey, there is a file for you named '" + pfile.name + "'";
@@ -12,11 +15,13 @@ function FileManager() {
     //   - This link should open up a modal asking if the user wants to download encrypted or decrypt on reciept
     var messageData = {
       chatId: pfile.toChat.id,
-      message: pfileMessage
+      message: pfileMessage,
+      socket: socket,
+      signingKeyManager: signingKeyManager
     };
 
     // Server should let users of a chat know that a file has been uploaded (in case the user fails to notify after success upload)
-    socketClient.sendMessage(messageData);
+    NotifyManager.sendToChat(messageData);
   }
 };
 

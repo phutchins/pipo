@@ -14,6 +14,7 @@ var fs = require('fs');
 
 // Managers
 var FileManager = require('./managers/file');
+var EncryptionManager = require('../js/managers/encryption');
 
 // Config
 var config = require('../../config/pipo')();
@@ -97,6 +98,8 @@ SocketServer.prototype.onSocket = function(socket) {
 
 SocketServer.prototype.init = function init() {
   var self = this;
+  // Make sure we have a key for the PiPo user
+
   if (config.encryptionScheme == 'masterKey') {
     // Do master key things
     this.initMasterKeyPair(function(err) {
@@ -396,6 +399,7 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 SocketServer.prototype.onMessage = function onMessage(data) {
   var self = this;
   var chatId = data.chatId;
+  // Maybe check self.socket if doesn't exist check data.socket for calling methods that don't bind?
 
   if (!self.socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
@@ -448,6 +452,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
   logger.info("[MSG] Server emitted chat message to users");
 };
+
 
 
 /**
@@ -605,7 +610,16 @@ SocketServer.prototype.onSendFile = function(emitData){
 
     logger.debug("[socketServer.onSendFile] pfile Created");
 
-    FileManager.notifyNewFile({ socket: self.socket, pfile: pfile });
+    // Get the pipo user (should move this to an init method in encryption manager and save it to state)
+    User.getUser(asdf, function(err, pipo) {
+      encryption.buildKeyManager(pipo.publicKey, pipo.privateKey, 'pipo', function(err, pipoKeyManager) {
+        // Need to grab pipo's user key piar from somewhere. Possibly should be stored in EncryptionManager's state
+        // Need to get it from the DB on init, and generate a keypair for the pipo user upon init if it doesnt exist
+        // That key should probably not have a password as it doesn't really matter too much because it will have to
+        //   be stored in plain text regardless (or decrypted upon start of the pipo server)
+        FileManager.notifyNewFile({ signingKeyManager: pipoKeyManager, socket: self.socket, pfile: pfile });
+      });
+    });
   });
 };
 

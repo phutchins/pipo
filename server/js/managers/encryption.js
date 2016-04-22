@@ -100,6 +100,72 @@ function EncryptionManager() {
       });
     });
   };
+
+
+  this.buildKeyRing = function(keys, callback) {
+    var keyRing = new kbpgp.keyring.KeyRing();
+
+    keys.forEach(function(key) {
+      kbpgp.KeyManager.import_from_armored_pgp({ armored: key }, function(err, keyManager) {
+        keyRing.add_key_manager(keyManager);
+      });
+    });
+
+    return callback(err, keyRing);
+  };
+
+
+  this.buildKeyManager = function(publicKey, privateKey, passphrase, callback) {
+    kbpgp.KeyManager.import_from_armored_pgp({
+      armored: keyPairData.publicKey
+    }, function(err, keyManager) {
+      if (err) {
+        console.log("Error loading key", err);
+        return callback(err);
+      } else {
+        keyManager.merge_pgp_private({
+          armored: keyPairData.privateKey
+        }, function(err) {
+          if (!err) {
+            self.keyManager = keyManager;
+            if (keyManager.is_pgp_locked()) {
+              this.unlockKeyManager(keyManager, passphrase, function(unlockedKeyManager) {
+                return callback(null, unlockedKeyManager);
+              });
+            } else {
+              return callback(null, keyManager);
+            };
+          };
+        })
+      }
+    });
+  };
+
+
+  this.unlockKeyManager = function(keyManager, passphrase, callback) {
+    var keyManager = keyManager;
+
+    lockedKeyManager.unlock_pgp({
+      passphrase: passphrase
+    }, function (err) {
+      if (err) {
+        console.log("Error unlocking key", err);
+        return callback(err, null);
+      }
+
+      return callback(null, keyManager);
+    });
+  };
+
+
+
+  this.encryptChatMessage = function(keys, signingKey, message) {
+    kbpgp.box({
+      msg: message,
+      encrypt_for: keys,
+      sign_with: signingKey
+    }, callback);
+  };
 }
 
 module.exports = new EncryptionManager();

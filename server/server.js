@@ -143,13 +143,15 @@ function initServer() {
 }
 
 function createSystemUser(callback) {
-  fs.readFile(__dirname + '/keys/pipo.key', function(err, pipoPrivateKey) {
-    fs.readFile(__dirname + '/keys/pipo.pub', function(err, pipoPublicKey) {
+  logger.debug('[server.createSystemUser] Running create system user...');
+  fs.readFile(__dirname + '/../keys/pipo.key', function(err, pipoPrivateKey) {
+    var pipoPrivateKey = pipoPrivateKey;
+    fs.readFile(__dirname + '/../keys/pipo.pub', function(err, pipoPublicKey) {
+      var pipoPublicKey = pipoPublicKey;
       User.create({
         username: 'pipo',
         email: 'pipo@pipo.chat',
-        publicKey: pipoPublicKey,
-        privateKey: pipoPrivateKey
+        publicKey: pipoPublicKey
       }, function(err, data) {
         if (err) {
           return logger.error("[SERVER] Error creating system user: ",err);

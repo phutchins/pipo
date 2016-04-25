@@ -1,6 +1,7 @@
 var mongoose = require('mongoose');
 var kbpgp = require('kbpgp');
 var Schema = mongoose.Schema;
+var EncryptionManager = require('../js/managers/encryption')
 var logger = require('../../config/logger');
 var Message = require('./message');
 
@@ -50,11 +51,11 @@ chatSchema.statics.create = function create(data, callback) {
 };
 
 
-chatSchema.statics.getPubKeys = function get(chatHash, callback) {
+chatSchema.statics.getPubKeys = function getPubKeys(chatHash, callback) {
   var keys = [];
   var keyRing = new kbpgp.keyring.KeyRing();
 
-  mongoose.model('Chat').findOne({ chatHash }).populate('_participants').exec(function(err, chat) {
+  mongoose.model('Chat').findOne({ chatHash: chatHash }).populate('_participants').exec(function(err, chat) {
     if (err) {
       logger.error("[chat.getPubKeys] Error getting chat: " + err);
       return callback(err, null);

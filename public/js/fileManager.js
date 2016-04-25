@@ -7,9 +7,12 @@ FileManager.sendFile = function sendFile(data, callback) {
   var fileName = data.file.name;
   var toChatId = data.toChatId;
   var description = data.description;
+  var chatType = data.chatType;
+
   var fileData = {
     fileName: fileName,
     toChatId: toChatId,
+    chatType: chatType,
     uploadedBy: ChatManager.userProfile.id,
     description: description
   };

@@ -16,6 +16,7 @@ SendFileModal.init = function init(successCallback) {
       // Should make this handle more than one file
       var toChatId = ChatManager.chats[ChatManager.activeChat].id;
       var sendFiles = document.getElementById('sendfile-file-input').files;
+      var chatType = ChatManager.chats[ChatManager.activeChat].type;
       var filesProcessed = 0;
 
       console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
@@ -29,6 +30,7 @@ SendFileModal.init = function init(successCallback) {
         FileManager.sendFile({
           file: file,
           toChatId: toChatId,
+          chatType: chatType,
           description: description
         }, function(err) {
           if (err) {

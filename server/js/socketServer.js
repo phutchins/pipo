@@ -596,14 +596,19 @@ SocketServer.prototype.onSendFile = function(emitData){
   var self = this;
   var fileBuffer = emitData.buffer;
   var fileName = emitData.fileName;
+  var systemUser = EncryptionManager.systemUser;
+  var chatType = emitData.chatType;
 
   logger.debug("[socketServer.onSendFile] Got onSendFile!");
+  logger.debug("[socketServer.onSendFile] chatType is: ", chatType);
 
   var pfileData = emitData;
 
   // Create PFile object to keep track of the file
   // This way all members of that chat can list files that they have access to.
   PFile.create(pfileData, function(err, pfile) {
+    var pfile = pfile;
+
     if (err) {
       return console.log("[socketServer.onSendFile] Error saving file: " + err);
     }
@@ -611,14 +616,14 @@ SocketServer.prototype.onSendFile = function(emitData){
     logger.debug("[socketServer.onSendFile] pfile Created");
 
     // Get the pipo user (should move this to an init method in encryption manager and save it to state)
-    User.getUser(asdf, function(err, pipo) {
-      encryption.buildKeyManager(pipo.publicKey, pipo.privateKey, 'pipo', function(err, pipoKeyManager) {
-        // Need to grab pipo's user key piar from somewhere. Possibly should be stored in EncryptionManager's state
-        // Need to get it from the DB on init, and generate a keypair for the pipo user upon init if it doesnt exist
-        // That key should probably not have a password as it doesn't really matter too much because it will have to
-        //   be stored in plain text regardless (or decrypted upon start of the pipo server)
-        FileManager.notifyNewFile({ signingKeyManager: pipoKeyManager, socket: self.socket, pfile: pfile });
-      });
+    logger.debug("[socketServer.onSendFile] systemUser.publicKey: ", systemUser.publicKey.toString());
+    logger.debug("[socketServer.onSendFile] systemUser.privateKey: ", systemUser.privateKey.toString());
+    EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+      // Need to grab pipo's user key piar from somewhere. Possibly should be stored in EncryptionManager's state
+      // Need to get it from the DB on init, and generate a keypair for the pipo user upon init if it doesnt exist
+      // That key should probably not have a password as it doesn't really matter too much because it will have to
+      //   be stored in plain text regardless (or decrypted upon start of the pipo server)
+      FileManager.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: self, pfile: pfile });
     });
   });
 };

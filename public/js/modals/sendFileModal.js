@@ -7,6 +7,7 @@ var SendFileModal = {};
 
 SendFileModal.init = function init(successCallback) {
   var self = this;
+  var reader = new FileReader();
 
   var sendfileFormSettings = {
     fields: { },
@@ -15,36 +16,46 @@ SendFileModal.init = function init(successCallback) {
 
       // Should make this handle more than one file
       var toChatId = ChatManager.chats[ChatManager.activeChat].id;
-      var sendFiles = document.getElementById('sendfile-file-input').files;
+      //var sendFiles = document.getElementById('sendfile-file-input').files;
+      var file = document.getElementById('sendfile-file-input').files[0];
       var chatType = ChatManager.chats[ChatManager.activeChat].type;
       var filesProcessed = 0;
 
-      console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
-      for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
-        var file = sendFiles[i];
+      //console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
+      //for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
+        //var file = sendFiles[i];
         var description = "this is the files description";
 
-        console.log("[sendFileModal.init] Processing file number " + i);
 
-        // Send file
-        FileManager.sendFile({
-          file: file,
-          toChatId: toChatId,
-          chatType: chatType,
-          description: description
-        }, function(err) {
-          if (err) {
-            return console.log("[sendFileModal.init] Error processing file: " + err);
-          }
-          filesProcessed++;
-          console.log("[sendFileModal.init] Got callback from FileManager.sendFile");
-          if (filesProcessed == numFiles) {
-            console.log("[sendFileModal.init] Processed all files without error. Closing modal");
-            // On successful start, hide the modal
-            $('.modal.sendfile').modal('hide');
-          }
+        reader.onload(function(e) {
+          var contents = e.target.result;
+
+          debugger;
+
+          console.log("[sendFileModal.init] Processing file number " + i);
+
+          // Send file
+          FileManager.sendFile({
+            file: file,
+            toChatId: toChatId,
+            chatType: chatType,
+            description: description
+          }, function(err) {
+            if (err) {
+              return console.log("[sendFileModal.init] Error processing file: " + err);
+            }
+            filesProcessed++;
+            console.log("[sendFileModal.init] Got callback from FileManager.sendFile");
+            if (filesProcessed == numFiles) {
+              console.log("[sendFileModal.init] Processed all files without error. Closing modal");
+              // On successful start, hide the modal
+              $('.modal.sendfile').modal('hide');
+            }
+          });
         });
-      }
+
+        reader.readAsBinaryString(file);
+      //}
       return false;
     }
   };

@@ -1,0 +1,20 @@
+{
+  "env": {
+    "node": true,
+    "mocha": true
+  },
+  "extends": "defaults/configurations/walmart/es6-node",
+  "rules": {
+    "quotes": [2, "single"],
+    "strict": [0, "global"],
+    "no-magic-numbers": [0],
+    "new-cap": [1],
+    "max-params": [0],
+    "max-len": [0],
+    "max-statements": [1],
+    "max-nested-callbacks": [0],
+    "filenames/filenames": [0],
+    "prefer-spread": [0],
+    "no-invalid-this": [0]
+  }
+}

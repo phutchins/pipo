@@ -1294,8 +1294,6 @@ ChatManager.handleMessage = function handleMessage(data) {
   var mentionRegexString = '.*@' + window.username + '.*';
   var mentionRegex = new RegExp(mentionRegexString);
 
-  debugger;
-
   window.encryptionManager.decryptMessage({
     keyRing: ChatManager.chats[chatId].keyRing,
     encryptedMessage: data.message

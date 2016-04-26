@@ -17,6 +17,10 @@ FileManager.sendFile = function sendFile(data, callback) {
     description: description
   };
 
+  debugger;
+
+  // TODO: This is broken here...
+  // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
   window.encryptionManager.encryptFile({
     file: file,
     chatId: toChatId

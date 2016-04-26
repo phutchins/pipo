@@ -2,11 +2,11 @@
 
 var jade = require('jade');
 
-const electron = require('electron');
+var electron = require('electron');
 // Module to control application life.
-const app = electron.app;
+var app = electron.app;
 // Module to create native browser window.
-const BrowserWindow = electron.BrowserWindow;
+var BrowserWindow = electron.BrowserWindow;
 
 var appDir = app.getAppPath();
 
@@ -27,7 +27,7 @@ var ej = require('electron-jade')({ pretty: true }, locals);
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
-let mainWindow;
+var mainWindow = null;
 
 function createWindow () {
   // Create the browser window.

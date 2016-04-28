@@ -52,13 +52,14 @@ SendFileModal.init = function init(successCallback) {
     var file = files[0];
     var chunkSize = 5;
     var fileSize = file.size - 1;
+    console.log("[sendFileModal] File size is: " + fileSize);
     var chunkCount = fileSize/chunkSize;
     var finalChunk = fileSize%chunkSize;
     var chunkRemainder = chunkCount % 1
     var wholeChunks = chunkCount - chunkRemainder;
     var totalChunks = Math.ceil(chunkCount);
     // Scope issues here, can't read currentChunk from within the while loop reader.onloadend below
-    var currentChunk = 1;
+    var currentChunk = 0;
 
     /*
     // While we are in a chunk range that is not longer than the file, keep sending chunks
@@ -127,11 +128,12 @@ SendFileModal.init = function init(successCallback) {
         var end = ( currentChunk * chunkSize ) + finalChunk;
       };
 
-      currentChunk++;
 
       var blob = file.slice(start, end);
 
       reader.readAsBinaryString(blob);
+
+      currentChunk++;
     };
 
     sendFile = function sendFile(data) {

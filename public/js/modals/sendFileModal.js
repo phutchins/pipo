@@ -7,55 +7,127 @@ var SendFileModal = {};
 
 SendFileModal.init = function init(successCallback) {
   var self = this;
-  var reader = new FileReader();
+
+  readFileAndUpload = function readFileAndUpload(file) {
+    var reader = new FileReader();
+    var file = file;
+
+    readSuccess = function readSuccess(evt) {
+      //console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
+      //for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
+        //var file = sendFiles[i];
+      var description = "this is the files description";
+      var chatType = ChatManager.chats[ChatManager.activeChat].type;
+      var filesProcessed = 0;
+      // Should make this handle more than one file
+      var toChatId = ChatManager.chats[ChatManager.activeChat].id;
+      //var sendFiles = document.getElementById('sendfile-file-input').files;
+      //
+      //Should read in as binary or blob or somethign else
+      var file = evt.target.result;
+      var metadata = document.getElementById('sendfile-file-input').files[0];
+
+      var fileData = {
+        file: file,
+        metadata: metadata,
+        toChatId: toChatId,
+        chatType: chatType,
+        description: description
+      };
+
+      sendFile(fileData);
+    };
+  };
+
+  readBlob = function readBlob() {
+    files = document.getElementById('sendfile-file-input').files;
+
+    if (!files.length) {
+      return console.log('[sendFileModal.readblob] Need to select a file silly');
+    }
+
+    var file = files[0];
+    var chunkSize = 512;
+    var fileSize = file.size - 1;
+    // Need to create start and stop dynamically instead
+    //var start = parseInt(startByte) || 0;
+    //var stop = parseInt(stopByte) || file.size - 1;
+    var chunkCount = fileSize/chunkSize;
+    var finalChunk = fileSize%chunkSize;
+    var chunkRemainder = chunkCount % 1
+    var wholeChunks = chunkCount - chunkRemainder;
+    var currentChunk = 0;
+
+    var reader = new FileReader();
+
+    reader.onloadend = function(evt) {
+      if (evt.target.readyState == FileReader.DONE) {
+        console.log("Sending chunk");
+
+        sendFile(evt.target.result);
+      }
+    };
+
+    // While we are in a chunk range that is not longer than the file, keep sending chunks
+    while (currentChunk <= wholeChunks) {
+      // Otherwise, upload a whole chunk which is ( currentChunk * chunkSize )
+      if (currentChunk < wholeChunks) {
+        var start = ( currentChunk * chunkSize );
+        var end = (( currentChunk  + 1 ) * chunkSize );
+      };
+
+      // If this is the last chunk, set final bytes to ( currentChunk * chunkSize ) + finalChunk
+      if (currentChunk == wholeChunks) {
+        var start = ( currentChunk * chunkSize );
+        var end = ( currentChunk * chunkSize ) + finalChunk;
+      };
+
+      currentChunk++;
+
+      debugger;
+
+      var blob = file.slice(start, end);
+
+      debugger;
+
+      reader.readAsBinaryString(blob);
+    };
+
+    sendFile = function sendFile(fileData) {
+      // Send file
+      FileManager.sendFile(fileData, function(err) {
+        if (err) {
+          return console.log("[sendFileModal.init] Error processing file: " + err);
+        }
+
+        console.log("[sendFileModal.init] Got callback from FileManager.sendFile");
+
+        // Should show progress, stats, etc... before closing this modal. Add upload button, cancel, and done
+        $('.modal.sendfile').modal('hide');
+      });
+    };
+
+    //reader.onload = readSuccess;
+
+    // If it's an image read it as a data url so we can do fun things with it
+    //if (file.type.match('image.*')) {
+    //  reader.readAsDataURL(file);
+    //} else {
+    //  reader.readAsText(file);
+    //}
+  };
 
   var sendfileFormSettings = {
     fields: { },
     onSuccess: function() {
       console.log("[sendFileModal.init] Form success!");
 
-      // Should make this handle more than one file
-      var toChatId = ChatManager.chats[ChatManager.activeChat].id;
-      //var sendFiles = document.getElementById('sendfile-file-input').files;
+
       var file = document.getElementById('sendfile-file-input').files[0];
-      var chatType = ChatManager.chats[ChatManager.activeChat].type;
-      var filesProcessed = 0;
 
-      //console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
-      //for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
-        //var file = sendFiles[i];
-        var description = "this is the files description";
+      //readFileAndUpload(file);
+      readBlob();
 
-
-        reader.onload(function(e) {
-          var contents = e.target.result;
-
-          debugger;
-
-          console.log("[sendFileModal.init] Processing file number " + i);
-
-          // Send file
-          FileManager.sendFile({
-            file: file,
-            toChatId: toChatId,
-            chatType: chatType,
-            description: description
-          }, function(err) {
-            if (err) {
-              return console.log("[sendFileModal.init] Error processing file: " + err);
-            }
-            filesProcessed++;
-            console.log("[sendFileModal.init] Got callback from FileManager.sendFile");
-            if (filesProcessed == numFiles) {
-              console.log("[sendFileModal.init] Processed all files without error. Closing modal");
-              // On successful start, hide the modal
-              $('.modal.sendfile').modal('hide');
-            }
-          });
-        });
-
-        reader.readAsBinaryString(file);
-      //}
       return false;
     }
   };

@@ -60,6 +60,7 @@ SendFileModal.init = function init(successCallback) {
     // Scope issues here, can't read currentChunk from within the while loop reader.onloadend below
     var currentChunk = 1;
 
+    /*
     // While we are in a chunk range that is not longer than the file, keep sending chunks
     while (currentChunk <= wholeChunks) {
       var self = this;
@@ -85,19 +86,19 @@ SendFileModal.init = function init(successCallback) {
           });
         }
       };
-     /*
+    */
     // While we are in a chunk range that is not longer than the file, keep sending chunks
     while (currentChunk <= wholeChunks) {
       var self = this;
       var reader = new FileReader();
       var thisChunk = currentChunk;
 
-      reader.onloadend = (function(chunk) {
+      reader.onloadend = (function(chunkNum) {
         var chunk = chunk;
         debugger;
         return function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
-            console.log("[sendFileModal.readBlob] Sending chunk " + chunk + " of " + totalChunks);
+            console.log("[sendFileModal.readBlob] Sending chunk " + chunkNum + " of " + totalChunks);
 
             debugger;
 
@@ -113,7 +114,6 @@ SendFileModal.init = function init(successCallback) {
           }
         }
       })(thisChunk);
-      */
 
       // Otherwise, upload a whole chunk which is ( currentChunk * chunkSize )
       if (currentChunk < wholeChunks) {

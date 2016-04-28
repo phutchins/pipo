@@ -32,7 +32,6 @@ function NotifyManager() {
       var keys = [];
 
       Object.keys(keyRing._kms).forEach(function(id) {
-        logger.debug("[notify.sendToChat] kms: ", id);
         keys.push(keyRing._kms[id]);
       });
 
@@ -41,7 +40,6 @@ function NotifyManager() {
           return logger.debug("[notify.sendToChat] Error encrypting message: " + err);
         };
 
-        logger.debug("[notify.sendToChat] Sending encrypted notification message: " + encryptedMessage);
         var messageData = {
           chatId: chatId,
           pgpMessage: encryptedMessage

@@ -121,10 +121,10 @@ roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
     // Push keys for each subsciber to the keys array making sure all entries are unique
     if (room._subscribers && room._subscribers.length > 0) {
       room._subscribers.forEach(function(subscriber) {
-        logger.debug("[room.getPubKeys] subscriber: ", subscriber.username);
-        logger.debug("[room.getPubKeys] indexOf(subscriber.publicKey): " + keys.indexOf(subscriber.publicKey));
+        //logger.debug("[room.getPubKeys] subscriber: ", subscriber.username);
+        //logger.debug("[room.getPubKeys] indexOf(subscriber.publicKey): " + keys.indexOf(subscriber.publicKey));
         if (keys.indexOf(subscriber.publicKey) == -1) {
-          logger.debug("[room.getPubKeys] Adding subscriber " + subscriber.username + " to room keys array");
+          //logger.debug("[room.getPubKeys] Adding subscriber " + subscriber.username + " to room keys array");
           keys.push(subscriber.publicKey);
         }
       });
@@ -133,9 +133,9 @@ roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
     // Push keys for each member to the keys array making sure all entries are unique
     if (room._members && room._members.length > 0) {
       room._members.forEach(function(member) {
-        logger.debug("[room.getPubKeys] member: ", member.username);
+        //logger.debug("[room.getPubKeys] member: ", member.username);
         if (keys.indexOf(member.publicKey) == -1) {
-          logger.debug("[room.getPubKeys] Adding member " + member.username + " to room keys array");
+          //logger.debug("[room.getPubKeys] Adding member " + member.username + " to room keys array");
           keys.push(member.publicKey);
         }
       });

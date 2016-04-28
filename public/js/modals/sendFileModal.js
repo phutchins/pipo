@@ -16,11 +16,8 @@ SendFileModal.init = function init(successCallback) {
       //console.log("[sendFileModal.init] User submitted " + sendFiles.length + " files.");
       //for (var i = 0, numFiles = sendFiles.length; i < numFiles; i++) {
         //var file = sendFiles[i];
-      var description = "this is the files description";
-      var chatType = ChatManager.chats[ChatManager.activeChat].type;
       var filesProcessed = 0;
       // Should make this handle more than one file
-      var toChatId = ChatManager.chats[ChatManager.activeChat].id;
       //var sendFiles = document.getElementById('sendfile-file-input').files;
       //
       //Should read in as binary or blob or somethign else
@@ -40,36 +37,84 @@ SendFileModal.init = function init(successCallback) {
   };
 
   readBlob = function readBlob() {
+    var self = this;
+
     files = document.getElementById('sendfile-file-input').files;
 
     if (!files.length) {
       return console.log('[sendFileModal.readblob] Need to select a file silly');
     }
 
+    var description = "this is the files description";
+    var chatType = ChatManager.chats[ChatManager.activeChat].type;
+    var toChatId = ChatManager.chats[ChatManager.activeChat].id;
+
     var file = files[0];
-    var chunkSize = 512;
+    var chunkSize = 5;
     var fileSize = file.size - 1;
-    // Need to create start and stop dynamically instead
-    //var start = parseInt(startByte) || 0;
-    //var stop = parseInt(stopByte) || file.size - 1;
     var chunkCount = fileSize/chunkSize;
     var finalChunk = fileSize%chunkSize;
     var chunkRemainder = chunkCount % 1
     var wholeChunks = chunkCount - chunkRemainder;
-    var currentChunk = 0;
-
-    var reader = new FileReader();
-
-    reader.onloadend = function(evt) {
-      if (evt.target.readyState == FileReader.DONE) {
-        console.log("Sending chunk");
-
-        sendFile(evt.target.result);
-      }
-    };
+    var totalChunks = Math.ceil(chunkCount);
+    // Scope issues here, can't read currentChunk from within the while loop reader.onloadend below
+    var currentChunk = 1;
 
     // While we are in a chunk range that is not longer than the file, keep sending chunks
     while (currentChunk <= wholeChunks) {
+      var self = this;
+      var reader = new FileReader();
+      this.thisChunk = currentChunk;
+
+      debugger;
+      reader.onloadend = function(evt) {
+        debugger
+        if (evt.target.readyState == FileReader.DONE) {
+          console.log("[sendFileModal.readBlob] Sending chunk " + thisChunk + " of " + totalChunks);
+
+          debugger;
+
+          sendFile({
+            fileMetadata: file,
+            chunk: evt.target.result,
+            chunkNumber: self.thisChunk,
+            totalChunks: totalChunks,
+            description: description,
+            chatType: chatType,
+            toChatId: toChatId
+          });
+        }
+      };
+     /*
+    // While we are in a chunk range that is not longer than the file, keep sending chunks
+    while (currentChunk <= wholeChunks) {
+      var self = this;
+      var reader = new FileReader();
+      var thisChunk = currentChunk;
+
+      reader.onloadend = (function(chunk) {
+        var chunk = chunk;
+        debugger;
+        return function(evt) {
+          if (evt.target.readyState == FileReader.DONE) {
+            console.log("[sendFileModal.readBlob] Sending chunk " + chunk + " of " + totalChunks);
+
+            debugger;
+
+            sendFile({
+              fileMetadata: file,
+              chunk: evt.target.result,
+              chunkNumber: self.thisChunk,
+              totalChunks: totalChunks,
+              description: description,
+              chatType: chatType,
+              toChatId: toChatId
+            });
+          }
+        }
+      })(thisChunk);
+      */
+
       // Otherwise, upload a whole chunk which is ( currentChunk * chunkSize )
       if (currentChunk < wholeChunks) {
         var start = ( currentChunk * chunkSize );
@@ -84,18 +129,30 @@ SendFileModal.init = function init(successCallback) {
 
       currentChunk++;
 
-      debugger;
-
       var blob = file.slice(start, end);
-
-      debugger;
 
       reader.readAsBinaryString(blob);
     };
 
-    sendFile = function sendFile(fileData) {
+    sendFile = function sendFile(data) {
       // Send file
-      FileManager.sendFile(fileData, function(err) {
+      var fileMetadata = data.fileMetadata;
+      var chunk = data.chunk;
+      var chunkNumber = data.chunkNumber;
+      var totalChunks = data.totalChunks;
+      var description = data.description;
+      var toChatId = data.toChatId;
+      var chatType = data.chatType;
+
+      FileManager.sendFile({
+        chunk: chunk,
+        chunkNumber: chunkNumber,
+        totalChunks: totalChunks,
+        fileMetadata: fileMetadata,
+        description: description,
+        toChatId: toChatId,
+        chatType: chatType
+      }, function(err) {
         if (err) {
           return console.log("[sendFileModal.init] Error processing file: " + err);
         }

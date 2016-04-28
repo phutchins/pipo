@@ -117,12 +117,12 @@ function EncryptionManager() {
 
     keys.forEach(function(key) {
       kbpgp.KeyManager.import_from_armored_pgp({ armored: key }, function(err, keyManager) {
-        logger.debug("[EncryptionManager.buildKeyRing] Loop: Adding keyManager to keyRing");
+        //logger.debug("[EncryptionManager.buildKeyRing] Loop: Adding keyManager to keyRing");
         keyRing.add_key_manager(keyManager);
       });
     });
 
-    logger.debug("[EncryptionManager.buildKeyRing] After key loop, returning.");
+    //logger.debug("[EncryptionManager.buildKeyRing] After key loop, returning.");
     return callback(err, keyRing);
   };
 

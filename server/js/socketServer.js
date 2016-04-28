@@ -598,9 +598,11 @@ SocketServer.prototype.onSendFile = function(emitData){
   var fileName = emitData.fileName;
   var systemUser = EncryptionManager.systemUser;
   var chatType = emitData.chatType;
+  var chunkNumber = emitData.chunkNumber;
+  var totalChunks = emitData.totalChunks;
 
   logger.debug("[socketServer.onSendFile] Got onSendFile!");
-  logger.debug("[socketServer.onSendFile] chatType is: ", chatType);
+  logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + totalChunks + " chunks.");
 
   var pfileData = emitData;
 
@@ -616,8 +618,8 @@ SocketServer.prototype.onSendFile = function(emitData){
     logger.debug("[socketServer.onSendFile] pfile Created");
 
     // Get the pipo user (should move this to an init method in encryption manager and save it to state)
-    logger.debug("[socketServer.onSendFile] systemUser.publicKey: ", systemUser.publicKey.toString());
-    logger.debug("[socketServer.onSendFile] systemUser.privateKey: ", systemUser.privateKey.toString());
+    //logger.debug("[socketServer.onSendFile] systemUser.publicKey: ", systemUser.publicKey.toString());
+    //logger.debug("[socketServer.onSendFile] systemUser.privateKey: ", systemUser.privateKey.toString());
     EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
       // Need to grab pipo's user key piar from somewhere. Possibly should be stored in EncryptionManager's state
       // Need to get it from the DB on init, and generate a keypair for the pipo user upon init if it doesnt exist

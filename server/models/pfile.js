@@ -11,13 +11,17 @@ var pfileSchema = new Schema({
   name: { type: String },
   uploadedBy: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   uploadedDate: { type: Date, default: new Date() },
+  chunkIndex: [{
+    hash: { type: String },
+  }],
   fileHash: { type: String },
   toChatId: { type: String },
   toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
   toRoom: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
   chatType: { type: String },
   nameOnDisk: { type: String },
-  description: { type: String }
+  description: { type: String },
+  isComplete: { type: Boolean }
 });
 
 pfileSchema.statics.create = function create(data, callback) {
@@ -96,6 +100,22 @@ pfileSchema.statics.create = function create(data, callback) {
     // If it is a room, we can use it as a chat id
 
   });
+};
+
+pfileSchema.statics.addChunk = function addChunk(data, callback) {
+  // Check to see if the pfile exists
+  //
+  // Verify the hash of the chunk
+  //
+  // Create it if it doesn't exist with the first chunk data
+  //
+  // Otherwise, add the chunk to the pfile
+  //
+  // Check if this was the last chunk
+  //
+  // If so, set isComplete to true and call callback
+  //
+  // If not, return chunk complete via callback
 };
 
 pfileSchema.statics.verify = function verify(data, callback) {

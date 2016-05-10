@@ -48,6 +48,42 @@ function FileManager() {
     // Server should let users of a chat know that a file has been uploaded (in case the user fails to notify after success upload)
     NotifyManager.sendToChat(messageData);
   }
+
+  this.handleChunk = function handleChunk(data) {
+    var self = this;
+    var socketServer = data.socketServer;
+    var fileBuffer = emitData.buffer;
+    var fileName = emitData.fileName;
+    var systemUser = EncryptionManager.systemUser;
+    var chatType = emitData.chatType;
+    var chunkNumber = emitData.chunkNumber;
+    var totalChunks = emitData.totalChunks;
+
+    logger.debug("[socketServer.onSendFile] Got onSendFile!");
+    logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + totalChunks + " chunks.");
+
+    // Add chunk to PFile (if it doesn't exist yet, add should create it (should confirm that it is the same user somehow)
+
+    // Create PFile object to keep track of the file
+    // This way all members of that chat can list files that they have access to.
+    PFile.addChunk(data, function(err, pfile) {
+      var pfile = pfile;
+
+      if (err) {
+        return console.log("[socketServer.onSendFile] Error saving file: " + err);
+      }
+
+      // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
+      // then remote the bad data
+
+      if (pfile.isComplete) {
+        // Get the pipo user (should move this to an init method in encryption manager and save it to state)
+        EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+          FileManager.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
+        });
+      };
+    });
+  };
 };
 
 module.exports = new FileManager();

@@ -296,6 +296,17 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
         keyRing.add_key_manager(keyInstance);
       };
     });
+
+    ChatManager.chats[chatId].admins.forEach(function(userId) {
+      if (ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = ChatManager.userlist[userId].keyInstance;
+        keyRing.add_key_manager(keyInstance);
+      };
+    });
+
+    var ownerId = ChatManager.chats[chatId].owner;
+    var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
+    keyRing.add_key_manager(ownerKeyInstance);
   };
 
   if (!membershipRequired) {

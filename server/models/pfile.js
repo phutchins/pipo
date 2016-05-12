@@ -38,19 +38,12 @@ pfileSchema.statics.create = function create(data, callback) {
       return callback(err);
     }
 
-    // Create md5 hash of the data so that we can name the file uniquely and ensure that we
-    // don't already have a copy of the file. If we do have a file where the hash matches, that
-    // means that it is already encrypted to the same people.
-    var fileHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest("hex");
-
-    logger.debug("[pfile.create] fileHash: " + fileHash);
 
     // Create new pfile from data
     // TODO: create unique filenames from hash before storing and set that to nameOnDisk
     var myPFile = new self({
       name: fileName,
       uploadedBy: data.uploadedBy,
-      fileHash: fileHash,
       nameOnDisk: data.fileName,
       description: data.description,
       chatType: chatType,
@@ -69,11 +62,16 @@ pfileSchema.statics.create = function create(data, callback) {
           return callback(err);
         }
 
+        selef.addChunk(data, function(err) {
+          if (err) {
+            return logger.debug("[pfile.create] Error adding chunk");
+          }
+
+          logger.debug("[pfile.create] Added chunk #" + data.chunkNumber + " to pFile " +  data.fileName);
+        });
+
         logger.debug("[pfile.create] newPFile.id: " + newPFile.id);
         // Need to move this directory to the config
-        fs.writeFile("files/" + fileHash, Buffer(fileBuffer.data), function(err) {
-          return callback(err, newPFile);
-        });
       });
     };
 
@@ -103,19 +101,62 @@ pfileSchema.statics.create = function create(data, callback) {
 };
 
 pfileSchema.statics.addChunk = function addChunk(data, callback) {
-  // Check to see if the pfile exists
-  //
+  var self = this;
   // Verify the hash of the chunk
   //
-  // Create it if it doesn't exist with the first chunk data
-  //
-  // Otherwise, add the chunk to the pfile
-  //
-  // Check if this was the last chunk
-  //
-  // If so, set isComplete to true and call callback
-  //
-  // If not, return chunk complete via callback
+  // Create md5 hash of the data so that we can name the file uniquely and ensure that we
+  // don't already have a copy of the file. If we do have a file where the hash matches, that
+  // means that it is already encrypted to the same people.
+  var fileBuffer = data.fileBuffer;
+  var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest("hex");
+
+  // Check to see if the pfile exists
+  // Need to use complete file hash for this name here and allow the client to confirm the orig chunkHash upon download
+  this.findOne({ name: data.fileName }, function(err, pFile) {
+    if (!pFile) {
+      // Create it if it doesn't exist with the first chunk data
+      self.create(data, function(newPFile) {
+        logger.debug("[pfile.addChunk] Created pFile as it did not exist");
+      });
+    };
+
+    // Otherwise, add the chunk to the pfile
+    if (pFile) {
+      var pfileChunkName = chunkHash + "." + data.fileName + "." + data.chunkNumber;
+
+      pFile.chunkIndex[data.chunkNumber] = pfileChunkName;
+
+      fs.writeFile("files/" + pfileChunkName, Buffer(fileBuffer.data), function(err) {
+        return callback(err, newPFile);
+      });
+      // Check if this was the last chunk
+      //
+      var completedChunks = pFile.chunkIndex.filter(function(value) { return value !== undefined }).length;
+      logger.debug("[pfile.addChunk] We've processed " + completedChunks + " out of " + data.totalChunks + " so far...");
+
+      // If so, set isComplete to true and call callback
+      if (completedChunks == data.totalChunks) {
+        logger.debug("[pfile.addChunk] Time to celebrate, we've finished!");
+        pFile.isComplete = true;
+        pFile.save(function(err) {
+          if (err) {
+            return logger.debug("[pfile.addChunk] Error saving pfile object");
+          }
+
+          return callback(pFile);
+        });
+      };
+      //
+      // If not, return chunk complete via callback
+      pFile.save(function(err) {
+        if (err) {
+          return logger.debug("[pfile.addChunk] Error saving pfile object before completion");
+        }
+
+        return callback(pFile);
+      });
+    }
+  })
 };
 
 pfileSchema.statics.verify = function verify(data, callback) {

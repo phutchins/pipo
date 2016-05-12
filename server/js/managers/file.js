@@ -1,5 +1,7 @@
 var NotifyManager = require('./notify');
+var EncryptionManager = require('./encryption');
 var logger = require('../../../config/logger');
+var PFile = require('../../models/pfile');
 
 function FileManager() {
   this.notifyNewFile = function(data) {
@@ -52,12 +54,12 @@ function FileManager() {
   this.handleChunk = function handleChunk(data) {
     var self = this;
     var socketServer = data.socketServer;
-    var fileBuffer = emitData.buffer;
-    var fileName = emitData.fileName;
+    var fileBuffer = data.buffer;
+    var fileName = data.fileName;
     var systemUser = EncryptionManager.systemUser;
-    var chatType = emitData.chatType;
-    var chunkNumber = emitData.chunkNumber;
-    var totalChunks = emitData.totalChunks;
+    var chatType = data.chatType;
+    var chunkNumber = data.chunkNumber;
+    var totalChunks = data.totalChunks;
 
     logger.debug("[socketServer.onSendFile] Got onSendFile!");
     logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + totalChunks + " chunks.");

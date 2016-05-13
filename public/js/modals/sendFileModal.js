@@ -71,7 +71,7 @@ SendFileModal.init = function init(successCallback) {
         var chunk = chunk;
         return function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
-            console.log("[sendFileModal.readBlob] Sending chunk " + chunkNum + " of " + totalChunks);
+            console.log("[sendFileModal.readBlob] Sending chunk " + (chunkNum + 1) + " of " + totalChunks);
 
             sendFile({
               fileMetadata: file,

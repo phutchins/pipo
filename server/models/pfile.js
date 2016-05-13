@@ -12,6 +12,7 @@ var pfileSchema = new Schema({
   uploadedBy: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
   uploadedDate: { type: Date, default: new Date() },
   chunkIndex: [{
+    index: { type: Number },
     hash: { type: String },
   }],
   fileHash: { type: String },
@@ -62,9 +63,9 @@ pfileSchema.statics.create = function create(data, callback) {
           return callback(err);
         }
 
-        selef.addChunk(data, function(err) {
+        self.addChunk(data, function(err) {
           if (err) {
-            return logger.debug("[pfile.create] Error adding chunk");
+            return logger.debug("[pfile.create] Error adding chunk: " + err);
           }
 
           logger.debug("[pfile.create] Added chunk #" + data.chunkNumber + " to pFile " +  data.fileName);
@@ -124,36 +125,56 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
     if (pFile) {
       var pfileChunkName = chunkHash + "." + data.fileName + "." + data.chunkNumber;
 
-      pFile.chunkIndex[data.chunkNumber] = pfileChunkName;
-
       fs.writeFile("files/" + pfileChunkName, Buffer(fileBuffer.data), function(err) {
-        return callback(err, newPFile);
-      });
-      // Check if this was the last chunk
-      //
-      var completedChunks = pFile.chunkIndex.filter(function(value) { return value !== undefined }).length;
-      logger.debug("[pfile.addChunk] We've processed " + completedChunks + " out of " + data.totalChunks + " so far...");
+        logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
 
-      // If so, set isComplete to true and call callback
-      if (completedChunks == data.totalChunks) {
-        logger.debug("[pfile.addChunk] Time to celebrate, we've finished!");
-        pFile.isComplete = true;
-        pFile.save(function(err) {
-          if (err) {
-            return logger.debug("[pfile.addChunk] Error saving pfile object");
+        self.findOneAndUpdate(
+          { _id: pFile._id },
+          {
+            $push: {
+              "chunkIndex": {
+                index: data.chunkNumber,
+                hash: pfileChunkName
+              }
+            }
+          },
+          { new: true },
+          function(err, savedPfile) {
+            if (err) {
+              return console.log("Error saving pFile to chunkIndex: " + err);
+            };
+
+            console.log("Saved PFile to chunkIndex");
+
+            // Check if this was the last chunk
+            //
+            // Really need to decide the case of pFile and make it consistent...
+            var completedChunks = savedPfile.chunkIndex.filter(function(value) { return value !== undefined }).length;
+            logger.debug("[pfile.addChunk] We've processed " + completedChunks + " out of " + data.totalChunks + " so far...");
+
+            // If so, set isComplete to true and call callback
+            if (completedChunks == data.totalChunks) {
+              logger.debug("[pfile.addChunk] Time to celebrate, we've finished!");
+              pFile.isComplete = true;
+              pFile.save(function(err) {
+                if (err) {
+                  return logger.debug("[pfile.addChunk] Error saving pfile object: " + err);
+                }
+
+                return callback(err, pFile);
+              });
+            };
+            //
+            // If not, return chunk complete via callback
+            pFile.save(function(err) {
+              if (err) {
+                return logger.debug("[pfile.addChunk] Error saving pfile object before completion: " + err);
+              }
+
+              return callback(err, pFile);
+            });
           }
-
-          return callback(pFile);
-        });
-      };
-      //
-      // If not, return chunk complete via callback
-      pFile.save(function(err) {
-        if (err) {
-          return logger.debug("[pfile.addChunk] Error saving pfile object before completion");
-        }
-
-        return callback(pFile);
+        );
       });
     }
   })

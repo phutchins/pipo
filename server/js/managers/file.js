@@ -75,13 +75,17 @@ function FileManager() {
         return console.log("[socketServer.onSendFile] Error saving file: " + err);
       }
 
+      if (!pfile) {
+        return console.log("[socketServer.onSendFile] No pfile returned... Something bad happened.");
+      }
+
       // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
       // then remote the bad data
 
-      if (pfile.isComplete) {
+      if (pfile && pfile.isComplete) {
         // Get the pipo user (should move this to an init method in encryption manager and save it to state)
         EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
-          FileManager.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
+          self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
         });
       };
     });

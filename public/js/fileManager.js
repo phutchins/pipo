@@ -5,7 +5,7 @@ FileManager.sendFile = function sendFile(data, callback) {
 
   var chunk = data.chunk;
   var chunkNumber = data.chunkNumber;
-  var totalChunks = data.totalChunks;
+  var chunkCount = data.chunkCount;
   var fileMetadata = data.fileMetadata;
   var fileName = data.fileMetadata.name;
   var toChatId = data.toChatId;
@@ -15,7 +15,7 @@ FileManager.sendFile = function sendFile(data, callback) {
   var fileData = {
     fileName: fileName,
     chunkNumber: chunkNumber,
-    totalChunks: totalChunks,
+    chunkCount: chunkCount,
     lastModified: fileMetadata.lastModified,
     size: fileMetadata.size,
     type: fileMetadata.type,
@@ -38,3 +38,8 @@ FileManager.sendFile = function sendFile(data, callback) {
   callback(null);
 };
 
+FileManager.getFile = function getFile(data) {
+  // Send socket request to the server asking for the pfile by id
+  // Should set some bits here to show that we're waitijng for the incoming file and reset it when we get the incoming file message
+  window.socketClient.socket.emit('getFile', { id: data.id });
+};

@@ -599,16 +599,11 @@ SocketServer.prototype.onSendFile = function(data){
   FileManager.handleChunk(data);
 };
 
-SocketServer.prototype.onGetFile = function(emitData){
+SocketServer.prototype.onGetFile = function(data){
   var self = this;
-  var fileName = emitData.fileName;
+  data.socket = self.socket;
 
-  // Determine if the user actually has access to the requested file and that it exists
-
-  // Get the file from disk
-  // Create a Buffer out of the file
-  // Send the file to the user with socket.emit
-  self.socket.emit('file', fileData);
+  FileManager.handleGetFile(data);
 };
 
 SocketServer.prototype.onFileReceiveSuccess = function onFileReceiveSuccess(file) {

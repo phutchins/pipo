@@ -988,3 +988,8 @@ button, input, select, textarea {
 .user-inactive {
   opacity: 0.4;
 }
+
+.pfile-link {
+  cursor: pointer;
+  cursor: hand;
+}

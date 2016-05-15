@@ -53,11 +53,11 @@ SendFileModal.init = function init(successCallback) {
     var chunkSize = 524288;
     var fileSize = file.size - 1;
     console.log("[sendFileModal] File size is: " + fileSize);
-    var chunkCount = fileSize/chunkSize;
+    var chunkCountRaw = fileSize/chunkSize;
     var finalChunk = fileSize%chunkSize;
-    var chunkRemainder = chunkCount % 1
-    var wholeChunks = chunkCount - chunkRemainder;
-    var totalChunks = Math.ceil(chunkCount);
+    var chunkRemainder = chunkCountRaw % 1
+    var wholeChunks = chunkCountRaw - chunkRemainder;
+    var chunkCount = Math.ceil(chunkCountRaw);
     // Scope issues here, can't read currentChunk from within the while loop reader.onloadend below
     var currentChunk = 0;
 
@@ -71,13 +71,13 @@ SendFileModal.init = function init(successCallback) {
         var chunk = chunk;
         return function(evt) {
           if (evt.target.readyState == FileReader.DONE) {
-            console.log("[sendFileModal.readBlob] Sending chunk " + (chunkNum + 1) + " of " + totalChunks);
+            console.log("[sendFileModal.readBlob] Sending chunk " + (chunkNum + 1) + " of " + chunkCount);
 
             sendFile({
               fileMetadata: file,
               chunk: evt.target.result,
               chunkNumber: chunkNum,
-              totalChunks: totalChunks,
+              chunkCount: chunkCount,
               description: description,
               chatType: chatType,
               toChatId: toChatId
@@ -111,7 +111,7 @@ SendFileModal.init = function init(successCallback) {
       var fileMetadata = data.fileMetadata;
       var chunk = data.chunk;
       var chunkNumber = data.chunkNumber;
-      var totalChunks = data.totalChunks;
+      var chunkCount = data.chunkCount;
       var description = data.description;
       var toChatId = data.toChatId;
       var chatType = data.chatType;
@@ -119,7 +119,7 @@ SendFileModal.init = function init(successCallback) {
       FileManager.sendFile({
         chunk: chunk,
         chunkNumber: chunkNumber,
-        totalChunks: totalChunks,
+        chunkCount: chunkCount,
         fileMetadata: fileMetadata,
         description: description,
         toChatId: toChatId,

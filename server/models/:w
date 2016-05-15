@@ -125,24 +125,15 @@ pfileSchema.statics.get = function get(data, callback) {
 pfileSchema.methods.getChunk = function getChunk(index, callback) {
   var index = index;
 
-  var chunkHash = '';
-  // This filter for some reason doesn't return the desired item... Why!?!?
   var requestedChunk = this.chunkIndex.filter(function(chunk) {
-    console.log("This: ", this, "Arguments: ", arguments);
-    //logger.debug("[pfile.getChunk] Chunk is: ", chunk);
     logger.debug("[pfile.getChunk] looping chunks, chunk.index: " + chunk.index + " chunk.hash: " + chunk.hash);
-    if (chunk.index == index) {
-      chunkHash = chunk.hash;
-      logger.debug("[pfile.getChunk] Found the PFILE we're looking for!!!");
-      return true;
-    }
+    return chunk.index == index;
   });
 
-  logger.debug("[pfile.getChunk] chunkHash is: ", chunkHash);
   logger.debug("[pfile.getChunk] requestedChunk.hash is: ", requestedChunk.hash);
 
   // Get the filename for the chunk (should probably just be the hash)
-  var chunkName = chunkHash + "." + this.name + "." + index;
+  var chunkName = requestedChunk.hash + "." + this.name + "." + index;
 
   // Read the file from disk and return it (as a readable stream?)
   var chunkStream = fs.createReadStream("files/" + chunkName);
@@ -188,7 +179,7 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
             $push: {
               "chunkIndex": {
                 index: data.chunkNumber,
-                hash: chunkHash
+                hash: pfileChunkName
               }
             }
           },

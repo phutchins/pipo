@@ -2,6 +2,7 @@ var NotifyManager = require('./notify');
 var EncryptionManager = require('./encryption');
 var logger = require('../../../config/logger');
 var PFile = require('../../models/pfile');
+var ss = require('socket.io-stream');
 
 function FileManager() {
   this.notifyNewFile = function(data) {
@@ -11,7 +12,7 @@ function FileManager() {
     var chatId;
 
     // Create the message to be displayed
-    var pfileMessage = "Hey, there is a file for you named '" + pfile.name + "'";
+    var pfileMessage = "Hey, there is a file for you named '<a id='" + pfile.id + "' class='pfile-link'>" + pfile.name + "</a>'";
 
     // Notify the users that this file was encrypted to that they have a file waiting
 
@@ -39,6 +40,7 @@ function FileManager() {
 
     var messageData = {
       chatType: pfile.chatType,
+      pfileId: pfile.id,
       chatId: chatId,
       message: pfileMessage,
       socketServer: socketServer,
@@ -59,10 +61,10 @@ function FileManager() {
     var systemUser = EncryptionManager.systemUser;
     var chatType = data.chatType;
     var chunkNumber = data.chunkNumber;
-    var totalChunks = data.totalChunks;
+    var chunkCount = data.chunkCount;
 
     logger.debug("[socketServer.onSendFile] Got onSendFile!");
-    logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + totalChunks + " chunks.");
+    logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + chunkCount + " chunks.");
 
     // Add chunk to PFile (if it doesn't exist yet, add should create it (should confirm that it is the same user somehow)
 
@@ -72,7 +74,8 @@ function FileManager() {
       var pfile = pfile;
 
       if (err) {
-        return console.log("[socketServer.onSendFile] Error saving file: " + err);
+        console.log("[socketServer.onSendFile] Error saving file: " + err);
+        // Notify the client of an error here
       }
 
       if (!pfile) {
@@ -86,6 +89,39 @@ function FileManager() {
         // Get the pipo user (should move this to an init method in encryption manager and save it to state)
         EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
           self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
+        });
+      };
+    });
+  };
+
+  this.handleGetFile = function handleGetFile(data) {
+    // Get the user info from the socket
+    var pfileId = data.id;
+    var socket = data.socket;
+
+    logger.debug("[socketServer.onGetFile] Getting pFile with ID: " + pfileId);
+
+    // Get the pFile
+    PFile.get(pfileId, function(err, pfile) {
+      var chunkCount = pfile.chunkCount;
+      var currentChunk = 0;
+
+      // Determine if the user actually has access to the requested file and that it exists
+
+      // Get the number of chunks and get the file buffer for each one sending it back to the client
+      while (currentChunk < chunkCount) {
+        var ssChunkStream = ss.createStream();
+
+        pfile.getChunk(currentChunk, function(err, chunkStream) {
+          currentChunk++;
+          var fileData = {
+            id: pfile.id
+          }
+
+          // Send the file to the user with socket.emit
+          logger.debug("[socketServer.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
+          ss(socket).emit('file', ssChunkStream, fileData);
+          ssChunkStream.pipe(chunkStream);
         });
       };
     });

@@ -48,6 +48,7 @@ function SocketServer(namespace) {
 SocketServer.prototype.onSocket = function(socket) {
   var self = this;
   this.socket = socket;
+  var delivery = dl.listen(this.socket);
   this.init();
 
   logger.debug("[CONNECTION] Socket connected to main");
@@ -83,8 +84,6 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('sendFile', self.onSendFile.bind(self));
   socket.on('getFile', self.onGetFile.bind(self));
-
-  var delivery = dl.listen(socket);
 
   delivery.on('receive.success', self.onFileReceiveSuccess.bind(self));
 

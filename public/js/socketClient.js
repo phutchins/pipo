@@ -22,7 +22,18 @@ function SocketClient() {
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
-    window.delivery = new Delivery(window.socketClient.socket);
+    //window.delivery = new Delivery(window.socketClient.socket);
+
+    //delivery.on('receive.start',function(fileUID){
+    //  console.log('receiving a file!');
+    //});
+
+    //delivery.on('receive.success',function(file){
+    //  var params = file.params;
+    //  if (file.isImage()) {
+    //    $('img').attr('src', file.dataURL());
+    //  };
+    //});
   });
 
   this.socket.on('certificate', function(certificate) {
@@ -108,20 +119,6 @@ SocketClient.prototype.addListeners = function() {
     ChatManager.handleMessage(data);
   });
 
-  this.socket.on('connect', function(){
-    var delivery = new Delivery(socket);
-
-    delivery.on('receive.start',function(fileUID){
-      console.log('receiving a file!');
-    });
-
-    delivery.on('receive.success',function(file){
-      var params = file.params;
-      if (file.isImage()) {
-        $('img').attr('src', file.dataURL());
-      };
-    });
-  });
 
   this.socket.on('privateMessage', function(data) {
     var self = this;
@@ -211,12 +208,35 @@ SocketClient.prototype.addListeners = function() {
 };
 
 SocketClient.prototype.addFileListeners = function() {
-  delivery.on('send.success',function(fileUID){
-    console.log("file was successfully sent.");
-  });
+  this.socket.on('file', function(chunkStream, data){
+    console.log("[socketClient.socket.file] Got file event from server");
+    //var blobStream = ss.createBlobReadStream('downloaded/new.file');
+    var bb = new Blob(chunkStream);
+    //var buffer = new ArrayBuffer(8);
+    //var data = new DataView(chunkStream);
 
-  delivery.on('delivery.connect',function(delivery){
-    console.log("[socketClient.addFileListeners] File delivery system connected");
+    //bb.append(buffer);
+    //var blob = bb.getBlob("file/binary");
+    //saveAs(blob, savedFile.bin);
+    saveAs(bb);
+    var size = 0;
+    var progress = 0;
+
+    /*
+    chunkStream.on('data', function(chunk) {
+      size += chunk.length;
+      progress = Math.floor(size / file.size * 100)
+      console.log("File download progress: " + progress + '%');
+
+      if (progress == 100) {
+        // Prompt to save file
+        saveAs(blob, data.fileName);
+      }
+    });
+    */
+
+    //blobStream.pipe(chunkStream);
+    //chunkStream.pipe();
   });
 }
 

@@ -63,24 +63,26 @@ function FileManager() {
     var chunkNumber = data.chunkNumber;
     var chunkCount = data.chunkCount;
 
-    logger.debug("[socketServer.onSendFile] Got onSendFile!");
-    logger.debug("[socketServer.onSendFile] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + chunkCount + " chunks.");
+    logger.debug("[file.handleChunk] Got onSendFile!");
+    logger.debug("[file.handleChunk] chatType is: ", chatType, " file: " + fileName + " chunk " + chunkNumber + " out of " + chunkCount + " chunks.");
 
     // Add chunk to PFile (if it doesn't exist yet, add should create it (should confirm that it is the same user somehow)
 
     // Create PFile object to keep track of the file
     // This way all members of that chat can list files that they have access to.
     PFile.addChunk(data, function(err, pfile) {
-      var pfile = pfile;
+      logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
 
       if (err) {
-        console.log("[socketServer.onSendFile] Error saving file: " + err);
+        return logger.error("[file.handleChunk] Error saving file: " + err);
         // Notify the client of an error here
       }
 
       if (!pfile) {
-        return console.log("[socketServer.onSendFile] No pfile returned... Something bad happened.");
+        return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
       }
+
+      console.log("[file.handleChunk] About to try to send notification to clients...");
 
       // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
       // then remote the bad data
@@ -110,7 +112,8 @@ function FileManager() {
 
       // Get the number of chunks and get the file buffer for each one sending it back to the client
       while (currentChunk < chunkCount) {
-        var ssChunkStream = ss.createStream();
+        //var ssChunkStream = ss.createStream();
+        //var ssChunkStream = ss.createBlobReadStream();
 
         pfile.getChunk(currentChunk, function(err, chunkStream) {
           currentChunk++;
@@ -120,8 +123,11 @@ function FileManager() {
 
           // Send the file to the user with socket.emit
           logger.debug("[socketServer.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
-          ss(socket).emit('file', ssChunkStream, fileData);
-          ssChunkStream.pipe(chunkStream);
+          //ss(socket).emit('file', ssChunkStream, fileData);
+          socket.emit('file', chunkStream, fileData);
+          logger.debug("[socketServer.onGetFile] Sent emit, piping to stream");
+          //ssChunkStream.pipe(chunkStream);
+          //logger.debug("[socketServer.onGetFile] Piped to client. Ending...");
         });
       };
     });

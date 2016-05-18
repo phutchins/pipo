@@ -59,6 +59,10 @@ pfileSchema.statics.create = function create(data, callback) {
     logger.debug("[pfile.create] creating pfile with toChatId: " + toChatId);
 
     var finish = function finish(pfile) {
+      if (pfile.chunkCount == data.chunkNumber) {
+        pfile.isComplete = true;
+      };
+
       pfile.save(function(err, newPFile) {
         var newPFile = newPFile;
         if (err) {
@@ -72,6 +76,10 @@ pfileSchema.statics.create = function create(data, callback) {
           }
 
           logger.debug("[pfile.create] Added chunk #" + data.chunkNumber + " to pFile " +  data.fileName);
+
+
+          // Should we be returning the udpated chunk here?
+          return callback(err, pfile);
         });
 
         logger.debug("[pfile.create] newPFile.id: " + newPFile.id);
@@ -109,12 +117,12 @@ pfileSchema.statics.get = function get(data, callback) {
 
   this.findOne({ id: id }, function(err, pfile) {
     if (err) {
-      console.log("[pfile.get] Error getting pfile: " + err);
+      logger.error("[pfile.get] Error getting pfile: " + err);
       return callback(err, null);
     }
 
     if (!pfile) {
-      console.log("[pfile.get] No pfile found with id '" + id);
+      logger.warning("[pfile.get] No pfile found with id '" + id);
       return callback(err, null);
     }
 
@@ -123,26 +131,15 @@ pfileSchema.statics.get = function get(data, callback) {
 };
 
 pfileSchema.methods.getChunk = function getChunk(index, callback) {
-  var index = index;
+  var isRequestedChunk = function isRequestedChunk(value) {
+    return value.index == index;
+  }
 
-  var chunkHash = '';
-  // This filter for some reason doesn't return the desired item... Why!?!?
-  var requestedChunk = this.chunkIndex.filter(function(chunk) {
-    console.log("This: ", this, "Arguments: ", arguments);
-    //logger.debug("[pfile.getChunk] Chunk is: ", chunk);
-    logger.debug("[pfile.getChunk] looping chunks, chunk.index: " + chunk.index + " chunk.hash: " + chunk.hash);
-    if (chunk.index == index) {
-      chunkHash = chunk.hash;
-      logger.debug("[pfile.getChunk] Found the PFILE we're looking for!!!");
-      return true;
-    }
-  });
-
-  logger.debug("[pfile.getChunk] chunkHash is: ", chunkHash);
-  logger.debug("[pfile.getChunk] requestedChunk.hash is: ", requestedChunk.hash);
+  var requestedChunk = this.chunkIndex.filter(isRequestedChunk).shift();
 
   // Get the filename for the chunk (should probably just be the hash)
-  var chunkName = chunkHash + "." + this.name + "." + index;
+  var chunkName = requestedChunk.hash + "." + this.name + "." + index;
+  logger.debug("[pfile.get] Got chunk '" + chunkName + "'");
 
   // Read the file from disk and return it (as a readable stream?)
   var chunkStream = fs.createReadStream("files/" + chunkName);
@@ -165,8 +162,17 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
   this.findOne({ name: data.fileName }, function(err, pFile) {
     if (!pFile) {
       // Create it if it doesn't exist with the first chunk data
-      self.create(data, function(newPFile) {
+      self.create(data, function(err, newPFile) {
+        if (err) {
+          logger.debug("[pfile.addChunk] Error creating pfile");
+        };
+
+        if (newPFile.chunkCount == 1) {
+          newPFile.isComplete = true;
+        };
+
         logger.debug("[pfile.addChunk] Created pFile as it did not exist");
+        return callback(err, newPFile);
       });
     };
 
@@ -195,10 +201,10 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
           { new: true },
           function(err, savedPfile) {
             if (err) {
-              return console.log("Error saving pFile to chunkIndex: " + err);
+              return console.error("[pfile.addChunk] Error saving pFile to chunkIndex: " + err);
             };
 
-            console.log("Saved PFile to chunkIndex");
+            console.log("[pfile.addChunk] Saved PFile to chunkIndex");
 
             // Check if this was the last chunk
             //
@@ -215,18 +221,19 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
                   return logger.debug("[pfile.addChunk] Error saving pfile object: " + err);
                 }
 
+                logger.debug("[pfile.addChunk] Running callback since we're done...");
+                return callback(err, pFile);
+              });
+            } else {
+              // If not, return chunk complete via callback
+              pFile.save(function(err) {
+                if (err) {
+                  return logger.debug("[pfile.addChunk] Error saving pfile object before completion: " + err);
+                }
+
                 return callback(err, pFile);
               });
             };
-            //
-            // If not, return chunk complete via callback
-            pFile.save(function(err) {
-              if (err) {
-                return logger.debug("[pfile.addChunk] Error saving pfile object before completion: " + err);
-              }
-
-              return callback(err, pFile);
-            });
           }
         );
       });

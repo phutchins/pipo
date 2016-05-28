@@ -45,10 +45,19 @@ function SocketServer(namespace) {
   }
 }
 
-SocketServer.prototype.onSocket = function(socket) {
+SocketServer.prototype.onBinarySocket = function(binSocket) {
+  this.binSocket = binSocket;
   var self = this;
+
+  logger.debug("[socketServer.onBinarySocket] binSocket: ", binSocket);
+  logger.debug("[socketServer.onBinarySocket] Init binary listeners");
+
+};
+
+SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;
-  var delivery = dl.listen(this.socket);
+  var self = this;
+
   this.init();
 
   logger.debug("[CONNECTION] Socket connected to main");
@@ -80,19 +89,12 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('toggleFavorite', self.toggleFavorite.bind(self));
 
-  socket.on('serverCommand', self.onServerCommand.bind(self));
-
+  // File Listeners (will move sendFile to binListeners)
+  // getFile should trigger a binServer socket event to send from server to client over the binary socket that exists
   socket.on('sendFile', self.onSendFile.bind(self));
   socket.on('getFile', self.onGetFile.bind(self));
 
-  delivery.on('receive.success', self.onFileReceiveSuccess.bind(self));
-
-  /**
-   * ADMIN COMMANDS
-   */
-  // TODO Put this behind admin control when new client keys are approved
-  // socket.on('maserKeySync', self.masterKeySync.bind(self));
-
+  socket.on('serverCommand', self.onServerCommand.bind(self));
 };
 
 SocketServer.prototype.init = function init() {
@@ -601,6 +603,10 @@ SocketServer.prototype.onSendFile = function(data){
 SocketServer.prototype.onGetFile = function(data){
   var self = this;
   data.socket = self.socket;
+  logger.debug("[socketServer.onGetFile] Bin Socket is: " + self.binSocket);
+  data.binSocket = self.binSocket;
+
+  logger.debug("[socketServer.onGetFile] Got getFile request");
 
   FileManager.handleGetFile(data);
 };

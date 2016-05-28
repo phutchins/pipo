@@ -939,6 +939,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
 
   ChatManager.refreshChatContent(id, function() {
     $(document).on("click", ".pfile-link", function() {
+      debugger;
       var pfileId = this.id;
       console.log("Pfile link clicked! ID: " + pfileId);
 

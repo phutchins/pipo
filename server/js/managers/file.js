@@ -100,6 +100,7 @@ function FileManager() {
     // Get the user info from the socket
     var pfileId = data.id;
     var socket = data.socket;
+    var binSocket = data.binSocket;
 
     logger.debug("[socketServer.onGetFile] Getting pFile with ID: " + pfileId);
 
@@ -118,13 +119,16 @@ function FileManager() {
         pfile.getChunk(currentChunk, function(err, chunkStream) {
           currentChunk++;
           var fileData = {
-            id: pfile.id
+            id: pfile.id,
+            fileName: pfile.name,
+            chunkCount: pfile.chunkCount
           }
 
           // Send the file to the user with socket.emit
           logger.debug("[socketServer.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
           //ss(socket).emit('file', ssChunkStream, fileData);
-          socket.emit('file', chunkStream, fileData);
+          //socket.emit('file', chunkStream, fileData);
+          binSocket.send(chunkStream, fileData);
           logger.debug("[socketServer.onGetFile] Sent emit, piping to stream");
           //ssChunkStream.pipe(chunkStream);
           //logger.debug("[socketServer.onGetFile] Piped to client. Ending...");

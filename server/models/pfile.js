@@ -112,19 +112,21 @@ pfileSchema.statics.create = function create(data, callback) {
   });
 };
 
-pfileSchema.statics.get = function get(data, callback) {
-  var id = data.id;
+pfileSchema.statics.get = function get(id, callback) {
+  logger.debug("[pfile.get] Getting pfile with id '" + id + "'");
 
-  this.findOne({ id: id }, function(err, pfile) {
+  this.findOne({ _id: id }, function(err, pfile) {
     if (err) {
       logger.error("[pfile.get] Error getting pfile: " + err);
       return callback(err, null);
     }
 
     if (!pfile) {
-      logger.warning("[pfile.get] No pfile found with id '" + id);
+      logger.error("[pfile.get] No pfile found with id '" + id);
       return callback(err, null);
     }
+
+    logger.debug("[pfile.get] Found pfile with id '" + pfile.id + "'");
 
     return callback(null, pfile);
   });

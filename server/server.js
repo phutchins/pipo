@@ -17,6 +17,7 @@ var winston = require('winston');
 var pgp = require('kbpgp');
 var crypto = require('crypto');
 var btoa = require('btoa');
+var BinaryServer = require('binaryjs').BinaryServer;
 
 // Managers
 var AuthenticationManager = require('./js/managers/authentication');
@@ -57,6 +58,8 @@ if (configPipo.server.ssl) {
 }
 
 var io = socketIO(server);
+//var bs = BinaryServer({server: binServer});
+var bs = BinaryServer({port: 3031});
 
 //Express
 app.set('views', path.join(__dirname, '../public/views'));
@@ -104,7 +107,9 @@ io.on('connection',function (socket) {
   logger.debug("Connection to io");
 });
 
+
 var ioMain = io.of('/socket');
+
 
 // Startup routine
 initServer();
@@ -112,27 +117,43 @@ initServer();
 function initServer() {
   var socketServer = null;
 
+  // Need to make this run an init method that then runs createSystemUser
   createSystemUser(function() {
+    var socketServer;
     switch (configPipo.encryptionStrategy) {
       // Use master shared key encryption (faster but slightly less secure possibly)
       case 'masterKey':
         logger.info("[START] Starting in MASTER KEY mode");
+
+        socketServer = new SocketServer(ioMain);
+
         ioMain.on('connection', function(socket) {
-          logger.debug("Connection to ioMain");
+          logger.debug("[server] Connection to ioMain");
           socket.emit('certificate', AdminCertificate);
-          socketServer = new SocketServer(ioMain);
           socketServer.onSocket(socket);
-          //socketServer.start();
         });
-        //new SocketServer(ioMain).start();
+
+
         break;
         // Use multi client key encryption (slower but a tad more secure)
       case 'clientKey':
         logger.info("[START] Starting in CLIENT KEY mode");
+
+        socketServer = new SocketServer(ioMain);
+
         ioMain.on('connection', function(socket) {
           logger.debug("Connection to ioMain");
           socket.emit('certificate', AdminCertificate);
-          socketServer = new SocketServer(ioMain).onSocket(socket);
+          socketServer.onSocket(socket);
+        });
+
+        bs.on('connection', function(binSocket) {
+          logger.debug("[server] Got binary client connection");
+          logger.debug("[server.bs.on] binSocket is: " + binSocket);
+
+          //var testFile = fs.createReadStream(__dirname + 'testFile');
+          //binSocket.send(testFile);
+          socketServer.onBinarySocket(binSocket);
         });
         break;
       default:
@@ -201,3 +222,4 @@ server.on('listening', function listening() {
 
 //https_server.listen(configHttps.port);
 server.listen(configPipo.server.port);
+//binServer.listen(3031);

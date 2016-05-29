@@ -67,6 +67,13 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
     + This will generate the adminCertificate
   + Run npm start to start the server (make usre Mongo is running)
 
+
+## Testing
+  + Mocha - Test runner
+  + Chai - Expectation / Assertion
+  + Sinon - Stubs & Spies
+  + Proxyquire - Dependency Injection
+
 ## Protocol Outline & Planning Considerations
 
 ### Authentication
@@ -113,7 +120,7 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
   + Ionic - Been around for a while
 
 ## Desktop & Browser
-+ NodeJS & Node WebKit
++ NodeJS & Electron
 
 
 ### Problem & Solution Walkthrough

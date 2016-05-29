@@ -25,28 +25,12 @@ function SocketClient() {
   console.log("[socketClient.init] binSocket: ", this.binSocket);
   console.log("[socketClient.init] Connected to binServer at " + binServer);
 
-  this.binSocket.on('stream', function(stream, meta) {
-    console.log("I GOT IT!!!!!!!!!!!!!!!!!!!!!!!");
-  });
-
   window.username = localStorage.getItem('username');
   window.email = localStorage.getItem('email');
   window.fullName = localStorage.getItem('fullName');
 
   this.socket.on('connect', function() {
     console.log("Connected to socket.io server");
-    //window.delivery = new Delivery(window.socketClient.socket);
-
-    //delivery.on('receive.start',function(fileUID){
-    //  console.log('receiving a file!');
-    //});
-
-    //delivery.on('receive.success',function(file){
-    //  var params = file.params;
-    //  if (file.isImage()) {
-    //    $('img').attr('src', file.dataURL());
-    //  };
-    //});
   });
 
   this.socket.on('certificate', function(certificate) {
@@ -78,6 +62,7 @@ SocketClient.prototype.addBinListeners = function() {
     var id = data.id;
     var fileName = data.fileName;
     var chunkCount = data.chunkCount;
+    var chunkNumber = data.chunkNumber;
 
     // Build an object locally to keep track of the parts of the file
     // if it doesn't exist
@@ -100,6 +85,9 @@ SocketClient.prototype.addBinListeners = function() {
         return String.fromCharCode.apply(null, new Uint8Array(buf));
     }
 
+    // add each of the streamed chunks to an array in the correct order then
+    // save that array as a file blob?
+
     chunkStream.on('end', function() {
       file = new Blob(parts);
       var reader = new FileReader();
@@ -112,18 +100,24 @@ SocketClient.prototype.addBinListeners = function() {
           keyRing: encryptionManager.keyRing
         }, function(err, results) {
           // Save the chunk to local storage with a pointer in window.chunksReceived
-          localStorage
-
+          //
           window.incomingFiles[id].chunksReceived++;
-          // Need to create objectURUL here for saveAs
-          // Also need to set the filename from the pfile
+
+          // Initialize chunks array if it does not exist
+          if (!window.incomingFiles[id].chunks) {
+            window.incomingFiles[id].chunks = [];
+          };
+
+          var chunkIndex = (chunkNumber - 1);
+          window.incomingFiles[id].chunks[chunkIndex] = results;
 
           if (window.incomingFiles[id].chunksReceived == chunkCount) {
             // Need to piece the file back together here before saving it
+            var completeFileBlob = new Blob(window.incomingFiles[id].chunks)
 
-            var fileBlob = new Blob(results);
+            saveAs(completeFileBlob, fileName);
 
-            saveAs(fileBlob, fileName);
+            return delete window.incomingFiles[id];
           };
         });
       });

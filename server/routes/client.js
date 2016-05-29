@@ -1,5 +1,6 @@
 // routes/chat.js
 var logger = require('../../config/logger');
+var clientConfig = require('../../config/pipo');
 
 module.exports = function(app, pipo) {
 
@@ -25,7 +26,8 @@ module.exports = function(app, pipo) {
         res.render('client.jade', {
           username : username,
           preDeps: preDeps,
-          postDeps: postDeps
+          postDeps: postDeps,
+          config: clientConfig
         });
       });
     });

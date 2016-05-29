@@ -49,7 +49,6 @@ SocketServer.prototype.onBinarySocket = function(binSocket) {
   this.binSocket = binSocket;
   var self = this;
 
-  logger.debug("[socketServer.onBinarySocket] binSocket: ", binSocket);
   logger.debug("[socketServer.onBinarySocket] Init binary listeners");
 
 };

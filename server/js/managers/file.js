@@ -121,7 +121,8 @@ function FileManager() {
           var fileData = {
             id: pfile.id,
             fileName: pfile.name,
-            chunkCount: pfile.chunkCount
+            chunkCount: pfile.chunkCount,
+            chunkNumber: currentChunk
           }
 
           // Send the file to the user with socket.emit

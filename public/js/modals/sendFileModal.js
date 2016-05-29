@@ -50,7 +50,7 @@ SendFileModal.init = function init(successCallback) {
     var toChatId = ChatManager.chats[ChatManager.activeChat].id;
 
     var file = files[0];
-    var chunkSize = 524288;
+    var chunkSize = 1048576;
     var fileSize = file.size - 1;
     console.log("[sendFileModal] File size is: " + fileSize);
     var chunkCountRaw = fileSize/chunkSize;

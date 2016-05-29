@@ -7,8 +7,13 @@
   "author": "Philip Hutchins",
   "email": "philip@pipo.chat",
   "scripts": {
-    "test": "NODE_ENV=test PORT=3031 DB='mongodb://localhost:27017/pipo-test' istanbul cover _mocha -- --recursive test/",
-    "lint": "eslint .",
+    "test": "npm run testsuite && npm run linter",
+    "testsuite": "STORJ_ALLOW_LOOPBACK=1 ./node_modules/.bin/mocha test/** --recursive",
+    "coverage": "STORJ_ALLOW_LOOPBACK=1 ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
+    "linter": "./node_modules/.bin/jshint --config .jshintrc ./index.js ./lib ./test",
+    "build": "./node_modules/.bin/browserify index.js -s storj -o dist/storj.browser.js",
+    "make-docs": "mkdir -p ./jsdoc && rm -r ./jsdoc && ./node_modules/.bin/jsdoc index.js lib -r -R README.md -u ./doc -c .jsdoc.json --verbose -d ./jsdoc && cp -r doc/assets jsdoc/assets",
+    "publish-docs": "npm run make-docs && node script/publishdoc.js",
     "start": "node ./server/server.js",
     "start-client": "electron ."
   },

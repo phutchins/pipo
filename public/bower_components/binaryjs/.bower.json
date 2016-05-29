@@ -1,0 +1,15 @@
+{
+  "name": "binaryjs",
+  "homepage": "https://github.com/binaryjs/binaryjs",
+  "version": "0.2.1",
+  "_release": "0.2.1",
+  "_resolution": {
+    "type": "version",
+    "tag": "0.2.1",
+    "commit": "260859aadff04f922818fef4aa3fb602d9dfa863"
+  },
+  "_source": "https://github.com/binaryjs/binaryjs.git",
+  "_target": "^0.2.1",
+  "_originalSource": "binaryjs",
+  "_direct": true
+}

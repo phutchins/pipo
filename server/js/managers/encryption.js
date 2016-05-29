@@ -1,9 +1,18 @@
 var crypto = require('crypto');
 var kbpgp = require('kbpgp');
+var fs = require('fs');
+var logger = require('../../../config/logger');
 
 function EncryptionManager() {
   var calculatedKeys = {};
   var keyRing = new kbpgp.keyring.KeyRing();
+  // Need to merge this with createSystemUser so we're not defining things in multiple places...
+  this.systemUser = {
+    username: 'pipo',
+    publicKey: fs.readFileSync(__dirname + '/../../../keys/pipo.pub'),
+    privateKey: fs.readFileSync(__dirname + '/../../../keys/pipo.key'),
+    email: 'pipo@pipo.chat'
+  };
 
   this.getKeyFingerprint = function (key, callback) {
     var fingerprint;
@@ -89,7 +98,6 @@ function EncryptionManager() {
         var regex = /\r?\n|\r/g
         var payloadString = payload.toString().replace(regex, '');
         expectedPayloadString = expectedPayloadString.toString().replace(regex, '');
-        console.log("payloadString: "+payloadString+" expectedPayloadString: "+expectedPayloadString);
 
         if (payloadString !== expectedPayloadString) {
           return callback(new Error("Signature payload did not match expected payload"));
@@ -99,6 +107,80 @@ function EncryptionManager() {
 
       });
     });
+  };
+
+
+  this.buildKeyRing = function(keys, callback) {
+    var keyRing = new kbpgp.keyring.KeyRing();
+    var err;
+
+    keys.forEach(function(key) {
+      kbpgp.KeyManager.import_from_armored_pgp({ armored: key }, function(err, keyManager) {
+        //logger.debug("[EncryptionManager.buildKeyRing] Loop: Adding keyManager to keyRing");
+        keyRing.add_key_manager(keyManager);
+      });
+    });
+
+    //logger.debug("[EncryptionManager.buildKeyRing] After key loop, returning.");
+    return callback(err, keyRing);
+  };
+
+
+  this.buildKeyManager = function(publicKey, privateKey, passphrase, callback) {
+    var self = this;
+
+    kbpgp.KeyManager.import_from_armored_pgp({
+      armored: publicKey
+    }, function(err, keyManager) {
+      if (err) {
+        console.log("Error loading key", err);
+        return callback(err);
+      } else {
+        keyManager.merge_pgp_private({
+          armored: privateKey
+        }, function(err) {
+          if (!err) {
+            self.keyManager = keyManager;
+            if (keyManager.is_pgp_locked()) {
+              logger.debug("[EncryptionManager.buildKeyManager] Key locked, unlocking.");
+              self.unlockKeyManager(keyManager, passphrase, function(err, unlockedKeyManager) {
+                logger.debug("[EncryptionManager.buildKeyManager] Unlocked Key. Returning.");
+                return callback(null, unlockedKeyManager);
+              });
+            } else {
+              logger.debug("[EncryptionManager.buildKeyManager] Key is not locked... Returning");
+              return callback(null, keyManager);
+            };
+          };
+        })
+      }
+    });
+  };
+
+
+  this.unlockKeyManager = function(keyManager, passphrase, callback) {
+    var keyManager = keyManager;
+
+    keyManager.unlock_pgp({
+      passphrase: passphrase
+    }, function (err) {
+      if (err) {
+        console.log("Error unlocking key", err);
+        return callback(err, null);
+      }
+
+      return callback(null, keyManager);
+    });
+  };
+
+
+
+  this.encryptChatMessage = function(keys, signingKey, message, callback) {
+    kbpgp.box({
+      msg: message,
+      encrypt_for: keys,
+      sign_with: signingKey
+    }, callback);
   };
 }
 

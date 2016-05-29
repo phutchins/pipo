@@ -6,10 +6,15 @@ var User = require('../models/user');
 var KeyId = require('../models/keyid');
 var KeyPair = require('../models/keypair');
 var Room = require('../models/room');
+var PFile = require('../models/pfile');
 var Message = require('../models/message');
 var Chat = require('../models/chat');
+var dl = require('delivery');
+var fs = require('fs');
 
-// Libs
+// Managers
+var FileManager = require('./managers/file');
+var EncryptionManager = require('../js/managers/encryption');
 
 // Config
 var config = require('../../config/pipo')();
@@ -40,9 +45,18 @@ function SocketServer(namespace) {
   }
 }
 
-SocketServer.prototype.onSocket = function(socket) {
+SocketServer.prototype.onBinarySocket = function(binSocket) {
+  this.binSocket = binSocket;
   var self = this;
+
+  logger.debug("[socketServer.onBinarySocket] Init binary listeners");
+
+};
+
+SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;
+  var self = this;
+
   this.init();
 
   logger.debug("[CONNECTION] Socket connected to main");
@@ -74,18 +88,18 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('toggleFavorite', self.toggleFavorite.bind(self));
 
+  // File Listeners (will move sendFile to binListeners)
+  // getFile should trigger a binServer socket event to send from server to client over the binary socket that exists
+  socket.on('sendFile', self.onSendFile.bind(self));
+  socket.on('getFile', self.onGetFile.bind(self));
+
   socket.on('serverCommand', self.onServerCommand.bind(self));
-
-  /**
-   * ADMIN COMMANDS
-   */
-  // TODO Put this behind admin control when new client keys are approved
-  // socket.on('maserKeySync', self.masterKeySync.bind(self));
-
 };
 
 SocketServer.prototype.init = function init() {
   var self = this;
+  // Make sure we have a key for the PiPo user
+
   if (config.encryptionScheme == 'masterKey') {
     // Do master key things
     this.initMasterKeyPair(function(err) {
@@ -385,6 +399,7 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 SocketServer.prototype.onMessage = function onMessage(data) {
   var self = this;
   var chatId = data.chatId;
+  // Maybe check self.socket if doesn't exist check data.socket for calling methods that don't bind?
 
   if (!self.socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
@@ -437,6 +452,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 
   logger.info("[MSG] Server emitted chat message to users");
 };
+
 
 
 /**
@@ -574,6 +590,36 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     // Must emit to self becuase broadcast.to does not emit back to itself
     self.socket.emit('privateMessage', emitData);
   };
+};
+
+SocketServer.prototype.onSendFile = function(data){
+  var self = this;
+  data.socketServer = self;
+
+  FileManager.handleChunk(data);
+};
+
+SocketServer.prototype.onGetFile = function(data){
+  var self = this;
+  data.socket = self.socket;
+  logger.debug("[socketServer.onGetFile] Bin Socket is: " + self.binSocket);
+  data.binSocket = self.binSocket;
+
+  logger.debug("[socketServer.onGetFile] Got getFile request");
+
+  FileManager.handleGetFile(data);
+};
+
+SocketServer.prototype.onFileReceiveSuccess = function onFileReceiveSuccess(file) {
+  var params = file.params;
+  logger.debug("[socketServer.onFileReceiveSuccess] File params is: ", params);
+  fs.writeFile(file.name,file.buffer, function(err){
+    if(err){
+      console.log('File could not be saved.');
+    }else{
+      console.log('File saved.');
+    };
+  });
 };
 
 

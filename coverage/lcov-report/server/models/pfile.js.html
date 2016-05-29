@@ -1,0 +1,363 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for server/models/pfile.js</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../../prettify.css">
+    <link rel="stylesheet" href="../../base.css">
+    <style type='text/css'>
+        div.coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class="header low">
+    <h1>Code coverage report for <span class="entity">server/models/pfile.js</span></h1>
+    <h2>
+        Statements: <span class="metric">25.53% <small>(12 / 47)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Branches: <span class="metric">0% <small>(0 / 8)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Functions: <span class="metric">0% <small>(0 / 8)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Lines: <span class="metric">25.53% <small>(12 / 47)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Ignored: <span class="metric"><span class="ignore-none">none</span></span> &nbsp;&nbsp;&nbsp;&nbsp;
+    </h2>
+    <div class="path"><a href="../../index.html">All files</a> &#187; <a href="index.html">server/models/</a> &#187; pfile.js</div>
+</div>
+<div class="body">
+<pre><table class="coverage">
+<tr><td class="line-count">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107</td><td class="line-coverage"><span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+var logger = require('../../config/logger');
+var fs = require('fs');
+var md5 = require('md5');
+var crypto = require('crypto');
+var Chat = require('./chat');
+var Room = require('./room');
+&nbsp;
+var pfileSchema = new Schema({
+  name: { type: String },
+  uploadedBy: { type: mongoose.SchemaTypes.ObjectId, ref: "User" },
+  uploadedDate: { type: Date, default: new Date() },
+  fileHash: { type: String },
+  toChatId: { type: String },
+  toChat: { type: mongoose.SchemaTypes.ObjectId, ref: "Chat" },
+  toRoom: { type: mongoose.SchemaTypes.ObjectId, ref: "Room" },
+  chatType: { type: String },
+  nameOnDisk: { type: String },
+  description: { type: String }
+});
+&nbsp;
+pfileSchema.statics.create = <span class="fstat-no" title="function not covered" >function create(data, callback) {</span>
+<span class="cstat-no" title="statement not covered" >  var self = this;</span>
+<span class="cstat-no" title="statement not covered" >  var fileBuffer = data.fileBuffer;</span>
+<span class="cstat-no" title="statement not covered" >  var fileName = data.fileName;</span>
+<span class="cstat-no" title="statement not covered" >  var chatType = data.chatType;</span>
+<span class="cstat-no" title="statement not covered" >  var toChatId = data.toChatId;</span>
+&nbsp;
+  // Verify file data
+<span class="cstat-no" title="statement not covered" >  self.verify(data, <span class="fstat-no" title="function not covered" >function(err) {</span></span>
+<span class="cstat-no" title="statement not covered" >    if (err) {</span>
+<span class="cstat-no" title="statement not covered" >      logger.debug("[pfile.create] PFile data verification failed: " + err);</span>
+<span class="cstat-no" title="statement not covered" >      return callback(err);</span>
+    }
+&nbsp;
+    // Create md5 hash of the data so that we can name the file uniquely and ensure that we
+    // don't already have a copy of the file. If we do have a file where the hash matches, that
+    // means that it is already encrypted to the same people.
+<span class="cstat-no" title="statement not covered" >    var fileHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest("hex");</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    logger.debug("[pfile.create] fileHash: " + fileHash);</span>
+&nbsp;
+    // Create new pfile from data
+    // TODO: create unique filenames from hash before storing and set that to nameOnDisk
+<span class="cstat-no" title="statement not covered" >    var myPFile = new self({</span>
+      name: fileName,
+      uploadedBy: data.uploadedBy,
+      fileHash: fileHash,
+      nameOnDisk: data.fileName,
+      description: data.description,
+      chatType: chatType,
+      toChatId: toChatId
+    });
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    logger.debug("[pfile.create] chatType is: " + chatType);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    logger.debug("[pfile.create] creating pfile with toChatId: " + toChatId);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    var finish = <span class="fstat-no" title="function not covered" >function finish(pfile) {</span></span>
+<span class="cstat-no" title="statement not covered" >      pfile.save(<span class="fstat-no" title="function not covered" >function(err, newPFile) {</span></span>
+<span class="cstat-no" title="statement not covered" >        var newPFile = newPFile;</span>
+<span class="cstat-no" title="statement not covered" >        if (err) {</span>
+<span class="cstat-no" title="statement not covered" >          logger.debug("[pfile.create] Error creating PFile: " + err);</span>
+<span class="cstat-no" title="statement not covered" >          return callback(err);</span>
+        }
+&nbsp;
+<span class="cstat-no" title="statement not covered" >        logger.debug("[pfile.create] newPFile.id: " + newPFile.id);</span>
+        // Need to move this directory to the config
+<span class="cstat-no" title="statement not covered" >        fs.writeFile("files/" + fileHash, Buffer(fileBuffer.data), <span class="fstat-no" title="function not covered" >function(err) {</span></span>
+<span class="cstat-no" title="statement not covered" >          return callback(err, newPFile);</span>
+        });
+      });
+    };
+&nbsp;
+    // Check the chatType
+<span class="cstat-no" title="statement not covered" >    if (chatType == 'chat') {</span>
+<span class="cstat-no" title="statement not covered" >      Chat.findOne({ chatHash: toChatId }, <span class="fstat-no" title="function not covered" >function(err, chat) {</span></span>
+<span class="cstat-no" title="statement not covered" >        logger.debug("[pfile.create] Found chat for chatHash: " + toChatId);</span>
+<span class="cstat-no" title="statement not covered" >        myPFile.toChat = chat.id;</span>
+<span class="cstat-no" title="statement not covered" >        finish(myPFile);</span>
+      });
+    } else <span class="cstat-no" title="statement not covered" >if (chatType == 'room') {</span>
+<span class="cstat-no" title="statement not covered" >      Room.findOne({ _id: toChatId }, <span class="fstat-no" title="function not covered" >function(err, room) {</span></span>
+<span class="cstat-no" title="statement not covered" >        logger.debug("[pfile.create] Found room for chatId: " + toChatId);</span>
+<span class="cstat-no" title="statement not covered" >        myPFile.toRoom = room.id;</span>
+<span class="cstat-no" title="statement not covered" >        finish(myPFile);</span>
+      });
+    } else {
+<span class="cstat-no" title="statement not covered" >      return logger.error("[pfile.create] Error: Unknown chat type: " + chatType);</span>
+    }
+&nbsp;
+    // If it is a privateChat, then the toChatId is a chatHash and we need to set it appropriatly
+    //    In this case we need to get the chatId fo the privateChat
+&nbsp;
+    // If it is a room, we can use it as a chat id
+&nbsp;
+  });
+};
+&nbsp;
+pfileSchema.statics.verify = <span class="fstat-no" title="function not covered" >function verify(data, callback) {</span>
+  // Do some verification here
+<span class="cstat-no" title="statement not covered" >  return callback(null);</span>
+};
+&nbsp;
+module.exports = mongoose.model('PFile', pfileSchema);
+&nbsp;</pre></td></tr>
+</table></pre>
+
+</div>
+<div class="footer">
+    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Apr 26 2016 10:05:10 GMT-0400 (EDT)</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

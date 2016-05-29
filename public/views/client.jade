@@ -85,6 +85,16 @@ html
     #input-container.input-container
       form#message-input-form
         #message-input-container.ui.left.fluid.action.icon.input.loading
+          .message-input__add
+            .ui.icon.plus.dropdown.button(disabled='true')
+              i#add-button-icon.plus.icon
+              .menu
+                .item.send-file-button
+                  i#send-file-button.add-button.send.icon
+                  span.text Direct Send (encrypted)
+                .item.attach-file-button
+                  i#attach-file-button.add-button.file.icon
+                  span.text Attach File (encrypted)
           textarea#message-input.message-input.ui.left.icon.loading(autocorrect='off', spellcheck='true', autocomplete='off', type='text', placeholder='          Please wait while your secure connection is configured...')
           i#loading-icon.search.icon
           button#send-button.ui.button(disabled='true') Send
@@ -223,6 +233,23 @@ html
       .header Room List
       .content Select a room to join...
       .ui.list.join-room-list
+    .ui.small.long.modal.sendfile
+      i.close.icon
+      .header
+        | Send File (encrypted)
+      .content
+        form.ui.form.sendfile
+          .ui.segment
+            a#select-filetosend(href='#') File:
+            input#sendfile-file-input(type='file')
+      .actions
+        .two.fluid.ui.inverted.button
+          .ui.cancel.red.basic.button
+            i.remove.icon
+            |             Cancel
+          .ui.ok.green.basic.button
+            i.checkmark.icon
+            |             Submit
     .ui.basic.modal.createroom
       i.close.icon
       .header

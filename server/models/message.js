@@ -42,10 +42,6 @@ messageSchema.statics.get = function get(data, callback) {
   var referenceMessageId = data.referenceMessageId;
   var messagesPerPage = data.messagesPerPage || config.chats.messagesPerPage;
 
-  logger.debug("*********************");
-  logger.debug("[message.get] Getting messages for chat id: " + chatId + " which should be type: " + type);
-  logger.debug("*********************");
-
   if (referenceMessageId) {
     logger.debug("[message.getMessages] Getting messages using referenceMessageId '" + referenceMessageId + "'");
     if (type == 'room') {

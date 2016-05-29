@@ -17,10 +17,10 @@ var winston = require('winston');
 var pgp = require('kbpgp');
 var crypto = require('crypto');
 var btoa = require('btoa');
+var BinaryServer = require('binaryjs').BinaryServer;
 
 // Managers
 var AuthenticationManager = require('./js/managers/authentication');
-var EncryptionManager = require('./js/managers/encryption');
 
 //Local modules
 var database = require('./js/database');
@@ -58,6 +58,8 @@ if (configPipo.server.ssl) {
 }
 
 var io = socketIO(server);
+//var bs = BinaryServer({server: binServer});
+var bs = BinaryServer({port: 3031});
 
 //Express
 app.set('views', path.join(__dirname, '../public/views'));
@@ -105,7 +107,9 @@ io.on('connection',function (socket) {
   logger.debug("Connection to io");
 });
 
+
 var ioMain = io.of('/socket');
+
 
 // Startup routine
 initServer();
@@ -113,27 +117,43 @@ initServer();
 function initServer() {
   var socketServer = null;
 
+  // Need to make this run an init method that then runs createSystemUser
   createSystemUser(function() {
+    var socketServer;
     switch (configPipo.encryptionStrategy) {
       // Use master shared key encryption (faster but slightly less secure possibly)
       case 'masterKey':
         logger.info("[START] Starting in MASTER KEY mode");
+
+        socketServer = new SocketServer(ioMain);
+
         ioMain.on('connection', function(socket) {
-          logger.debug("Connection to ioMain");
+          logger.debug("[server] Connection to ioMain");
           socket.emit('certificate', AdminCertificate);
-          socketServer = new SocketServer(ioMain);
           socketServer.onSocket(socket);
-          //socketServer.start();
         });
-        //new SocketServer(ioMain).start();
+
+
         break;
         // Use multi client key encryption (slower but a tad more secure)
       case 'clientKey':
         logger.info("[START] Starting in CLIENT KEY mode");
+
+        socketServer = new SocketServer(ioMain);
+
         ioMain.on('connection', function(socket) {
           logger.debug("Connection to ioMain");
           socket.emit('certificate', AdminCertificate);
-          socketServer = new SocketServer(ioMain).onSocket(socket);
+          socketServer.onSocket(socket);
+        });
+
+        bs.on('connection', function(binSocket) {
+          logger.debug("[server] Got binary client connection");
+          logger.debug("[server.bs.on] binSocket is: " + binSocket);
+
+          //var testFile = fs.createReadStream(__dirname + 'testFile');
+          //binSocket.send(testFile);
+          socketServer.onBinarySocket(binSocket);
         });
         break;
       default:
@@ -144,16 +164,23 @@ function initServer() {
 }
 
 function createSystemUser(callback) {
-  User.create({
-    username: 'pipo',
-    email: 'pipo@pipo.chat',
-    publicKey: '-----BEGIN PGP PUBLIC KEY BLOCK-----\nVersion: OpenPGP.js v1.0.1\nComment: http://openpgpjs.org\n\nxsBNBFYHKFYBCAC2+gs6wGupdqKwAAHsNfTMqpBJkezYox9fRnHXBgkOzWty\nTzBdItmKRRBr7RCpeQ9nPS4WtEq6d3iUcP4MQmL35gou4mQIH6ClhVUAZykJ\niYXugvPgZXZl6qK8/k7EaLl2kAiYM0n9NSQhOGkZXAtH6MGw0gR4bhw7Dcp7\n3GSOMpgT/n4nBOWbiATKy9Kl3FrW5DrLkt8l0P3ocwVmGC418fkqJSkuNJR1\nFi87L2E2kEcn4EHL9Z4uVTI1mdBp9oLkriW2lMrR1aKMa/I5L5U6ayNALYnS\nNC7pieG3ZuxX7crFcaWa9krFinLSf6AxATQFLpJQLPLTF68yjYhNHzSDABEB\nAAHNDGZsaXBfZmlyZWZveMLAcgQQAQgAJgUCVgcoVwYLCQgHAwIJEKb6o/qa\nk5gaBBUIAgoDFgIBAhsDAh4BAABuWQf5AagTGdxjkpWreAEbqBcolqEIP8I5\nBIHsJcpDoI7VPKsrb4H0qLdE0YTIeD59yPBbs8NPPSh3veebMGU8fVr+5HoN\nQpg8JJImlSvTnZM83fpygsOrMzULgNIqsACDM933Bu34v43dodQ/1n7SN88c\nmpxJSzjoAJdMQ6ItFg6bsPp7Us9KfCeXBSNXHnuBrky9YqyIoAbBmi9mefzh\ngTRI2OnezCIGuNvu/fK2whgjK+qx831EVepqf8JM+IVfA22eZBq9wPFbYkof\n3q1yjuyGePPpn1uTZgQSlw/Ql/uuyQe66PxLuXm2eBrbzbPGdapllywThQ6j\nhfzSR5B6hyiPGM7ATQRWByhWAQgAwXw97JA9goeBP3K3FOb8TVLq/E/Vi13i\ndsrrc2A9D9g/ISCky9Ax211rCZg7IjzKWO7tNU14f25eOoD+pPKxC4iJkmVx\nAXQGIp744g7NmA0WhgzrnM/lId2OvypUihEMq5d3EFVO8g5DKhsRHHkReE6s\nmiagfKlhHT6epZu7lBhU3uUUtwfsdl/cbwpaZb27FeiKvp+5hL03de3g8v+v\nHO81XmS8q2wWOI2OR+419iYDlmXVD9NKxiDMRaJjCDbgJUsM82QgaTnG5WvZ\nAap5OzCL/AKfnN0KQgZsF9oxsl5izmGDuu6faAzO/hyDQ4EK3WwvFtzEtsK8\nGdS6l6ROjwARAQABwsBfBBgBCAATBQJWByhXCRCm+qP6mpOYGgIbDAAAAqIH\n/jLpXcPZhnwCYG3W/9XsAA3xMfzPAiYmv0NeWuLsovPvsOkQGgD6iPoNmdCm\nJrL8dYqmwUSAn+SELYYtLjGk/0XvgCi2l3I46mO4Z8of0cjyHRr6n2j7xRRb\nKRFOj3DTrhhqHSA/rXzrR+r8dT75/EUcIlQZ/3CiI4lF474c5+793DjyCXDC\nkZdurRkTA6UWT2fvnq4HqKlBMZEGMwO5keXMcaQL+mcZOCjgNJxwVqk6DtiY\ntUX8Tvo0QvbOaFhRMaKFqeMBlSrQZmzzBmTXYOBtupfxAFIqjYLqO2AsRXUr\nk8vffgzuYy6uRINhhTfz/iGKsQAVWAWzQ+ndSj86jRE=\n=83fL\n-----END PGP PUBLIC KEY BLOCK-----'
-  }, function(err, data) {
-    if (err) {
-      return logger.error("[SERVER] Error creating system user: ",err);
-    }
-    callback();
-  })
+  logger.debug('[server.createSystemUser] Running create system user...');
+  fs.readFile(__dirname + '/../keys/pipo.key', function(err, pipoPrivateKey) {
+    var pipoPrivateKey = pipoPrivateKey;
+    fs.readFile(__dirname + '/../keys/pipo.pub', function(err, pipoPublicKey) {
+      var pipoPublicKey = pipoPublicKey;
+      User.create({
+        username: 'pipo',
+        email: 'pipo@pipo.chat',
+        publicKey: pipoPublicKey
+      }, function(err, data) {
+        if (err) {
+          return logger.error("[SERVER] Error creating system user: ",err);
+        }
+        callback();
+      })
+    });
+  });
 };
 
 
@@ -195,3 +222,4 @@ server.on('listening', function listening() {
 
 //https_server.listen(configHttps.port);
 server.listen(configPipo.server.port);
+//binServer.listen(3031);

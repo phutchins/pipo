@@ -1,7 +1,9 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var Message = require('./message');
+var EncryptionManager = require('../js/managers/encryption');
 var logger = require('../../config/logger');
+var kbpgp = require('kbpgp');
 
 /*
  * Room Membership Definitions
@@ -98,6 +100,55 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 
     return callback(room);
   })
+};
+
+
+roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
+  var keys = [];
+  var keyRing = new kbpgp.keyring.KeyRing();
+
+  mongoose.model('Room').findOne({ _id: roomId }).populate('_subscribers _members').exec(function(err, room) {
+    if (err) {
+      logger.error("[room.getPubKeys] Error getting chat: " + err);
+      return callback(err, null);
+    }
+
+    if (!room) {
+      logger.error("[room.getPubKeys] No chat found with chatHash '" + roomId + "'");
+      return callback("No room found", null);
+    }
+
+    // Push keys for each subsciber to the keys array making sure all entries are unique
+    if (room._subscribers && room._subscribers.length > 0) {
+      room._subscribers.forEach(function(subscriber) {
+        //logger.debug("[room.getPubKeys] subscriber: ", subscriber.username);
+        //logger.debug("[room.getPubKeys] indexOf(subscriber.publicKey): " + keys.indexOf(subscriber.publicKey));
+        if (keys.indexOf(subscriber.publicKey) == -1) {
+          //logger.debug("[room.getPubKeys] Adding subscriber " + subscriber.username + " to room keys array");
+          keys.push(subscriber.publicKey);
+        }
+      });
+    }
+
+    // Push keys for each member to the keys array making sure all entries are unique
+    if (room._members && room._members.length > 0) {
+      room._members.forEach(function(member) {
+        //logger.debug("[room.getPubKeys] member: ", member.username);
+        if (keys.indexOf(member.publicKey) == -1) {
+          //logger.debug("[room.getPubKeys] Adding member " + member.username + " to room keys array");
+          keys.push(member.publicKey);
+        }
+      });
+    }
+
+    //logger.debug("[room.getPubKeys] keys array: ", keys);
+    logger.debug("[room.getPubKeys] Done building keys array. About to build keyRing.");
+    EncryptionManager.buildKeyRing(keys, function(err, keyRing) {
+      //logger.debug("[room.getPubKeys] keyRing is: ", keyRing);
+      logger.debug("[room.getPubKeys] Built keyRing, returning it now...");
+      return callback(null, keyRing);
+    });
+  });
 };
 
 // TODO: This needs to be renamed so we can use the built in update function

@@ -1,5 +1,7 @@
 var mongoose = require('mongoose');
+var kbpgp = require('kbpgp');
 var Schema = mongoose.Schema;
+var EncryptionManager = require('../js/managers/encryption')
 var logger = require('../../config/logger');
 var Message = require('./message');
 
@@ -45,6 +47,34 @@ chatSchema.statics.create = function create(data, callback) {
   newChat.save(function(err, savedChat) {
     logger.debug("[getChat] saved chat: ",savedChat.id);
     return callback(err, savedChat);
+  });
+};
+
+
+chatSchema.statics.getPubKeys = function getPubKeys(chatHash, callback) {
+  var keys = [];
+  var keyRing = new kbpgp.keyring.KeyRing();
+
+  mongoose.model('Chat').findOne({ chatHash: chatHash }).populate('_participants').exec(function(err, chat) {
+    if (err) {
+      logger.error("[chat.getPubKeys] Error getting chat: " + err);
+      return callback(err, null);
+    }
+
+    if (!chat) {
+      logger.error("[chat.getPubKeys] No chat found with chatHash '" + chatHash + "'");
+      return callback("No chat found", null);
+    }
+
+    chat._participants.forEach(function(participant) {
+      logger.debug("[chat.getPubKeys] Adding participant to keys array");
+      keys.push(participant.publickey);
+    });
+
+    EncryptionManager.buildKeyRing(keys, function(err, keyRing) {
+      logger.debug("[chat.getPubKeys] Built keyRing, returning it now...");
+      return callback(null, keyRing);
+    });
   });
 };
 

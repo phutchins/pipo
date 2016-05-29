@@ -257,11 +257,15 @@ $('.chat-header__settings .room-options.leave-room').unbind().click(function(e) 
 
 
 
-
 $('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
   ChatManager.populateManageMembersModal({ chatId: ChatManager.activeChat, clearMessages: true });
 
   $('.manage-members-modal').modal('show');
+});
+
+
+$('.message_input__add .add-button.send').unbind().click(function(e) {
+  SendFileModal.show();
 });
 
 
@@ -933,7 +937,14 @@ ChatManager.focusChat = function focusChat(data, callback) {
 
   window.Userlist.update({ chatId: id });
 
-  ChatManager.refreshChatContent(id);
+  ChatManager.refreshChatContent(id, function() {
+    $(document).on("click", ".pfile-link", function() {
+      var pfileId = this.id;
+      console.log("Pfile link clicked! ID: " + pfileId);
+
+      window.FileManager.getFile({ id: pfileId });
+    });
+  });
   console.log("[ChatManager.focusChat] (1) Running ChatManager.updateChatStatus();");
   ChatManager.updateChatStatus();
 
@@ -948,6 +959,7 @@ ChatManager.focusChat = function focusChat(data, callback) {
   //ChatManager.chats[id].enabled = true;
 
   messages[0].scrollTop = messages[0].scrollHeight;
+
 
   // Update the room list to reflect the desired room to be infocus
   $('.chat-list-item-selected')
@@ -1190,6 +1202,7 @@ ChatManager.enableMessageInput = function enableMessageInput() {
 
   //Make input usable
   $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
+  $('#add-button').prop('disabled', false);
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
@@ -1223,6 +1236,10 @@ ChatManager.enableMessageInput = function enableMessageInput() {
     })
     return false;
   });
+
+  $('#add-button').unbind().on('click', function() {
+    console.log("Got add button click!");
+  });
 };
 
 ChatManager.disableMessageInput = function disableMessageInput(data) {
@@ -1238,6 +1255,7 @@ ChatManager.disableMessageInput = function disableMessageInput(data) {
 
   $('textarea').off("keydown", "**");
   $('#message-input').attr('placeHolder', statusMessages[status]).prop('disabled', true);
+  $('#add-button').prop('disabled', true);
   $('#send-button').prop('disabled', true);
   $('#loading-icon').show();
 };
@@ -1555,19 +1573,21 @@ ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
 /*
  * Displays room messages in the chat window
  */
-ChatManager.refreshChatContent = function refreshChatContent(chatId) {
+ChatManager.refreshChatContent = function refreshChatContent(chatId, callback) {
   var self = this;
   var messageCache = ChatManager.chats[chatId].messageCache;
 
   console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
 
   $('#chat').html(messageCache);
+  ChatHeader.update(chatId);
 
   // Add padding above messages if needed to keep newest message at the bottom
   // If not needed, only take up a small space for displaying pulling older messages notice
 
-
-  ChatHeader.update(chatId);
+  if (callback) {
+    return callback();
+  }
 }
 
 

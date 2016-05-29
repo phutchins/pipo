@@ -1,0 +1,16 @@
++ Need to be able to create and join private chats the same way as regular chats
++ Private chats are currently referred to by their array hash initially so that they can be created immediately and referenced by the client
+  + Is this needed?
+
+
+Finding a private chat from Client
+  + Possible states:
+    + We don't have the chat cached locally
+    + We have the chat cached locally
+      + It has been initiated?
+      + It has not been init'd (will this ever happen?)
+        + Do we ever want to cache a chat or PM but not open it? Is there a point in this?
+  + What do we know?
+    + The chat participants
+
+

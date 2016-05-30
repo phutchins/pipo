@@ -8,8 +8,8 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "npm run testsuite && npm run linter",
-    "testsuite": "STORJ_ALLOW_LOOPBACK=1 ./node_modules/.bin/mocha test/** --recursive",
-    "coverage": "STORJ_ALLOW_LOOPBACK=1 ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
+    "testsuite": "./node_modules/.bin/mocha test/** --recursive",
+    "coverage": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
     "linter": "./node_modules/.bin/jshint --config .jshintrc ./index.js ./lib ./test",
     "build": "./node_modules/.bin/browserify index.js -s storj -o dist/storj.browser.js",
     "make-docs": "mkdir -p ./jsdoc && rm -r ./jsdoc && ./node_modules/.bin/jsdoc index.js lib -r -R README.md -u ./doc -c .jsdoc.json --verbose -d ./jsdoc && cp -r doc/assets jsdoc/assets",
@@ -84,6 +84,7 @@
     "jquery": "^2.2.0",
     "load-grunt-tasks": "^3.4.0",
     "mocha": "^2.4.5",
+    "sinon": "^1.17.4",
     "supertest": "^1.2.0",
     "uglify-js": "^2.6.2"
   }

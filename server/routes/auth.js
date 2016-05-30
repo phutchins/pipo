@@ -2,6 +2,7 @@ var passport = require('passport');
 //var passportPublicKey = require('passport-publickey');
 
 module.exports = function(app) {
+  console.log("app: " + app);
   app.post('/login',
     passport.authenticate('keyverify', { session: false }),
     function(req, res) {

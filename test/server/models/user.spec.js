@@ -1,9 +1,11 @@
 #! javascript
+'use strict'
 
 var mongoose = require('mongoose');
 
 var Schema = mongoose.Schema;
 var ObjectId = mongoose.ObjectId;
+var expect = require('chai').expect;
 
 var User = require('../../../server/models/user');
 
@@ -11,33 +13,31 @@ var testPubKey = '-----BEGIN PGP PUBLIC KEY BLOCK-----\nVersion: OpenPGP.js v1.0
 
 describe('Create user', function() {
   // Create a spy for newUser.save and mongoose.model('User').findOne
-  it('should return an error when no data is provided', function(done) {
+  it('should return an error when no data is provided', function() {
     var userData = null;
     User.create(userData, function(err, user) {
-      expect(err).toMatch("no userdata provided to create user");
-      done();
-    })
-  })
-  it('should create a user when given valid data', function(done) {
+      expect(err).to.eql('no userdata provided to create user');
+    });
+  });
+  it('should create a user when given valid data', function() {
     var userData = {
-      userName: 'TestUser',
+      username: 'TestUser',
       email: 'testuser@test.com',
       publicKey: testPubKey
     };
-    User.create(userData, function(err, user) {
-      expect(typeof user == mongoose.Schema('User')).toBe(true);
-      done();
-    })
-  })
-  it('should handle missing data while creating a user', function(done) {
+
+    User.create(userData, function(err, data) {
+      expect(data.user).to.be.instanceof(User);
+    });
+  });
+  it('should handle missing data while creating a user', function() {
     var userData = {
-      userName: 'TestUser',
+      username: 'TestUser',
       email: null,
       publicKey: ''
     };
     User.create(userData, function(err, user) {
-      expect(err).toMatch("Missing username, publickey or email");
-      done();
-    })
-  })
+      expect(err).to.equal('Missing username, publickey or email');
+    });
+  });
 });

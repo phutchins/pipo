@@ -1,0 +1,405 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <title>Code coverage report for server/routes/keys.js</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="../../prettify.css">
+    <link rel="stylesheet" href="../../base.css">
+    <style type='text/css'>
+        div.coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+<body>
+<div class="header low">
+    <h1>Code coverage report for <span class="entity">server/routes/keys.js</span></h1>
+    <h2>
+        Statements: <span class="metric">19.7% <small>(13 / 66)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Branches: <span class="metric">0% <small>(0 / 22)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Functions: <span class="metric">7.69% <small>(1 / 13)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Lines: <span class="metric">20% <small>(13 / 65)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Ignored: <span class="metric"><span class="ignore-none">none</span></span> &nbsp;&nbsp;&nbsp;&nbsp;
+    </h2>
+    <div class="path"><a href="../../index.html">All files</a> &#187; <a href="index.html">server/routes/</a> &#187; keys.js</div>
+</div>
+<div class="body">
+<pre><table class="coverage">
+<tr><td class="line-count">1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20
+21
+22
+23
+24
+25
+26
+27
+28
+29
+30
+31
+32
+33
+34
+35
+36
+37
+38
+39
+40
+41
+42
+43
+44
+45
+46
+47
+48
+49
+50
+51
+52
+53
+54
+55
+56
+57
+58
+59
+60
+61
+62
+63
+64
+65
+66
+67
+68
+69
+70
+71
+72
+73
+74
+75
+76
+77
+78
+79
+80
+81
+82
+83
+84
+85
+86
+87
+88
+89
+90
+91
+92
+93
+94
+95
+96
+97
+98
+99
+100
+101
+102
+103
+104
+105
+106
+107
+108
+109
+110
+111
+112
+113
+114
+115
+116
+117
+118
+119
+120
+121</td><td class="line-coverage"><span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">require('../../config/database');
+var passport = require('passport');
+var KeyPair = require('../models/keypair.js');
+var User = require('../models/user.js');
+var Keys = require('events').EventEmitter;
+var logger = require('../../config/logger');
+var passport = require('passport');
+&nbsp;
+module.exports = function(app) {
+  app.get('/key/publickey', passport.authenticate('keyverify', { session: false }), <span class="fstat-no" title="function not covered" >function(req, res) {</span>
+<span class="cstat-no" title="statement not covered" >    var timestamp = new Date().toString();</span>
+<span class="cstat-no" title="statement not covered" >    var username = req.param('username');</span>
+<span class="cstat-no" title="statement not covered" >    logger.debug("[API] [GET] [/key/publickey] Getting publickey for user "+username);</span>
+<span class="cstat-no" title="statement not covered" >    User.findOne({ username: username }, <span class="fstat-no" title="function not covered" >function(err, user) {</span></span>
+<span class="cstat-no" title="statement not covered" >      if (err) <span class="cstat-no" title="statement not covered" >return logger.info("[ERROR] Error getting user: "+err);</span></span>
+<span class="cstat-no" title="statement not covered" >      if (user == null) {</span>
+<span class="cstat-no" title="statement not covered" >        logger.error("["+timestamp+"] publicKey for "+username+"  not found");</span>
+<span class="cstat-no" title="statement not covered" >        res.status(404).send();</span>
+      } else <span class="cstat-no" title="statement not covered" >if (typeof user.publicKey != 'undefined') {</span>
+<span class="cstat-no" title="statement not covered" >        logger.debug("KeyPair found...");</span>
+<span class="cstat-no" title="statement not covered" >        res.json({ publicKey: user.publicKey });</span>
+      } else {
+<span class="cstat-no" title="statement not covered" >        logger.error("[API] [GET] Error while looking for publickey for "+username);</span>
+<span class="cstat-no" title="statement not covered" >        res.status(500).send();</span>
+      }
+    });
+  });
+  app.post('/key/publickey', passport.authenticate('keyverify', { session: false }), <span class="fstat-no" title="function not covered" >function(req, res) {</span>
+    // Accept users public key
+<span class="cstat-no" title="statement not covered" >    logger.debug("[ROUTE/key/publickey] Auth verified");</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    var timestamp = new Date().toString();</span>
+<span class="cstat-no" title="statement not covered" >    var username = req.param('username');</span>
+<span class="cstat-no" title="statement not covered" >    var publicKey = req.param('publicKey');</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >    if (publicKey !== null &amp;&amp; typeof publicKey !== 'undefined') {</span>
+<span class="cstat-no" title="statement not covered" >      logger.info("["+timestamp+"] Saving public key from user "+username);</span>
+&nbsp;
+<span class="cstat-no" title="statement not covered" >      User.findOne({ username: username }, <span class="fstat-no" title="function not covered" >function(err, user, count) {</span></span>
+<span class="cstat-no" title="statement not covered" >        if (user === null) {</span>
+<span class="cstat-no" title="statement not covered" >          logger.info("["+timestamp+"] [DEBUG] (/key/publickey) User not found");</span>
+<span class="cstat-no" title="statement not covered" >          new User({</span>
+            username: username,
+            publicKey: publicKey
+          }).save(<span class="fstat-no" title="function not covered" >function(err, user) {</span>
+<span class="cstat-no" title="statement not covered" >            if (err) {</span>
+<span class="cstat-no" title="statement not covered" >              res.status(500).send();</span>
+            } else {
+<span class="cstat-no" title="statement not covered" >            res.status(200).send();</span>
+            };
+          });
+        } else {
+<span class="cstat-no" title="statement not covered" >          user.publicKey = publicKey;</span>
+<span class="cstat-no" title="statement not covered" >          user.save(<span class="fstat-no" title="function not covered" >function(err, user, count) {</span></span>
+<span class="cstat-no" title="statement not covered" >            if (err) {</span>
+<span class="cstat-no" title="statement not covered" >              logger.info("Error saving publickey from "+username+": "+err);</span>
+<span class="cstat-no" title="statement not covered" >              return res.status(500).send();</span>
+            } else {
+<span class="cstat-no" title="statement not covered" >              logger.info("["+timestamp+"] Saved publickey from "+username);</span>
+              // TODO: run regenerateMasterKeyPair();
+&nbsp;
+              //module.exports.emit('publickey updated', {data: { username: username }} );
+<span class="cstat-no" title="statement not covered" >              res.status(200).send();</span>
+            };
+          });
+        }
+      });
+    } else {
+<span class="cstat-no" title="statement not covered" >      logger.info("Pub key is not defined");</span>
+<span class="cstat-no" title="statement not covered" >      res.status(500).send();</span>
+    };
+  });
+&nbsp;
+  app.get('/key/masterKeyPair',
+    passport.authenticate('keyverify', { session: false }),
+<span class="fstat-no" title="function not covered" >    function(req, res) {</span>
+    // Retrieve msater key encrypted to user that is requesting it if it exists
+<span class="cstat-no" title="statement not covered" >    var User = require('../models/user.js');</span>
+<span class="cstat-no" title="statement not covered" >    var username = req.param('username');</span>
+<span class="cstat-no" title="statement not covered" >    User.findOne({ username: username }, <span class="fstat-no" title="function not covered" >function(err, user) {</span></span>
+<span class="cstat-no" title="statement not covered" >      if (err) {</span>
+<span class="cstat-no" title="statement not covered" >        return res.status(500).send();</span>
+      } else {
+        // Check to make sure user is found
+        // If user not found, add user
+        // If user does not have encryptedMasterPrivKey, generate new one for everyone
+        //logger.info("[MASTER KEY PAIR] user.masterKey: "+user.masterKey.toString());
+<span class="cstat-no" title="statement not covered" >        if (typeof user !== 'undefined' &amp;&amp; user !== null) {</span>
+<span class="cstat-no" title="statement not covered" >          res.json({ publicKey: user.masterKey.publicKey, privateKey: user.masterKey.encryptedPrivateKey, keyId: user.masterKey.id });</span>
+        } else {
+<span class="cstat-no" title="statement not covered" >          logger.info("Didn't find masterKey encrypted to "+username);</span>
+<span class="cstat-no" title="statement not covered" >          res.status(404).send();</span>
+        };
+      }
+    });
+  });
+&nbsp;
+<span class="fstat-no" title="function not covered" >  function generateKeyPair(numBits, userId, passphrase, callback) {</span>
+<span class="cstat-no" title="statement not covered" >    var options = {</span>
+      numBits: numBits,
+      userId: userId,
+      passphrase: passphrase
+    }
+<span class="cstat-no" title="statement not covered" >    openpgp.generateKeyPair(options).then(<span class="fstat-no" title="function not covered" >function(keyPair) {</span></span>
+<span class="cstat-no" title="statement not covered" >      privateKey = keyPair.privateKeyArmored;</span>
+<span class="cstat-no" title="statement not covered" >      publicKey = keyPair.publicKeyArmored;</span>
+<span class="cstat-no" title="statement not covered" >      var keyPair = {</span>
+        privateKey: privateKey,
+        publicKey: publicKey
+      }
+<span class="cstat-no" title="statement not covered" >      return callback(keyPair);</span>
+    }).catch(<span class="fstat-no" title="function not covered" >function(error) {</span>
+<span class="cstat-no" title="statement not covered" >      logger.info("[ROUTE KEYS] Error generating key pair: "+error);</span>
+    });
+  }
+&nbsp;
+<span class="fstat-no" title="function not covered" >  function showKeys(privateKey, publicKey) {</span>
+<span class="cstat-no" title="statement not covered" >    logger.info("PGP PrivKey: "+privatekey+" publicKey: "+publicKey);</span>
+  }
+}
+&nbsp;</pre></td></tr>
+</table></pre>
+
+</div>
+<div class="footer">
+    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue May 31 2016 08:15:47 GMT-0400 (EDT)</div>
+</div>
+<script src="../../prettify.js"></script>
+<script>
+window.onload = function () {
+        if (typeof prettyPrint === 'function') {
+            prettyPrint();
+        }
+};
+</script>
+<script src="../../sorter.js"></script>
+</body>
+</html>

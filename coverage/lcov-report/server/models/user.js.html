@@ -15,10 +15,10 @@
 <div class="header low">
     <h1>Code coverage report for <span class="entity">server/models/user.js</span></h1>
     <h2>
-        Statements: <span class="metric">15.32% <small>(34 / 222)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
-        Branches: <span class="metric">7.23% <small>(6 / 83)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
-        Functions: <span class="metric">2.08% <small>(1 / 48)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
-        Lines: <span class="metric">15.67% <small>(34 / 217)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Statements: <span class="metric">22.07% <small>(49 / 222)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Branches: <span class="metric">13.25% <small>(11 / 83)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Functions: <span class="metric">4.17% <small>(2 / 48)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
+        Lines: <span class="metric">22.58% <small>(49 / 217)</small></span> &nbsp;&nbsp;&nbsp;&nbsp;
         Ignored: <span class="metric"><span class="ignore-none">none</span></span> &nbsp;&nbsp;&nbsp;&nbsp;
     </h2>
     <div class="path"><a href="../../index.html">All files</a> &#187; <a href="index.html">server/models/</a> &#187; user.js</div>
@@ -538,29 +538,29 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">1</span>
-<span class="cline-any cline-yes">3</span>
+<span class="cline-any cline-yes">4</span>
+<span class="cline-any cline-yes">4</span>
+<span class="cline-any cline-yes">1</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-yes">3</span>
 <span class="cline-any cline-yes">1</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -569,8 +569,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
+<span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -583,7 +583,7 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-yes">2</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
@@ -1001,25 +1001,25 @@ userSchema.statics.create = function createUser(userData, callback) {
   if (!userData || userData == null) {
     return callback("no userdata provided to create user", null);
   }
-  <span class="missing-if-branch" title="else path not taken" >E</span>if (!userData.username || <span class="branch-1 cbranch-no" title="branch not covered" >!userData.publicKey </span>|| <span class="branch-2 cbranch-no" title="branch not covered" >!userData.email)</span> {
+  if (!userData.username || !userData.publicKey || !userData.email) {
     return callback("Missing username, publickey or email", null);
   }
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  logger.debug("[USER] Creating user with username: "+userData.username+" usernameLowerCase: "+userData.username.toLowerCase(),"email:",userData.email);</span>
+  logger.debug("[USER] Creating user with username: "+userData.username+" usernameLowerCase: "+userData.username.toLowerCase(),"email:",userData.email);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  var username = userData.username;</span>
-<span class="cstat-no" title="statement not covered" >  var email = userData.email;</span>
-<span class="cstat-no" title="statement not covered" >  var fullName = userData.fullName;</span>
-<span class="cstat-no" title="statement not covered" >  var emailHash = null;</span>
-<span class="cstat-no" title="statement not covered" >  if (email) {</span>
-<span class="cstat-no" title="statement not covered" >    emailHash = crypto.createHash('md5').update(email).digest('hex');</span>
+  var username = userData.username;
+  var email = userData.email;
+  var fullName = userData.fullName;
+  var emailHash = null;
+  <span class="missing-if-branch" title="else path not taken" >E</span>if (email) {
+    emailHash = crypto.createHash('md5').update(email).digest('hex');
   }
-<span class="cstat-no" title="statement not covered" >  var usernameLowerCase = username.toLowerCase();</span>
-<span class="cstat-no" title="statement not covered" >  var publicKey = userData.publicKey;</span>
-<span class="cstat-no" title="statement not covered" >  var createUserCallback = callback;</span>
-<span class="cstat-no" title="statement not covered" >  logger.debug("[USER] created emailHash",emailHash,"from email",email);</span>
+  var usernameLowerCase = username.toLowerCase();
+  var publicKey = userData.publicKey;
+  var createUserCallback = callback;
+  logger.debug("[USER] created emailHash",emailHash,"from email",email);
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  var newUser = new this({</span>
+  var newUser = new this({
     username: username,
     fullName: fullName,
     email: email,
@@ -1028,8 +1028,8 @@ userSchema.statics.create = function createUser(userData, callback) {
     publicKey: publicKey
   });
 &nbsp;
-<span class="cstat-no" title="statement not covered" >  mongoose.model('User').findOne({ username: username }, <span class="fstat-no" title="function not covered" >function(err, user) {</span></span>
-<span class="cstat-no" title="statement not covered" >    if (!user) {</span>
+  mongoose.model('User').findOne({ username: username }, function(err, user) {
+    <span class="missing-if-branch" title="if path not taken" >I</span>if (!user) {
 <span class="cstat-no" title="statement not covered" >      logger.debug("[USER] Saving user...");</span>
 <span class="cstat-no" title="statement not covered" >      newUser.save(<span class="fstat-no" title="function not covered" >function(err) {</span></span>
 <span class="cstat-no" title="statement not covered" >        logger.debug("[USER] Saved user!");</span>
@@ -1042,7 +1042,7 @@ userSchema.statics.create = function createUser(userData, callback) {
         })
       })
     } else {
-<span class="cstat-no" title="statement not covered" >      return callback(null, {user: user, newUser: false});</span>
+      return callback(null, {user: user, newUser: false});
     }
   })
 };
@@ -1407,7 +1407,7 @@ module.exports = mongoose.model('User', userSchema);
 
 </div>
 <div class="footer">
-    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue Apr 26 2016 10:05:10 GMT-0400 (EDT)</div>
+    <div class="meta">Generated by <a href="http://istanbul-js.org/" target="_blank">istanbul</a> at Tue May 31 2016 08:15:47 GMT-0400 (EDT)</div>
 </div>
 <script src="../../prettify.js"></script>
 <script>

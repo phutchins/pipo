@@ -85,12 +85,12 @@ function Server(options) {
   //app.use(morgan('dev'));
 
   //L33t asci
-  console.log('  __________.____________           ');
-  console.log('  \\______   \\__\\______   \\____  ');
-  console.log('   |     ___/  ||     ___/  _ \\    ');
-  console.log('   |    |   |  ||    |  (  <_> )'    );
-  console.log('   |____|   |__||____|   \\____/    ');
-  console.log('');
+  logger.debug('  __________.____________           ');
+  logger.debug('  \\______   \\__\\______   \\____  ');
+  logger.debug('   |     ___/  ||     ___/  _ \\    ');
+  logger.debug('   |    |   |  ||    |  (  <_> )'    );
+  logger.debug('   |____|   |__||____|   \\____/    ');
+  logger.debug('');
 
   database.connect('development');
 
@@ -106,7 +106,7 @@ function Server(options) {
   fs.readdirSync(routePath).forEach(function(file) {
     var route = routePath + file;
     var routeName = file.split('.')[0];
-    logger.debug("[SERVER] Loading route", routeName);
+
     routes[routeName] = require(route)(self.app);
   });
 
@@ -218,9 +218,9 @@ Server.prototype.initServer = function(config) {
 }
 
 Server.prototype.createSystemUser = function(callback) {
-  logger.debug('[server.createSystemUser] Running create system user...');
   fs.readFile(__dirname + '/../keys/pipo.key', function(err, pipoPrivateKey) {
     var pipoPrivateKey = pipoPrivateKey;
+
     fs.readFile(__dirname + '/../keys/pipo.pub', function(err, pipoPublicKey) {
       var pipoPublicKey = pipoPublicKey;
       User.create({

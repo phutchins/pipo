@@ -8,14 +8,19 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "npm run testsuite && npm run linter",
-    "testsuite": "./node_modules/.bin/mocha test/** --recursive",
+    "testsuite": "NODE_ENV=test ./node_modules/.bin/mocha test/** --recursive",
     "coverage": "./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
-    "linter": "./node_modules/.bin/jshint --config .jshintrc ./index.js ./lib ./test",
+    "linter": "./node_modules/.bin/jshint --config .jshintrc ./main.js ./server ./public/client.js ./public/js ./public/views ./test",
     "build": "./node_modules/.bin/browserify index.js -s storj -o dist/storj.browser.js",
     "make-docs": "mkdir -p ./jsdoc && rm -r ./jsdoc && ./node_modules/.bin/jsdoc index.js lib -r -R README.md -u ./doc -c .jsdoc.json --verbose -d ./jsdoc && cp -r doc/assets jsdoc/assets",
     "publish-docs": "npm run make-docs && node script/publishdoc.js",
     "start": "node ./server/server.js",
     "start-client": "electron ."
+  },
+  "directories": {
+    "test": "test",
+    "public": "public",
+    "server": "server"
   },
   "contributors": [
     {
@@ -68,6 +73,7 @@
     "winston": "^1.0.0"
   },
   "devDependencies": {
+    "browserify": "^13.0.1",
     "chai": "^3.5.0",
     "coveralls": "^2.11.9",
     "electron-prebuilt": "^0.37.2",
@@ -81,7 +87,10 @@
     "grunt-jasmine-node-coverage": "^0.4.1",
     "grunt-jslint": "^1.1.14",
     "istanbul": "^0.4.2",
+    "jasmine": "^2.4.1",
     "jquery": "^2.2.0",
+    "jsdoc": "^3.4.0",
+    "jshint": "^2.9.2",
     "load-grunt-tasks": "^3.4.0",
     "mocha": "^2.4.5",
     "sinon": "^1.17.4",

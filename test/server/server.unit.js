@@ -6,7 +6,6 @@ var Server = require('../../server/server.js');
 
 
 describe('Server', function() {
-  console.log("Blah: ", typeof Server());
   describe('@constructor', function() {
     it('should create instance', function() {
       expect(Server()).to.be.instanceOf(Server);

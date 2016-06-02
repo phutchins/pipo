@@ -36,89 +36,143 @@ var configHttps = require('../config/https');
 var KeyPair = require('./models/keypair');
 var User = require('./models/user');
 var KeyId = require('./models/keyid');
+var webServer;
 
 //Globals
 var SocketServer = require('./js/socketServer');
 
-try {
-  var AdminCertificate = require('../config/adminData/adminCertificate');
+function Server(options) {
+  var self = this;
+  if (!(this instanceof Server)) {
+    return new Server(options);
+  }
+
+  try {
+    this.AdminCertificate = require('../config/adminData/adminCertificate');
+  }
+  catch (e) {
+    console.log("Admin Certificate not yet configured, please run setup");
+    process.exit(1);
+  }
+
+  //Application
+  this.app = express();
+
+  if (configPipo.server.ssl) {
+    this.webServer = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, this.app);
+  } else {
+    this.webServer = http.Server(this.app);
+  }
+
+  this.io = socketIO(this.webServer);
+  this.bs = BinaryServer({port: 3031});
+
+  //Express
+  this.app.set('views', path.join(__dirname, '../public/views'));
+  this.app.set('view engine', 'jade');
+  this.app.set('x-powered-by', false);
+
+  //Middleware
+  this.app.use(favicon(__dirname + '/../public/img/favicon.ico'));
+  this.app.use(bodyParser.json());
+  this.app.use(bodyParser.urlencoded({extended: true}));
+
+  //Static assets
+  // TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
+  this.app.use(express['static'](path.join(__dirname, '../public')));
+
+  //Logger
+  //app.use(morgan('dev'));
+
+  //L33t asci
+  logger.debug('  __________.____________           ');
+  logger.debug('  \\______   \\__\\______   \\____  ');
+  logger.debug('   |     ___/  ||     ___/  _ \\    ');
+  logger.debug('   |    |   |  ||    |  (  <_> )'    );
+  logger.debug('   |____|   |__||____|   \\____/    ');
+  logger.debug('');
+
+  database.connect('development');
+
+  // Initialize authentication framework
+  AuthenticationManager.init(this.app);
+
+  // Load routes
+  var routePath = __dirname + '/routes/';
+  var routes = [];
+
+  logger.info("[SERVER] Loading routes...");
+
+  fs.readdirSync(routePath).forEach(function(file) {
+    var route = routePath + file;
+    var routeName = file.split('.')[0];
+
+    routes[routeName] = require(route)(self.app);
+  });
+
+  this.io.on('connection',function (socket) {
+    logger.debug("Connection to io");
+  });
+
+
+  this.ioMain = this.io.of('/socket');
+
+  /**
+   * Handle server errors
+   */
+  this.webServer.on('error', function onError(error) {
+    if (error.syscall !== 'listen') {
+      throw error;
+    }
+
+    var port = configHttp.port;
+    var bind = typeof port === 'string'
+      ? 'Pipe ' + port
+      : 'Port ' + port;
+
+    // handle specific listen errors with friendly messages
+    switch (error.code) {
+      case 'EACCES':
+        logger.error('[SERVER] ' + bind + ' requires elevated privileges');
+        process.exit(1);
+        break;
+      case 'EADDRINUSE':
+        logger.error('[SERVER] ' + bind + ' is already in use.');
+        process.exit(1);
+        break;
+      default:
+        throw error;
+    }
+  });
+
+  this.webServer.on('listening', function listening() {
+    var addr = self.webServer.address();
+    var bind = typeof addr === 'string'
+      ? 'pipe ' + addr
+      : 'port ' + addr.port;
+    logger.info('[SERVER] Listening on ' + bind);
+  });
+
+  this.webServer.listen(configPipo.server.port);
+
+  var serverConfig = {
+    socket: this.ioMain,
+    binSocket: this.bs,
+    AdminCertificate: this.AdminCertificate
+  };
+
+  // Startup routine
+  this.initServer(serverConfig);
 }
-catch (e) {
-  console.log("Admin Certificate not yet configured, please run setup");
-  process.exit(1);
-}
 
-//Application
-var app = express();
-
-if (configPipo.server.ssl) {
-  var server = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, app);
-} else {
-  var server = http.Server(app);
-}
-
-var io = socketIO(server);
-//var bs = BinaryServer({server: binServer});
-var bs = BinaryServer({port: 3031});
-
-//Express
-app.set('views', path.join(__dirname, '../public/views'));
-app.set('view engine', 'jade');
-
-app.set('x-powered-by', false);
-
-//Middleware
-app.use(favicon(__dirname + '/../public/img/favicon.ico'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({extended: true}));
-
-//Static assets
-// TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
-app.use(express['static'](path.join(__dirname, '../public')));
-
-//Logger
-//app.use(morgan('dev'));
-
-//L33t asci
-console.log('  __________.____________           ');
-console.log('  \\______   \\__\\______   \\____  ');
-console.log('   |     ___/  ||     ___/  _ \\    ');
-console.log('   |    |   |  ||    |  (  <_> )'    );
-console.log('   |____|   |__||____|   \\____/    ');
-console.log('');
-
-database.connect('development');
-
-// Initialize authentication framework
-AuthenticationManager.init(app);
-
-// Load routes
-var routePath = __dirname + '/routes/';
-var routes = [];
-logger.info("[SERVER] Loading routes...");
-fs.readdirSync(routePath).forEach(function(file) {
-  var route = routePath + file;
-  var routeName = file.split('.')[0];
-  logger.debug("[SERVER] Loading route", routeName);
-  routes[routeName] = require(route)(app);
-});
-
-io.on('connection',function (socket) {
-  logger.debug("Connection to io");
-});
-
-
-var ioMain = io.of('/socket');
-
-
-// Startup routine
-initServer();
-
-function initServer() {
+Server.prototype.initServer = function(config) {
+  var ioMain = config.socket;
+  var bs = config.binSocket;
+  var AdminCertificate = config.AdminCertificate;
   var socketServer = null;
 
   // Need to make this run an init method that then runs createSystemUser
-  createSystemUser(function() {
+  this.createSystemUser(function() {
     var socketServer;
     switch (configPipo.encryptionStrategy) {
       // Use master shared key encryption (faster but slightly less secure possibly)
@@ -163,10 +217,10 @@ function initServer() {
   })
 }
 
-function createSystemUser(callback) {
-  logger.debug('[server.createSystemUser] Running create system user...');
+Server.prototype.createSystemUser = function(callback) {
   fs.readFile(__dirname + '/../keys/pipo.key', function(err, pipoPrivateKey) {
     var pipoPrivateKey = pipoPrivateKey;
+
     fs.readFile(__dirname + '/../keys/pipo.pub', function(err, pipoPublicKey) {
       var pipoPublicKey = pipoPublicKey;
       User.create({
@@ -183,43 +237,4 @@ function createSystemUser(callback) {
   });
 };
 
-
-/**
- * Handle server errors
- */
-server.on('error', function onError(error) {
-  if (error.syscall !== 'listen') {
-    throw error;
-  }
-
-  var port = configHttp.port;
-  var bind = typeof port === 'string'
-    ? 'Pipe ' + port
-    : 'Port ' + port;
-
-  // handle specific listen errors with friendly messages
-  switch (error.code) {
-    case 'EACCES':
-      logger.error('[SERVER] ' + bind + ' requires elevated privileges');
-      process.exit(1);
-      break;
-    case 'EADDRINUSE':
-      logger.error('[SERVER] ' + bind + ' is already in use.');
-      process.exit(1);
-      break;
-    default:
-      throw error;
-  }
-});
-
-server.on('listening', function listening() {
-  var addr = server.address();
-  var bind = typeof addr === 'string'
-    ? 'pipe ' + addr
-    : 'port ' + addr.port;
-  logger.info('[SERVER] Listening on ' + bind);
-});
-
-//https_server.listen(configHttps.port);
-server.listen(configPipo.server.port);
-//binServer.listen(3031);
+module.exports = Server;

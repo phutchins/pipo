@@ -1,7 +1,7 @@
 var passport = require('passport');
 //var passportPublicKey = require('passport-publickey');
 
-module.exports = function(app) {
+function Auth(app) {
   app.post('/login',
     passport.authenticate('keyverify', { session: false }),
     function(req, res) {
@@ -17,6 +17,6 @@ module.exports = function(app) {
       return res.sendStatus(200);
     }
   );
-
-
 };
+
+module.exports = Auth;

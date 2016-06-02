@@ -2,6 +2,7 @@
 //spec/socketServer.spec.js
 
 var mongoose = require('mongoose');
+var jasmine = require('jasmine');
 
 //var io = require('socket.io-client');
 var should = require('should');
@@ -58,27 +59,6 @@ var testPublicRoom = new Room({
 testPublicRoom._members.push(testUser);
 testPublicRoom._admins.push(testUser);
 
-describe('Sanatize room for client', function() {
-  var socketServer = new SocketServer();
-  it('should convert _members object to array of usernames', function() {
-    var correctlySanatizedRoom = ({
-      name : 'testroom',
-      topic : 'test room topic',
-      group : 'default',
-      messages : [  ],
-      encryptionScheme : 'clientkey',
-      keepHistory : true,
-      membershipRequired : false,
-      members : [ 'TestUser1' ],
-      admins : [ 'TestUser1' ],
-      owner : 'TestUser1'
-    });
-    socketServer.sanatizeRoomForClient(testPublicRoom, function(sanatizedRoom) {
-      expect(sanatizedRoom).toMatch(correctlySanatizedRoom);
-    })
-  })
-});
-
 describe('Get default room', function() {
   var socketServer = new SocketServer();
   it('should return a room', function() {
@@ -93,6 +73,7 @@ describe('Get default room', function() {
   })
 });
 
+/*
 describe('Chat server', function() {
   describe('authentication', function() {
     var socketServer;
@@ -152,3 +133,4 @@ describe('Chat server', function() {
     })
   })
 });
+*/

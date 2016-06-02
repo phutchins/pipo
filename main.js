@@ -16,5 +16,5 @@ if (process.versions['electron']) {
 } else {
   // Running in node (or something else, should be more specific here) so load the server
   console.log("Starting as Server");
-  require('./server/server.js');
+  require('./server/server.js')();
 }

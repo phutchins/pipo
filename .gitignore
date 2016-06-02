@@ -6,3 +6,4 @@ cache/
 out/
 .DS_Store
 files/
+coverage/

@@ -1,9 +1,10 @@
-node_modules
-adminData/
+/node_modules
+/adminData/
+/config/
 *.log
-dist/
-cache/
-out/
+/dist
+/cache/
+/out/
 .DS_Store
-files/
-coverage/
+/files/
+/coverage/

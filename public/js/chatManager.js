@@ -942,7 +942,10 @@ ChatManager.focusChat = function focusChat(data, callback) {
       var pfileId = this.id;
       console.log("Pfile link clicked! ID: " + pfileId);
 
-      window.FileManager.getFile({ id: pfileId });
+      var fileManager = FileManager();
+      // Need to make sure that this stays around long enough to get the
+      // file event but doesn't live forever
+      fileManager.getFile({ id: pfileId });
     });
   });
   console.log("[ChatManager.focusChat] (1) Running ChatManager.updateChatStatus();");

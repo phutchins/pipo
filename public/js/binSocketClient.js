@@ -1,13 +1,15 @@
-function binSocketClient(options) {
-  var self = this;
+'use strict'
 
-  if (!(this instanceof binSocketClient)) {
-    return new binSocketClient(options);
+function BinSocketClient(options) {
+  if (!(this instanceof BinSocketClient)) {
+    return new BinSocketClient(options);
   }
+
+  this._options = options || {};
 
   var binServerProtocol = 'ws';
   var protocol = window.location.protocol;
-  if (protocol == 'https') {
+  if (protocol === 'https') {
     binServerProtocol = 'wss';
   }
 
@@ -30,15 +32,24 @@ function binSocketClient(options) {
   this.binSocket = new BinaryClient(binServer);
   console.log("[socketClient.init] binSocket: ", this.binSocket);
   console.log("[socketClient.init] Connected to binServer at " + binServer);
+
+  this.addBinListeners();
+  // Need to bind binSocket to this somehow so we can watch .connected
+}
+
+BinSocketClient.prototype.close = function() {
+  return this.binSocket.close();
 };
 
-SocketClient.prototype.addBinListeners = function() {
+BinSocketClient.prototype.addBinListeners = function() {
   var self = this;
   self.binListeners = true;
   var file;
 
+  // Maybe we split these appart and only add stream listener when we're
+  // actually waiting on a stream
   this.binSocket.on('stream', function(chunkStream, data){
-    console.log("[socketClient.socket.file] Got file event from server");
+    console.log('[socketClient.socket.file] Got file event from server');
     var id = data.id;
     var fileName = data.fileName;
     var chunkCount = data.chunkCount;
@@ -46,14 +57,14 @@ SocketClient.prototype.addBinListeners = function() {
 
     // Build an object locally to keep track of the parts of the file
     // if it doesn't exist
-    var incomingFilesIsUndefined = typeof window.incomingFiles == 'undefined';
+    var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
     if (incomingFilesIsUndefined) {
       window.incomingFiles = [];
       window.incomingFiles[id] = {
         fileName: fileName,
         chunksReceived: 0,
         chunkCount: chunkCount
-      }
+      };
     }
 
     var parts = [];
@@ -61,41 +72,66 @@ SocketClient.prototype.addBinListeners = function() {
       parts.push(data);
     });
 
-    function ab2str(buf) {
-        return String.fromCharCode.apply(null, new Uint8Array(buf));
-    }
 
     // add each of the streamed chunks to an array in the correct order then
     // save that array as a file blob?
 
     chunkStream.on('end', function() {
+      var self = this;
+      console.log('[binSocketClient.addBinListeners] Got chunkStream END');
       file = new Blob(parts);
-      var reader = new FileReader();
+      self.reader = new FileReader();
+
+      // This method causes a 'Maximum call stack size exceeded' for some reason
+      function ab2str(buf) {
+          return String.fromCharCode.apply(null, new Uint8Array(buf));
+      }
+
+      function _arrayBufferToBase64( buffer ) {
+        var binary = '';
+        var bytes = new Uint8Array( buffer );
+        var len = bytes.byteLength;
+        for (var i = 0; i < len; i++) {
+          binary += String.fromCharCode( bytes[ i ] );
+        }
+        return window.btoa( binary );
+      }
 
       // Really should just update the kbpgp library to accept and decrypt buffers
-      reader.addEventListener('loadend', function() {
-        var encryptedFile = ab2str(reader.result);
+      console.log('[binSocketClient.addBinListeners] Adding loadend event listener');
+
+      self.reader.addEventListener('loadend', function() {
+        var encryptedFile = _arrayBufferToBase64(self.reader.result);
+
+        console.log('[binSocketClient.addBinListeners] About to decrypt message');
+
         encryptionManager.decryptMessage({
           encryptedMessage: encryptedFile,
           keyRing: encryptionManager.keyRing
         }, function(err, results) {
-          // Save the chunk to local storage with a pointer in window.chunksReceived
-          //
-          window.incomingFiles[id].chunksReceived++;
-
           // Initialize chunks array if it does not exist
           if (!window.incomingFiles[id].chunks) {
             window.incomingFiles[id].chunks = [];
-          };
+          }
+
+          // Save the chunk to local storage with a pointer in window.chunksReceived
+          window.incomingFiles[id].chunksReceived++;
+          console.log('[binSocketClient.addBinListeners] Decrypted message...');
 
           var chunkIndex = (chunkNumber - 1);
           window.incomingFiles[id].chunks[chunkIndex] = results;
+          console.log('[binSocketClient.addBinListeners] ');
 
           if (window.incomingFiles[id].chunksReceived == chunkCount) {
             // Need to piece the file back together here before saving it
-            var completeFileBlob = new Blob(window.incomingFiles[id].chunks)
+            var completeFileBlob = new Blob(window.incomingFiles[id].chunks);
 
             saveAs(completeFileBlob, fileName);
+
+            // Close the binSocket connection since we're finished receiving the file
+            console.log("[binSocketClient.addBinListeners] About to close self");
+            this.close();
+            console.log("[binSocketClient.addBinListeners] Closing binSocket as we're finished getting the file");
 
             return delete window.incomingFiles[id];
           };
@@ -103,8 +139,9 @@ SocketClient.prototype.addBinListeners = function() {
       });
 
       console.log("[socketClient.addBinListeners] Reading file as array buffer");
-      reader.readAsArrayBuffer(file);
+      self.reader.readAsArrayBuffer(file);
     });
   });
 };
 
+window.BinSocketClient = BinSocketClient;

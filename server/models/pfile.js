@@ -72,7 +72,8 @@ pfileSchema.statics.create = function create(data, callback) {
 
         self.addChunk(data, function(err) {
           if (err) {
-            return logger.debug("[pfile.create] Error adding chunk: " + err);
+            logger.debug("[pfile.create] Error adding chunk: " + err);
+            return callback(err, null);
           }
 
           logger.debug("[pfile.create] Added chunk #" + data.chunkNumber + " to pFile " +  data.fileName);
@@ -157,37 +158,44 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
   // don't already have a copy of the file. If we do have a file where the hash matches, that
   // means that it is already encrypted to the same people.
   var fileBuffer = data.fileBuffer;
-  var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest("hex");
+  var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest('hex');
 
   // Check to see if the pfile exists
-  // Need to use complete file hash for this name here and allow the client to confirm the orig chunkHash upon download
+  // Need to use complete file hash for this name here and allow the client to
+  // confirm the orig chunkHash upon download
   this.findOne({ name: data.fileName }, function(err, pFile) {
     if (!pFile) {
       // Create it if it doesn't exist with the first chunk data
       self.create(data, function(err, newPFile) {
         if (err) {
-          logger.debug("[pfile.addChunk] Error creating pfile");
-        };
+          logger.debug('[pfile.addChunk] Error creating pfile');
+          return callback(err, null);
+        }
 
-        if (newPFile.chunkCount == 1) {
+        if (newPFile.chunkCount === 1) {
           newPFile.isComplete = true;
-        };
+        }
 
         logger.debug("[pfile.addChunk] Created pFile as it did not exist");
         return callback(err, newPFile);
       });
-    };
+    }
 
     // Otherwise, add the chunk to the pfile
     if (pFile) {
       var pfileChunkName = chunkHash + "." + data.fileName + "." + data.chunkNumber;
 
       if (pFile.isComplete) {
-        console.log("Pfile already exists and is complete");
-        return callback("Pfile already exists and is complete", null);
-      };
+        console.log('Pfile already exists and is complete');
+        return callback('Pfile already exists and is complete', null);
+      }
 
       fs.writeFile("files/" + pfileChunkName, Buffer(fileBuffer.data), function(err) {
+        if (err) {
+          console.log("[pfile.addChunk] Error writing file to disk: " + err);
+          return callback(err, null);
+        };
+
         logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
 
         self.findOneAndUpdate(

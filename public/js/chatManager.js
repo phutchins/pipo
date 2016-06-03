@@ -1307,7 +1307,7 @@ ChatManager.handleMessage = function handleMessage(data) {
     encryptedMessage: data.message
   }, function(err, messageLiterals) {
     if (err) {
-      console.log(err);
+      return console.log(err);
     }
     var ds = km = null;
     ds = messageLiterals[0].get_data_signer();

@@ -1,20 +1,35 @@
 function SocketClient() {
   var self = this;
-  var server = window.location.protocol + "//" + window.location.host;
-  //var binServer = "ws://" + window.location.host;
-  var binServer = "ws://localhost:3031";
-  console.log("Before binServer: " + binServer);
+  var protocol = window.location.protocol;
+  var server = protocol + "//" + window.location.host;
+  var binServerProtocol = 'ws';
+
+  if (protocol == 'https') {
+    binServerProtocol = 'wss';
+  }
+
+  var binServerPort = 3031;
+  var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
 
   if (window.config) {
     var host = window.config.server.host;
     var port = window.config.server.port;
+    var binServerHost = window.config.binServer.host;
+    var binServerPort = window.config.binServer.port;
+
     var proto = "http";
+    var binServerProto = 'ws';
 
     if (window.config.server.ssl) {
       proto = "https";
-    };
-    server = proto + "://" + host + ":" + port;
-    binServer = "ws://localhost:3031";
+    }
+
+    if (window.config.binServer.ssl) {
+      binServerProto = 'wss';
+    }
+
+    server = proto + '://' + host + ':' + port;
+    binServer = binServerProto + '://localhost:3031';
   }
 
   console.log("Server: " + server);

@@ -45,6 +45,7 @@ function SocketServer(namespace) {
   }
 }
 
+/*
 SocketServer.prototype.onBinarySocket = function(binSocket) {
   this.binSocket = binSocket;
   var self = this;
@@ -52,6 +53,7 @@ SocketServer.prototype.onBinarySocket = function(binSocket) {
   logger.debug("[socketServer.onBinarySocket] Init binary listeners");
 
 };
+*/
 
 SocketServer.prototype.onSocket = function(socket) {
   this.socket = socket;

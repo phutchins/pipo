@@ -21,22 +21,9 @@ function FileManager() {
 
     if ( !pfile.chatType ) {
       return logger.error("[FileManager.notifyNewFile] No chatType specified");
-    };
-
-    // These both get the chatId from teh same place. Need to merge chat and room and collapse this code.
-    if (pfile.chatType == 'room') {
-      logger.debug("[FileManager.notifyNewFile] Type is room");
-      chatId = pfile.toChatId;
-      logger.debug("[FileManager.notifyNewFile] pfile.toRoom.id: " + pfile.toRoom.id);
-      logger.debug("[FileManager.notifyNewFile] chatId: " + chatId);
     }
 
-    if ( pfile.chatType == 'chat') {
-      logger.debug("[FileManager.notifyNewFile] Type is chat");
-      chatId = pfile.toChatId;
-      logger.debug("[FileManager.notifyNewFile] pfile.toRoom.id: " + pfile.toRoom.id);
-      logger.debug("[FileManager.notifyNewFile] chatId: " + chatId);
-    }
+    chatId = pfile.toChatId;
 
     var messageData = {
       chatType: pfile.chatType,
@@ -51,7 +38,32 @@ function FileManager() {
 
     // Server should let users of a chat know that a file has been uploaded (in case the user fails to notify after success upload)
     NotifyManager.sendToChat(messageData);
-  }
+  };
+
+  // TODO: This should create a popup or something, not send message to the room...
+  this.notifyError = function(data) {
+    var err = data.err;
+    var socketServer = data.socketServer;
+    var pfile = data.pfile;
+    var signingKeyManager = data.signingKeyManager;
+    var fileName = data.fileName;
+    var chatType = data.chatType;
+    var chatId = data.chatId;
+
+    // Create the message to be displayed
+    // TODO: Should specify the user here...
+    var pfileMessage = 'Sorry, there was an error while uploading ' + fileName + '. Error: ' + err;
+
+    var messageData = {
+      chatType: chatType,
+      chatId: chatId,
+      message: pfileMessage,
+      socketServer: socketServer,
+      signingKeyManager: signingKeyManager
+    };
+
+    NotifyManager.sendToChat(messageData);
+  };
 
   this.handleChunk = function handleChunk(data) {
     var self = this;
@@ -60,6 +72,7 @@ function FileManager() {
     var fileName = data.fileName;
     var systemUser = EncryptionManager.systemUser;
     var chatType = data.chatType;
+    var chatId = data.toChatId;
     var chunkNumber = data.chunkNumber;
     var chunkCount = data.chunkCount;
 
@@ -71,28 +84,43 @@ function FileManager() {
     // Create PFile object to keep track of the file
     // This way all members of that chat can list files that they have access to.
     PFile.addChunk(data, function(err, pfile) {
+      var addChunkErr = err;
+
       logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
+      EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+        if (err) {
+          return logger.error("[file.handleChunk] Error getting keyManager: " + err);
+        }
 
-      if (err) {
-        return logger.error("[file.handleChunk] Error saving file: " + err);
-        // Notify the client of an error here
-      }
+        if (addChunkErr) {
+          var errorData = {
+            err: addChunkErr,
+            chatType: chatType,
+            fileName: fileName,
+            chatId: chatId,
+            socketServer: socketServer,
+            signingKeyManager: pipoKeyManager
+          };
 
-      if (!pfile) {
-        return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
-      }
+          self.notifyError(errorData);
 
-      console.log("[file.handleChunk] About to try to send notification to clients...");
+          return logger.error("[file.handleChunk] Error saving file: " + addChunkErr);
+        }
 
-      // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
-      // then remote the bad data
+        if (!pfile) {
+          return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
+        }
 
-      if (pfile && pfile.isComplete) {
-        // Get the pipo user (should move this to an init method in encryption manager and save it to state)
-        EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+        console.log("[file.handleChunk] About to try to send notification to clients...");
+
+        // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
+        // then remote the bad data
+
+        if (pfile && pfile.isComplete) {
+          // Get the pipo user (should move this to an init method in encryption manager and save it to state)
           self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
-        });
-      };
+        };
+      });
     });
   };
 
@@ -129,6 +157,10 @@ function FileManager() {
           logger.debug("[socketServer.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
           //ss(socket).emit('file', ssChunkStream, fileData);
           //socket.emit('file', chunkStream, fileData);
+          if (!binSocket) {
+            return console.error("[fileManager.handleGetFile] binSocket is not defined!");
+          }
+
           binSocket.send(chunkStream, fileData);
           logger.debug("[socketServer.onGetFile] Sent emit, piping to stream");
           //ssChunkStream.pipe(chunkStream);

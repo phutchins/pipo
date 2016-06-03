@@ -1,7 +1,13 @@
-var FileManager = {};
+'use strict'
 
-FileManager.sendFile = function sendFile(data, callback) {
-  console.log("[FileManager.sendFile] Sending file...");
+function FileManager(options) {
+  if (!(this instanceof FileManager)) {
+    return new FileManager(options);
+  }
+}
+
+FileManager.prototype.sendFile = function sendFile(data, callback) {
+  console.log('[FileManager.sendFile] Sending file...');
 
   var chunk = data.chunk;
   var chunkNumber = data.chunkNumber;
@@ -38,8 +44,12 @@ FileManager.sendFile = function sendFile(data, callback) {
   callback(null);
 };
 
-FileManager.getFile = function getFile(data) {
+
+
+FileManager.prototype.getFile = function getFile(data) {
   // Send socket request to the server asking for the pfile by id
   // Should set some bits here to show that we're waitijng for the incoming file and reset it when we get the incoming file message
   window.socketClient.socket.emit('getFile', { id: data.id });
 };
+
+module.exports = FileManager;

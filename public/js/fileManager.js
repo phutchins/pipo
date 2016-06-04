@@ -8,8 +8,9 @@ function FileManager(options) {
 
 FileManager.prototype.sendFile = function sendFile(data, callback) {
   console.log('[FileManager.sendFile] Sending file...');
+  var self = this;
 
-  var chunk = data.chunk;
+  var fileChunkArrayBuffer = data.fileChunkArrayBuffer;
   var chunkNumber = data.chunkNumber;
   var chunkCount = data.chunkCount;
   var fileMetadata = data.fileMetadata;
@@ -33,14 +34,54 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     description: description
   };
 
-  // TODO: This is broken here...
-  // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
-  window.encryptionManager.encryptFile({
-    file: chunk,
-    chatId: toChatId
-  }, function(err, encryptedChunk) {
-    fileData.fileBuffer = new window.buffer.Buffer(encryptedChunk);
-    window.socketClient.socket.emit('sendFile', fileData);
+  console.log('[fileManager.sendFile] Waiting for binSocket to OPEN');
+  binSocketClient.binSocket.on('open', function() {
+    console.log('[fileManager.sendFile] binSocket is now OPEN');
+
+    window.encryptionManager.sha256(fileChunkArrayBuffer).then(function(dataHash) {
+      console.log('[fileManager.sendFile] Payload hash before encryption is ' + dataHash);
+
+      // TODO: This is broken here...
+      // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
+      window.encryptionManager.encryptFile({
+        file: fileChunkArrayBuffer,
+        chatId: toChatId
+      }, function(err, encryptedChunkBuffer) {
+        // Here encryptedChunkBuffer is a kbpgp.Buffer (which is similar to NodeJS buffer
+        // Should we return the resultString from encryption for sha256 here?
+        debugger;
+
+        window.encryptionManager.sha256(encryptedChunkBuffer).then(function(encHash) {
+          console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
+          //fileData.fileBuffer = new window.buffer.Buffer(encryptedChunk);
+          //var fileBuffer = new window.buffer.Buffer(encryptedChunk);
+          //window.socketClient.socket.emit('sendFile', fileData);
+          //binSocketClient.send(fileData);
+          var binStream = binSocketClient.binSocket.send(encryptedChunkBuffer, {
+            fileName: fileName,
+            dataHash: dataHash,
+            encHash: encHash,
+            chunkNumber: chunkNumber,
+            chunkCount: chunkCount,
+            size: fileMetadata.size,
+            type: fileMetadata.type,
+            toChatId: toChatId,
+            chatType: chatType,
+            uploadedBy: ChatManager.userProfile.id,
+            description: description
+          });
+
+          var tx = 0;
+          binStream.on('data', function(data) {
+            console.log('Progress: ' + Math.round(tx+=data.rx*100) + '%');
+
+            // Once stream is 100%, binStream.end() here instead
+          });
+
+          //binStream.end();
+        });
+      });
+    });
   });
 
   callback(null);
@@ -60,6 +101,7 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
   var chatType = ChatManager.chats[ChatManager.activeChat].type;
   var toChatId = ChatManager.chats[ChatManager.activeChat].id;
 
+  // Only work with one file at a time for now
   var file = files[0];
   var chunkSize = 1048576;
   var fileSize = file.size - 1;
@@ -69,25 +111,28 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
   var chunkRemainder = chunkCountRaw % 1
   var wholeChunks = chunkCountRaw - chunkRemainder;
   var chunkCount = Math.ceil(chunkCountRaw);
-  // Scope issues here, can't read currentChunk from within the while loop reader.onloadend below
   var currentChunk = 0;
 
   // While we are in a chunk range that is not longer than the file, keep sending chunks
   while (currentChunk <= wholeChunks) {
     var reader = new FileReader();
+    // Get the file here?
+    //var reader = new InputStreamReader( new FileInputStream(file), 'binary' );
     var thisChunk = currentChunk;
     var start;
     var end;
 
+    // Use inputStreamReader with a different listen event here
     reader.onloadend = (function(chunkNum) {
       var chunk = chunk;
       return function(evt) {
+        // This returns an arrayBuffer in evt.target.result
         if (evt.target.readyState == FileReader.DONE) {
           console.log("[fileManager.readFiles] Sending chunk " + (chunkNum + 1) + " of " + chunkCount);
 
           self.sendFile({
             fileMetadata: file,
-            chunk: evt.target.result,
+            fileChunkArrayBuffer: evt.target.result,
             chunkNumber: chunkNum,
             chunkCount: chunkCount,
             description: description,
@@ -116,7 +161,7 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
       };
     })(thisChunk);
 
-    // Otherwise, upload a whole chunk which is ( currentChunk * chunkSize )
+    // Upload a whole chunk which is ( currentChunk * chunkSize )
     if (currentChunk < wholeChunks) {
       start = ( currentChunk * chunkSize );
       end = (( currentChunk  + 1 ) * chunkSize );
@@ -132,7 +177,8 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
 
     var blob = file.slice(start, end);
 
-    reader.readAsBinaryString(blob);
+    //reader.readAsBinaryString(blob);
+    reader.readAsArrayBuffer(blob);
 
     // Would it be better to move this to the beginning?
     // Need to get chunk counts accurate

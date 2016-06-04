@@ -10,6 +10,7 @@ var Message = require('../models/message');
 var Chat = require('../models/chat');
 var dl = require('delivery');
 var fs = require('fs');
+var stream = require('stream');
 
 // Managers
 var FileManager = require('./managers/file');
@@ -44,11 +45,41 @@ function SocketServer(namespace) {
   }
 }
 
-SocketServer.prototype.onBinarySocket = function(binSocket) {
+SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
   this.binSocket = binSocket;
   var self = this;
 
-  logger.debug("[socketServer.onBinarySocket] Init binary listeners");
+  logger.debug("[socketServer.onBinarySocketConnection] Init binary listeners");
+
+  binSocket.on('stream', function(fileStream, data) {
+    data.socketServer = self;
+
+    logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
+
+    var parts = [];
+    // Here we need to make sure to save the parts and concat them in a format that
+    // plays nice with binary.
+
+    // We receive the stream as a Buffer here
+    var tx = 0;
+    fileStream.on('data', function(chunkBuffer) {
+      logger.debug('[socketServer.onBinarySocketConnection] Got data from stream...');
+      fileStream.write({rx: chunkBuffer.length / data.size});
+      parts.push(chunkBuffer);
+    });
+
+    fileStream.on('end', function() {
+      logger.debug('[socketServer.onBinarySocketConnection] fileStream ended');
+      var fileBuffer = Buffer.concat(parts);
+      data.fileBuffer = fileBuffer;
+      self.arrayHash(fileBuffer, function(dataHash) {
+        data.arrayHash = dataHash;
+        logger.debug('[socketServer.onBinarySocketConnection] Encrypted data hash before save is ' + dataHash);
+        FileManager.handleChunk(data);
+      });
+    });
+
+  });
 
 };
 
@@ -594,6 +625,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 SocketServer.prototype.onSendFile = function(data){
   var self = this;
   data.socketServer = self;
+
+  logger.debug('[socketServer.onSendFile] Got sendFile socket event');
 
   FileManager.handleChunk(data);
 };

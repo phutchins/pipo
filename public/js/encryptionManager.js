@@ -428,8 +428,10 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 
 EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
   var self = this;
-  var file = data.file;
-  var fileBuffer = new kbpgp.Buffer(file);
+  // Here, file is an arrayBuffer
+  var fileArrayBuffer = data.file;
+  // Create Buffer from the arrayBuffer
+  var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
   var chatId = data.chatId;
   var keys = [];
   var keyFingerPrints = {};
@@ -440,11 +442,16 @@ EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
 
   keys.push(self.keyManager);
 
-  window.kbpgp.box({ msg: fileBuffer,
+  window.kbpgp.box({
+    msg: fileBuffer,
     encrypt_for: keys,
     sign_with: self.keyManager
-  }, function(err, pgpFile) {
-    callback(err, pgpFile);
+  }, function(err, resultString, resultBuffer) {
+    // Need to make sure that resultBuffer from box is the same as .burn (raw binarydata buffer)
+    //kbpgp.burn(params, function(err, result_string, result_buffer) {
+      //var resultBinaryBuffer = result_buffer.toString('binary');
+      callback(err, resultBuffer);
+    //});
   });
 };
 

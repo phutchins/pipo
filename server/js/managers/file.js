@@ -145,6 +145,10 @@ function FileManager() {
         //var ssChunkStream = ss.createBlobReadStream();
 
         pfile.getChunk(currentChunk, function(err, chunkStream) {
+          if (err) {
+            return logger.error('[FileManager.handleGetFile] Error getting pFile chunk: ' + err);
+          }
+
           currentChunk++;
           var fileData = {
             id: pfile.id,
@@ -158,7 +162,7 @@ function FileManager() {
           //ss(socket).emit('file', ssChunkStream, fileData);
           //socket.emit('file', chunkStream, fileData);
           if (!binSocket) {
-            return console.error("[fileManager.handleGetFile] binSocket is not defined!");
+            return logger.error("[fileManager.handleGetFile] binSocket is not defined!");
           }
 
           binSocket.send(chunkStream, fileData);

@@ -14,6 +14,7 @@ SendFileModal.init = function init(successCallback) {
     onSuccess: function() {
       console.log("[sendFileModal.init] Form success!");
 
+      // Get the files object from the dom element
       var files = document.getElementById('sendfile-file-input').files;
 
       fileManager.readFiles(files, function(err) {

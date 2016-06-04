@@ -145,7 +145,7 @@ pfileSchema.methods.getChunk = function getChunk(index, callback) {
   logger.debug("[pfile.get] Got chunk '" + chunkName + "'");
 
   // Read the file from disk and return it (as a readable stream?)
-  var chunkStream = fs.createReadStream("files/" + chunkName);
+  var chunkStream = fs.createReadStream("files/" + chunkName, { encoding: 'binary' });
 
   return callback(null, chunkStream);
 };
@@ -158,7 +158,8 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
   // don't already have a copy of the file. If we do have a file where the hash matches, that
   // means that it is already encrypted to the same people.
   var fileBuffer = data.fileBuffer;
-  var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest('hex');
+  var chunkHash = crypto.createHash('rmd160').update(fileBuffer).digest('hex');
+  //var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest('hex');
 
   // Check to see if the pfile exists
   // Need to use complete file hash for this name here and allow the client to
@@ -190,7 +191,7 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
         return callback('Pfile already exists and is complete', null);
       }
 
-      fs.writeFile("files/" + pfileChunkName, Buffer(fileBuffer.data), function(err) {
+      fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
         if (err) {
           console.log("[pfile.addChunk] Error writing file to disk: " + err);
           return callback(err, null);

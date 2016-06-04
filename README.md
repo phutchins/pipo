@@ -15,6 +15,120 @@ PiPo's goal is to make secure communication easy to use and open source. It is a
 
 Currently PiPo uses the KbPGP library to do PGP encryption. Behind this is AES-256 with 4096 bit keys.
 
+## Data Flow
+
+### Uploading Files
+
+The following is the the process in which a file traverses when being sent from the client to the server and then is retrieved.
+
++ File is selected by the modal and passed to the JS
+At this point, files is an array of `File` objects. These file objects are a specific kind of `Blob`.
+`var files = document.getElementById('sendfile-file-input').files;`
+
++ The modal passes the files object to the fileManager.readFiles method
+`fileManager.readFiles(files, function(err){...`
+
++ A binary socket (via BinaryJS) is opened to the server
+
++ We set the file chunk size in `chunkSize`
+`var chunkSize = 1048576;`
+
++ We break the file up into chunks per the chunkSize
+The resulting chunks are `Blob` objects.
+```
+// Upload a whole chunk which is ( currentChunk * chunkSize )
+if (currentChunk < wholeChunks) {
+  start = ( currentChunk * chunkSize );
+  end = (( currentChunk  + 1 ) * chunkSize );
+}
+
+// If this is the last chunk, set final bytes
+// to ( currentChunk * chunkSize ) + finalChunk
+if (currentChunk === wholeChunks) {
+  start = ( currentChunk * chunkSize );
+  end = ( currentChunk * chunkSize ) + finalChunk;
+}
+
+var blob = file.slice(start,end);
+```
+
++ We begin reading chunks and sending them until we've read them all
+Here the `Blobs` are read as an ArrayBuffer and evt.target.result returned as an ArrayBuffer
+
+* It appears that we should be using FileReader.readAsArrayBuffer() instead as the method has been removed from the FileAPI standard *
+```
+reader.readAsArrayBuffer(blob);
+currentChunk++;
+
+while (currentChunk <= wholeChunks) {
+  ...
+  reader.onloadend = (function(chunkNum) {
+    return function(evt) {
+      if (evt.target.readyState == FileReader.DONE) {
+        self.sendFile({
+          fileChunkArrayBuffer: evt.target.result,
+          ...
+        }, function...
+```
+
++ For each chunk, we convert the ArrayBuffer (fileArrayBuffer) into a kbpgp.Buffer (fileBuffer)
+```
+// fileManager.js
+window.encryptionManager.encryptFile({
+  file: fileChunkArrayBuffer,
+  ...
+
+// encryptionManager.js
+var fileArrayBuffer = data.file;
+var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
+
++ Then we encrypt using the `fileBuffer` and return a kbpgp.buffer (raw binary data buffer) `resultBuffer`
+```
+window.kbpgp.box({
+  msg: fileBuffer,
+  encrypt_for: keys,
+  sign_with: self.keyManager
+}, function(err, resultString, resultBuffer) {
+    callback(err, resultBuffer);
+});
+```
+
++ Now we send the encryptedChunkBuffer via binaryJS to the server
+```
+var binStream = binSocketClient.binSocket.send(encryptedChunkBuffer, {
+  fileName: fileName,
+  ...
+});
+
+binStream.end();
+```
++ When the server (server.js) gets a binSocket connection, it pass it along to socketServer.onBinarySocketConnection(binSocket) (socketServer.js)
+
++ When the SocketServer (socketServer.js) gets a `stream`, it pushes each chunk (which is a Buffer) into an array (parts)
+
++ When we get the `end` event on the `fileStream`, we use Buffer.concat(parts) to put the pieces back together
+This may be an issue as the file is then saved in memory. Also we need to make sure that it is reassembeled correctly here.
+
++ The `fileBuffer` and metadata is then sent to `FileManager.handleChunk(data);` which handles each chunk of the file
+We're really only chunking the file right now to save us from having to hold the entire file in memory while encrypting
+
++ `FileManager.handleChunk(data)` directly sends this data to the `PFile` model (models/file.js) to add the chunk and save it to disk
+```
+PFile.addChunk(data, function(err, pfile) {
+  ...
+```
+
++ The `PFile` model does an `fs.writeFile` to write the file to disk with binary encoding
+```
+fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
+  ...
+```
+
+
+### Downloading Files
+
+
+
 ## Screenshots
 ![User1](./docs/screenshots/pipo_phutchins.png)
 ![User2](./docs/screenshots/pipo_flip.png)

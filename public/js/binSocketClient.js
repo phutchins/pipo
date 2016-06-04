@@ -87,28 +87,37 @@ BinSocketClient.prototype.addBinListeners = function() {
           return String.fromCharCode.apply(null, new Uint8Array(buf));
       }
 
-      function _arrayBufferToBase64( buffer ) {
+      function _arrayBufferToBinary( buffer ) {
         var binary = '';
         var bytes = new Uint8Array( buffer );
         var len = bytes.byteLength;
         for (var i = 0; i < len; i++) {
           binary += String.fromCharCode( bytes[ i ] );
         }
-        return window.btoa( binary );
+        //return window.btoa( binary );
+        return binary;
       }
+
 
       // Really should just update the kbpgp library to accept and decrypt buffers
       console.log('[binSocketClient.addBinListeners] Adding loadend event listener');
 
       self.reader.addEventListener('loadend', function() {
-        var encryptedFile = _arrayBufferToBase64(self.reader.result);
+        var encryptedFile = _arrayBufferToBinary(self.reader.result);
 
         console.log('[binSocketClient.addBinListeners] About to decrypt message');
+
+        debugger;
 
         encryptionManager.decryptMessage({
           encryptedMessage: encryptedFile,
           keyRing: encryptionManager.keyRing
         }, function(err, results) {
+          if (err) {
+            // Should alert the client of an error here
+            return console.log('[binSocketClient.addBinListeners.end] Error decrypting message: ' + err);
+          }
+
           // Initialize chunks array if it does not exist
           if (!window.incomingFiles[id].chunks) {
             window.incomingFiles[id].chunks = [];
@@ -119,7 +128,8 @@ BinSocketClient.prototype.addBinListeners = function() {
           console.log('[binSocketClient.addBinListeners] Decrypted message...');
 
           var chunkIndex = (chunkNumber - 1);
-          window.incomingFiles[id].chunks[chunkIndex] = results;
+
+          window.incomingFiles[id].chunks[chunkIndex] = results.toString('binary');
           console.log('[binSocketClient.addBinListeners] ');
 
           if (window.incomingFiles[id].chunksReceived == chunkCount) {
@@ -130,6 +140,7 @@ BinSocketClient.prototype.addBinListeners = function() {
 
             // Close the binSocket connection since we're finished receiving the file
             console.log("[binSocketClient.addBinListeners] About to close self");
+            debugger;
             this.close();
             console.log("[binSocketClient.addBinListeners] Closing binSocket as we're finished getting the file");
 

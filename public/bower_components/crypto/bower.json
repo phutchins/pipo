@@ -1,0 +1,11 @@
+{
+ "name": "crypto",
+ "version": "3.46.1",
+ "main": "crypto.min.js",
+ "description": "'crypto' nodejs core module browserify-ied with `--standalone crypto`. Should support all module systems (commonjs, AMD & `window.crypto`) - check browserify docs.",
+ "keywords": [
+  "nodejs",
+  "browserify",
+  "crypto"
+ ]
+}

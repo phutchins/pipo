@@ -103,16 +103,19 @@ BinSocketClient.prototype.addBinListeners = function() {
       console.log('[binSocketClient.addBinListeners] Adding loadend event listener');
 
       self.reader.addEventListener('loadend', function() {
-        var encryptedFile = _arrayBufferToBinary(self.reader.result);
+        //var encryptedFile = _arrayBufferToBinary(self.reader.result);
+        var encryptedFile = self.reader.result;
 
         console.log('[binSocketClient.addBinListeners] About to decrypt message');
 
-        debugger;
+        // Really need to stream the downloaded file directly to disk then decrypt optionally
+        // This would keep us from having to store the file in memory
+        // Could also stream to a localStorage file
 
-        encryptionManager.decryptMessage({
-          encryptedMessage: encryptedFile,
+        encryptionManager.decryptFile({
+          file: encryptedFile,
           keyRing: encryptionManager.keyRing
-        }, function(err, results) {
+        }, function(err, fileBuffer) {
           if (err) {
             // Should alert the client of an error here
             return console.log('[binSocketClient.addBinListeners.end] Error decrypting message: ' + err);
@@ -129,8 +132,7 @@ BinSocketClient.prototype.addBinListeners = function() {
 
           var chunkIndex = (chunkNumber - 1);
 
-          window.incomingFiles[id].chunks[chunkIndex] = results.toString('binary');
-          console.log('[binSocketClient.addBinListeners] ');
+          window.incomingFiles[id].chunks[chunkIndex] = fileBuffer;
 
           if (window.incomingFiles[id].chunksReceived == chunkCount) {
             // Need to piece the file back together here before saving it
@@ -140,7 +142,6 @@ BinSocketClient.prototype.addBinListeners = function() {
 
             // Close the binSocket connection since we're finished receiving the file
             console.log("[binSocketClient.addBinListeners] About to close self");
-            debugger;
             this.close();
             console.log("[binSocketClient.addBinListeners] Closing binSocket as we're finished getting the file");
 

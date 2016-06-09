@@ -191,11 +191,25 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
         return callback('Pfile already exists and is complete', null);
       }
 
-      fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
+      //fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
+      logger.debug('[pfile.addChunk] fileBuffer object type: ' + Object.prototype.toString.call(fileBuffer));
+      logger.debug('[pfile.addChunk] file: ', String.fromCharCode.apply(null, new Uint8Array(fileBuffer)));
+
+
+      // Pipe fileBuffer to file directly here?
+
+
+
+      var file = fs.createWriteStream("files/" + pfileChunkName);
+      fileBuffer.pipe(file);
+
+      /*
+      fs.writeFileSync("files/" + pfileChunkName, new Buffer(fileBuffer), function(err) {
         if (err) {
           console.log("[pfile.addChunk] Error writing file to disk: " + err);
           return callback(err, null);
         };
+        */
 
         logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
 
@@ -247,7 +261,9 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
             };
           }
         );
+        /*
       });
+      */
     }
   })
 };

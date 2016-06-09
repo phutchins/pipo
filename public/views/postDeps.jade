@@ -10,7 +10,6 @@ else
   if(config)
     script.
       window.config = !{JSON.stringify(config)};
-script(src='#{depRoot}js/lib/openpgp.js')
 script(src='#{depRoot}js/lib/kbpgp.js')
 script(src='#{depRoot}js/lib/jquery-1.11.1.js')
 script(src='#{depRoot}js/lib/semantic.js')
@@ -31,7 +30,6 @@ script(src='#{depRoot}bower_components/buffer/buffer.js')
 script(src='#{depRoot}bower_components/binaryjs/dist/binary.js')
 script(src='#{depRoot}bower_components/SparkMD5/spark-md5.js')
 // Load Modals
-script(src='#{depRoot}js/delivery.js')
 script(src='#{depRoot}js/modals/registerUserPrompt.js')
 script(src='#{depRoot}js/modals/unlockClientKeyPairModal.js')
 script(src='#{depRoot}js/modals/createRoomModal.js')
@@ -44,6 +42,8 @@ script(src='#{depRoot}js/MasterUserlist.js')
 script(src='#{depRoot}js/chatHeader.js')
 script(src='#{depRoot}js/authentication.js')
 script(src='#{depRoot}js/serverCommand.js')
+// Browserify bundle
+//script(src='#{depRoot}/js/bundle.js')
 // Load main scripts
 script(src='#{depRoot}js/chatManager.js')
 script(src='#{depRoot}js/encryptionManager.js')
@@ -52,4 +52,3 @@ script(src='#{depRoot}js/binSocketClient.js')
 script(src='#{depRoot}js/fileManager.js')
 script.
   hljs.initHighlightingOnLoad();
-  openpgp.initWorker('#{depRoot}js/lib/openpgp.worker.js');

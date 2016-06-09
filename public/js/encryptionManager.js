@@ -442,6 +442,16 @@ EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
 
   keys.push(self.keyManager);
 
+  // Try using burn and see if resultBuffer is different
+  debugger;
+
+  // Replace this crypto with node crypto (window.crypto) using diffieHellamn public key encryption
+
+  // *******
+  // The problem lies here somewhere in the encryption. The resultBuffer doesn't seem to
+  // return usable data that results in the encrypted file. Not sure if burn wuold help or not...
+  // *******
+
   window.kbpgp.box({
     msg: fileBuffer,
     encrypt_for: keys,
@@ -450,8 +460,32 @@ EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
     // Need to make sure that resultBuffer from box is the same as .burn (raw binarydata buffer)
     //kbpgp.burn(params, function(err, result_string, result_buffer) {
       //var resultBinaryBuffer = result_buffer.toString('binary');
-      callback(err, resultBuffer);
+
+      debugger;
+
+      var buffer = new Blob(resultString);
+      callback(err, buffer);
     //});
+  });
+};
+
+EncryptionManager.prototype.decryptFile = function decryptMessage(data, callback) {
+  var self = this;
+  var fileArrayBuffer = data.file;
+  var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
+  var keyRing = data.keyRing || this.keyRing;
+
+  // Add our own decrypted private key to the key manager so we can decrypt messages
+  if (self.keyManager) {
+    keyRing.add_key_manager(self.keyManager);
+  };
+
+  window.kbpgp.unbox({ keyfetch: keyRing, armored: fileBuffer }, function(err, literals) {
+    if (err) {
+      console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
+    }
+
+    return callback(err, literals.toBuffer('binary'));
   });
 };
 

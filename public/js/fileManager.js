@@ -49,7 +49,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
       }, function(err, encryptedChunkBuffer) {
         // Here encryptedChunkBuffer is a kbpgp.Buffer (which is similar to NodeJS buffer
         // Should we return the resultString from encryption for sha256 here?
-        debugger;
+        console.log('[fileManager.sendFile] encryptedChunkBuffer text: ' + String.fromCharCode.apply(null, new Uint8Array(encryptedChunkBuffer)));
 
         window.encryptionManager.sha256(encryptedChunkBuffer).then(function(encHash) {
           console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
@@ -73,6 +73,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
           var tx = 0;
           binStream.on('data', function(data) {
+            console.log('Progress(raw): ' + data.rx + ' tx: ' + tx);
             console.log('Progress: ' + Math.round(tx+=data.rx*100) + '%');
 
             // Once stream is 100%, binStream.end() here instead

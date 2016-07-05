@@ -30,7 +30,7 @@ When a user signs up with their username, email address and password, an AES-256
 ## Quick Setup (Dev/Test)
 To try out PiPo, I've included a sample adminCertificate. You should not use these for production as you do not have the private keys associated with these admin certificates.
 
-+ Insatll the node modules
++ Install the node modules
 
         npm install
 
@@ -39,13 +39,13 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
 + Make sure MongoDB is running locally
 + Start the app
 
-        node server.js
+        npm start
 
 
 ## Setup
 + Place two admins public keys in adminData in the format username.pub
   + Generate Two Keys (repeat this process for the second key)
-    + gpg --gen-key
+    + `gpg --gen-key`
     + Choose RSA and RSA
     + keysize should be at least 2048
     + Choose an amount of time for the key to expire
@@ -55,17 +55,17 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
     + Use a secure passphrase to protect your key
   + Export your public and private key to a file
     + List your secret keys to find the userID of your key which is a combination of full name (your username that you entered) along with email and comment
-      + gpg --list-secret-keys
-    + gpg --export -a "username <username@mydomain.com>" --output adminData/username.pub
-    + gpg --export-secret-key -a "username <username@mydomain.com>" --output adminData/username.key
+      + `gpg --list-secret-keys`
+    + `gpg --export -a "username <username@mydomain.com>" --output adminData/username.pub`
     + Place the two username.pub files in the adminData directory
-  + Run node setup again
+  + Run setup again: `npm run setup`
   + Generate a clearsign signature from each secret key for the generated adminPayload
-    + gpg --clearsign -u "username <username@mydomain.com>" adminData/adminPayload --output adminData/username.sig
-  + Run node seutp again
+    + `gpg --clearsign -u "username <username@mydomain.com>" adminData/adminPayload --output adminData/username.sig`
+  + Run seutp again: `npm run setup`
     + You should see the server start and tell you that out found the signatures
     + This will generate the adminCertificate
-  + Run npm start to start the server (make usre Mongo is running)
+  + Run `npm start` to start the server (make sure Mongo is running)
+  + Run `npm run start-client` to start the electron client
 
 
 ## Testing

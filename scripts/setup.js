@@ -1,10 +1,11 @@
 var fs = require('fs');
+var path = require('path');
 var async = require('async');
 var kbpgp = require('kbpgp');
-var encryptionManager = require('./managers/encryption');
-var adminDataDirectory = "./adminData/";
+var encryptionManager = require('../server/js/managers/encryption');
+var adminDataDirectory = "./config/adminData/";
 var AdminPayload, AdminCertificate;
-var logger = require('./config/logger');
+var logger = require('../config/logger');
 
 function loadAdminCertificate(callback) {
   try {
@@ -14,20 +15,13 @@ function loadAdminCertificate(callback) {
   callback();
 }
 
-function getFileExtension(fileName) {
-  var lastDot = fileName.lastIndexOf(".");
-  if ( lastDot === -1 || lastDot === fileName.length - 1) {
-    return null;
-  }
-  return fileName.substr(lastDot + 1);
-}
-
-function getOnlyFilename(fileName) {
-  var lastDot = fileName.lastIndexOf(".");
-  if ( lastDot === -1) {
-    return fileName;
-  }
-  return fileName.substr(0, fileName.lastIndexOf("."));
+function asyncKeyFilesFilterMap(filterExtension, mapFunction, done) {
+  var keyFileNames = fs.readdirSync(adminDataDirectory).filter(function(fileName) {
+    return path.extname(fileName) === filterExtension;
+  });
+  async.map(keyFileNames, function(fileName, next) {
+    mapFunction(fileName, next)
+  }, done);
 }
 
 function loadAdminPayload(callback) {
@@ -38,36 +32,32 @@ function loadAdminPayload(callback) {
   callback();
 }
 
-function loadAdminKeys(callback) {
+function loadAdminKeys(done) {
+  var extension = '.pub' ;
   if (!fs.existsSync(adminDataDirectory)) {
     fs.mkdirSync(adminDataDirectory);
   }
-  var keyFileNames = fs.readdirSync(adminDataDirectory).filter(function(name) {
-    return getFileExtension(name) === "pub";
-  });
-  async.map(keyFileNames, function(fileName, callback) {
+  asyncKeyFilesFilterMap(extension, function(fileName, next) {
     fs.readFile(adminDataDirectory + fileName, function(err, file) {
       if (err) {
-        return callback(err);
+        return next(err);
       }
       kbpgp.KeyManager.import_from_armored_pgp({
         armored: file
       }, function(err, key) {
-        return callback(err, {km: key, name: getOnlyFilename(fileName), file: file});
+        return next(err, {km: key, name: path.basename(fileName, extension), file: file});
       });
     });
-  }, callback);
+  }, done);
 }
 
-function loadAdminSignatures(callback) {
-  var keyFileNames = fs.readdirSync(adminDataDirectory).filter(function(name) {
-    return getFileExtension(name) === "sig";
-  });
-  async.map(keyFileNames, function(fileName, callback) {
+function loadAdminSignatures(done) {
+  var extension = '.pub' ;
+  asyncKeyFilesFilterMap(extension, function(fileName, next) {
     fs.readFile(adminDataDirectory + fileName, function(err, file) {
-      return callback(err, {data: file, name: getOnlyFilename(fileName)});
+      return next(err, {data: file, name: path.basename(fileName, extension)});
     });
-  }, callback);
+  }, done);
 }
 
 function buildAdminPayload() {
@@ -197,6 +187,6 @@ loadAdminCertificate(function () {
     });
   }
   else {
-    require('./server');
+    require('../server/server')();
   }
 });

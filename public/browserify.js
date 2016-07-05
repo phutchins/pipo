@@ -1,6 +1,4 @@
-var crypto = require('crypto');
-var exists = require('exists');
-var ursa = require('ursa');
+//var expect = require('expect.js');
+var nodeCrypto = require('crypto-browserify');
 
-window.nodeCrypto = crypto;
-window.ursa = ursa;
+window.nodeCrypto = nodeCrypto;

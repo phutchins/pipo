@@ -426,32 +426,64 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 };
 
 
-EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
+EncryptionManager.prototype.encryptFileStream = function encryptFileStream(data, callback) {
   var self = this;
   // Here, file is an arrayBuffer
   var fileArrayBuffer = data.file;
   // Create Buffer from the arrayBuffer
   var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
+  //var encryptedFileStream = // Need to get the stream passed in here
   var chatId = data.chatId;
   var keys = [];
   var keyFingerPrints = {};
+  var sessionKeys = {};
 
+  // Generate symetric session key and IV (initialization vector) for encryption
+  var rawSessionKey = crypto.randomBytes(16);
+  var sessionKey = rawSessionKey.toString('base64');
+  var iv = crypto.randomBytes(16);
+
+  // Init the cyper bits
+  var cipher = crypto.Cipheriv('aes-128-cbc', sessionKey, iv);
+
+  // Create an object mapping userids to their keyid and public key
+  // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
   Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+    var userKey = ChatManager.chats[chatId].keyRing._kms[userId];
+    debugger;
+    userKey.sign({}, function(err) {
+      userKey.export_pgp_public({}, function(err, pgp_public) {
+        keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+
+        debugger;
+
+        // Need to make the pgp_public key here pem encoded and possibly base64
+        sessionKeys['userId'] = {
+          keyId: userKey.get_pgp_key_id(),
+          pubKey: pgp_public
+        };
+      });
+    });
   });
 
   keys.push(self.keyManager);
 
-  // Try using burn and see if resultBuffer is different
+  // Encrypt session key to all recipients (can use kbpgp to encrypt the key to all recipients)
   debugger;
 
-  // Replace this crypto with node crypto (window.crypto) using diffieHellamn public key encryption
+  // Encrypt file with session key
+  var cipher = window.nodeCrypto.createCipher('aes256', sessionKey);
 
-  // *******
-  // The problem lies here somewhere in the encryption. The resultBuffer doesn't seem to
-  // return usable data that results in the encrypted file. Not sure if burn wuold help or not...
-  // *******
+  fileStream.pipe(cipher).pipe(encryptedFileStream);
 
+  // Pipe file input stream through cipher then pipe that to output (the stream we return to the callback)
+
+  // Sign entire message (like pgp)
+
+  // Put all of this together into an object or a block of data structured like a pgp message?
+  // Add iv to object
+
+  /*
   window.kbpgp.box({
     msg: fileBuffer,
     encrypt_for: keys,
@@ -467,6 +499,7 @@ EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
       callback(err, buffer);
     //});
   });
+  */
 };
 
 EncryptionManager.prototype.decryptFile = function decryptMessage(data, callback) {

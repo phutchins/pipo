@@ -34,6 +34,13 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     description: description
   };
 
+  // Create readable stream from the file that we're sending
+  // Send the readable stream through encryptionManager.encryptFileSTream
+  // Pipe the returned stream to binjs stream
+  // Send that binjs stream to binjs server
+
+  debugger;
+
   console.log('[fileManager.sendFile] Waiting for binSocket to OPEN');
   binSocketClient.binSocket.on('open', function() {
     console.log('[fileManager.sendFile] binSocket is now OPEN');
@@ -43,21 +50,22 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
       // TODO: This is broken here...
       // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
-      window.encryptionManager.encryptFile({
+      window.encryptionManager.encryptFileStream({
         file: fileChunkArrayBuffer,
         chatId: toChatId
-      }, function(err, encryptedChunkBuffer) {
+      }, function(err, encryptedFileStream) {
         // Here encryptedChunkBuffer is a kbpgp.Buffer (which is similar to NodeJS buffer
         // Should we return the resultString from encryption for sha256 here?
         console.log('[fileManager.sendFile] encryptedChunkBuffer text: ' + String.fromCharCode.apply(null, new Uint8Array(encryptedChunkBuffer)));
 
-        window.encryptionManager.sha256(encryptedChunkBuffer).then(function(encHash) {
+        // May need to pipe this through the sha256 generator then pipe to binStream?
+        window.encryptionManager.sha256(encryptedFileStream).then(function(encHash) {
           console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
           //fileData.fileBuffer = new window.buffer.Buffer(encryptedChunk);
           //var fileBuffer = new window.buffer.Buffer(encryptedChunk);
           //window.socketClient.socket.emit('sendFile', fileData);
           //binSocketClient.send(fileData);
-          var binStream = binSocketClient.binSocket.send(encryptedChunkBuffer, {
+          var binStream = binSocketClient.binSocket.send(encryptedFileStream, {
             fileName: fileName,
             dataHash: dataHash,
             encHash: encHash,
@@ -176,7 +184,8 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
     }
 
 
-    var blob = file.slice(start, end);
+    // Should read the slice into blob here as binary?
+    var blob = file.slice(start, end, {type: 'application/octet-binary'});
 
     //reader.readAsBinaryString(blob);
     reader.readAsArrayBuffer(blob);

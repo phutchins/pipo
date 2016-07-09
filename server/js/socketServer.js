@@ -108,9 +108,7 @@ SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
         //FileManager.handleChunk(data);
       });
     });
-
   });
-
 };
 
 SocketServer.prototype.onSocket = function(socket) {

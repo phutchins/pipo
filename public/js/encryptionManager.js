@@ -426,31 +426,35 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 };
 
 
-EncryptionManager.prototype.encryptFileStream = function encryptFileStream(data, callback) {
+/*
+ * This should return a CipherIV from node crypto
+ * It should generate a key and iv, encrypt them to the keyring provided
+ *   and return that as well
+ */
+EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, callback) {
   var self = this;
-  // Here, file is an arrayBuffer
-  var fileArrayBuffer = data.file;
-  // Create Buffer from the arrayBuffer
-  var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
-  //var encryptedFileStream = // Need to get the stream passed in here
+
   var chatId = data.chatId;
   var keys = [];
   var keyFingerPrints = {};
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  var rawSessionKey = crypto.randomBytes(16);
-  var sessionKey = rawSessionKey.toString('base64');
-  var iv = crypto.randomBytes(16);
+  debugger;
+  var sessionKeyString = nodeCrypto.randomBytes(16);
+  var ivString = nodeCrypto.randomBytes(16);
+
+  var sessionKey = new Buffer(sessionKeyString, 'hex');
+  var iv = new Buffer(ivString, 'hex');
 
   // Init the cyper bits
-  var cipher = crypto.Cipheriv('aes-128-cbc', sessionKey, iv);
+  var cipher = nodeCrypto.createCipheriv('aes-128-cbc', sessionKey, iv);
 
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
   Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
     var userKey = ChatManager.chats[chatId].keyRing._kms[userId];
-    debugger;
+
     userKey.sign({}, function(err) {
       userKey.export_pgp_public({}, function(err, pgp_public) {
         keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
@@ -469,37 +473,27 @@ EncryptionManager.prototype.encryptFileStream = function encryptFileStream(data,
   keys.push(self.keyManager);
 
   // Encrypt session key to all recipients (can use kbpgp to encrypt the key to all recipients)
-  debugger;
 
-  // Encrypt file with session key
-  var cipher = window.nodeCrypto.createCipher('aes256', sessionKey);
+  // Create an object containing the creds to decrypt the file
+  // (the IV does not need to be encrypted but may as well)
+  var fileCreds = {
+    sessionKey: sessionKeyString,
+    iv: ivString
+  };
 
-  fileStream.pipe(cipher).pipe(encryptedFileStream);
-
-  // Pipe file input stream through cipher then pipe that to output (the stream we return to the callback)
-
-  // Sign entire message (like pgp)
-
-  // Put all of this together into an object or a block of data structured like a pgp message?
-  // Add iv to object
-
-  /*
   window.kbpgp.box({
-    msg: fileBuffer,
+    msg: fileCreds,
     encrypt_for: keys,
     sign_with: self.keyManager
   }, function(err, resultString, resultBuffer) {
-    // Need to make sure that resultBuffer from box is the same as .burn (raw binarydata buffer)
-    //kbpgp.burn(params, function(err, result_string, result_buffer) {
-      //var resultBinaryBuffer = result_buffer.toString('binary');
-
-      debugger;
-
       var buffer = new Blob(resultString);
-      callback(err, buffer);
-    //});
+      var results = {
+        encryptedFileCreds: resultString,
+        cipher: cipher
+      };
+
+      callback(err, results);
   });
-  */
 };
 
 EncryptionManager.prototype.decryptFile = function decryptMessage(data, callback) {
@@ -942,7 +936,8 @@ EncryptionManager.prototype.sha256 = function hash(data) {
   var self = this;
   var buffer = new TextEncoder("utf-8").encode(data);
 
-  return window.crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
+  // Should use nodeCrypto here probably
+  return crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
     return self.hex(hash);
   });
 };

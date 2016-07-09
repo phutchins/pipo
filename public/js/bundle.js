@@ -20652,7 +20652,9 @@ module.exports = Sha512
 },{"./hash":126,"buffer":4,"inherits":110}],134:[function(require,module,exports){
 //var expect = require('expect.js');
 var nodeCrypto = require('crypto-browserify');
+var stream = require('stream');
 
 window.nodeCrypto = nodeCrypto;
+window.stream = stream;
 
-},{"crypto-browserify":75}]},{},[134]);
+},{"crypto-browserify":75,"stream":24}]},{},[134]);

@@ -12,6 +12,7 @@
     "coverage": "NODE_ENV=test ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
     "linter": "jshint --config .jshintrc ./main.js ./server ./public/client.js ./public/js ./public/views ./test || true",
     "build": "browserify --no-builtins --no-commondir --insert-global-vars='global' public/index.js -s pipo -o public/bundle.js",
+    "build-managers": "browserify public/js/managers.js -o public/js/managerBundle.js",
     "make-docs": "mkdir -p ./jsdoc && rm -r ./jsdoc && ./node_modules/.bin/jsdoc index.js lib -r -R README.md -u ./doc -c .jsdoc.json --verbose -d ./jsdoc && cp -r doc/assets jsdoc/assets",
     "publish-docs": "npm run make-docs && node script/publishdoc.js",
     "start": "node ./server/server.js",

@@ -48,21 +48,25 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     window.encryptionManager.sha256(file).then(function(dataHash) {
       console.log('[fileManager.sendFile] Payload hash before encryption is ' + dataHash);
 
+      debugger;
+
       // TODO: This is broken here...
       // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
+      console.log('[fileManager.sendFile] calling getFileCipher');
       window.encryptionManager.getFileCipher({
         chatId: toChatId
       }, function(err, data) {
         var cipher = data.cipher;
         var encryptedFileCreds = data.encryptedFileCreds;
 
-        window.encryptionManager.sha256(encryptedFileStream).then(function(encHash) {
-          console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
+        // Need to find a way to pipe the encrypted file through the sha256 method on the way out
+        //window.encryptionManager.sha256(encryptedFileStream).then(function(encHash) {
+          //console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
 
           var streamData = {
             fileName: fileName,
             dataHash: dataHash,
-            encHash: encHash,
+            //encHash: encHash,
             size: file.size,
             type: file.type,
             toChatId: toChatId,
@@ -71,7 +75,11 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
             description: description
           };
 
+          debugger;
+
           var binStream = binSelf.createStream(streamData);
+
+          debugger;
 
           fileReader.pipe(cipher).pipe(binStream);
 
@@ -84,7 +92,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
           });
 
           //binStream.end();
-        });
+        //});
       });
     });
   });

@@ -208,6 +208,7 @@ SocketClient.prototype.init = function() {
       //Show error somewhere
       return console.log("[INIT] Error loading client key pair: "+err);
     }
+
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
       return ChatManager.initialPromptForCredentials();

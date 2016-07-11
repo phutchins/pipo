@@ -459,8 +459,6 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
       userKey.export_pgp_public({}, function(err, pgp_public) {
         keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
 
-        debugger;
-
         // Need to make the pgp_public key here pem encoded and possibly base64
         sessionKeys['userId'] = {
           keyId: userKey.get_pgp_key_id(),
@@ -481,18 +479,19 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
     iv: ivString
   };
 
+  console.log('[encryptionManager.getFileCipher] encrypting fileCreds to keyRing');
+
   window.kbpgp.box({
     msg: fileCreds,
     encrypt_for: keys,
     sign_with: self.keyManager
   }, function(err, resultString, resultBuffer) {
-      var buffer = new Blob(resultString);
-      var results = {
-        encryptedFileCreds: resultString,
-        cipher: cipher
-      };
+    var results = {
+      encryptedFileCreds: resultString,
+      cipher: cipher
+    };
 
-      callback(err, results);
+    return callback(err, results);
   });
 };
 

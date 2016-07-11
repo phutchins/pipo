@@ -56,57 +56,13 @@ SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
 
     logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
 
-    var parts = [];
-    // Here we need to make sure to save the parts and concat them in a format that
-    // plays nice with binary.
+    // Pass the fileStream to the file stream handler in fileManager
+    FileManager.handleFileStream(fileStream, data, function(err) {
+      if (err) {
+        return console.log('Error handling file stream: %s', err);
+      }
 
-    // We receive the stream as a Buffer here
-    var tx = 0;
-
-
-   // uint array to string
-    function typedArrayToUnicodeString(ua) {
-        var binstr = Array.prototype.map.call(ua, function (ch) {
-            return String.fromCharCode(ch);
-        }).join('');
-        var escstr = binstr.replace(/(.)/g, function (m, p) {
-            var code = p.charCodeAt(p).toString(16).toUpperCase();
-            if (code.length < 2) {
-                code = '0' + code;
-            }
-            return '%' + code;
-        });
-        return decodeURIComponent(escstr);
-    }
-
-    fileStream.on('data', function(chunkBuffer) {
-      logger.debug('[socketServer.onBinarySocketConnection] Got data from stream...');
-      fileStream.write({rx: chunkBuffer.length / data.size});
-      //parts.push(chunkBuffer);
-    });
-
-
-    data.fileBuffer = fileStream;
-    //FileManager.handleChunk(data);
-
-    fileStream.on('end', function() {
-
-      logger.debug('[socketServer.onBinarySocketConnection] fileStream ended');
-
-      var fileBuffer = Buffer.concat(parts);
-      logger.debug('[socketServer.onBinarySocketConnection] fileStream type: ', Object.prototype.toString.call(fileBuffer));
-      logger.debug('[socketServer.onBinarySocketConnection] string: ', String.fromCharCode.apply(null, new Uint8Array(fileBuffer)));
-
-      data.fileBuffer = fileBuffer;
-
-      logger.debug('[socketServer.onBinarySocketConnection] stream to string: ' + typedArrayToUnicodeString(fileBuffer));
-
-      self.arrayHash(fileBuffer, function(dataHash) {
-        data.arrayHash = dataHash;
-        logger.debug('[socketServer.onBinarySocketConnection] Encrypted data hash before save is ' + dataHash);
-        fileStream.write({ end: true });
-        //FileManager.handleChunk(data);
-      });
+      console.log('File stream handled');
     });
   });
 };

@@ -28,7 +28,6 @@ var pfileSchema = new Schema({
 
 pfileSchema.statics.create = function create(data, callback) {
   var self = this;
-  var fileBuffer = data.fileBuffer;
   var fileName = data.fileName;
   var chatType = data.chatType;
   var toChatId = data.toChatId;
@@ -59,9 +58,14 @@ pfileSchema.statics.create = function create(data, callback) {
     logger.debug("[pfile.create] creating pfile with toChatId: " + toChatId);
 
     var finish = function finish(pfile) {
+      /*
+       * Don't want to do this here?
       if (pfile.chunkCount == data.chunkNumber) {
+        logger.debug('[pfile.create] Setting pfile.isComplete to tru as chunkCount is equal to chunkNumber');
+
         pfile.isComplete = true;
       };
+      */
 
       pfile.save(function(err, newPFile) {
         var newPFile = newPFile;
@@ -70,7 +74,7 @@ pfileSchema.statics.create = function create(data, callback) {
           return callback(err);
         }
 
-        self.addChunk(data, function(err) {
+        self.addChunk(data, function(err, pfile) {
           if (err) {
             logger.debug("[pfile.create] Error adding chunk: " + err);
             return callback(err, null);
@@ -157,24 +161,23 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
   // Create md5 hash of the data so that we can name the file uniquely and ensure that we
   // don't already have a copy of the file. If we do have a file where the hash matches, that
   // means that it is already encrypted to the same people.
-  var fileBuffer = data.fileBuffer;
-  var chunkHash = crypto.createHash('rmd160').update(fileBuffer).digest('hex');
-  //var chunkHash = crypto.createHash('rmd160').update(Buffer(fileBuffer.data)).digest('hex');
 
   // Check to see if the pfile exists
   // Need to use complete file hash for this name here and allow the client to
   // confirm the orig chunkHash upon download
   this.findOne({ name: data.fileName }, function(err, pFile) {
     if (!pFile) {
+      logger.debug('[pfile.addChunk] No pfile found, creating one...');
       // Create it if it doesn't exist with the first chunk data
       self.create(data, function(err, newPFile) {
         if (err) {
-          logger.debug('[pfile.addChunk] Error creating pfile');
+          logger.debug('[pfile.addChunk] Error creating pfile: %s', err);
           return callback(err, null);
         }
 
         if (newPFile.chunkCount === 1) {
-          newPFile.isComplete = true;
+          logger.debug('[pfile.addChunk] newPFile.chunkCount is 1');
+          //newPFile.isComplete = true;
         }
 
         logger.debug("[pfile.addChunk] Created pFile as it did not exist");
@@ -182,88 +185,74 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
       });
     }
 
+    logger.debug('[pfile.addChunk] In between two pfile if statements...');
+
     // Otherwise, add the chunk to the pfile
     if (pFile) {
-      var pfileChunkName = chunkHash + "." + data.fileName + "." + data.chunkNumber;
+      var pfileChunkName = data.chunkHash + "." + data.fileName + "." + data.chunkNumber;
+
+      logger.debug('[pfile.addChunk] PFile exists!');
 
       if (pFile.isComplete) {
-        console.log('Pfile already exists and is complete');
         return callback('Pfile already exists and is complete', null);
       }
 
-      //fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
-      logger.debug('[pfile.addChunk] fileBuffer object type: ' + Object.prototype.toString.call(fileBuffer));
-      logger.debug('[pfile.addChunk] file: ', String.fromCharCode.apply(null, new Uint8Array(fileBuffer)));
+      logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
 
-
-      // Pipe fileBuffer to file directly here?
-
-
-
-      var file = fs.createWriteStream("files/" + pfileChunkName);
-      fileBuffer.pipe(file);
-
-      /*
-      fs.writeFileSync("files/" + pfileChunkName, new Buffer(fileBuffer), function(err) {
-        if (err) {
-          console.log("[pfile.addChunk] Error writing file to disk: " + err);
-          return callback(err, null);
-        };
-        */
-
-        logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
-
-        self.findOneAndUpdate(
-          { _id: pFile._id },
-          {
-            $push: {
-              "chunkIndex": {
-                index: data.chunkNumber,
-                hash: chunkHash
-              }
+      self.findOneAndUpdate(
+        { _id: pFile._id },
+        {
+          $push: {
+            "chunkIndex": {
+              index: data.chunkNumber,
+              hash: data.chunkHash
             }
-          },
-          { new: true },
-          function(err, savedPfile) {
-            if (err) {
-              return console.error("[pfile.addChunk] Error saving pFile to chunkIndex: " + err);
-            };
-
-            console.log("[pfile.addChunk] Saved PFile to chunkIndex");
-
-            // Check if this was the last chunk
-            //
-            // Really need to decide the case of pFile and make it consistent...
-            var completedChunks = savedPfile.chunkIndex.filter(function(value) { return value !== undefined }).length;
-            logger.debug("[pfile.addChunk] We've processed " + completedChunks + " out of " + data.chunkCount + " so far...");
-
-            // If so, set isComplete to true and call callback
-            if (completedChunks == data.chunkCount) {
-              logger.debug("[pfile.addChunk] Time to celebrate, we've finished!");
-              pFile.isComplete = true;
-              pFile.save(function(err) {
-                if (err) {
-                  return logger.debug("[pfile.addChunk] Error saving pfile object: " + err);
-                }
-
-                logger.debug("[pfile.addChunk] Running callback since we're done...");
-                return callback(err, pFile);
-              });
-            } else {
-              // If not, return chunk complete via callback
-              pFile.save(function(err) {
-                if (err) {
-                  return logger.debug("[pfile.addChunk] Error saving pfile object before completion: " + err);
-                }
-
-                return callback(err, pFile);
-              });
-            };
           }
-        );
-        /*
-      });
-      */
+        },
+        { new: true },
+        function(err, savedPfile) {
+          var self = this;
+          if (err) {
+            return console.error("[pfile.addChunk] Error saving pFile to chunkIndex: " + err);
+          };
+
+          console.log("[pfile.addChunk] Saved PFile to chunkIndex");
+
+          // Check if this was the last chunk
+          //
+          // Really need to decide the case of pFile and make it consistent...
+          var completedChunks = savedPfile.chunkIndex.filter(function(value) { return value !== undefined }).length;
+          logger.debug("[pfile.addChunk] We've processed " + completedChunks + " out of " + data.chunkCount + " so far...");
+
+          // If so, set isComplete to true and call callback
+          if (completedChunks == data.chunkCount) {
+            logger.debug("[pfile.addChunk] Time to celebrate, we've finished!");
+            // ********************************************
+            // **** Should be returning savedPfile here?????
+            // *********************************************
+            pFile.isComplete = true;
+            pFile.save(function(err) {
+              if (err) {
+                return logger.debug("[pfile.addChunk] Error saving pfile object: " + err);
+              }
+
+              pFile.isComplete = true;
+
+              logger.debug("[pfile.addChunk] Running callback since we're done...");
+              return callback(err, pFile);
+            });
+          } else {
+            // If not, return chunk complete via callback
+            pFile.save(function(err) {
+              if (err) {
+                return logger.debug("[pfile.addChunk] Error saving pfile object before completion: " + err);
+              }
+
+              return callback(err, pFile);
+            });
+          };
+        }
+      );
     }
   })
 };

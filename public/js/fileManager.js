@@ -34,6 +34,14 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     description: description
   };
 
+
+  //
+  // LEFT OFF HERE!!!!!!
+  // Need to add chunkCount and chunkNumber which would both be 1 for now while we're simply
+  // streaming the whole file...
+  // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  //
+
   // Create readable stream from the file that we're sending
   // Send the readable stream through encryptionManager.encryptFileSTream
   // Pipe the returned stream to binjs stream
@@ -47,8 +55,6 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
     window.encryptionManager.sha256(file).then(function(dataHash) {
       console.log('[fileManager.sendFile] Payload hash before encryption is ' + dataHash);
-
-      debugger;
 
       // TODO: This is broken here...
       // need to pass the file data with maybe a fileReader or something to tne encrypt file method here
@@ -70,16 +76,14 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
             size: file.size,
             type: file.type,
             toChatId: toChatId,
+            chunkNumber: 1,
+            chunkCount: 1,
             chatType: chatType,
             uploadedBy: ChatManager.userProfile.id,
             description: description
           };
 
-          debugger;
-
           var binStream = binSelf.createStream(streamData);
-
-          debugger;
 
           fileReader.pipe(cipher).pipe(binStream);
 

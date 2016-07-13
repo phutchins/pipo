@@ -3,6 +3,8 @@ var EncryptionManager = require('./encryption');
 var logger = require('../../../config/logger');
 var PFile = require('../../models/pfile');
 var ss = require('socket.io-stream');
+var fs = require('fs');
+var crypto = require('crypto');
 
 function FileManager() {
   this.notifyNewFile = function(data) {
@@ -65,6 +67,90 @@ function FileManager() {
     NotifyManager.sendToChat(messageData);
   };
 
+  this.handleFileStream = function handleFileStream(fileStream, data, callback) {
+    var self = this;
+    var file = fs.createWriteStream('files/' + data.fileName, { autoClose: true });
+    var fileHash = crypto.createHash('rmd160');
+    var socketServer = data.socketServer;
+    var fileName = data.fileName;
+    var systemUser = EncryptionManager.systemUser;
+    var chatType = data.chatType;
+    var chatId = data.toChatId;
+    var chunkNumber = data.chunkNumber;
+    var chunkCount = data.chunkCount;
+		var tx = 0;
+
+    // Report back with percentage of file received
+    fileStream.on('data', function(chunkBuffer) {
+      fileHash.update(chunkBuffer, 'hex');
+
+      logger.debug('[socketServer.onBinarySocketConnection] Got data from stream...');
+      fileStream.write({rx: chunkBuffer.length / data.size});
+    });
+
+    // Save the file stream to disk
+    fileStream.pipe(file);
+
+    // When the stream has ended,
+    fileStream.on('end', function() {
+      logger.debug('[socketServer.onBinarySocketConnection] fileStream ended');
+
+      fileStream.write({ end: true });
+
+      // why is this not making it through to pfile??
+      data.chunkHash = fileHash.digest('hex');;
+
+			PFile.addChunk(data, function(err, pfile) {
+        logger.debug('[file.handleChunk] Returned from addChunk');
+
+        if (err) {
+          return logger.error('[file.handleFileStream] Error adding chunk to pfile: %s', err);
+        }
+
+        logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
+
+        EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+          if (err) {
+            return logger.error("[file.handleChunk] Error getting keyManager: " + err);
+          }
+
+          if (err) {
+            var errorData = {
+              err: err,
+              chatType: chatType,
+              fileName: fileName,
+              chatId: chatId,
+              socketServer: socketServer,
+              signingKeyManager: pipoKeyManager
+            };
+
+            self.notifyError(errorData);
+
+            return logger.error("[file.handleChunk] Error saving file: " + err);
+          }
+
+          if (!pfile) {
+            return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
+          }
+
+          console.log("[file.handleChunk] About to try to send notification to clients...");
+
+          // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
+          logger.debug('[file.handleChunk] pfile.isComplete is: %s', pfile.isComplete);
+          // then remote the bad data
+
+          if (pfile && pfile.isComplete) {
+            logger.debug('PFile is complete!');
+            // Get the pipo user (should move this to an init method in encryption manager and save it to state)
+            self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
+          };
+        });
+
+			  logger.debug('[file.handleFileStream] Created PFile for uploaded file %s', file.name);
+      });
+    });
+  };
+
   this.handleChunk = function handleChunk(data) {
     var self = this;
     var socketServer = data.socketServer;
@@ -111,12 +197,14 @@ function FileManager() {
           return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
         }
 
-        console.log("[file.handleChunk] About to try to send notification to clients...");
+        logger.debug("[file.handleChunk] About to try to send notification to clients...");
 
         // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
         // then remote the bad data
+        logger.debug('[file.handleChunk] pfile.isComplete is: %s', pfile.isComplete);
 
         if (pfile && pfile.isComplete) {
+          logger.debug('PFile is complete!');
           // Get the pipo user (should move this to an init method in encryption manager and save it to state)
           self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
         };

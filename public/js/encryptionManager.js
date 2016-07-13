@@ -440,7 +440,6 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  debugger;
   var sessionKeyString = nodeCrypto.randomBytes(16);
   var ivString = nodeCrypto.randomBytes(16);
 

@@ -14,6 +14,8 @@ var pfileSchema = new Schema({
   chunkIndex: [{
     index: { type: Number },
     hash: { type: String },
+    encryptedKey: { type: String },
+    iv: { type: String }
   }],
   chunkCount: { type: Number },
   fileHash: { type: String },
@@ -201,7 +203,9 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
           $push: {
             "chunkIndex": {
               index: data.chunkNumber,
-              hash: data.chunkHash
+              hash: data.chunkHash,
+              encryptedKey: data.encryptedKey,
+              iv: data.iv
             }
           }
         },

@@ -470,23 +470,16 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   keys.push(self.keyManager);
 
   // Encrypt session key to all recipients (can use kbpgp to encrypt the key to all recipients)
-
-  // Create an object containing the creds to decrypt the file
-  // (the IV does not need to be encrypted but may as well)
-  var fileCreds = {
-    sessionKey: sessionKeyString,
-    iv: ivString
-  };
-
   console.log('[encryptionManager.getFileCipher] encrypting fileCreds to keyRing');
 
   window.kbpgp.box({
-    msg: fileCreds,
+    msg: sessionKeyString,
     encrypt_for: keys,
     sign_with: self.keyManager
   }, function(err, resultString, resultBuffer) {
     var results = {
-      encryptedFileCreds: resultString,
+      encryptedKey: resultString,
+      iv: ivString,
       cipher: cipher
     };
 
@@ -494,23 +487,26 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   });
 };
 
-EncryptionManager.prototype.decryptFile = function decryptMessage(data, callback) {
+EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, callback) {
   var self = this;
-  var fileArrayBuffer = data.file;
-  var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
   var keyRing = data.keyRing || this.keyRing;
+  var encryptedKey = data.encryptedKey;
+  var iv = data.iv;
 
-  // Add our own decrypted private key to the key manager so we can decrypt messages
+  // Add our own decrypted private key to the key manager so we can decrypt the key
   if (self.keyManager) {
     keyRing.add_key_manager(self.keyManager);
   };
 
-  window.kbpgp.unbox({ keyfetch: keyRing, armored: fileBuffer }, function(err, literals) {
+  window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedKey }, function(err, literals) {
     if (err) {
       console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
     }
 
-    return callback(err, literals.toBuffer('binary'));
+    var sessionKey = literals.toString();
+    var decipher = nodeCrypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
+
+    return callback(err, decipher);
   });
 };
 

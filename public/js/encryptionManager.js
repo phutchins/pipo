@@ -930,12 +930,22 @@ EncryptionManager.prototype.hex = function hex(buffer) {
   return hexCodes.join("");
 };
 
-EncryptionManager.prototype.sha256 = function hash(data) {
+EncryptionManager.prototype.sha256 = function rmd160(data) {
   var self = this;
   var buffer = new TextEncoder("utf-8").encode(data);
 
   // Should use nodeCrypto here probably
   return crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
+    return self.hex(hash);
+  });
+};
+
+EncryptionManager.prototype.rmd160 = function rmd160(data) {
+  var self = this;
+  var buffer = new TextEncoder("hex").encode(data);
+
+  // Should use nodeCrypto here probably
+  return crypto.subtle.digest("rmd160", buffer).then(function (hash) {
     return self.hex(hash);
   });
 };

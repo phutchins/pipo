@@ -69,7 +69,10 @@ function FileManager() {
 
   this.handleFileStream = function handleFileStream(fileStream, data, callback) {
     var self = this;
-    var file = fs.createWriteStream('files/' + data.fileName, { autoClose: true });
+
+    logger.debug('[file.handleFileStream] data.chunkHash: %s', data.chunkHash);
+
+    var file = fs.createWriteStream('files/' + data.chunkHash + '.' + data.fileName + '.' + data.chunkNumber, { autoClose: true });
     var fileHash = crypto.createHash('rmd160');
     var socketServer = data.socketServer;
     var fileName = data.fileName;
@@ -98,7 +101,9 @@ function FileManager() {
       fileStream.write({ end: true });
 
       // why is this not making it through to pfile??
-      data.chunkHash = fileHash.digest('hex');;
+      // Need to figure out how to send the rmd160 hash of the encrypted data from the client side
+      // Then confirm that here
+      //data.chunkHash = fileHash.digest('hex');
 
 			PFile.addChunk(data, function(err, pfile) {
         logger.debug('[file.handleChunk] Returned from addChunk');
@@ -226,6 +231,7 @@ function FileManager() {
       var currentChunk = 0;
 
       // Determine if the user actually has access to the requested file and that it exists
+      logger.debug('[fileManager.handleGetFile] currentChunk: %s chunkCount: %s', currentChunk, chunkCount);
 
       // Get the number of chunks and get the file buffer for each one sending it back to the client
       while (currentChunk < chunkCount) {
@@ -246,7 +252,7 @@ function FileManager() {
           }
 
           // Send the file to the user with socket.emit
-          logger.debug("[socketServer.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
+          logger.debug("[fileManager.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
           //ss(socket).emit('file', ssChunkStream, fileData);
           //socket.emit('file', chunkStream, fileData);
           if (!binSocket) {
@@ -254,9 +260,9 @@ function FileManager() {
           }
 
           binSocket.send(chunkStream, fileData);
-          logger.debug("[socketServer.onGetFile] Sent emit, piping to stream");
+          logger.debug("[fileManager.onGetFile] Sent emit, piping to stream");
           //ssChunkStream.pipe(chunkStream);
-          //logger.debug("[socketServer.onGetFile] Piped to client. Ending...");
+          //logger.debug("[fileManager.onGetFile] Piped to client. Ending...");
         });
       };
     });

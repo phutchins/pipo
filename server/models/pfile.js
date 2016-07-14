@@ -82,7 +82,6 @@ pfileSchema.statics.create = function create(data, callback) {
 
           logger.debug("[pfile.create] Added chunk #" + data.chunkNumber + " to pFile " +  data.fileName);
 
-
           // Should we be returning the udpated chunk here?
           return callback(err, pfile);
         });
@@ -144,6 +143,8 @@ pfileSchema.methods.getChunk = function getChunk(index, callback) {
 
   var requestedChunk = this.chunkIndex.filter(isRequestedChunk).shift();
 
+  logger.debug('[pfile.get] chunk data: ', requestedChunk);
+
   // Get the filename for the chunk (should probably just be the hash)
   var chunkName = requestedChunk.hash + "." + this.name + "." + index;
   logger.debug("[pfile.get] Got chunk '" + chunkName + "'");
@@ -173,11 +174,6 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
         if (err) {
           logger.debug('[pfile.addChunk] Error creating pfile: %s', err);
           return callback(err, null);
-        }
-
-        if (newPFile.chunkCount === 1) {
-          logger.debug('[pfile.addChunk] newPFile.chunkCount is 1');
-          //newPFile.isComplete = true;
         }
 
         logger.debug("[pfile.addChunk] Created pFile as it did not exist");

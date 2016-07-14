@@ -75,13 +75,14 @@ SendFileModal.show = function show(callback) {
 
 $(document).ready( function() {
   var self = this;
-  SendFileModal.init(function() {
+  SendFileModal.init(function(err) {
     if (err) {
-      console.log('[sendFileModal] Error: ' + err);
+      console.log('[sendFileModal] Error sending file: ' + err);
       return false
     }
 
-    console.log("[sendFileModal.documentReady] Ran init for SendFileModal");
+    console.log("[sendFileModal.documentReady] SendFileModal complete success");
+    $('.modal.sendfile').modal('hide');
     return false;
   });
 });

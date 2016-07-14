@@ -71,12 +71,12 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
           var streamData = {
             fileName: fileName,
-            dataHash: dataHash,
+            chunkHash: dataHash,
             //encHash: encHash,
             size: file.size,
             type: file.type,
             toChatId: toChatId,
-            chunkNumber: 1,
+            chunkNumber: 0,
             chunkCount: 1,
             chatType: chatType,
             uploadedBy: ChatManager.userProfile.id,
@@ -89,9 +89,13 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
           var tx = 0;
           binStream.on('data', function(data) {
+            var progressPercent = Math.round(tx+=data.rx*100);
             console.log('Progress(raw): ' + data.rx + ' tx: ' + tx);
-            console.log('Progress: ' + Math.round(tx+=data.rx*100) + '%');
+            console.log('Progress: ' + progressPercent + '%');
 
+            if (progressPercent >= 100) {
+              callback(null);
+            }
             // Once stream is 100%, binStream.end() here instead
           });
 
@@ -101,7 +105,6 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     });
   });
 
-  callback(null);
 };
 
 FileManager.prototype.readFiles = function readFiles(files, callback) {
@@ -130,9 +133,12 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
 
   this.sendFile(fileData, function(err) {
     if (err) {
-      return console.log('Error sending file: %s', err);
+      return callback(err);
     }
+
     console.log('File sent!');
+
+    return callback(null);
   });
 };
 

@@ -1,6 +1,7 @@
 'use strict'
 
 window.FlipStream = require('flip-stream-js');
+var BinSocketClient = require('./binSocketClient');
 
 function FileManager(options) {
   if (!(this instanceof FileManager)) {
@@ -20,7 +21,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   var chatType = data.chatType;
   var options = {};
 
-  var binSocketClient = new window.BinSocketClient(options);
+  var binSocketClient = new BinSocketClient(options);
 
   var fileReader = new window.FlipStream.Readable(file);
 
@@ -214,7 +215,7 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
   }
 
   var options = {};
-  var binSocketClient = window.BinSocketClient(options);
+  var binSocketClient = BinSocketClient(options);
 
   var description = "this is the files description";
   var chatType = ChatManager.chats[ChatManager.activeChat].type;
@@ -251,7 +252,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
   var options = {};
   var binSocketClient = BinSocketClient(options);
-  binSocketClient.listenForFile(self.handleIncomingFileStream);
+  binSocketClient.listenForFileStream(self.handleIncomingFileStream);
 
   // Call binSocketClient.listenForFile from here?
   // That way we could pass it a callback method from fileManager without having a circular dependency

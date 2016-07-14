@@ -42,8 +42,6 @@ BinSocketClient.prototype.close = function() {
 };
 
 BinSocketClient.prototype.listenForFileStream = function(callback) {
-  var self = this;
-
   // This should have a timeout for listening
 
   //self.binListeners = true;
@@ -51,7 +49,7 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
   // Maybe we split these appart and only add stream listener when we're
   // actually waiting on a stream
 
-  this.binSocket.on('stream', callback.bind(self));
+  this.binSocket.on('stream', callback);
 };
 
-module.exports = BinSocketClient();
+module.exports = BinSocketClient;

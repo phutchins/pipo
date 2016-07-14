@@ -5539,7 +5539,7 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
   this.binSocket.on('stream', callback.bind(self));
 };
 
-module.exports = BinSocketClient();
+module.exports = BinSocketClient;
 
 },{}],33:[function(require,module,exports){
 (function (Buffer){
@@ -6498,6 +6498,7 @@ window.encryptionManager = new EncryptionManager();
 'use strict'
 
 window.FlipStream = require('flip-stream-js');
+var BinSocketClient = require('./binSocketClient');
 
 function FileManager(options) {
   if (!(this instanceof FileManager)) {
@@ -6517,7 +6518,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   var chatType = data.chatType;
   var options = {};
 
-  var binSocketClient = new window.BinSocketClient(options);
+  var binSocketClient = new BinSocketClient(options);
 
   var fileReader = new window.FlipStream.Readable(file);
 
@@ -6711,7 +6712,7 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
   }
 
   var options = {};
-  var binSocketClient = window.BinSocketClient(options);
+  var binSocketClient = BinSocketClient(options);
 
   var description = "this is the files description";
   var chatType = ChatManager.chats[ChatManager.activeChat].type;
@@ -6760,7 +6761,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
 window.FileManager = FileManager;
 
-},{"flip-stream-js":8}],35:[function(require,module,exports){
+},{"./binSocketClient":32,"flip-stream-js":8}],35:[function(require,module,exports){
 var EncryptionManager = require('./encryptionManager.js');
 var socketClient = require('./socketClient');
 var BinSocketClient2 = require('./binSocketClient');

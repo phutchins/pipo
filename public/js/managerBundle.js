@@ -5527,8 +5527,6 @@ BinSocketClient.prototype.close = function() {
 };
 
 BinSocketClient.prototype.listenForFileStream = function(callback) {
-  var self = this;
-
   // This should have a timeout for listening
 
   //self.binListeners = true;
@@ -5536,7 +5534,7 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
   // Maybe we split these appart and only add stream listener when we're
   // actually waiting on a stream
 
-  this.binSocket.on('stream', callback.bind(self));
+  this.binSocket.on('stream', callback);
 };
 
 module.exports = BinSocketClient;
@@ -6036,7 +6034,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
   var self = this;
   var keyRing = data.keyRing || this.keyRing;
   var encryptedKey = data.encryptedKey;
-  var iv = data.iv;
+  var iv = new Buffer(data.iv, 'hex');
 
   // Add our own decrypted private key to the key manager so we can decrypt the key
   if (self.keyManager) {
@@ -6048,7 +6046,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
       console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
     }
 
-    var sessionKey = literals.toString();
+    var sessionKey = new Buffer(literals.toString(), 'hex');
     var decipher = nodeCrypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
 
     return callback(err, decipher);
@@ -6483,7 +6481,8 @@ EncryptionManager.prototype.sha256 = function rmd160(data) {
 
 EncryptionManager.prototype.rmd160 = function rmd160(data) {
   var self = this;
-  var buffer = new TextEncoder("hex").encode(data);
+  // Is it ok to hash with utf-8?
+  var buffer = new TextEncoder("utf-8").encode(data);
 
   // Should use nodeCrypto here probably
   return crypto.subtle.digest("rmd160", buffer).then(function (hash) {
@@ -6517,9 +6516,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   var description = data.description;
   var chatType = data.chatType;
   var options = {};
-
   var binSocketClient = new BinSocketClient(options);
-
   var fileReader = new window.FlipStream.Readable(file);
 
   var fileData = {
@@ -6536,55 +6533,75 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   console.log('[fileManager.sendFile] Waiting for binSocket to OPEN');
   binSocketClient.binSocket.on('open', function() {
     var binSelf = this;
+
     console.log('[fileManager.sendFile] binSocket is now OPEN');
 
 
-    window.encryptionManager.rmd160(file).then(function(dataHash) {
-      console.log('[fileManager.sendFile] Payload hash before encryption is ' + dataHash);
+    console.log('[fileManager.sendFile] calling getFileCipher');
+    window.encryptionManager.getFileCipher({
+      chatId: toChatId
+    }, function(err, data) {
+      var cipher = data.cipher;
+      var encryptedKey = data.encryptedKey;
+      var iv = data.iv;
 
-      console.log('[fileManager.sendFile] calling getFileCipher');
-      window.encryptionManager.getFileCipher({
-        chatId: toChatId
-      }, function(err, data) {
-        var cipher = data.cipher;
-        var encryptedKey = data.encryptedKey;
-        var iv = data.iv;
+      var dataHash = nodeCrypto.createHash('rmd160');
+      var encryptedDataHash = nodeCrypto.createHash('rmd160');
+      var dataHashString;
+      var encHashString;
 
-        // Need to find a way to pipe the encrypted file through the sha256 method on the way out
-        //window.encryptionManager.sha256(encryptedFileStream).then(function(encHash) {
-        //console.log('[fileManager.sendFile] Payload hash after encryption is ' + encHash);
+      var streamData = {
+        fileName: fileName,
+        size: file.size,
+        type: file.type,
+        toChatId: toChatId,
+        chunkNumber: 0,
+        chunkCount: 1,
+        chatType: chatType,
+        encryptedKey: encryptedKey,
+        iv: iv,
+        uploadedBy: ChatManager.userProfile.id,
+        description: description
+      };
 
-        var streamData = {
-          fileName: fileName,
-          chunkHash: dataHash,
-          //encHash: encHash,
-          size: file.size,
-          type: file.type,
-          toChatId: toChatId,
-          chunkNumber: 0,
-          chunkCount: 1,
-          chatType: chatType,
-          encryptedKey: encryptedKey,
-          iv: iv,
-          uploadedBy: ChatManager.userProfile.id,
-          description: description
-        };
+      var binStream = binSelf.createStream(streamData);
 
-        var binStream = binSelf.createStream(streamData);
+      // Need to create a second transaction and send the hashes to the server here or
+      // request verificaiton from the server
+      /*
+      dataHash.on('finish', function() {
+        dataHashString = dataHash.read().toString('hex');
+      });
 
-        fileReader.pipe(cipher).pipe(binStream);
+      encryptedDataHash.on('finish', function() {
+        encHashString = encryptedDataHash.read().toString('hex');
+      });
+      */
 
-        var tx = 0;
-        binStream.on('data', function(data) {
-          var progressPercent = Math.round(tx+=data.rx*100);
-          console.log('Progress: ' + progressPercent + '%');
+      // Use through stream to send the original data through to the
+      // data hash instead of pipe
 
-          if (progressPercent >= 100) {
-            binStream.end();
+      fileReader.pipe(dataHash).pipe(cipher).pipe(encryptedDataHash).pipe(binStream);;
 
-            return callback(null);
-          }
-        });
+      var tx = 0;
+      binStream.on('data', function(data) {
+        var progressPercent = Math.round(tx+=data.rx*100);
+        console.log('Progress: ' + progressPercent + '%');
+
+        if (progressPercent >= 100) {
+          binStream.end();
+
+          return callback(null);
+        }
+
+        if (data.end) {
+          dataHash.end();
+          encryptedDataHash.end();
+
+          // Send the hashes to the server signed by the client
+
+          return callback(null);
+        }
       });
     });
   });
@@ -6608,7 +6625,7 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 		iv: iv
 	};
 
-	EncryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+	window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
 		// Build an object locally to keep track of the parts of the file
 		// if it doesn't exist
 		var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
@@ -6660,9 +6677,9 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 				// Really need to stream the downloaded file directly to disk then decrypt optionally
 				// This would keep us from having to store the file in memory
 				// Could also stream to a localStorage file
-			 encryptionManager.decryptFile({
+			 window.encryptionManager.decryptFile({
 					file: encryptedFile,
-					keyRing: encryptionManager.keyRing
+					keyRing: window.encryptionManager.keyRing
 				}, function(err, fileBuffer) {
 					if (err) {
 						// Should alert the client of an error here
@@ -6749,7 +6766,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
   var options = {};
   var binSocketClient = BinSocketClient(options);
-  binSocketClient.listenForFile(self.handleIncomingFileStream);
+  binSocketClient.listenForFileStream(self.handleIncomingFileStream);
 
   // Call binSocketClient.listenForFile from here?
   // That way we could pass it a callback method from fileManager without having a circular dependency

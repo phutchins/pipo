@@ -491,7 +491,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
   var self = this;
   var keyRing = data.keyRing || this.keyRing;
   var encryptedKey = data.encryptedKey;
-  var iv = data.iv;
+  var iv = new Buffer(data.iv, 'hex');
 
   // Add our own decrypted private key to the key manager so we can decrypt the key
   if (self.keyManager) {
@@ -503,7 +503,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
       console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
     }
 
-    var sessionKey = literals.toString();
+    var sessionKey = new Buffer(literals.toString(), 'hex');
     var decipher = nodeCrypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
 
     return callback(err, decipher);
@@ -938,7 +938,8 @@ EncryptionManager.prototype.sha256 = function rmd160(data) {
 
 EncryptionManager.prototype.rmd160 = function rmd160(data) {
   var self = this;
-  var buffer = new TextEncoder("hex").encode(data);
+  // Is it ok to hash with utf-8?
+  var buffer = new TextEncoder("utf-8").encode(data);
 
   // Should use nodeCrypto here probably
   return crypto.subtle.digest("rmd160", buffer).then(function (hash) {

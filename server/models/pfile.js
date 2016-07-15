@@ -1,3 +1,5 @@
+'use strict'
+
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var logger = require('../../config/logger');
@@ -145,16 +147,19 @@ pfileSchema.methods.getChunk = function getChunk(index, callback) {
 
   var requestedChunk = this.chunkIndex.filter(isRequestedChunk).shift();
 
-  logger.debug('[pfile.get] chunk data: ', requestedChunk);
-
   // Get the filename for the chunk (should probably just be the hash)
-  var chunkName = requestedChunk.hash + "." + this.name + "." + index;
+  var chunkName = requestedChunk.hash;
   logger.debug("[pfile.get] Got chunk '" + chunkName + "'");
+
+  var chunkData = {
+    iv: requestedChunk.iv,
+    encryptedKey: requestedChunk.encryptedKey
+  };
 
   // Read the file from disk and return it (as a readable stream?)
   var chunkStream = fs.createReadStream("files/" + chunkName, { encoding: 'binary' });
 
-  return callback(null, chunkStream);
+  return callback(null, chunkData, chunkStream);
 };
 
 pfileSchema.statics.addChunk = function addChunk(data, callback) {
@@ -195,15 +200,15 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
         return callback('Pfile already exists and is complete', null);
       }
 
-      logger.debug("[pfile.addChunk] Wrote " + pfileChunkName + " to disk.");
+      logger.debug('[pfile.addChunk] Wrote %s to disk', pfileChunkName);
 
       self.findOneAndUpdate(
         { _id: pFile._id },
         {
           $push: {
-            "chunkIndex": {
+            'chunkIndex': {
               index: data.chunkNumber,
-              hash: data.chunkHash,
+              hash: data.encHash,
               encryptedKey: data.encryptedKey,
               iv: data.iv
             }
@@ -213,7 +218,7 @@ pfileSchema.statics.addChunk = function addChunk(data, callback) {
         function(err, savedPfile) {
           var self = this;
           if (err) {
-            return console.error("[pfile.addChunk] Error saving pFile to chunkIndex: " + err);
+            return console.error('[pfile.addChunk] Error saving pFile to chunkIndex: %s', err);
           };
 
           console.log("[pfile.addChunk] Saved PFile to chunkIndex");

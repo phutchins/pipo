@@ -70,10 +70,16 @@ function FileManager() {
   this.handleFileStream = function handleFileStream(fileStream, data, callback) {
     var self = this;
 
-    logger.debug('[file.handleFileStream] data.chunkHash: %s', data.chunkHash);
+    logger.debug('[file.handleFileStream] Handling file stream');
 
-    var file = fs.createWriteStream('files/' + data.chunkHash + '.' + data.fileName + '.' + data.chunkNumber, { autoClose: true });
-    var fileHash = crypto.createHash('rmd160');
+    // Should add a way to track each users usage via file size in pfiles
+    var dataDir = 'files/';
+    var tmpFileName = crypto.randomBytes(16).toString('hex');
+
+    // Write temp file first, then rename when done
+    var tmpFile = fs.createWriteStream(dataDir + tmpFileName, { autoClose: true });
+
+    var fileHash = crypto.createHash('rmd160').setEncoding('hex');
     var socketServer = data.socketServer;
     var fileName = data.fileName;
     var systemUser = EncryptionManager.systemUser;
@@ -85,14 +91,15 @@ function FileManager() {
 
     // Report back with percentage of file received
     fileStream.on('data', function(chunkBuffer) {
-      fileHash.update(chunkBuffer, 'hex');
-
       logger.debug('[socketServer.onBinarySocketConnection] Got data from stream...');
+
+      fileHash.update(chunkBuffer);
+
       fileStream.write({rx: chunkBuffer.length / data.size});
     });
 
     // Save the file stream to disk
-    fileStream.pipe(file);
+    fileStream.pipe(tmpFile);
 
     // When the stream has ended,
     fileStream.on('end', function() {
@@ -100,59 +107,87 @@ function FileManager() {
 
       fileStream.write({ end: true });
 
-      // why is this not making it through to pfile??
-      // Need to figure out how to send the rmd160 hash of the encrypted data from the client side
-      // Then confirm that here
-      //data.chunkHash = fileHash.digest('hex');
+      fileHash.end();
 
-			PFile.addChunk(data, function(err, pfile) {
-        logger.debug('[file.handleChunk] Returned from addChunk');
+      // fileHash.on('finish', function() {
+        logger.debug('[socketServer.handleFileStream] fileHash finsihed. Renaming temp file');
 
-        if (err) {
-          return logger.error('[file.handleFileStream] Error adding chunk to pfile: %s', err);
-        }
 
-        logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
+        var fileHashString = fileHash.read().toString('hex');
 
-        EncryptionManager.buildKeyManager(systemUser.publicKey.toString(), systemUser.privateKey.toString(), 'pipo', function(err, pipoKeyManager) {
+        // Rename tmp chunk to hash
+        fs.rename(dataDir + tmpFileName, dataDir + fileHashString, function(err) {
           if (err) {
-            return logger.error("[file.handleChunk] Error getting keyManager: " + err);
+            return callback(err);
           }
 
-          if (err) {
-            var errorData = {
-              err: err,
-              chatType: chatType,
-              fileName: fileName,
-              chatId: chatId,
-              socketServer: socketServer,
-              signingKeyManager: pipoKeyManager
-            };
+          // Delete the tmp file after it has been renamed
+          fs.unlink(dataDir + tmpFileName, function(err) {
+            if (err) {
+              logger.error('[file.handleFileStream] Error deleting tmp file for uploaded file: %s', err);
+            }
+          });
 
-            self.notifyError(errorData);
+          data.fileHash = fileHashString;
+          data.encHash = fileHashString;
 
-            return logger.error("[file.handleChunk] Error saving file: " + err);
-          }
+          PFile.addChunk(data, function(err, pfile) {
+            logger.debug('[file.handleChunk] Returned from addChunk');
 
-          if (!pfile) {
-            return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
-          }
+            if (err) {
+              return logger.error('[file.handleFileStream] Error adding chunk to pfile: %s', err);
+            }
 
-          console.log("[file.handleChunk] About to try to send notification to clients...");
+            logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
 
-          // Should create some sort of timer to make sure all chunks get uploaded in a reasonable time and notify the user of fail if not
-          logger.debug('[file.handleChunk] pfile.isComplete is: %s', pfile.isComplete);
-          // then remote the bad data
+            var sysPubKey = systemUser.publicKey.toString();
+            var sysPrivKey = systemUser.privateKey.toString();
+            var sysUsername = 'pipo';
 
-          if (pfile && pfile.isComplete) {
-            logger.debug('PFile is complete!');
-            // Get the pipo user (should move this to an init method in encryption manager and save it to state)
-            self.notifyNewFile({ signingKeyManager: pipoKeyManager, socketServer: socketServer, pfile: pfile });
-          };
+            EncryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
+              if (err) {
+                return logger.error("[file.handleChunk] Error getting keyManager: " + err);
+              }
+
+              if (err) {
+                var errorData = {
+                  err: err,
+                  chatType: chatType,
+                  fileName: fileName,
+                  chatId: chatId,
+                  socketServer: socketServer,
+                  signingKeyManager: pipoKeyManager
+                };
+
+                self.notifyError(errorData);
+
+                return logger.error("[file.handleChunk] Error saving file: " + err);
+              }
+
+              if (!pfile) {
+                return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
+              }
+
+              console.log("[file.handleChunk] About to try to send notification to clients...");
+
+              // Should create some sort of timer to make sure all chunks get uploaded in
+              // a reasonable time and notify the user of fail if not
+              logger.debug('[file.handleChunk] pfile.isComplete is: %s', pfile.isComplete);
+
+              if (pfile && pfile.isComplete) {
+                logger.debug('PFile is complete!');
+                // Get the pipo user (should move this to an init method in
+                // encryption manager and save it to state)
+                self.notifyNewFile({
+                  signingKeyManager: pipoKeyManager,
+                  socketServer: socketServer,
+                  pfile: pfile
+                });
+              }
+            });
+          });
         });
-
-			  logger.debug('[file.handleFileStream] Created PFile for uploaded file %s', file.name);
-      });
+      //});
     });
   };
 
@@ -223,7 +258,7 @@ function FileManager() {
     var socket = data.socket;
     var binSocket = data.binSocket;
 
-    logger.debug("[socketServer.onGetFile] Getting pFile with ID: " + pfileId);
+    logger.debug("[socketServer.handleGetFile] Getting pFile with ID: " + pfileId);
 
     // Get the pFile
     PFile.get(pfileId, function(err, pfile) {
@@ -238,7 +273,7 @@ function FileManager() {
         //var ssChunkStream = ss.createStream();
         //var ssChunkStream = ss.createBlobReadStream();
 
-        pfile.getChunk(currentChunk, function(err, chunkStream) {
+        pfile.getChunk(currentChunk, function(err, chunkData, chunkStream) {
           if (err) {
             return logger.error('[FileManager.handleGetFile] Error getting pFile chunk: ' + err);
           }
@@ -246,13 +281,15 @@ function FileManager() {
           currentChunk++;
           var fileData = {
             id: pfile.id,
+            iv: chunkData.iv,
+            encryptedKey: chunkData.encryptedKey,
             fileName: pfile.name,
             chunkCount: pfile.chunkCount,
             chunkNumber: currentChunk
           }
 
           // Send the file to the user with socket.emit
-          logger.debug("[fileManager.onGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
+          logger.debug("[fileManager.handleGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
           //ss(socket).emit('file', ssChunkStream, fileData);
           //socket.emit('file', chunkStream, fileData);
           if (!binSocket) {
@@ -260,7 +297,7 @@ function FileManager() {
           }
 
           binSocket.send(chunkStream, fileData);
-          logger.debug("[fileManager.onGetFile] Sent emit, piping to stream");
+          logger.debug("[fileManager.handleGetFile] Sent emit, piping to stream");
           //ssChunkStream.pipe(chunkStream);
           //logger.debug("[fileManager.onGetFile] Piped to client. Ending...");
         });

@@ -440,14 +440,17 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  var sessionKeyString = nodeCrypto.randomBytes(16);
-  var ivString = nodeCrypto.randomBytes(16);
+  var sessionKey = nodeCrypto.randomBytes(16);
+  var iv = nodeCrypto.randomBytes(16);
 
-  var sessionKey = new Buffer(sessionKeyString, 'hex');
-  var iv = new Buffer(ivString, 'hex');
+  var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
+  var ivBuffer = new Buffer(iv, 'hex');
+
+  var sessionKeyString = sessionKey.toString('hex');
+  var ivString = iv.toString('hex');
 
   // Init the cyper bits
-  var cipher = nodeCrypto.createCipheriv('aes-128-cbc', sessionKey, iv);
+  var cipher = nodeCrypto.createCipheriv('aes-128-cbc', sessionKeyBuffer, ivBuffer);
 
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users

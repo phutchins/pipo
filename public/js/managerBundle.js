@@ -5983,14 +5983,17 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  var sessionKeyString = nodeCrypto.randomBytes(16);
-  var ivString = nodeCrypto.randomBytes(16);
+  var sessionKey = nodeCrypto.randomBytes(16);
+  var iv = nodeCrypto.randomBytes(16);
 
-  var sessionKey = new Buffer(sessionKeyString, 'hex');
-  var iv = new Buffer(ivString, 'hex');
+  var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
+  var ivBuffer = new Buffer(iv, 'hex');
+
+  var sessionKeyString = sessionKey.toString('hex');
+  var ivString = iv.toString('hex');
 
   // Init the cyper bits
-  var cipher = nodeCrypto.createCipheriv('aes-128-cbc', sessionKey, iv);
+  var cipher = nodeCrypto.createCipheriv('aes-128-cbc', sessionKeyBuffer, ivBuffer);
 
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
@@ -6494,6 +6497,7 @@ window.encryptionManager = new EncryptionManager();
 
 }).call(this,require("buffer").Buffer)
 },{"buffer":3}],34:[function(require,module,exports){
+(function (Buffer){
 'use strict'
 
 window.FlipStream = require('flip-stream-js');
@@ -6638,54 +6642,29 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 			};
 		}
 
-		chunkStream.pipe(decipher).on('data', function(data) {
-			// Create hash to compare to the provided hash to ensure data integrity
-		});
+    console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
 
-		chunkStream.on('end', function() {
-			var self = this;
-			console.log('[binSocketClient.addBinListeners] Got chunkStream END');
-			file = new Blob(parts);
-			self.reader = new FileReader();
+    var fileBuffer = new Buffer([], 'binary');
 
-			// This method causes a 'Maximum call stack size exceeded' for some reason
-			function ab2str(buf) {
-					return String.fromCharCode.apply(null, new Uint8Array(buf));
-			}
+    fileStream.pipe(decipher).on('data', function(data) {
+      // Create hash to compare to the provided hash to ensure data integrity
+      console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 
-			function _arrayBufferToBinary( buffer ) {
-				var binary = '';
-				var bytes = new Uint8Array( buffer );
-				var len = bytes.byteLength;
-				for (var i = 0; i < len; i++) {
-					binary += String.fromCharCode( bytes[ i ] );
-				}
-				//return window.btoa( binary );
-				return binary;
-			}
+      fileBuffer = Buffer.concat([fileBuffer, Buffer(data, 'binary')]);
+    }).on('end', function() {
+      var self = this;
 
+      console.log('[binSocketClient.addBinListeners] Got fileStream END');
 
-			// Really should just update the kbpgp library to accept and decrypt buffers
-			console.log('[binSocketClient.addBinListeners] Adding loadend event listener');
+      // ******************************
+      // Moev all of this to flip-stream and create a writer that we can steram to
+      // ******************************
 
-			self.reader.addEventListener('loadend', function() {
-				//var encryptedFile = _arrayBufferToBinary(self.reader.result);
-				var encryptedFile = self.reader.result;
+      var blob = new Blob([fileBuffer], { type: 'octet/stream' });
+      var url = URL.createObjectURL(blob);
+      window.open(url);
 
-				console.log('[binSocketClient.addBinListeners] About to decrypt message');
-
-				// Really need to stream the downloaded file directly to disk then decrypt optionally
-				// This would keep us from having to store the file in memory
-				// Could also stream to a localStorage file
-			 window.encryptionManager.decryptFile({
-					file: encryptedFile,
-					keyRing: window.encryptionManager.keyRing
-				}, function(err, fileBuffer) {
-					if (err) {
-						// Should alert the client of an error here
-						return console.log('[binSocketClient.addBinListeners.end] Error decrypting message: ' + err);
-					}
-
+      /*
 					// Initialize chunks array if it does not exist
 					if (!window.incomingFiles[id].chunks) {
 						window.incomingFiles[id].chunks = [];
@@ -6712,11 +6691,8 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
 						return delete window.incomingFiles[id];
 					};
-				});
-			});
+          */
 
-			console.log("[socketClient.addBinListeners] Reading file as array buffer");
-			self.reader.readAsArrayBuffer(file);
 		});
   });
 };
@@ -6778,7 +6754,8 @@ FileManager.prototype.getFile = function getFile(data) {
 
 window.FileManager = FileManager;
 
-},{"./binSocketClient":32,"flip-stream-js":8}],35:[function(require,module,exports){
+}).call(this,require("buffer").Buffer)
+},{"./binSocketClient":32,"buffer":3,"flip-stream-js":8}],35:[function(require,module,exports){
 var EncryptionManager = require('./encryptionManager.js');
 var socketClient = require('./socketClient');
 var BinSocketClient2 = require('./binSocketClient');

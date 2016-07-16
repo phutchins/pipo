@@ -5534,7 +5534,20 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
   // Maybe we split these appart and only add stream listener when we're
   // actually waiting on a stream
 
-  this.binSocket.on('stream', callback);
+  this.binSocket.on('stream', function(stream, metadata) {
+    debugger;
+    /*
+    stream.on('data', function(data) {
+      console.log('Got Data');
+    });
+    */
+
+    stream.pause();
+    callback(stream, metadata);
+  });
+
+  //this.binSocket.on('stream', callback.bind(this));
+  //callback(this.binSocket);
 };
 
 module.exports = BinSocketClient;
@@ -6616,53 +6629,57 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
  * Bind the binsocket context to this when calling
  */
 FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStream(fileStream, data) {
-	var id = data.id;
-	var fileName = data.fileName;
-	var chunkCount = data.chunkCount;
-	var chunkNumber = data.chunkNumber;
-	var encryptedKey = data.encryptedKey;
-	var iv = data.iv;
-	var description = data.description;
+  //binSocket.on('stream', function(fileStream, data) {
 
-	var decipherData = {
-		encryptedKey: encryptedKey,
-		iv: iv
-	};
+    var id = data.id;
+    var fileName = data.fileName;
+    var chunkCount = data.chunkCount;
+    var chunkNumber = data.chunkNumber;
+    var encryptedKey = data.encryptedKey;
+    var iv = data.iv;
+    var description = data.description;
 
-	window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
-		// Build an object locally to keep track of the parts of the file
-		// if it doesn't exist
-		var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
-		if (incomingFilesIsUndefined) {
-			window.incomingFiles = [];
-			window.incomingFiles[id] = {
-				fileName: fileName,
-				chunksReceived: 0,
-				chunkCount: chunkCount
-			};
-		}
+    var decipherData = {
+      encryptedKey: encryptedKey,
+      iv: iv
+    };
 
-    console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
+    window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+      // Build an object locally to keep track of the parts of the file
+      // if it doesn't exist
+      var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
+      if (incomingFilesIsUndefined) {
+        window.incomingFiles = [];
+        window.incomingFiles[id] = {
+          fileName: fileName,
+          chunksReceived: 0,
+          chunkCount: chunkCount
+        };
+      }
 
-    var fileBuffer = new Buffer([], 'binary');
+      console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
 
-    fileStream.pipe(decipher).on('data', function(data) {
-      // Create hash to compare to the provided hash to ensure data integrity
-      console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
+      var fileBuffer = new Buffer([], 'binary');
 
-      fileBuffer = Buffer.concat([fileBuffer, Buffer(data, 'binary')]);
-    }).on('end', function() {
-      var self = this;
+      fileStream.resume();
 
-      console.log('[binSocketClient.addBinListeners] Got fileStream END');
+      fileStream.pipe(decipher).on('data', function(data) {
+        // Create hash to compare to the provided hash to ensure data integrity
+        console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 
-      // ******************************
-      // Moev all of this to flip-stream and create a writer that we can steram to
-      // ******************************
+        fileBuffer = Buffer.concat([fileBuffer, Buffer(data, 'binary')]);
+      }).on('end', function() {
+        var self = this;
 
-      var blob = new Blob([fileBuffer], { type: 'octet/stream' });
-      var url = URL.createObjectURL(blob);
-      window.open(url);
+        console.log('[binSocketClient.addBinListeners] Got fileStream END');
+
+        // ******************************
+        // Moev all of this to flip-stream and create a writer that we can steram to
+        // ******************************
+
+        var blob = new Blob([fileBuffer], { type: 'octet/stream' });
+        var url = URL.createObjectURL(blob);
+        window.open(url);
 
       /*
 					// Initialize chunks array if it does not exist
@@ -6693,8 +6710,9 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 					};
           */
 
-		});
-  });
+      });
+    });
+  //});
 };
 
 FileManager.prototype.readFiles = function readFiles(files, callback) {

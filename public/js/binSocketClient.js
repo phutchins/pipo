@@ -49,7 +49,20 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
   // Maybe we split these appart and only add stream listener when we're
   // actually waiting on a stream
 
-  this.binSocket.on('stream', callback);
+  this.binSocket.on('stream', function(stream, metadata) {
+    debugger;
+    /*
+    stream.on('data', function(data) {
+      console.log('Got Data');
+    });
+    */
+
+    stream.pause();
+    callback(stream, metadata);
+  });
+
+  //this.binSocket.on('stream', callback.bind(this));
+  //callback(this.binSocket);
 };
 
 module.exports = BinSocketClient;

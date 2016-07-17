@@ -150,7 +150,9 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
       fileStream.resume();
 
-      fileStream.pipe(decipher).on('data', function(data) {
+      fileStream.pipe(decipher)
+
+      decipher.on('data', function(data) {
         // Create hash to compare to the provided hash to ensure data integrity
         console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 

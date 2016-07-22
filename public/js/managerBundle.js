@@ -2433,7 +2433,7 @@ function blobToBuffer (blob, cb) {
 module.exports = Readable;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3,"stream":16,"util":31}],10:[function(require,module,exports){
+},{"buffer":3,"stream":16,"util":32}],10:[function(require,module,exports){
 const StreamWritable = require('stream').Writable;
 const inherits = require('util').inherits;
 
@@ -2446,7 +2446,7 @@ inherits(Writable, StreamWritable);
 
 module.exports = Writable;
 
-},{"stream":16,"util":31}],11:[function(require,module,exports){
+},{"stream":16,"util":32}],11:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -4562,7 +4562,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":19,"_process":15,"buffer":3,"buffer-shims":2,"core-util-is":6,"events":7,"inherits":12,"process-nextick-args":14,"util-deprecate":29}],24:[function(require,module,exports){
+},{"./_stream_duplex":19,"_process":15,"buffer":3,"buffer-shims":2,"core-util-is":6,"events":7,"inherits":12,"process-nextick-args":14,"util-deprecate":30}],24:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
 },{"./lib/_stream_passthrough.js":20}],25:[function(require,module,exports){
@@ -4815,6 +4815,118 @@ function base64DetectIncompleteChar(buffer) {
 }
 
 },{"buffer":3}],29:[function(require,module,exports){
+(function (process){
+var Stream = require('stream')
+
+// through
+//
+// a stream that does nothing but re-emit the input.
+// useful for aggregating a series of changing but not ending streams into one stream)
+
+exports = module.exports = through
+through.through = through
+
+//create a readable writable stream.
+
+function through (write, end, opts) {
+  write = write || function (data) { this.queue(data) }
+  end = end || function () { this.queue(null) }
+
+  var ended = false, destroyed = false, buffer = [], _ended = false
+  var stream = new Stream()
+  stream.readable = stream.writable = true
+  stream.paused = false
+
+//  stream.autoPause   = !(opts && opts.autoPause   === false)
+  stream.autoDestroy = !(opts && opts.autoDestroy === false)
+
+  stream.write = function (data) {
+    write.call(this, data)
+    return !stream.paused
+  }
+
+  function drain() {
+    while(buffer.length && !stream.paused) {
+      var data = buffer.shift()
+      if(null === data)
+        return stream.emit('end')
+      else
+        stream.emit('data', data)
+    }
+  }
+
+  stream.queue = stream.push = function (data) {
+//    console.error(ended)
+    if(_ended) return stream
+    if(data === null) _ended = true
+    buffer.push(data)
+    drain()
+    return stream
+  }
+
+  //this will be registered as the first 'end' listener
+  //must call destroy next tick, to make sure we're after any
+  //stream piped from here.
+  //this is only a problem if end is not emitted synchronously.
+  //a nicer way to do this is to make sure this is the last listener for 'end'
+
+  stream.on('end', function () {
+    stream.readable = false
+    if(!stream.writable && stream.autoDestroy)
+      process.nextTick(function () {
+        stream.destroy()
+      })
+  })
+
+  function _end () {
+    stream.writable = false
+    end.call(stream)
+    if(!stream.readable && stream.autoDestroy)
+      stream.destroy()
+  }
+
+  stream.end = function (data) {
+    if(ended) return
+    ended = true
+    if(arguments.length) stream.write(data)
+    _end() // will emit or queue
+    return stream
+  }
+
+  stream.destroy = function () {
+    if(destroyed) return
+    destroyed = true
+    ended = true
+    buffer.length = 0
+    stream.writable = stream.readable = false
+    stream.emit('close')
+    return stream
+  }
+
+  stream.pause = function () {
+    if(stream.paused) return
+    stream.paused = true
+    return stream
+  }
+
+  stream.resume = function () {
+    if(stream.paused) {
+      stream.paused = false
+      stream.emit('resume')
+    }
+    drain()
+    //may have become paused again,
+    //as drain emits 'data'.
+    if(!stream.paused)
+      stream.emit('drain')
+    return stream
+  }
+  return stream
+}
+
+
+}).call(this,require('_process'))
+},{"_process":15,"stream":16}],30:[function(require,module,exports){
 (function (global){
 
 /**
@@ -4885,14 +4997,14 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],30:[function(require,module,exports){
+},{}],31:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],31:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -5482,8 +5594,11 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":30,"_process":15,"inherits":12}],32:[function(require,module,exports){
+},{"./support/isBuffer":31,"_process":15,"inherits":12}],33:[function(require,module,exports){
+(function (Buffer){
 'use strict'
+
+var through = require('through');
 
 function BinSocketClient(options) {
   if (!(this instanceof BinSocketClient)) {
@@ -5526,24 +5641,161 @@ BinSocketClient.prototype.close = function() {
   return this.binSocket.close();
 };
 
+BinSocketClient.prototype.getSocket = function() {
+  return this.binSocket;
+};
+
 BinSocketClient.prototype.listenForFileStream = function(callback) {
+  var self = this;
   // This should have a timeout for listening
 
   //self.binListeners = true;
 
   // Maybe we split these appart and only add stream listener when we're
   // actually waiting on a stream
+  var buf = new Buffer([]);
 
-  this.binSocket.on('stream', function(stream, metadata) {
-    debugger;
+  this.binSocket.on('stream', function(binStream, data) {
     /*
-    stream.on('data', function(data) {
-      console.log('Got Data');
+    var logger1 = through(function(data) {
+      debugger;
+
+      if (data.length % 4 !== 0) {
+        debugger;
+        data = Buffer.concat([data, Buffer(data.length % 4).fill(0)]);
+      }
+
+      this.queue(data);
+    });
+
+    var passthrough = stream.PassThrough();
+
+    var transformer = through(function(data) {
+      debugger;
+
+      //var buffer = new Uint8Array(data);
+      this.queue(data);
+    });
+
+    debugger;
+
+    passthrough.pause();
+
+    //binStream.pipe(transformer).pipe(passthrough);
+    binStream.pipe(logger1).pipe(passthrough);
+    //passthrough.pause();
+    callback(passthrough, metadata);
+    var logger = through(function(data) {
+      debugger;
+      this.queue(data);
     });
     */
 
-    stream.pause();
-    setTimeout(callback(stream, metadata), 0);
+    var id = data.id;
+    var fileName = data.fileName;
+    var chunkCount = data.chunkCount;
+    var chunkNumber = data.chunkNumber;
+    var encryptedKey = data.encryptedKey;
+   // var iv = data.iv;
+    var description = data.description;
+
+/*
+    var decipherData = {
+      encryptedKey: encryptedKey,
+      iv: iv
+    };
+*/
+
+    //window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+      // Build an object locally to keep track of the parts of the file
+      // if it doesn't exist
+
+
+    // Get first message from server with iv and encryptedKey
+    // Create decipher
+    // Reply with ready?
+    // Listen for stream
+    // pipe stream to decipher
+
+			var keyRing = window.encryptionManager.keyRing;
+			encryptedKey = data.encryptedKey;
+			//iv = new Buffer(data.iv, 'hex');
+
+      var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+      var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+
+
+			// Add our own decrypted private key to the key manager so we can decrypt the key
+/*
+			if (window.encryptionManager.keyManager) {
+				keyRing.add_key_manager(self.keyManager);
+			};
+*/
+
+/*
+			window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedKey }, function(err, literals) {
+				if (err) {
+					console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
+				}
+
+				var sessionKey = new Buffer(literals.toString(), 'hex');
+
+				return callback(err, decipher);
+			});
+*/
+
+      var decipher = nodeCrypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
+
+      var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
+      if (incomingFilesIsUndefined) {
+        window.incomingFiles = [];
+        window.incomingFiles[id] = {
+          fileName: fileName,
+          chunksReceived: 0,
+          chunkCount: chunkCount
+        };
+      }
+
+      console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
+
+      //var fileBuffer = new Buffer([], 'binary');
+
+      //fileStream.resume();
+      console.log('[fileManager.handleIncomingFileStream] Created fileBuffer, piping to decipher');
+
+
+ //     binStream.resume();
+
+      console.log('[fileManager.handleIncomingFileStream] Piped fileStream to decipher, waiting on data');
+
+      debugger;
+      binStream.on('data', function(data) {
+        console.log('[fileManager.handleIncomingFileStream] Got some data from binStream, piping to decipher');
+      }).pipe(decipher).on('data', function(data) {
+        // Create hash to compare to the provided hash to ensure data integrity
+        console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
+
+        //var dataString = data.toString('binary');
+
+        debugger;
+
+        //fileBuffer = Buffer.concat([fileBuffer, Buffer(dataString, 'binary')]);
+      }).on('end', function() {
+        var self = this;
+
+        console.log('[binSocketClient.addBinListeners] Got fileStream END');
+
+        // ******************************
+        // Moev all of this to flip-stream and create a writer that we can steram to
+        // ******************************
+
+        debugger;
+        var blob = new Blob([fileBuffer], { type: 'octet/stream' });
+        var url = URL.createObjectURL(blob);
+        window.open(url);
+      });
+    //});
+
   });
 
   //this.binSocket.on('stream', callback.bind(this));
@@ -5552,7 +5804,8 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
 
 module.exports = BinSocketClient;
 
-},{}],33:[function(require,module,exports){
+}).call(this,require("buffer").Buffer)
+},{"buffer":3,"through":29}],34:[function(require,module,exports){
 (function (Buffer){
 function EncryptionManager() {
   this.keyPair = ({
@@ -5996,8 +6249,13 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  var sessionKey = nodeCrypto.randomBytes(16);
-  var iv = nodeCrypto.randomBytes(16);
+  //var sessionKey = nodeCrypto.randomBytes(16);
+  //var iv = nodeCrypto.randomBytes(16);
+
+  // Only temporary for testing, issues with binaryjs...
+  var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+  var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+
 
   var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
   var ivBuffer = new Buffer(iv, 'hex');
@@ -6509,9 +6767,11 @@ EncryptionManager.prototype.rmd160 = function rmd160(data) {
 window.encryptionManager = new EncryptionManager();
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":3}],34:[function(require,module,exports){
-(function (Buffer){
+},{"buffer":3}],35:[function(require,module,exports){
 'use strict'
+
+var stream = require('stream');
+var through = require('through');
 
 window.FlipStream = require('flip-stream-js');
 var BinSocketClient = require('./binSocketClient');
@@ -6631,6 +6891,11 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStream(fileStream, data) {
   //binSocket.on('stream', function(fileStream, data) {
 
+    var logger = through(function(data) {
+      debugger;
+      this.queue(data);
+    });
+
     var id = data.id;
     var fileName = data.fileName;
     var chunkCount = data.chunkCount;
@@ -6659,17 +6924,26 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
       console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
 
-      var fileBuffer = new Buffer([], 'binary');
+      debugger;
 
-      fileStream.resume();
+      //var fileBuffer = new Buffer([], 'binary');
 
-      fileStream.pipe(decipher)
+      //fileStream.resume();
+      console.log('[fileManager.handleIncomingFileStream] Created fileBuffer, piping to decipher');
+
+      fileStream.pipe(logger).pipe(decipher);
+
+      console.log('[fileManager.handleIncomingFileStream] Piped fileStream to decipher, waiting on data');
 
       decipher.on('data', function(data) {
         // Create hash to compare to the provided hash to ensure data integrity
         console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 
-        fileBuffer = Buffer.concat([fileBuffer, Buffer(data, 'binary')]);
+        //var dataString = data.toString('binary');
+
+        debugger;
+
+        //fileBuffer = Buffer.concat([fileBuffer, Buffer(dataString, 'binary')]);
       }).on('end', function() {
         var self = this;
 
@@ -6679,6 +6953,7 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
         // Moev all of this to flip-stream and create a writer that we can steram to
         // ******************************
 
+        debugger;
         var blob = new Blob([fileBuffer], { type: 'octet/stream' });
         var url = URL.createObjectURL(blob);
         window.open(url);
@@ -6712,7 +6987,7 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 					};
           */
 
-      });
+      }).resume();
     });
   //});
 };
@@ -6762,7 +7037,18 @@ FileManager.prototype.getFile = function getFile(data) {
 
   var options = {};
   var binSocketClient = BinSocketClient(options);
+
+  // This is sync, is that bad? :)
+  /*
+  binSocketClient.getSocket(function(binSocket) {
+    binSocket.on('stream', function(stream, metadata) {
+      self.handleIncomingFileStream(stream, metadata);
+    });
+  });
+  */
+
   binSocketClient.listenForFileStream(self.handleIncomingFileStream);
+
 
   // Call binSocketClient.listenForFile from here?
   // That way we could pass it a callback method from fileManager without having a circular dependency
@@ -6774,8 +7060,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
 window.FileManager = FileManager;
 
-}).call(this,require("buffer").Buffer)
-},{"./binSocketClient":32,"buffer":3,"flip-stream-js":8}],35:[function(require,module,exports){
+},{"./binSocketClient":33,"flip-stream-js":8,"stream":16,"through":29}],36:[function(require,module,exports){
 var EncryptionManager = require('./encryptionManager.js');
 var socketClient = require('./socketClient');
 var BinSocketClient2 = require('./binSocketClient');
@@ -6783,7 +7068,7 @@ var fileManager = require('./fileManager');
 
 // Need to make ChatManager use prototype and call new on it
 
-},{"./binSocketClient":32,"./encryptionManager.js":33,"./fileManager":34,"./socketClient":36}],36:[function(require,module,exports){
+},{"./binSocketClient":33,"./encryptionManager.js":34,"./fileManager":35,"./socketClient":37}],37:[function(require,module,exports){
 'use strict'
 
 function SocketClient() {
@@ -7369,4 +7654,4 @@ Array.prototype.unique = function() {
 
 window.socketClient = new SocketClient();
 
-},{}]},{},[35]);
+},{}]},{},[36]);

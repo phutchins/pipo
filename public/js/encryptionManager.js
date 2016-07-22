@@ -440,8 +440,13 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  var sessionKey = nodeCrypto.randomBytes(16);
-  var iv = nodeCrypto.randomBytes(16);
+  //var sessionKey = nodeCrypto.randomBytes(16);
+  //var iv = nodeCrypto.randomBytes(16);
+
+  // Only temporary for testing, issues with binaryjs...
+  var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+  var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+
 
   var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
   var ivBuffer = new Buffer(iv, 'hex');

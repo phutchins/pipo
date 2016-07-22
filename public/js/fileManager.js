@@ -1,5 +1,8 @@
 'use strict'
 
+var stream = require('stream');
+var through = require('through');
+
 window.FlipStream = require('flip-stream-js');
 var BinSocketClient = require('./binSocketClient');
 
@@ -118,6 +121,11 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStream(fileStream, data) {
   //binSocket.on('stream', function(fileStream, data) {
 
+    var logger = through(function(data) {
+      debugger;
+      this.queue(data);
+    });
+
     var id = data.id;
     var fileName = data.fileName;
     var chunkCount = data.chunkCount;
@@ -146,17 +154,26 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
       console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
 
-      var fileBuffer = new Buffer([], 'binary');
+      debugger;
 
-      fileStream.resume();
+      //var fileBuffer = new Buffer([], 'binary');
 
-      fileStream.pipe(decipher)
+      //fileStream.resume();
+      console.log('[fileManager.handleIncomingFileStream] Created fileBuffer, piping to decipher');
+
+      fileStream.pipe(logger).pipe(decipher);
+
+      console.log('[fileManager.handleIncomingFileStream] Piped fileStream to decipher, waiting on data');
 
       decipher.on('data', function(data) {
         // Create hash to compare to the provided hash to ensure data integrity
         console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 
-        fileBuffer = Buffer.concat([fileBuffer, Buffer(data, 'binary')]);
+        //var dataString = data.toString('binary');
+
+        debugger;
+
+        //fileBuffer = Buffer.concat([fileBuffer, Buffer(dataString, 'binary')]);
       }).on('end', function() {
         var self = this;
 
@@ -166,6 +183,7 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
         // Moev all of this to flip-stream and create a writer that we can steram to
         // ******************************
 
+        debugger;
         var blob = new Blob([fileBuffer], { type: 'octet/stream' });
         var url = URL.createObjectURL(blob);
         window.open(url);
@@ -199,7 +217,7 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 					};
           */
 
-      });
+      }).resume();
     });
   //});
 };
@@ -249,7 +267,18 @@ FileManager.prototype.getFile = function getFile(data) {
 
   var options = {};
   var binSocketClient = BinSocketClient(options);
+
+  // This is sync, is that bad? :)
+  /*
+  binSocketClient.getSocket(function(binSocket) {
+    binSocket.on('stream', function(stream, metadata) {
+      self.handleIncomingFileStream(stream, metadata);
+    });
+  });
+  */
+
   binSocketClient.listenForFileStream(self.handleIncomingFileStream);
+
 
   // Call binSocketClient.listenForFile from here?
   // That way we could pass it a callback method from fileManager without having a circular dependency

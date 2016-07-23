@@ -157,7 +157,8 @@ pfileSchema.methods.getChunk = function getChunk(index, callback) {
   };
 
   // Read the file from disk and return it (as a readable stream?)
-  var chunkStream = fs.createReadStream("files/" + chunkName, { encoding: 'binary' });
+  var chunkStream = fs.createReadStream("files/" + chunkName);
+  //var chunkStream = fs.createReadStream("files/" + chunkName, { encoding: 'binary' });
 
   return callback(null, chunkData, chunkStream);
 };

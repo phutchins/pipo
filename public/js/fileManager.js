@@ -2,6 +2,7 @@
 
 var stream = require('stream');
 var through = require('through');
+var crypto = require('crypto');
 
 window.FlipStream = require('flip-stream-js');
 var BinSocketClient = require('./binSocketClient');
@@ -51,7 +52,6 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
       var cipher = data.cipher;
       var encryptedKey = data.encryptedKey;
       var iv = data.iv;
-
       var dataHash = nodeCrypto.createHash('rmd160');
       var encryptedDataHash = nodeCrypto.createHash('rmd160');
       var dataHashString;
@@ -88,7 +88,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
       // Use through stream to send the original data through to the
       // data hash instead of pipe
 
-      fileReader.pipe(dataHash).pipe(cipher).pipe(encryptedDataHash).pipe(binStream);;
+      fileReader.pipe(cipher).pipe(binStream);;
 
       var tx = 0;
       binStream.on('data', function(data) {
@@ -119,106 +119,101 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
  * Bind the binsocket context to this when calling
  */
 FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStream(fileStream, data) {
-  //binSocket.on('stream', function(fileStream, data) {
+  var self = this;
 
-    var logger = through(function(data) {
-      debugger;
+  var id = data.id;
+  var fileName = data.fileName;
+  var chunkCount = data.chunkCount;
+  var chunkNumber = data.chunkNumber;
+  var encryptedKey = data.encryptedKey;
+  //var iv = data.iv;
+  var description = data.description;
+
+  var decipherData = {
+    encryptedKey: encryptedKey,
+    iv: iv
+  };
+
+  // Temp hardcode
+  var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+  var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+  var decipher = crypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
+  var fileBuffer = new Buffer([], 'binary');
+
+  //window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+    // Build an object locally to keep track of the parts of the file
+    // if it doesn't exist
+    var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
+    if (incomingFilesIsUndefined) {
+      window.incomingFiles = [];
+      window.incomingFiles[id] = {
+        fileName: fileName,
+        chunksReceived: 0,
+        chunkCount: chunkCount
+      };
+    }
+
+    var logStream1 = through(function(data) {
+      this.queue(new Buffer(data));
+    });
+
+    var logStream2 = through(function(data) {
       this.queue(data);
     });
 
-    var id = data.id;
-    var fileName = data.fileName;
-    var chunkCount = data.chunkCount;
-    var chunkNumber = data.chunkNumber;
-    var encryptedKey = data.encryptedKey;
-    var iv = data.iv;
-    var description = data.description;
+    console.log('[fileManager.handleIncomingFileStream] Piped fileStream to decipher, waiting on data');
 
-    var decipherData = {
-      encryptedKey: encryptedKey,
-      iv: iv
-    };
+    fileStream.pipe(logStream1).pipe(decipher).pipe(logStream2).on('data', function(data) {
+      // Create hash to compare to the provided hash to ensure data integrity
+      console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
 
-    window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
-      // Build an object locally to keep track of the parts of the file
-      // if it doesn't exist
-      var incomingFilesIsUndefined = typeof window.incomingFiles === 'undefined';
-      if (incomingFilesIsUndefined) {
-        window.incomingFiles = [];
-        window.incomingFiles[id] = {
-          fileName: fileName,
-          chunksReceived: 0,
-          chunkCount: chunkCount
+      var dataString = data.toString('binary');
+
+      fileBuffer = Buffer.concat([fileBuffer, Buffer(dataString, 'binary')]);
+    }).on('end', function() {
+      var self = this;
+
+      console.log('[binSocketClient.addBinListeners] Got fileStream END');
+
+      // ******************************
+      // Move all of this to flip-stream and create a writer that we can steram to
+      // ******************************
+
+      var blob = new Blob([fileBuffer], { type: 'octet/stream' });
+      var url = URL.createObjectURL(blob);
+      window.open(url);
+
+    /*
+        // Initialize chunks array if it does not exist
+        if (!window.incomingFiles[id].chunks) {
+          window.incomingFiles[id].chunks = [];
+        }
+
+        // Save the chunk to local storage with a pointer in window.chunksReceived
+        window.incomingFiles[id].chunksReceived++;
+        console.log('[binSocketClient.addBinListeners] Decrypted message...');
+
+        var chunkIndex = (chunkNumber - 1);
+
+        window.incomingFiles[id].chunks[chunkIndex] = fileBuffer;
+
+        if (window.incomingFiles[id].chunksReceived == chunkCount) {
+          // Need to piece the file back together here before saving it
+          var completeFileBlob = new Blob(window.incomingFiles[id].chunks);
+
+          saveAs(completeFileBlob, fileName);
+
+          // Close the binSocket connection since we're finished receiving the file
+          console.log("[binSocketClient.addBinListeners] About to close self");
+          this.close();
+          console.log("[binSocketClient.addBinListeners] Closing binSocket as we're finished getting the file");
+
+          return delete window.incomingFiles[id];
         };
-      }
+        */
 
-      console.log('[fileManager.handleIncomingFileStream] Got file decipher, preparing to decrypt file');
-
-      debugger;
-
-      //var fileBuffer = new Buffer([], 'binary');
-
-      //fileStream.resume();
-      console.log('[fileManager.handleIncomingFileStream] Created fileBuffer, piping to decipher');
-
-      fileStream.pipe(logger).pipe(decipher);
-
-      console.log('[fileManager.handleIncomingFileStream] Piped fileStream to decipher, waiting on data');
-
-      decipher.on('data', function(data) {
-        // Create hash to compare to the provided hash to ensure data integrity
-        console.log('[fileManager.handleIncomingFileStream] Got on data from fileStream');
-
-        //var dataString = data.toString('binary');
-
-        debugger;
-
-        //fileBuffer = Buffer.concat([fileBuffer, Buffer(dataString, 'binary')]);
-      }).on('end', function() {
-        var self = this;
-
-        console.log('[binSocketClient.addBinListeners] Got fileStream END');
-
-        // ******************************
-        // Moev all of this to flip-stream and create a writer that we can steram to
-        // ******************************
-
-        debugger;
-        var blob = new Blob([fileBuffer], { type: 'octet/stream' });
-        var url = URL.createObjectURL(blob);
-        window.open(url);
-
-      /*
-					// Initialize chunks array if it does not exist
-					if (!window.incomingFiles[id].chunks) {
-						window.incomingFiles[id].chunks = [];
-					}
-
-					// Save the chunk to local storage with a pointer in window.chunksReceived
-					window.incomingFiles[id].chunksReceived++;
-					console.log('[binSocketClient.addBinListeners] Decrypted message...');
-
-					var chunkIndex = (chunkNumber - 1);
-
-					window.incomingFiles[id].chunks[chunkIndex] = fileBuffer;
-
-					if (window.incomingFiles[id].chunksReceived == chunkCount) {
-						// Need to piece the file back together here before saving it
-						var completeFileBlob = new Blob(window.incomingFiles[id].chunks);
-
-						saveAs(completeFileBlob, fileName);
-
-						// Close the binSocket connection since we're finished receiving the file
-						console.log("[binSocketClient.addBinListeners] About to close self");
-						this.close();
-						console.log("[binSocketClient.addBinListeners] Closing binSocket as we're finished getting the file");
-
-						return delete window.incomingFiles[id];
-					};
-          */
-
-      }).resume();
     });
+  //});
   //});
 };
 
@@ -262,26 +257,12 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
 FileManager.prototype.getFile = function getFile(data) {
   var self = this;
 
-// Send socket request to the server asking for the pfile by id
-// Should set some bits here to show that we're waitijng for the incoming file and reset it when we get the incoming file message
-
   var options = {};
   var binSocketClient = BinSocketClient(options);
 
-  // This is sync, is that bad? :)
-  /*
-  binSocketClient.getSocket(function(binSocket) {
-    binSocket.on('stream', function(stream, metadata) {
-      self.handleIncomingFileStream(stream, metadata);
-    });
+  binSocketClient.listenForFileStream(function(fileStream, metadata) {
+    self.handleIncomingFileStream(fileStream, metadata);
   });
-  */
-
-  binSocketClient.listenForFileStream(self.handleIncomingFileStream);
-
-
-  // Call binSocketClient.listenForFile from here?
-  // That way we could pass it a callback method from fileManager without having a circular dependency
 
   window.socketClient.socket.emit('getFile', { id: data.id });
 

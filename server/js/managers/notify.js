@@ -10,6 +10,7 @@ function NotifyManager() {
     var socketServer = data.socketServer;
     var chatType = data.chatType;
     var signingKeyManager = data.signingKeyManager;
+    var err = data.err;
 
     logger.debug("[notify.sendToChat] chatType is: " + chatType);
     if (chatType == 'chat') {
@@ -57,9 +58,13 @@ function NotifyManager() {
         }
 
         logger.debug("[NotifyManager.sendToChat] chatType was not during finish");
-      })
+      });
     };
-  }
-};
+  };
+
+  this.sendToUser = function(data) {
+
+  };
+}
 
 module.exports = new NotifyManager();

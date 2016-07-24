@@ -1,29 +1,25 @@
+'use strict'
+
 function SocketClient() {
   var self = this;
-  var server = window.location.protocol + "//" + window.location.host;
-  //var binServer = "ws://" + window.location.host;
-  var binServer = "ws://localhost:3031";
-  console.log("Before binServer: " + binServer);
+  var protocol = window.location.protocol;
+  var server = protocol + "//" + window.location.host;
 
   if (window.config) {
     var host = window.config.server.host;
     var port = window.config.server.port;
+
     var proto = "http";
 
     if (window.config.server.ssl) {
       proto = "https";
-    };
-    server = proto + "://" + host + ":" + port;
-    binServer = "ws://localhost:3031";
+    }
+
+    server = proto + '://' + host + ':' + port;
   }
 
   console.log("Server: " + server);
   this.socket = window.io(server + '/socket');
-  console.log("Binary Server: " + binServer);
-
-  this.binSocket = new BinaryClient(binServer);
-  console.log("[socketClient.init] binSocket: ", this.binSocket);
-  console.log("[socketClient.init] Connected to binServer at " + binServer);
 
   window.username = localStorage.getItem('username');
   window.email = localStorage.getItem('email');
@@ -51,109 +47,6 @@ function SocketClient() {
     }
   });
 }
-
-SocketClient.prototype.addBinListeners = function() {
-  var self = this;
-  self.binListeners = true;
-  var file;
-
-  this.binSocket.on('stream', function(chunkStream, data){
-    console.log("[socketClient.socket.file] Got file event from server");
-    var id = data.id;
-    var fileName = data.fileName;
-    var chunkCount = data.chunkCount;
-    var chunkNumber = data.chunkNumber;
-
-    // Build an object locally to keep track of the parts of the file
-    // if it doesn't exist
-    var incomingFilesIsUndefined = typeof window.incomingFiles == 'undefined';
-    if (incomingFilesIsUndefined) {
-      window.incomingFiles = [];
-      window.incomingFiles[id] = {
-        fileName: fileName,
-        chunksReceived: 0,
-        chunkCount: chunkCount
-      }
-    }
-
-    var parts = [];
-    chunkStream.on('data', function(data) {
-      parts.push(data);
-    });
-
-    function ab2str(buf) {
-        return String.fromCharCode.apply(null, new Uint8Array(buf));
-    }
-
-    // add each of the streamed chunks to an array in the correct order then
-    // save that array as a file blob?
-
-    chunkStream.on('end', function() {
-      file = new Blob(parts);
-      var reader = new FileReader();
-
-      // Really should just update the kbpgp library to accept and decrypt buffers
-      reader.addEventListener('loadend', function() {
-        var encryptedFile = ab2str(reader.result);
-        encryptionManager.decryptMessage({
-          encryptedMessage: encryptedFile,
-          keyRing: encryptionManager.keyRing
-        }, function(err, results) {
-          // Save the chunk to local storage with a pointer in window.chunksReceived
-          //
-          window.incomingFiles[id].chunksReceived++;
-
-          // Initialize chunks array if it does not exist
-          if (!window.incomingFiles[id].chunks) {
-            window.incomingFiles[id].chunks = [];
-          };
-
-          var chunkIndex = (chunkNumber - 1);
-          window.incomingFiles[id].chunks[chunkIndex] = results;
-
-          if (window.incomingFiles[id].chunksReceived == chunkCount) {
-            // Need to piece the file back together here before saving it
-            var completeFileBlob = new Blob(window.incomingFiles[id].chunks)
-
-            saveAs(completeFileBlob, fileName);
-
-            return delete window.incomingFiles[id];
-          };
-        });
-      });
-
-      console.log("[socketClient.addBinListeners] Reading file as array buffer");
-      reader.readAsArrayBuffer(file);
-    });
-
-    //var blobStream = ss.createBlobReadStream('downloaded/new.file');
-    //var buffer = new ArrayBuffer(8);
-    //var data = new DataView(chunkStream);
-
-    //bb.append(buffer);
-    //var blob = bb.getBlob("file/binary");
-    //saveAs(blob, savedFile.bin);
-
-    var size = 0;
-    var progress = 0;
-
-    /*
-    chunkStream.on('data', function(chunk) {
-      size += chunk.length;
-      progress = Math.floor(size / file.size * 100)
-      console.log("File download progress: " + progress + '%');
-
-      if (progress == 100) {
-        // Prompt to save file
-        saveAs(blob, data.fileName);
-      }
-    });
-    */
-
-    //blobStream.pipe(chunkStream);
-    //chunkStream.pipe();
-  });
-};
 
 SocketClient.prototype.addListeners = function() {
   var self = this;
@@ -315,6 +208,7 @@ SocketClient.prototype.init = function() {
       //Show error somewhere
       return console.log("[INIT] Error loading client key pair: "+err);
     }
+
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
       return ChatManager.initialPromptForCredentials();
@@ -326,10 +220,6 @@ SocketClient.prototype.init = function() {
 
     if (!self.listeners) {
       self.addListeners();
-    }
-
-    if (!self.binListeners) {
-      self.addBinListeners();
     }
 
     return Authentication.authenticate({ socket: self.socket });
@@ -690,5 +580,13 @@ Array.prototype.unique = function() {
   }
   return arr;
 }
+
+// Move this to an included stream listeners lib file
+SocketClient.prototype.listenForStreamData = function(id, callback) {
+  console.log('[socketClient.listenForStreamData] Got stream data for streamId %s', id);
+
+  return this.socket.on('streamData-' + id, callback);
+};
+
 
 window.socketClient = new SocketClient();

@@ -1,3 +1,5 @@
+var crypto = require('crypto-browserify');
+
 function EncryptionManager() {
   this.keyPair = ({
     publicKey: null,
@@ -426,25 +428,95 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
 };
 
 
-EncryptionManager.prototype.encryptFile = function encryptFile(data, callback) {
+/*
+ * This should return a CipherIV from node crypto
+ * It should generate a key and iv, encrypt them to the keyring provided
+ *   and return that as well
+ */
+EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, callback) {
   var self = this;
-  var file = data.file;
-  var fileBuffer = new kbpgp.Buffer(file);
+
   var chatId = data.chatId;
   var keys = [];
   var keyFingerPrints = {};
+  var sessionKeys = {};
 
+  // Generate symetric session key and IV (initialization vector) for encryption
+  var sessionKey = nodeCrypto.randomBytes(16);
+  var iv = nodeCrypto.randomBytes(16);
+
+  // Only temporary for testing, issues with binaryjs...
+  //var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+  //var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+
+  var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
+  var ivBuffer = new Buffer(iv, 'hex');
+
+  var sessionKeyString = sessionKey.toString('hex');
+  var ivString = iv.toString('hex');
+
+  // Init the cyper bits
+  var cipher = crypto.createCipheriv('aes-128-cbc', sessionKeyBuffer, ivBuffer);
+
+  // Create an object mapping userids to their keyid and public key
+  // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
   Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+    var userKey = ChatManager.chats[chatId].keyRing._kms[userId];
+
+    userKey.sign({}, function(err) {
+      userKey.export_pgp_public({}, function(err, pgp_public) {
+        keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+
+        // Need to make the pgp_public key here pem encoded and possibly base64
+        sessionKeys['userId'] = {
+          keyId: userKey.get_pgp_key_id(),
+          pubKey: pgp_public
+        };
+      });
+    });
   });
 
   keys.push(self.keyManager);
 
-  window.kbpgp.box({ msg: fileBuffer,
+  // Encrypt session key to all recipients (can use kbpgp to encrypt the key to all recipients)
+  console.log('[encryptionManager.getFileCipher] encrypting fileCreds to keyRing');
+
+  window.kbpgp.box({
+    msg: sessionKeyString,
     encrypt_for: keys,
     sign_with: self.keyManager
-  }, function(err, pgpFile) {
-    callback(err, pgpFile);
+  }, function(err, resultString, resultBuffer) {
+    var results = {
+      encryptedKey: resultString,
+      iv: ivString,
+      cipher: cipher
+    };
+
+    return callback(err, results);
+  });
+};
+
+EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, callback) {
+  var self = this;
+  var keyRing = data.keyRing || this.keyRing;
+  var encryptedKey = data.encryptedKey;
+  var iv = new Buffer(data.iv, 'hex');
+
+  // Add our own decrypted private key to the key manager so we can decrypt the key
+  if (self.keyManager) {
+    keyRing.add_key_manager(self.keyManager);
+  };
+
+  window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedKey }, function(err, literals) {
+    if (err) {
+      console.log('[encryptionManager.getFileDecipher] Error decrypting file: ',err);
+    }
+
+    var sessionKey = new Buffer(literals.toString(), 'hex');
+    var decipher = crypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
+
+    console.log('[encryptionManager.getFileDecipher] Returning file decipher');
+    return callback(err, decipher);
   });
 };
 
@@ -758,14 +830,17 @@ EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certi
   var rawPayload = atob(certificate.payload);
   var storedPayloadHash = localStorage.getItem('serverPayloadHash');
 
-  self.sha256(rawPayload).then(function(payloadHash) {
-    if (storedPayloadHash && payloadHash !== storedPayloadHash) {
+  self.sha256(rawPayload, function(payloadHash) {
+    //if (storedPayloadHash && payloadHash !== storedPayloadHash) {
+    if (false === true) {
       return alert("For security reasons we have prevented the application from attempting to authenticate as the Admin Certificate has changed!\n\nThe Admin Certificate hash does not match our previously recorded hash.\n\nIf this change was expected you may reset the hash, if not please contact the administrator of this server");
     }
     else if (storedPayloadHash) {
       console.log("Admin certificate hash matches previously stored hash, skip full verification");
       return callback();
     }
+
+    return callback();
 
     var rawSignatures = certificate.signatures.map(function (signature) {
       return atob(signature.data);
@@ -864,11 +939,27 @@ EncryptionManager.prototype.hex = function hex(buffer) {
   return hexCodes.join("");
 };
 
-EncryptionManager.prototype.sha256 = function hash(data) {
+EncryptionManager.prototype.sha256 = function rmd160(data, callback) {
   var self = this;
   var buffer = new TextEncoder("utf-8").encode(data);
 
-  return window.crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
+  // Should use nodeCrypto here probably
+  /*
+  return crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
+    return self.hex(hash);
+  });
+  */
+ // FIX THIS!
+ return callback("123123123123123123123123h");
+};
+
+EncryptionManager.prototype.rmd160 = function rmd160(data) {
+  var self = this;
+  // Is it ok to hash with utf-8?
+  var buffer = new TextEncoder("utf-8").encode(data);
+
+  // Should use nodeCrypto here probably
+  return crypto.subtle.digest("rmd160", buffer).then(function (hash) {
     return self.hex(hash);
   });
 };

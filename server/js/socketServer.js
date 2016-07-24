@@ -1,5 +1,4 @@
-// PiPo Libs
-
+'use strict'
 
 // Models
 var User = require('../models/user');
@@ -11,6 +10,7 @@ var Message = require('../models/message');
 var Chat = require('../models/chat');
 var dl = require('delivery');
 var fs = require('fs');
+var stream = require('stream');
 
 // Managers
 var FileManager = require('./managers/file');
@@ -45,12 +45,26 @@ function SocketServer(namespace) {
   }
 }
 
-SocketServer.prototype.onBinarySocket = function(binSocket) {
+SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
   this.binSocket = binSocket;
   var self = this;
 
-  logger.debug("[socketServer.onBinarySocket] Init binary listeners");
+  logger.debug("[socketServer.onBinarySocketConnection] Init binary listeners");
 
+  binSocket.on('stream', function(fileStream, data) {
+    data.socketServer = self;
+
+    logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
+
+    // Pass the fileStream to the file stream handler in fileManager
+    FileManager.handleFileStream(fileStream, data, function(err) {
+      if (err) {
+        return console.log('Error handling file stream: %s', err);
+      }
+
+      console.log('File stream handled');
+    });
+  });
 };
 
 SocketServer.prototype.onSocket = function(socket) {
@@ -63,37 +77,24 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('authenticate', self.authenticate.bind(self));
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
-
   socket.on('updateClientKey', self.updateClientKey.bind(self));
-  //socket.on('disconnecting', self.disconnecting.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
-  socket.on('leaveRoom', function(id) {
-    logger.debug("[socketServer.on] leaveRoom - id: " + id);
-    self.leaveRoom(id).bind(self);
-  });
-
+  socket.on('leaveRoom', self.leaveRoom.bind(self));
   socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.partRoom.bind(self));
-
   socket.on('createRoom', self.createRoom.bind(self));
   socket.on('updateRoom', self.updateRoom.bind(self));
-
   socket.on('getChat', self.getChat.bind(self));
   socket.on('getPreviousPage', self.getPreviousPage.bind(self));
-
   socket.on('membership', self.membership.bind(self));
-
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
-
   socket.on('toggleFavorite', self.toggleFavorite.bind(self));
+  socket.on('serverCommand', self.onServerCommand.bind(self));
 
-  // File Listeners (will move sendFile to binListeners)
-  // getFile should trigger a binServer socket event to send from server to client over the binary socket that exists
+  // File transfer
   socket.on('sendFile', self.onSendFile.bind(self));
   socket.on('getFile', self.onGetFile.bind(self));
-
-  socket.on('serverCommand', self.onServerCommand.bind(self));
 };
 
 SocketServer.prototype.init = function init() {
@@ -595,6 +596,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
 SocketServer.prototype.onSendFile = function(data){
   var self = this;
   data.socketServer = self;
+
+  logger.debug('[socketServer.onSendFile] Got sendFile socket event');
 
   FileManager.handleChunk(data);
 };

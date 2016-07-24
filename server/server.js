@@ -203,11 +203,22 @@ Server.prototype.initServer = function(config) {
 
         bs.on('connection', function(binSocket) {
           logger.debug("[server] Got binary client connection");
-          logger.debug("[server.bs.on] binSocket is: " + binSocket);
+
+/*
+          binSocket.on('stream', function(stream, data) {
+            //data.socketServer = self;
+
+            logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
+
+            data.fileBuffer = stream;
+
+            FileManager.handleChunk(data);
+          });
+*/
 
           //var testFile = fs.createReadStream(__dirname + 'testFile');
           //binSocket.send(testFile);
-          socketServer.onBinarySocket(binSocket);
+          socketServer.onBinarySocketConnection(binSocket);
         });
         break;
       default:

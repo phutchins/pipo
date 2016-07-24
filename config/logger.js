@@ -35,7 +35,7 @@ if (process.env.NODE_ENV !== 'test') {
     silent: false,
     timestamp: true,
     filename: './pipo.log',
-    maxsize: 40000,
+    maxsize: 4000000,
     maxFiles: 10,
     json: false
   })
@@ -56,7 +56,7 @@ if (process.env.NODE_ENV !== 'test') {
     silent: false,
     timestamp: true,
     filename: './pipo.log',
-    maxsize: 40000,
+    maxsize: 4000000,
     maxFiles: 10,
     json: false
   })

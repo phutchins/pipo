@@ -581,4 +581,12 @@ Array.prototype.unique = function() {
   return arr;
 }
 
+// Move this to an included stream listeners lib file
+SocketClient.prototype.listenForStreamData = function(id, callback) {
+  console.log('[socketClient.listenForStreamData] Got stream data for streamId %s', id);
+
+  return this.socket.on('streamData-' + id, callback);
+};
+
+
 window.socketClient = new SocketClient();

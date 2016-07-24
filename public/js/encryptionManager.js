@@ -442,12 +442,12 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   var sessionKeys = {};
 
   // Generate symetric session key and IV (initialization vector) for encryption
-  //var sessionKey = nodeCrypto.randomBytes(16);
-  //var iv = nodeCrypto.randomBytes(16);
+  var sessionKey = nodeCrypto.randomBytes(16);
+  var iv = nodeCrypto.randomBytes(16);
 
   // Only temporary for testing, issues with binaryjs...
-  var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
-  var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
+  //var sessionKey = new Buffer('93d1d1541a976333673935683f49b5e8', 'hex');
+  //var iv = new Buffer('27c3465f041e046a61a6f8dc01f0db3d', 'hex');
 
   var sessionKeyBuffer = new Buffer(sessionKey, 'hex');
   var ivBuffer = new Buffer(iv, 'hex');
@@ -509,12 +509,13 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
 
   window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedKey }, function(err, literals) {
     if (err) {
-      console.log('[encryptionManager.decryptFile] Error decrypting file: ',err);
+      console.log('[encryptionManager.getFileDecipher] Error decrypting file: ',err);
     }
 
     var sessionKey = new Buffer(literals.toString(), 'hex');
     var decipher = crypto.createDecipheriv('aes-128-cbc', sessionKey, iv);
 
+    console.log('[encryptionManager.getFileDecipher] Returning file decipher');
     return callback(err, decipher);
   });
 };

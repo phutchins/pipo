@@ -77,37 +77,24 @@ SocketServer.prototype.onSocket = function(socket) {
 
   socket.on('authenticate', self.authenticate.bind(self));
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
-
   socket.on('updateClientKey', self.updateClientKey.bind(self));
-  //socket.on('disconnecting', self.disconnecting.bind(self));
   socket.on('disconnect', self.disconnect.bind(self));
-  socket.on('leaveRoom', function(id) {
-    logger.debug("[socketServer.on] leaveRoom - id: " + id);
-    self.leaveRoom(id).bind(self);
-  });
-
+  socket.on('leaveRoom', self.leaveRoom.bind(self));
   socket.on('join', self.joinRoom.bind(self));
   socket.on('part', self.partRoom.bind(self));
-
   socket.on('createRoom', self.createRoom.bind(self));
   socket.on('updateRoom', self.updateRoom.bind(self));
-
   socket.on('getChat', self.getChat.bind(self));
   socket.on('getPreviousPage', self.getPreviousPage.bind(self));
-
   socket.on('membership', self.membership.bind(self));
-
   socket.on('roomMessage', self.onMessage.bind(self));
   socket.on('privateMessage', self.onPrivateMessage.bind(self));
-
   socket.on('toggleFavorite', self.toggleFavorite.bind(self));
+  socket.on('serverCommand', self.onServerCommand.bind(self));
 
-  // File Listeners (will move sendFile to binListeners)
-  // getFile should trigger a binServer socket event to send from server to client over the binary socket that exists
+  // File transfer
   socket.on('sendFile', self.onSendFile.bind(self));
   socket.on('getFile', self.onGetFile.bind(self));
-
-  socket.on('serverCommand', self.onServerCommand.bind(self));
 };
 
 SocketServer.prototype.init = function init() {

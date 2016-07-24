@@ -44,6 +44,8 @@ BinSocketClient.prototype.getSocket = function() {
   return this.binSocket;
 };
 
+// Need to make this be able to handle multiple streams at one time (pass id or something)
+// Could create a local listener with event emitter to wait for a id
 BinSocketClient.prototype.listenForFileStream = function(callback) {
   this.binSocket.on('stream', function(fileStream, metadata) {
     callback(fileStream, metadata);

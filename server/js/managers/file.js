@@ -279,27 +279,44 @@ function FileManager() {
           }
 
           currentChunk++;
-          var fileData = {
+
+          // Send the decryption data for this chunk to client
+          var streamData = {
             id: pfile.id,
             iv: chunkData.iv,
-            encryptedKey: chunkData.encryptedKey,
-            fileName: pfile.name,
-            chunkCount: pfile.chunkCount,
-            chunkNumber: currentChunk
+            encryptedKey: chunkData.encryptedKey
           }
 
-          // Send the file to the user with socket.emit
-          logger.debug("[fileManager.handleGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
-          //ss(socket).emit('file', ssChunkStream, fileData);
-          //socket.emit('file', chunkStream, fileData);
-          if (!binSocket) {
-            return logger.error("[fileManager.handleGetFile] binSocket is not defined!");
-          }
+          // Send the stream decryption data to the client
+          socket.emit('streamData-' + pfileId, streamData);
 
-          binSocket.send(chunkStream, fileData);
-          logger.debug("[fileManager.handleGetFile] Sent emit, piping to stream");
-          //ssChunkStream.pipe(chunkStream);
-          //logger.debug("[fileManager.onGetFile] Piped to client. Ending...");
+          // Create a listener and wait for the client to be ready to receive this chunk
+          // * Should create a replacement for binaryjs that allows you to send other types of events
+          // * along the stream so we don't have to do it this way. Or just make it handle all
+          // * of these types of events for you
+
+          socket.on('confirmStreamData-' + pfileId, function() {
+
+            var fileData = {
+              id: pfile.id,
+              iv: chunkData.iv,
+              encryptedKey: chunkData.encryptedKey,
+              fileName: pfile.name,
+              chunkCount: pfile.chunkCount,
+              chunkNumber: currentChunk
+            }
+
+            // Send the file to the user with socket.emit
+            logger.debug("[fileManager.handleGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
+
+            if (!binSocket) {
+              return logger.error("[fileManager.handleGetFile] binSocket is not defined!");
+            }
+
+            binSocket.send(chunkStream, fileData);
+
+            logger.debug("[fileManager.handleGetFile] Sent emit, piping to stream");
+          });
         });
       };
     });

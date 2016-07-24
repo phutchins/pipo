@@ -20,7 +20,7 @@ function BinSocketClient(options) {
     binServerPort = 8443;
   }
 
-  var binServer = binServerProtocol + '//' + window.location.hostname + ':' + binServerPort;
+  var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
 
   if (window.config) {
     var binServerHost = window.config.binServer.host;

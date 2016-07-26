@@ -121,13 +121,6 @@ function FileManager() {
             return callback(err);
           }
 
-          // Delete the tmp file after it has been renamed
-          fs.unlink(dataDir + tmpFileName, function(err) {
-            if (err) {
-              logger.error('[file.handleFileStream] Error deleting tmp file for uploaded file: %s', err);
-            }
-          });
-
           data.fileHash = fileHashString;
           data.encHash = fileHashString;
 
@@ -168,7 +161,7 @@ function FileManager() {
                 return logger.warning("[file.handleChunk] No pfile returned... Something bad happened.");
               }
 
-              console.log("[file.handleChunk] About to try to send notification to clients...");
+              logger.debug("[file.handleChunk] About to try to send notification to clients...");
 
               // Should create some sort of timer to make sure all chunks get uploaded in
               // a reasonable time and notify the user of fail if not

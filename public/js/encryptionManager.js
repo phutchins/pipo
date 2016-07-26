@@ -1,3 +1,4 @@
+'use strict'
 var crypto = require('crypto-browserify');
 
 function EncryptionManager() {
@@ -35,22 +36,37 @@ function EncryptionManager() {
  */
 EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPair(numBits, userId, passphrase, callback) {
   var self = this;
+  var keyPair = {};
   var options = {
-    numBits: numBits,
-    userId: userId,
-    passphrase: passphrase
+    userid: userId,
+    primary: {
+      nbits: numBits,
+    }
   };
 
   console.log("Generating client keypair, please wait...");
 
-  window.openpgp.generateKeyPair(options).then(function(keys) {
-    self.keyPair = {
-      privateKey: keys.privateKeyArmored,
-      publicKey: keys.publicKeyArmored
-    };
-    return callback(null, self.keyPair);
-  }).catch(function(err) {
-    return callback(err, null);
+  window.kbpgp.KeyManager.generate_rsa(options, function(err, generatedKeyPair) {
+    generatedKeyPair.sign({}, function(err) {
+      if (err) {
+        return callback(err, null);
+      }
+
+      generatedKeyPair.export_pgp_private({
+        passphrase: passphrase
+      }, function(err, pgp_private) {
+        self.keyPair.privateKey = pgp_private;
+
+        generatedKeyPair.export_pgp_public({}, function(err, pgp_public) {
+          if (err) {
+            return callback(err, null);
+          }
+
+          self.keyPair.publicKey = pgp_public;
+          return callback(null, self.keyPair);
+        });
+      });
+    });
   });
 };
 

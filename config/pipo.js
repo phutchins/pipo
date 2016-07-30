@@ -15,7 +15,8 @@ module.exports = function(){
         },
         binServer: {
           ssl: true,
-          port: 3031
+          port: 3031,
+          externalPort: 8543
         }
       };
 
@@ -34,7 +35,8 @@ module.exports = function(){
         },
         binServer: {
           ssl: true,
-          port: 3031
+          port: 3031,
+          externalPort: 8543
         }
     };
 
@@ -53,7 +55,8 @@ module.exports = function(){
         },
         binServer: {
           ssl: true,
-          port: 3031
+          port: 3031,
+          externalPort: 8543
         }
       };
     }

@@ -254,35 +254,39 @@ FileManager.prototype.getFile = function getFile(data) {
   var id = data.id;
   var binSocketClient = BinSocketClient(options);
 
-  socketClient.listenForStreamData(id, function(streamData) {
-    // create decrypter from stream data
-    var encryptedKey = streamData.encryptedKey;
-    var iv = streamData.iv;
+  binSocketClient.binSocket.on('open', function() {
+    console.log('[fileManager.getFile] binSocketClient connected, moving along...');
 
-    var decipherData = {
-      encryptedKey: encryptedKey,
-      iv: iv
-    };
+    socketClient.listenForStreamData(id, function(streamData) {
+      // create decrypter from stream data
+      var encryptedKey = streamData.encryptedKey;
+      var iv = streamData.iv;
 
-    window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
-      // Start listening for the file stream itself
-      // Can't make this listen for a particular id right now due to requirement to
-      // listen for 'stream'
+      var decipherData = {
+        encryptedKey: encryptedKey,
+        iv: iv
+      };
 
-      binSocketClient.listenForFileStream(function(fileStream, metadata) {
-        metadata.decipher = decipher;
+      window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+        // Start listening for the file stream itself
+        // Can't make this listen for a particular id right now due to requirement to
+        // listen for 'stream'
 
-        self.handleIncomingFileStream(fileStream, metadata);
+        binSocketClient.listenForFileStream(function(fileStream, metadata) {
+          metadata.decipher = decipher;
+
+          self.handleIncomingFileStream(fileStream, metadata);
+        });
+
+        // Respond to the server to confirm that we got the fileStreamData and are ready for the file stream
+        window.socketClient.socket.emit('confirmStreamData-' + id);
       });
-
-      // Respond to the server to confirm that we got the fileStreamData and are ready for the file stream
-      window.socketClient.socket.emit('confirmStreamData-' + id);
     });
+
+    window.socketClient.socket.emit('getFile', { id: data.id });
+
+    // TODO: Need to clsoe the binSocketClient after we get the file we asked for here
   });
-
-  window.socketClient.socket.emit('getFile', { id: data.id });
-
-  // TODO: Need to clsoe the binSocketClient after we get the file we asked for here
 };
 
 window.FileManager = FileManager;

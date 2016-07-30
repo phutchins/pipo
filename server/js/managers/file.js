@@ -246,10 +246,18 @@ function FileManager() {
   };
 
   this.handleGetFile = function handleGetFile(data) {
+    var self = this;
     // Get the user info from the socket
     var pfileId = data.id;
     var socket = data.socket;
+
+    // Should this be this.binSocket = data... ?
     var binSocket = data.binSocket;
+    this.binSocket = data.binSocket;
+
+    if (!binSocket) {
+      return logger.error('[fileManager.handleGetFile] binSocket is not defined!');
+    }
 
     logger.debug("[socketServer.handleGetFile] Getting pFile with ID: " + pfileId);
 
@@ -266,7 +274,6 @@ function FileManager() {
         //var ssChunkStream = ss.createStream();
         //var ssChunkStream = ss.createBlobReadStream();
 
-        currentChunk++;
 
         pfile.getChunk(currentChunk, function(err, chunkData, chunkStream) {
           if (err) {
@@ -303,17 +310,19 @@ function FileManager() {
             // Send the file to the user with socket.emit
             logger.debug("[fileManager.handleGetFile] Sending file chunk with ID '" + pfile.id + "' to user '" + socket.user.username + "'");
 
-            if (!binSocket) {
+            if (!self.binSocket) {
               return logger.error("[fileManager.handleGetFile] binSocket is not defined!");
             }
 
             // Bin socket isn't coming from anywhere here!?!?
             // should we kick off listen for binsocket here
-            binSocket.send(chunkStream, fileData);
+            self.binSocket.send(chunkStream, fileData);
 
             logger.debug("[fileManager.handleGetFile] Sent emit, piping to stream");
           });
         });
+
+        currentChunk++;
       };
     });
   };

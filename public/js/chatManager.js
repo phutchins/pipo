@@ -938,6 +938,10 @@ ChatManager.focusChat = function focusChat(data, callback) {
   window.Userlist.update({ chatId: id });
 
   ChatManager.refreshChatContent(id, function() {
+
+    // TODO
+    // This needs to be reset every time but probably don't want to reset $(document)
+
     $(document).on("click", ".pfile-link", function() {
       var pfileId = this.id;
       console.log("Pfile link clicked! ID: " + pfileId);

@@ -49,12 +49,12 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: true,
+          ssl: false,
           host: "localhost",
           port: 3030
         },
         binServer: {
-          ssl: true,
+          ssl: false,
           port: 3031,
           externalPort: 8543
         }

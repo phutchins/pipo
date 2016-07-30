@@ -266,12 +266,13 @@ function FileManager() {
         //var ssChunkStream = ss.createStream();
         //var ssChunkStream = ss.createBlobReadStream();
 
+        currentChunk++;
+
         pfile.getChunk(currentChunk, function(err, chunkData, chunkStream) {
           if (err) {
             return logger.error('[FileManager.handleGetFile] Error getting pFile chunk: ' + err);
           }
 
-          currentChunk++;
 
           // Send the decryption data for this chunk to client
           var streamData = {

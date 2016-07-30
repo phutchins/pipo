@@ -1,3 +1,5 @@
+'use strict'
+
 //Native node
 var http = require('http');
 var https = require('https');
@@ -59,13 +61,23 @@ function Server(options) {
   this.app = express();
 
   if (configPipo.server.ssl) {
+    console.log('Creating HTTPS server for PiPo')
     this.webServer = https.createServer({key: configHttps.serviceKey, cert: configHttps.certificate}, this.app);
   } else {
+    console.log('Creating HTTP server for PiPo')
     this.webServer = http.Server(this.app);
   }
 
+  if (configPipo.binServer.ssl) {
+    console.log('Creating HTTPS server for Binary Transfer');
+    this.binWebServer = https.createServer({port: configPipo.binServer.port, key: configHttps.serviceKey, cert: configHttps.certificate});
+  } else {
+    console.log('Creating HTTP server for Binary Transfer');
+    this.binWebServer = http.createServer();
+  }
+
   this.io = socketIO(this.webServer);
-  this.bs = BinaryServer({port: 3031});
+  this.bs = BinaryServer({server: this.binWebServer});
 
   //Express
   this.app.set('views', path.join(__dirname, '../public/views'));
@@ -145,6 +157,12 @@ function Server(options) {
     }
   });
 
+  this.binWebServer.on('listening', function listening() {
+    logger.info('[SERVER] Binary Server listening on %s', configPipo.binServer.port);
+  });
+
+  this.binWebServer.listen(configPipo.binServer.port);
+
   this.webServer.on('listening', function listening() {
     var addr = self.webServer.address();
     var bind = typeof addr === 'string'
@@ -154,6 +172,7 @@ function Server(options) {
   });
 
   this.webServer.listen(configPipo.server.port);
+
 
   var serverConfig = {
     socket: this.ioMain,

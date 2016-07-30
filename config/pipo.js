@@ -9,9 +9,13 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: false,
+          ssl: true,
           host: "localhost",
           port: 3030
+        },
+        binServer: {
+          ssl: true,
+          port: 3031
         }
       };
 
@@ -27,6 +31,10 @@ module.exports = function(){
           ssl: true,
           host: "pipo.chat",
           port: 443
+        },
+        binServer: {
+          ssl: true,
+          port: 3031
         }
     };
 
@@ -39,9 +47,13 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: false,
+          ssl: true,
           host: "localhost",
           port: 3030
+        },
+        binServer: {
+          ssl: true,
+          port: 3031
         }
       };
     }

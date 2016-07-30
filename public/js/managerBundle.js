@@ -21530,7 +21530,7 @@ function BinSocketClient(options) {
 
   if (protocol === 'https:') {
     binServerProtocol = 'wss';
-    binServerPort = 8543;
+    binServerPort = 3031;
   }
 
   var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
@@ -22853,12 +22853,11 @@ window.FileManager = FileManager;
 },{"./binSocketClient":139,"buffer":45,"crypto":53,"flip-stream-js":83,"stream":132,"through":134}],142:[function(require,module,exports){
 var EncryptionManager = require('./encryptionManager.js');
 var socketClient = require('./socketClient');
-var BinSocketClient2 = require('./binSocketClient');
-var fileManager = require('./fileManager');
+var FileManager = require('./fileManager');
 
 // Need to make ChatManager use prototype and call new on it
 
-},{"./binSocketClient":139,"./encryptionManager.js":140,"./fileManager":141,"./socketClient":143}],143:[function(require,module,exports){
+},{"./encryptionManager.js":140,"./fileManager":141,"./socketClient":143}],143:[function(require,module,exports){
 'use strict'
 
 function SocketClient() {

@@ -17,7 +17,7 @@ function BinSocketClient(options) {
 
   if (protocol === 'https:') {
     binServerProtocol = 'wss';
-    binServerPort = 8543;
+    binServerPort = 3031;
   }
 
   var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;

@@ -306,6 +306,8 @@ function FileManager() {
               return logger.error("[fileManager.handleGetFile] binSocket is not defined!");
             }
 
+            // Bin socket isn't coming from anywhere here!?!?
+            // should we kick off listen for binsocket here
             binSocket.send(chunkStream, fileData);
 
             logger.debug("[fileManager.handleGetFile] Sent emit, piping to stream");

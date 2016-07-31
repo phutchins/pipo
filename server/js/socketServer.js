@@ -604,15 +604,15 @@ SocketServer.prototype.onSendFile = function(data){
 
 SocketServer.prototype.onGetFile = function(data){
   var self = this;
-  data.socket = self.socket;
-  logger.debug("[socketServer.onGetFile] Bin Socket is: " + self.binSocket);
-
-  // TODO
-  // Need to wait to make sure we get a binsocket connection first!!!!
-
-  data.binSocket = self.binSocket;
 
   logger.debug("[socketServer.onGetFile] Got getFile request");
+
+  if (!self.socket || !self.binSocket) {
+    return logger.error('[socketServer.onGetFile] No self.socket or self.binSicket, one must be specified');
+  }
+
+  data.socket = self.socket;
+  data.binSocket = self.binSocket;
 
   FileManager.handleGetFile(data);
 };

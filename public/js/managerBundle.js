@@ -21549,8 +21549,8 @@ function BinSocketClient(options) {
   console.log("Binary Server: " + binServer);
 
   this.binSocket = new BinaryClient(binServer);
-  console.log("[socketClient.init] binSocket: ", this.binSocket);
-  console.log("[socketClient.init] Connected to binServer at " + binServer);
+  console.log("[binSocketClient.init] binSocket: ", this.binSocket);
+  console.log("[binSocketClient.init] Connected to binServer at " + binServer);
 }
 
 BinSocketClient.prototype.close = function() {
@@ -22738,7 +22738,12 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
     var blob = new Blob([fileBuffer], { type: 'octet/stream' });
     var url = URL.createObjectURL(blob);
-    window.open(url);
+    // Update the download prompt with a link to save the file by name
+    // Q: What to do about multiple files? Do we care?
+
+    //window.open(url);
+    debugger;
+    saveAs(blob, fileName);
 
   /*
       // Initialize chunks array if it does not exist

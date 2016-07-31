@@ -176,9 +176,13 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
     var blob = new Blob([fileBuffer], { type: 'octet/stream' });
     var url = URL.createObjectURL(blob);
-    window.open(url);
+
+    saveAs(blob, fileName);
 
   /*
+   * Keeping this in case we need to split the files again due
+   * to inability to download as a stream to disk
+   *
       // Initialize chunks array if it does not exist
       if (!window.incomingFiles[id].chunks) {
         window.incomingFiles[id].chunks = [];

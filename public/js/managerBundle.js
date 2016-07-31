@@ -22738,14 +22738,13 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
     var blob = new Blob([fileBuffer], { type: 'octet/stream' });
     var url = URL.createObjectURL(blob);
-    // Update the download prompt with a link to save the file by name
-    // Q: What to do about multiple files? Do we care?
 
-    //window.open(url);
-    debugger;
     saveAs(blob, fileName);
 
   /*
+   * Keeping this in case we need to split the files again due
+   * to inability to download as a stream to disk
+   *
       // Initialize chunks array if it does not exist
       if (!window.incomingFiles[id].chunks) {
         window.incomingFiles[id].chunks = [];
@@ -23151,9 +23150,12 @@ SocketClient.prototype.sendMessage = function(data) {
   var messageId = data.messageId;
   var chatId = data.chatId;
   var message = data.message;
+  var testString = "test1";
+
+  debugger;
 
   console.log("Encrypting message: " + message);
-  window.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+  window.encryptionManager.encryptRoomMessage({ test: testString, chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }

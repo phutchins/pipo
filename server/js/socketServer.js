@@ -216,7 +216,7 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
 SocketServer.prototype.authenticate = function authenticate(data) {
   var self = this;
 
-  logger.debug("Authenticating new socket");
+  logger.debug('Authenticating new socket');
 
   User.authenticateOrCreate(data, function(err, authData) {
     if (err) {
@@ -243,12 +243,22 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.updateUserList({scope: 'all'});
     }
 
+    logger.debug('[socketServer.authenticate] socketMap before edit: ', self.namespace.socketMap);
+
+    logger.debug('[socketServer.authenticate] Added user if needed, self.socket.id: %s username: %s userId: %s', self.socket.id, user.username, user._id.toString());
+
+    // When adding a new user to the socket map, their socket ID overlaps
+    // a previous user so messages are getting routed incorrectly until
+    // this is refreshed
+
     // Add the user's socketId to the socket map
     self.namespace.socketMap[self.socket.id] = {
       username: user.username,
       userId: user._id.toString(),
       publicKey: user.publicKey
     };
+
+    logger.debug('[socketServer.authenticate] socketMap after edit: ', self.namespace.socketMap);
 
     // Init the user in the userMap if they don't exist yet
     if (!self.namespace.userMap[user._id.toString()])
@@ -400,13 +410,36 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 SocketServer.prototype.onMessage = function onMessage(data) {
   var self = this;
   var chatId = data.chatId;
+  var testString = data.test;
   // Maybe check self.socket if doesn't exist check data.socket for calling methods that don't bind?
+  //
+
+  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[this.socket.id]);
+  logger.debug('[socketServer.onMessage] namespace.userMap: ', self.namespace.userMap);
+
+  logger.debug('[MSG] Test data: %s', testString);
 
   if (!self.socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
     return self.socket.emit('errorMessage', {message: 401});
   }
 
+  // When a new user registers, then an existing user sends them a message,
+  // self.socket.user.username here is the new users name when it should be the
+  // user sending the message's username
+  //
+  // What is different between when we get here after a user has registered and
+  // after existing users have refreshed?
+  //
+  // The newly registered user can decrypt the message so we know that the existing
+  // user has the new users keys in their keyring
+  //
+  // Test1:
+  // Add an entry to the socket request at the client when sending roomMessage
+  // Check the socket message for that entry on the server
+  //
+
+  logger.debug('[MSG] this.socket.user.username: %s', this.socket.user.username);
   logger.info("[MSG] Server got chat message from " + self.socket.user.username);
 
   //TODO: Log messages
@@ -440,7 +473,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
         })
       }
 
-      logger.debug("[socketServer.onMessage] MessageId: " + data.messageid);
+      logger.debug("[socketServer.onMessage] MessageId: %s fromUserId: %s", data.messageid, user._id.toString());
 
       self.namespace.emit('roomMessage', {
         chatId: room.id,
@@ -1353,8 +1386,17 @@ SocketServer.prototype.disconnect = function disconnect() {
     };
 
     // If there are no more sockets in the array, delete the usermap entry for that user
-    if (Object.keys(self.namespace.userMap[self.socket.user._id.toString()]).length == 0) {
-      delete self.namespace.userMap[self.socket.user._id.toString()];
+
+    logger.debug('[socketServer.disconnect] namespace.userMap is: ', self.namespace.userMap);
+
+    var userId = self.socket.user._id.toString();
+    var userNamespace = Object.keys(self.namespace.userMap[userId]);
+
+    if (userNamespace) {
+      var userNamespaceSocketCount = userNamespace.length;
+      if (userNamespaceSocketCount == 0) {
+        delete self.namespace.userMap[self.socket.user._id.toString()];
+      }
     }
   } else {
     logger.info("WARNING! Someone left the room and we don't know who it was...");

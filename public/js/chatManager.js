@@ -941,19 +941,23 @@ ChatManager.focusChat = function focusChat(data, callback) {
 
     // TODO
     // This needs to be reset every time but probably don't want to reset $(document)
+    var fileLinks = $('.pfile-link');
 
-    $(document).on("click", ".pfile-link", function() {
-      var pfileId = this.id;
-      console.log("Pfile link clicked! ID: " + pfileId);
+    var downloadLinkBindClick = function(fileId) {
+      console.log('Pfile link clicked, id: %s', fileId);
 
       var fileManager = FileManager();
-      // Need to make sure that this stays around long enough to get the
-      // file event but doesn't live forever
-      fileManager.getFile({ id: pfileId });
+      fileManager.getFile({ id: fileId });
+    };
+
+    $(document).off("click", ".pfile-link");
+    $(document).on('click', '.pfile-link', function() {
+      var fileId = $(this)[0].id;
+
+      downloadLinkBindClick(fileId);
     });
+
   });
-  console.log("[ChatManager.focusChat] (1) Running ChatManager.updateChatStatus();");
-  ChatManager.updateChatStatus();
 
   // TODO:
   // Enabling chat here but only we are in a good state which consists of

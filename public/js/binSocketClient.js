@@ -36,8 +36,8 @@ function BinSocketClient(options) {
   console.log("Binary Server: " + binServer);
 
   this.binSocket = new BinaryClient(binServer);
-  console.log("[socketClient.init] binSocket: ", this.binSocket);
-  console.log("[socketClient.init] Connected to binServer at " + binServer);
+  console.log("[binSocketClient.init] binSocket: ", this.binSocket);
+  console.log("[binSocketClient.init] Connected to binServer at " + binServer);
 }
 
 BinSocketClient.prototype.close = function() {

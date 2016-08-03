@@ -1327,9 +1327,6 @@ ChatManager.handleMessage = function handleMessage(data) {
       console.log("socketClient.handleMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
       console.log(km.get_pgp_fingerprint().toString('hex'));
 
-      // Determine if the message here is good?
-      debugger;
-
       return finish(messageLiterals);
     } else {
       return console.log("[socketClient.handleMessage] WARNING: Message signature invalid!");
@@ -1342,9 +1339,6 @@ ChatManager.handleMessage = function handleMessage(data) {
     if (messageString.match(mentionRegex)) {
       clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
     };
-
-    // Make sure that we're adding the message to the correct place
-    debugger;
 
     self.addMessageToChat({ confirmed: true, messageId: messageId, type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
   };
@@ -1468,10 +1462,6 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 
   //Add timestamp
   var time = date || new Date().toISOString();
-
-  // Make sure that the new user (ourself) is actually int he userNameMap in ChatManager
-  // if not, we may have to add them somewhere else just after registration as it is being missed
-  debugger;
 
   // If the message is confirmed (comes from the server), it has an
   // ID, and it is from me, find it in the message cache

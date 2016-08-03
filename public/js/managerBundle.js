@@ -23150,12 +23150,9 @@ SocketClient.prototype.sendMessage = function(data) {
   var messageId = data.messageId;
   var chatId = data.chatId;
   var message = data.message;
-  var testString = "test1";
-
-  debugger;
 
   console.log("Encrypting message: " + message);
-  window.encryptionManager.encryptRoomMessage({ test: testString, chatId: chatId, message: message }, function(err, pgpMessage) {
+  window.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }

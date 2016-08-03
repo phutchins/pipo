@@ -73,7 +73,8 @@ SocketServer.prototype.onSocket = function(socket) {
 
   this.init();
 
-  logger.debug("[CONNECTION] Socket connected to main");
+  logger.debug('[CONNECTION] Socket %s connected to main', socket.client.id);
+  logger.debug('[CONNECTION] userMap: ', self.namespace.userMap);
 
   socket.on('authenticate', self.authenticate.bind(self));
   socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
@@ -243,7 +244,12 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.updateUserList({scope: 'all'});
     }
 
-    logger.debug('[socketServer.authenticate] socketMap before edit: ', self.namespace.socketMap);
+    var socketMapKeys = Object.keys(self.namespace.socketMap);
+    socketMapKeys.forEach(function(socketKey) {
+      console.log('[socketServer.authenticate][BEFORE] socket: %s, username: %s, userid %s', socketKey, self.namespace.socketMap[socketKey].username, self.namespace.socketMap[socketKey].userId);
+    });
+
+    //logger.debug('[socketServer.authenticate] socketMap before edit: ', self.namespace.socketMap);
 
     logger.debug('[socketServer.authenticate] Added user if needed, self.socket.id: %s username: %s userId: %s', self.socket.id, user.username, user._id.toString());
 
@@ -258,7 +264,11 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       publicKey: user.publicKey
     };
 
-    logger.debug('[socketServer.authenticate] socketMap after edit: ', self.namespace.socketMap);
+    var socketMapKeys2 = Object.keys(self.namespace.socketMap);
+    socketMapKeys2.forEach(function(socketKey) {
+      console.log('[socketServer.authenticate][AFTER] socket: %s, username: %s, userid %s', socketKey, self.namespace.socketMap[socketKey].username, self.namespace.socketMap[socketKey].userId);
+    });
+    //logger.debug('[socketServer.authenticate] socketMap after edit: ', self.namespace.socketMap);
 
     // Init the user in the userMap if they don't exist yet
     if (!self.namespace.userMap[user._id.toString()])
@@ -338,13 +348,6 @@ SocketServer.prototype.authenticate = function authenticate(data) {
             logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
             self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
-
-
-          logger.debug("[INIT] Emitting user connect for",user.username);
-          return self.namespace.emit('user connect', {
-            username: user.username,
-            publicKey: user.publicKey
-          })
         })
       })
     })
@@ -410,14 +413,15 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 SocketServer.prototype.onMessage = function onMessage(data) {
   var self = this;
   var chatId = data.chatId;
-  var testString = data.test;
   // Maybe check self.socket if doesn't exist check data.socket for calling methods that don't bind?
   //
 
-  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[this.socket.id]);
+  // LEFT OFF HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+  // Need to see if the socket id here matches what the user sending message has
+  //
+  logger.debug('[socketServer.onMessage] Got message from socket ID: %s', self.socket.client.id);
+  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[self.socket.client.id]);
   logger.debug('[socketServer.onMessage] namespace.userMap: ', self.namespace.userMap);
-
-  logger.debug('[MSG] Test data: %s', testString);
 
   if (!self.socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
@@ -1389,7 +1393,15 @@ SocketServer.prototype.disconnect = function disconnect() {
 
     logger.debug('[socketServer.disconnect] namespace.userMap is: ', self.namespace.userMap);
 
+    // Instead of doing all of this here, should move it to a method
+    // - socketJoin
+    // - socketLeave
+    // or something like that...
+
     var userId = self.socket.user._id.toString();
+
+    logger.debug('[socketServer.disconnect] userId: %s', userId);
+
     var userNamespace = Object.keys(self.namespace.userMap[userId]);
 
     if (userNamespace) {

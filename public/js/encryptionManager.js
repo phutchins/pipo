@@ -332,7 +332,12 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
     Object.keys(ChatManager.userlist).forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        var keyFingerPrint = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+        var keyFingerPrint = '';
+
+        if (keyInstance) {
+          keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
+        }
+
         console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         keyRing.add_key_manager(keyInstance);
       };

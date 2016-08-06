@@ -1326,6 +1326,7 @@ ChatManager.handleMessage = function handleMessage(data) {
     if (km) {
       console.log("socketClient.handleMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
       console.log(km.get_pgp_fingerprint().toString('hex'));
+
       return finish(messageLiterals);
     } else {
       return console.log("[socketClient.handleMessage] WARNING: Message signature invalid!");
@@ -1462,7 +1463,8 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   //Add timestamp
   var time = date || new Date().toISOString();
 
-  // If the message is confirmed (comes from the server), it has an ID, and it is from me, find it in the message cache
+  // If the message is confirmed (comes from the server), it has an
+  // ID, and it is from me, find it in the message cache
   // and mark it as confirmed
   if (confirmed && messageId && (fromUserId == ChatManager.userNameMap[window.username])) {
     // Update teh message in message cache to be confirmed
@@ -1476,7 +1478,14 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
   } else {
 
     // Need to figure out how to change the class of a message after it's in the message cache
-    ChatManager.formatChatMessage({ messageId: messageId, messageString: messageString, fromUserId: fromUserId, fromUsername: fromUsername, date: date, confirmed: confirmed }, function(formattedMessage) {
+    ChatManager.formatChatMessage({
+      messageId: messageId,
+      messageString: messageString,
+      fromUserId: fromUserId,
+      fromUsername: fromUsername,
+      date: date,
+      confirmed: confirmed
+    }, function(formattedMessage) {
       // Is it really taking this long to get the message displayed locally?
       ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
     });

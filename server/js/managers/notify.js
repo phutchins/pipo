@@ -50,11 +50,11 @@ function NotifyManager() {
         logger.debug("[NotifyManager.sendToChat] Sending notification to a '" + chatType + "' with id '" + chatId + "'");
 
         if (chatType == 'chat') {
-          return socketServer.onPrivateMessage(messageData);
+          return socketServer.onPrivateMessage(socketServer.socket, messageData);
         }
 
         if (chatType == 'room') {
-          return socketServer.onMessage(messageData);
+          return socketServer.onMessage(socketServer.socket, messageData);
         }
 
         logger.debug("[NotifyManager.sendToChat] chatType was not during finish");

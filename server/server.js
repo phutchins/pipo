@@ -123,7 +123,9 @@ function Server(options) {
   });
 
   this.io.on('connection',function (socket) {
+    // Should we be doing something more with the socket here? Are we catching it somewhere else?
     logger.debug("Connection to io");
+    logger.debug('[server.io.on][connection] Socket.io connection with socket id %s', socket.id);
   });
 
 
@@ -215,7 +217,10 @@ Server.prototype.initServer = function(config) {
         socketServer = new SocketServer(ioMain);
 
         ioMain.on('connection', function(socket) {
-          logger.debug("Connection to ioMain");
+          logger.debug('Connection to ioMain with socket id', socket.client.id);
+          // Could log the ioMain.server['/'].sockets or something like that
+          // as this is really noisy
+          //logger.debug("IOMAIN: ", ioMain);
           socket.emit('certificate', AdminCertificate);
           socketServer.onSocket(socket);
         });

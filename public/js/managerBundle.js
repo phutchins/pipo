@@ -21907,7 +21907,12 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
     Object.keys(ChatManager.userlist).forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        var keyFingerPrint = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+        var keyFingerPrint = '';
+
+        if (keyInstance) {
+          keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
+        }
+
         console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         keyRing.add_key_manager(keyInstance);
       };
@@ -22920,18 +22925,18 @@ SocketClient.prototype.addListeners = function() {
   var self = this;
   self.listeners = true;
 
-  this.socket.on('authenticated', function(data) {
+  self.socket.on('authenticated', function(data) {
     data.socket = this;
 
     Authentication.authenticated(data);
   });
 
-  this.socket.on('roomUpdate', function(data) {
+  self.socket.on('roomUpdate', function(data) {
     console.log("[SOCKET] roomUpdate");
     self.handleRoomUpdate(data);
   });
 
-  this.socket.on('joinComplete', function(data) {
+  self.socket.on('joinComplete', function(data) {
     console.log("[SOCKET] joinComplete");
     self.joinComplete(data);
   });
@@ -22967,15 +22972,11 @@ SocketClient.prototype.addListeners = function() {
     console.log('errorMessage', data);
   });
 
-  this.socket.on('user connect', function(data) {
-    //console.log('user connect', data);
-  });
-
   this.socket.on('membershipUpdateComplete', function(data) {
     self.handleMembershipUpdateComplete(data);
   });
 
-  this.socket.on('roomMessage', function(data) {
+  self.socket.on('roomMessage', function(data) {
     ChatManager.handleMessage(data);
   });
 
@@ -23087,6 +23088,7 @@ SocketClient.prototype.init = function() {
     }
 
     if (!self.listeners) {
+      console.log('[INIT] Didnt find any socket listeners so adding them now');
       self.addListeners();
     }
 

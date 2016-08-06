@@ -52,18 +52,18 @@ SocketClient.prototype.addListeners = function() {
   var self = this;
   self.listeners = true;
 
-  this.socket.on('authenticated', function(data) {
+  self.socket.on('authenticated', function(data) {
     data.socket = this;
 
     Authentication.authenticated(data);
   });
 
-  this.socket.on('roomUpdate', function(data) {
+  self.socket.on('roomUpdate', function(data) {
     console.log("[SOCKET] roomUpdate");
     self.handleRoomUpdate(data);
   });
 
-  this.socket.on('joinComplete', function(data) {
+  self.socket.on('joinComplete', function(data) {
     console.log("[SOCKET] joinComplete");
     self.joinComplete(data);
   });
@@ -103,7 +103,7 @@ SocketClient.prototype.addListeners = function() {
     self.handleMembershipUpdateComplete(data);
   });
 
-  this.socket.on('roomMessage', function(data) {
+  self.socket.on('roomMessage', function(data) {
     ChatManager.handleMessage(data);
   });
 
@@ -215,6 +215,7 @@ SocketClient.prototype.init = function() {
     }
 
     if (!self.listeners) {
+      console.log('[INIT] Didnt find any socket listeners so adding them now');
       self.addListeners();
     }
 

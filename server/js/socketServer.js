@@ -76,26 +76,62 @@ SocketServer.prototype.onSocket = function(socket) {
   logger.debug('[CONNECTION] Socket %s connected to main', socket.client.id);
   logger.debug('[CONNECTION] userMap: ', self.namespace.userMap);
 
-  socket.on('authenticate', self.authenticate.bind(self));
-  socket.on('checkUsernameAvailability', self.checkUsernameAvailability.bind(self));
-  socket.on('updateClientKey', self.updateClientKey.bind(self));
-  socket.on('disconnect', self.disconnect.bind(self));
-  socket.on('leaveRoom', self.leaveRoom.bind(self));
-  socket.on('join', self.joinRoom.bind(self));
-  socket.on('part', self.partRoom.bind(self));
-  socket.on('createRoom', self.createRoom.bind(self));
-  socket.on('updateRoom', self.updateRoom.bind(self));
-  socket.on('getChat', self.getChat.bind(self));
-  socket.on('getPreviousPage', self.getPreviousPage.bind(self));
-  socket.on('membership', self.membership.bind(self));
-  socket.on('roomMessage', self.onMessage.bind(self));
-  socket.on('privateMessage', self.onPrivateMessage.bind(self));
-  socket.on('toggleFavorite', self.toggleFavorite.bind(self));
-  socket.on('serverCommand', self.onServerCommand.bind(self));
+  socket.on('authenticate', function(data) {
+    self.authenticate(socket, data);
+  });
+  socket.on('checkUsernameAvailability', function(data) {
+    self.checkUsernameAvailability(socket, data);
+  });
+  socket.on('updateClientKey', function(data) {
+    self.updateClientKey(socket, data);
+  });
+  socket.on('disconnect', function(data) {
+    self.disconnect(socket);
+  });
+  socket.on('leaveRoom', function(data) {
+    self.leaveRoom(socket, data);
+  });
+  socket.on('join', function(data) {
+    self.joinRoom(socket, data);
+  });
+  socket.on('part', function(data) {
+    self.partRoom(socket, data);
+  });
+  socket.on('createRoom', function(data) {
+    self.createRoom(socket, data);
+  });
+  socket.on('updateRoom', function(data) {
+    self.updateRoom(socket, data);
+  });
+  socket.on('getChat', function(data) {
+    self.getChat(socket, data);
+  });
+  socket.on('getPreviousPage', function(data) {
+    self.getPreviousPage(socket, data);
+  });
+  socket.on('membership', function(data) {
+    self.membership(socket, data);
+  });
+  socket.on('roomMessage', function(data) {
+    self.onMessage(socket, data);
+  });
+  socket.on('privateMessage', function(data) {
+    self.onPrivateMessage(socket, data);
+  });
+  socket.on('toggleFavorite', function(data) {
+    self.toggleFavorite(socket, data);
+  });
+  socket.on('serverCommand', function(data) {
+    self.onServerCommand(socket, data);
+  });
 
   // File transfer
-  socket.on('sendFile', self.onSendFile.bind(self));
-  socket.on('getFile', self.onGetFile.bind(self));
+  socket.on('sendFile', function(data) {
+    self.onSendFile(socket, data);
+  });
+  socket.on('getFile', function(data) {
+    self.onGetFile(socket, data);
+  });
 };
 
 SocketServer.prototype.init = function init() {
@@ -187,7 +223,7 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
 /*
  * Check if a username is available
  */
-SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailability(data) {
+SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailability(socket, data) {
   var self = this;
   var username = data.username;
   var socketCallback = data.socketCallback;
@@ -206,7 +242,7 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
       available = false;
     }
 
-    return self.socket.emit('availability-' + username, { available: available, error: error });
+    return socket.emit('availability-' + username, { available: available, error: error });
   });
 };
 
@@ -214,14 +250,14 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
 /**
  * New socket connected to server
  */
-SocketServer.prototype.authenticate = function authenticate(data) {
+SocketServer.prototype.authenticate = function authenticate(socket, data) {
   var self = this;
 
   logger.debug('Authenticating new socket');
 
   User.authenticateOrCreate(data, function(err, authData) {
     if (err) {
-      return self.socket.emit('errorMessage', {message: 'authentication failed: ' + err});
+      return socket.emit('errorMessage', {message: 'authentication failed: ' + err});
     }
 
     var user = new User;
@@ -230,12 +266,12 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
     if (err) {
       logger.warn('Authentication error', err);
-      return self.socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
+      return socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
     }
 
     if (!user) {
       logger.warn("[INIT] Problem initializing connection, no error, but no user");
-      return self.socket.emit('errorMessage', {message: "An unknown error has occurred"});
+      return socket.emit('errorMessage', {message: "An unknown error has occurred"});
     }
 
     if (newUser) {
@@ -251,14 +287,14 @@ SocketServer.prototype.authenticate = function authenticate(data) {
 
     //logger.debug('[socketServer.authenticate] socketMap before edit: ', self.namespace.socketMap);
 
-    logger.debug('[socketServer.authenticate] Added user if needed, self.socket.id: %s username: %s userId: %s', self.socket.id, user.username, user._id.toString());
+    logger.debug('[socketServer.authenticate] Added user if needed, socket.id: %s username: %s userId: %s', socket.id, user.username, user._id.toString());
 
     // When adding a new user to the socket map, their socket ID overlaps
     // a previous user so messages are getting routed incorrectly until
     // this is refreshed
 
     // Add the user's socketId to the socket map
-    self.namespace.socketMap[self.socket.id] = {
+    self.namespace.socketMap[socket.id] = {
       username: user.username,
       userId: user._id.toString(),
       publicKey: user.publicKey
@@ -275,7 +311,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.namespace.userMap[user._id.toString()] = [];
 
     // Push the current socket to the users socketMap arary
-    self.namespace.userMap[user._id.toString()].push(self.socket.id);
+    self.namespace.userMap[user._id.toString()].push(socket.id);
 
     // Should call user.setActive(true) here
     // Need to figure out how to call without passing user object?
@@ -283,7 +319,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
       self.updateUserList({ scope: 'all' });
     });
 
-    self.socket.user = user;
+    socket.user = user;
     logger.debug("[INIT] Init'd user " + user.username);
 
     // TODO: Split this off into it's own method
@@ -324,7 +360,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
                 User.buildProfile({ user: user }, function(userProfile) {
                   // Should send userProfile separate from userlist
                   logger.debug("[socketServer.authenticate] Done building users profile, sending 'authenticated' to " + user.username);
-                  self.socket.emit('authenticated', {message: 'ok', userProfile: userProfile, favoriteRooms: favoriteRooms, userlist: userlist, userNameMap: userNameMap, defaultRoomId: sanatizedRoom.id });
+                  socket.emit('authenticated', {message: 'ok', userProfile: userProfile, favoriteRooms: favoriteRooms, userlist: userlist, userNameMap: userNameMap, defaultRoomId: sanatizedRoom.id });
                 });
               });
             });
@@ -337,7 +373,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
         User.availableRooms({ userId: user._id }, function(err, roomData) {
           if (err) {
             logger.error("[socketServer.authenticate] Authentication failed getting available rooms: ", err);
-            return self.socket.emit('roomUpdate', { err: "Room update failed: " + err });
+            return socket.emit('roomUpdate', { err: "Room update failed: " + err });
           }
 
           // Go ahead and send the room objects to the user even if they haven't joined it yet
@@ -346,7 +382,7 @@ SocketServer.prototype.authenticate = function authenticate(data) {
           //   we may want to decrypt messages again? When could this happen?
           Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
             logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
-            self.socket.emit('roomUpdate', { rooms: sanatizedRooms });
+            socket.emit('roomUpdate', { rooms: sanatizedRooms });
           });
         })
       })
@@ -410,41 +446,28 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 /**
  * Message broadcast from client
  */
-SocketServer.prototype.onMessage = function onMessage(data) {
+SocketServer.prototype.onMessage = function onMessage(socket, data) {
   var self = this;
-  var chatId = data.chatId;
-  // Maybe check self.socket if doesn't exist check data.socket for calling methods that don't bind?
-  //
 
-  // LEFT OFF HERE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  // Need to see if the socket id here matches what the user sending message has
-  //
-  logger.debug('[socketServer.onMessage] Got message from socket ID: %s', self.socket.client.id);
-  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[self.socket.client.id]);
-  logger.debug('[socketServer.onMessage] namespace.userMap: ', self.namespace.userMap);
+  logger.debug('[socketServer.onMessage] data: ', data);
 
-  if (!self.socket.user) {
-    logger.info("[MSG] Ignoring message from unauthenticated user");
-    return self.socket.emit('errorMessage', {message: 401});
+  if (!data) {
+    return logger.error('[socketServer.onMessage] No data provided with onMessage');
   }
 
-  // When a new user registers, then an existing user sends them a message,
-  // self.socket.user.username here is the new users name when it should be the
-  // user sending the message's username
-  //
-  // What is different between when we get here after a user has registered and
-  // after existing users have refreshed?
-  //
-  // The newly registered user can decrypt the message so we know that the existing
-  // user has the new users keys in their keyring
-  //
-  // Test1:
-  // Add an entry to the socket request at the client when sending roomMessage
-  // Check the socket message for that entry on the server
-  //
+  var chatId = data.chatId;
 
-  logger.debug('[MSG] this.socket.user.username: %s', this.socket.user.username);
-  logger.info("[MSG] Server got chat message from " + self.socket.user.username);
+  logger.debug('[socketServer.onMessage] Got message from socket ID: %s', socket.client.id);
+  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[socket.client.id]);
+  logger.debug('[socketServer.onMessage] namespace.userMap: ', self.namespace.userMap);
+
+  if (!socket.user) {
+    logger.info("[MSG] Ignoring message from unauthenticated user");
+    return socket.emit('errorMessage', {message: 401});
+  }
+
+  logger.debug('[MSG] this.socket.user.username: %s', socket.user.username);
+  logger.info("[MSG] Server got chat message from " + socket.user.username);
 
   //TODO: Log messages
   Room.findOne({ _id: chatId }, function(err, room) {
@@ -457,7 +480,7 @@ SocketServer.prototype.onMessage = function onMessage(data) {
       return logger.error("[socketServer.onMessage] No room found for message");
     };
 
-    User.findOne({ username: self.socket.user.username }, function(err, user) {
+    User.findOne({ username: socket.user.username }, function(err, user) {
       // Add message to room.messages
       if (room.keepHistory) {
         var message = new Message({
@@ -496,17 +519,17 @@ SocketServer.prototype.onMessage = function onMessage(data) {
 /**
  * Private message from client
  */
-SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
+SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data) {
   var self = this;
   var messageId = data.messageId;
   var targetSockets = [];
 
-  if (!self.socket.user) {
+  if (!socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
-    return self.socket.emit('errorMessage', {message: 401});
+    return socket.emit('errorMessage', {message: 401});
   }
 
-  var fromUser = self.socket.user._id.toString();
+  var fromUser = socket.user._id.toString();
   //logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
 
   //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
@@ -518,7 +541,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
   // If any of these do not exist yet, we need to grab it from the DB and add it to the namespace userMap
   toUserIds.forEach(function(toUserId) {
     if (self.namespace.userMap[toUserId]) {
-      if (self.namespace.userMap[toUserId] != self.socket.user._id.toString()) {
+      if (self.namespace.userMap[toUserId] != socket.user._id.toString()) {
         logger.debug("[socketServer.onPrivateMessage] Looping toUserIds to find socket - self.namespace.userMap[toUserId]: ", self.namespace.userMap[toUserId]);
         targetSockets = targetSockets.concat(self.namespace.userMap[toUserId]);
       }
@@ -570,7 +593,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     };
 
     var messageData = {
-      _fromUser: self.socket.user,
+      _fromUser: socket.user,
       _toUsers: toUserIds,
       type: 'chat',
       messageId: messageId,
@@ -579,7 +602,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     };
 
     var emitData = {
-      fromUserId: self.socket.user._id.toString(),
+      fromUserId: socket.user._id.toString(),
       type: 'chat',
       chatId: chatId,
       messageId: messageId,
@@ -615,7 +638,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     // This shouldn't ever happen because the sending user should always get the message, and if sent should be online
     if (!targetSockets) {
       logger.info("[socketServer.onPrivateMessage] No participants of this chat are on line");
-      return self.socket.emit('errorMessage', {message: "User is not online"});
+      return socket.emit('errorMessage', {message: "User is not online"});
     }
   });
 
@@ -623,14 +646,14 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(data) {
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
 
-      self.socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
+      socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
     });
     // Must emit to self becuase broadcast.to does not emit back to itself
-    self.socket.emit('privateMessage', emitData);
+    socket.emit('privateMessage', emitData);
   };
 };
 
-SocketServer.prototype.onSendFile = function(data){
+SocketServer.prototype.onSendFile = function(socket, data){
   var self = this;
   data.socketServer = self;
 
@@ -639,16 +662,16 @@ SocketServer.prototype.onSendFile = function(data){
   FileManager.handleChunk(data);
 };
 
-SocketServer.prototype.onGetFile = function(data){
+SocketServer.prototype.onGetFile = function(socket, data){
   var self = this;
 
   logger.debug("[socketServer.onGetFile] Got getFile request");
 
-  if (!self.socket || !self.binSocket) {
-    return logger.error('[socketServer.onGetFile] No self.socket or self.binSicket, one must be specified');
+  if (!socket || !self.binSocket) {
+    return logger.error('[socketServer.onGetFile] No socket or self.binSicket, one must be specified');
   }
 
-  data.socket = self.socket;
+  data.socket = socket;
   data.binSocket = self.binSocket;
 
   FileManager.handleGetFile(data);
@@ -681,7 +704,7 @@ SocketServer.prototype.arrayHash = function arrayHash(array, callback) {
 /*
  * Handle request from client to get chat history between two or more users
  */
-SocketServer.prototype.getChat = function getChat(data) {
+SocketServer.prototype.getChat = function getChat(socket, data) {
   var self = this;
 
   // How do we find the chat using the participants (or some other thing)?
@@ -695,7 +718,7 @@ SocketServer.prototype.getChat = function getChat(data) {
     participantIds: participantIds
   }, function(err, sanatizedChat) {
     if (err) {
-      self.socket.emit('chatUpdate-' + chatHash, null);
+      socket.emit('chatUpdate-' + chatHash, null);
       return logger.error("[socketServer.getChat] Error getting chat: " + err);
     };
 
@@ -711,10 +734,10 @@ SocketServer.prototype.getChat = function getChat(data) {
     if (sanatizedChat) {
       if (chatHash) {
         logger.debug("[getChat.finish] We have chatHash '" + chatHash + "'");
-        return self.socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
+        return socket.emit('chatUpdate-' + chatHash, { chat: sanatizedChat });
       } else {
         logger.debug("[socketServer.getChat.finish] We have no chatHash");
-        return self.socket.emit('chatUpdate', { chat: sanatizedChat });
+        return socket.emit('chatUpdate', { chat: sanatizedChat });
       };
     } else {
       logger.debug("[socketServer.getChat finish] Finishing without a chat");
@@ -727,7 +750,7 @@ SocketServer.prototype.getChat = function getChat(data) {
           type: 'chat'
         }, function(err, newChat) {
           Chat.sanatize(newChat, function(newSanatizedChat) {
-            return self.socket.emit('chatUpdate-' + chatHash, { chat: newSanatizedChat });
+            return socket.emit('chatUpdate-' + chatHash, { chat: newSanatizedChat });
           });
         });
       });
@@ -736,7 +759,7 @@ SocketServer.prototype.getChat = function getChat(data) {
 };
 
 
-SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
+SocketServer.prototype.getPreviousPage = function getPreviousPage(socket, data) {
   var self = this;
   var chatId = data.chatId;
   var type = data.type;
@@ -748,7 +771,7 @@ SocketServer.prototype.getPreviousPage = function getPreviousPage(data) {
     referenceMessageId: referenceMessageId,
   }, function(err, messages) {
     Message.bulkSanatize(messages, function(sanatizedMessages) {
-      return self.socket.emit('previousPageUpdate', {
+      return socket.emit('previousPageUpdate', {
         chatId: chatId,
         messages: sanatizedMessages
       });
@@ -768,27 +791,11 @@ SocketServer.prototype.arrayHash = function arrayHash(array, callback) {
 };
 
 
-/*
- * Send masterKeyPair to user
- */
-SocketServer.prototype.sendMasterKeyPair = function sendMasterKeyPair(userId, room, masterKeyPair) {
-  var self = this;
-  var targetSockets = self.namespace.userMap[userId];
-  if (targetSockets) {
-    targetSockets.forEach(function(targetSocket) {
-      self.socket.broadcast.to(targetSocket).emit('newMasterKey', {
-        room: room,
-        masterKeyPair: masterKeyPair
-      });
-    })
-  };
-};
-
-SocketServer.prototype.onServerCommand = function onServerCommand(data) {
+SocketServer.prototype.onServerCommand = function onServerCommand(socket, data) {
   var self = this;
   var socket = this.socket;
   var command = data.command;
-  var username = self.socket.user.username;
+  var username = socket.user.username;
   //TODO refactor this
   var currentChat = data.currentChat;
   logger.info("Received command '"+command+"' from user '"+socket.name+"'");
@@ -832,17 +839,17 @@ SocketServer.prototype.onServerCommand = function onServerCommand(data) {
 /**
  * Client join room
  */
-SocketServer.prototype.joinRoom = function joinRoom(data) {
+SocketServer.prototype.joinRoom = function joinRoom(socket, data) {
   var self = this;
 
   //logger.debug("[JOIN ROOM] data is ",data);
 
-  if (!self.socket.user) {
+  if (!socket.user) {
     logger.info("Ignoring join attempt by unauthenticated user");
-    return self.socket.emit('errorMessage', {message: 401});
+    return socket.emit('errorMessage', {message: 401});
   }
 
-  var username = self.socket.user.username;
+  var username = socket.user.username;
   var roomId = data.roomId;
 
   //logger.info("[JOIN ROOM] User '" + username + "' joining room with id "+ roomId);
@@ -856,9 +863,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           self.initMasterKeyPair(function(err) {
             // Should probably return and call self here
             User.getMasterKeyPair(username, roomName, function(err, newMasterKeyPair) {
-              self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: roomName, masterKeyPair: newMasterKeyPair });
+              socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: roomName, masterKeyPair: newMasterKeyPair });
               self.namespace.to(root).emit('newMasterKey', { room: roomName, keyId: currentKeyId });
-              self.socket.join(roomId);
+              socket.join(roomId);
               Room.join({username: username, name: roomName}, function(err, data) {
                 var auth = data.auth;
                 if (err) {
@@ -874,9 +881,9 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
           });
         } else {
           //logger.info("[JOIN ROOM] Clients master key is up to date");
-          self.socket.join(roomName);
+          socket.join(roomName);
 
-          self.socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
+          socket.emit('joinComplete', { encryptionScheme: 'masterKey', room: sanatizedRoom, masterKeyPair: masterKeyPair });
           logger.debug("[SOCKET SERVER] (joinRoom) Sending updateActiveUsers for room " + room.name + " with member list of ", membersArray);
           self.updateActiveUsers(roomId);
         };
@@ -884,18 +891,18 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
     });
   } else {
     // Using client key encryption scheme
-    Room.join({ id: roomId, username: username, socket: self.socket }, function(err, data) {
+    Room.join({ id: roomId, username: username, socket: socket }, function(err, data) {
       var auth = data.auth;
       var room = data.room;
       var roomUpdated = data.updated;
 
       if (!room) {
         if (err) {
-          return self.socket.emit('joinComplete', { err: "Error joining room:" + err });
+          return socket.emit('joinComplete', { err: "Error joining room:" + err });
         }
 
         if (!auth) {
-          return self.socket.emit('joinComplete', { err: "Sorry, you are not authorized to join this room" });
+          return socket.emit('joinComplete', { err: "Sorry, you are not authorized to join this room" });
         }
       }
 
@@ -903,7 +910,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 
       Room.sanatize(room, function(sanatizedRoom) {
         if (err) {
-          return self.socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
+          return socket.emit('joinComplete', { err: "Error while joining room " + room.name + ": "+ err });
         }
 
         var rooms = {};
@@ -911,7 +918,7 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
         // Should only include the room users here as a join should only change that
         rooms[room.id] = sanatizedRoom;
 
-        self.socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
+        socket.emit('joinComplete', { encryptionScheme: 'clientKey', room: sanatizedRoom });
 
         if (roomUpdated) {
           logger.debug("[socketServer.joinRoom] Running roomUpdate from joinRoom");
@@ -933,10 +940,10 @@ SocketServer.prototype.joinRoom = function joinRoom(data) {
 /*
  * Create a room if user has permission
  */
-SocketServer.prototype.createRoom = function createRoom(data) {
+SocketServer.prototype.createRoom = function createRoom(socket, data) {
   var self = this;
   var roomData = {
-    username: self.socket.user.username,
+    username: socket.user.username,
     name: data.name,
     topic: data.topic,
     encryptionScheme: data.encryptionScheme,
@@ -944,13 +951,13 @@ SocketServer.prototype.createRoom = function createRoom(data) {
     membershipRequired: data.membershipRequired
   }
 
-  logger.info("User " + self.socket.user.username + " is trying to create room " + data.name);
+  logger.info("User " + socket.user.username + " is trying to create room " + data.name);
   logger.info("New room data: ",data);
   Room.create(roomData, function(err, newRoom) {
     if (err) {
       return logger.info("Error creating room: " + err);
     }
-    self.socket.emit('createRoomComplete', { room: { id: newRoom.id }});
+    socket.emit('createRoomComplete', { room: { id: newRoom.id }});
     logger.info("Room created : " + JSON.stringify(newRoom));
     var rooms = {};
     logger.debug("[socketServer.createRoom] sanatize 4");
@@ -958,7 +965,7 @@ SocketServer.prototype.createRoom = function createRoom(data) {
       rooms[newRoom._id.toString()] = sanatizedRoom;
       if (roomData.membershipRequired) {
         // Emit membership update to user who created private room
-        self.socket.emit('roomUpdate', { rooms: rooms });
+        socket.emit('roomUpdate', { rooms: rooms });
       } else {
         // Emit membership update to all users
         self.namespace.emit('roomUpdate', { rooms: rooms });
@@ -970,11 +977,11 @@ SocketServer.prototype.createRoom = function createRoom(data) {
 /*
  * Update a room if user has permission
  */
-SocketServer.prototype.updateRoom = function updateRoom(data) {
+SocketServer.prototype.updateRoom = function updateRoom(socket, data) {
   var self = this;
   var roomData = {
     id: data.id,
-    username: self.socket.user.username,
+    username: socket.user.username,
     name: data.name,
     topic: data.topic,
     encryptionScheme: data.encryptionScheme,
@@ -982,13 +989,13 @@ SocketServer.prototype.updateRoom = function updateRoom(data) {
     membershipRequired: data.membershipRequired
   }
 
-  logger.info("User " + self.socket.user.username + " is trying to update room " + data.name);
+  logger.info("User " + socket.user.username + " is trying to update room " + data.name);
   Room.update(roomData, function(err, updatedRoom) {
     if (err) {
       return logger.info("Error creating room: " + err);
     }
     // TODO: This needs to emit room update with ID instead of name
-    self.socket.emit('updateRoomComplete', { name: data.name });
+    socket.emit('updateRoomComplete', { name: data.name });
     logger.debug("[socketServer.updateRoom] Room updated : " + JSON.stringify(updatedRoom));
     var rooms = {};
     Room.sanatize(updatedRoom, function(sanatizedRoom) {
@@ -997,7 +1004,7 @@ SocketServer.prototype.updateRoom = function updateRoom(data) {
       // TODO: Need to emit to members, not just the one who created the room
       if (roomData.membershipRequired) {
         // Emit membership update to user who created private room
-        self.socket.emit('roomUpdate', { rooms: rooms });
+        socket.emit('roomUpdate', { rooms: rooms });
       } else {
         // Emit membership update to all users
         self.namespace.emit('roomUpdate', { rooms: rooms });
@@ -1006,7 +1013,7 @@ SocketServer.prototype.updateRoom = function updateRoom(data) {
   })
 }
 
-SocketServer.prototype.membership = function membership(data) {
+SocketServer.prototype.membership = function membership(socket, data) {
   var self = this;
 
   var type = data.type;
@@ -1014,8 +1021,8 @@ SocketServer.prototype.membership = function membership(data) {
   var memberName = data.memberName;
   var memberId = data.memberId;
   var membership = data.membership;
-  var username = self.socket.user.username;
-  var userId = self.socket.user.id;
+  var username = socket.user.username;
+  var userId = socket.user.id;
 
   logger.debug("[MEMBERSHIP] Caught membership SOCKET event with type '" + type + "'");
 
@@ -1037,7 +1044,7 @@ SocketServer.prototype.membership = function membership(data) {
       var message = addResultData.message;
 
       if (!success) {
-        self.socket.emit('membershipUpdateComplete', addResultData);
+        socket.emit('membershipUpdateComplete', addResultData);
         return logger.warn("Failed to add member:", message);
       }
 
@@ -1054,7 +1061,7 @@ SocketServer.prototype.membership = function membership(data) {
           self.namespace.emit('roomUpdate', addResultData);
 
           logger.debug("[MEMBERSHIP] Member added successfully. Emitting membershipUpdateComplete");
-          return self.socket.emit('membershipUpdateComplete', addResultData);
+          return socket.emit('membershipUpdateComplete', addResultData);
         })
       })
     })
@@ -1103,7 +1110,7 @@ SocketServer.prototype.membership = function membership(data) {
 
           logger.debug("[SOCKET SERVER] (membership) Emitting roomUpdate to namespace with roomData:",roomData)
           self.namespace.emit('roomUpdate', roomData);
-          return self.socket.emit('membershipUpdateComplete', resultData);
+          return socket.emit('membershipUpdateComplete', resultData);
         })
       })
     })
@@ -1115,20 +1122,20 @@ SocketServer.prototype.membership = function membership(data) {
 /*
  * Client part room
  */
-SocketServer.prototype.partRoom = function partRoom(data) {
+SocketServer.prototype.partRoom = function partRoom(socket, data) {
   var self = this;
   var chatId = data.chatId;
-  var userId = self.socket.user.id;
-  var username = self.socket.user.username;
+  var userId = socket.user.id;
+  var username = socket.user.username;
 
   // Check if user has already initiated parting this room
   //
 
-  logger.info("[PART ROOM] Parting room for",self.socket.user.username);
+  logger.info("[PART ROOM] Parting room for",socket.user.username);
 
-  if (!self.socket.user) {
+  if (!socket.user) {
     logger.info("Ignoring part attempt by unauthenticated user");
-    return self.socket.emit('errorMessage', {message: 401});
+    return socket.emit('errorMessage', {message: 401});
   }
 
   logger.info("[PART ROOM] User " + username + " parting room with id '" + chatId + "'");
@@ -1146,7 +1153,7 @@ SocketServer.prototype.partRoom = function partRoom(data) {
     self.updateActiveUsers(chatId);
 
     // Emit part complete to the parting user
-    self.socket.emit('partComplete', { chatId: chatId });
+    socket.emit('partComplete', { chatId: chatId });
   })
 };
 
@@ -1154,11 +1161,11 @@ SocketServer.prototype.partRoom = function partRoom(data) {
 /*
  * Toggle a room as favorite
  */
-SocketServer.prototype.toggleFavorite = function toggleFavorite(data) {
+SocketServer.prototype.toggleFavorite = function toggleFavorite(socket, data) {
   var self = this;
   var chatId = data.chatId;
-  var userId = self.socket.user.id;
-  var username = self.socket.user.username;
+  var userId = socket.user.id;
+  var username = socket.user.username;
 
   logger.debug("[socketServer.toggleFavorite] (toggleFavorite) Got socket request to toggle favorite for user '" + userId + "' and chat '" + chatId + "'");
 
@@ -1186,7 +1193,7 @@ SocketServer.prototype.toggleFavorite = function toggleFavorite(data) {
       logger.debug("[socketServer.toggleFavorite] favorite is ", favorite);
 
       if (!favorite) {
-        logger.debug("[socketServer.toggleFavorite] Favorite room not found for " + self.socket.user.username + " with id " + self.socket.user.id + " so adding " + chatId);
+        logger.debug("[socketServer.toggleFavorite] Favorite room not found for " + socket.user.username + " with id " + socket.user.id + " so adding " + chatId);
         user.membership._favoriteRooms.addToSet(room._id);
         //User.update({ _id: chatId }, { $addToSet: { membership: { _favoriteRooms: room._id }}});
         //user.membership._favoriteRooms.addToSet({ membership: { _favoriteRooms: mongoose.Types.ObjectId( room._id ) }});
@@ -1203,7 +1210,7 @@ SocketServer.prototype.toggleFavorite = function toggleFavorite(data) {
       };
 
       if (favorite) {
-        logger.debug("[socketServer.toggleFavorite] Favorite room " + chatId + " exists for user " + self.socket.user.username + " with id " + self.socket.user.id + " so removing it");
+        logger.debug("[socketServer.toggleFavorite] Favorite room " + chatId + " exists for user " + socket.user.username + " with id " + socket.user.id + " so removing it");
         user.membership._favoriteRooms.pull(room._id);
         user.save(function(err) {
           return finish({ favorite: false });
@@ -1214,7 +1221,7 @@ SocketServer.prototype.toggleFavorite = function toggleFavorite(data) {
     var finish = function(data) {
       var favorite = data.favorite;
 
-      return self.socket.emit('toggleFavoriteComplete-' + chatId, { favorite: favorite });
+      return socket.emit('toggleFavoriteComplete-' + chatId, { favorite: favorite });
     };
   });
 };
@@ -1237,7 +1244,7 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
           userNameMap: userNameMap
         })
       } else if (scope == 'self') {
-        self.socket.emit("userlistUpdate", {
+        socket.emit("userlistUpdate", {
           userlist: userlist,
           userNameMap: userNameMap
         })
@@ -1254,7 +1261,7 @@ SocketServer.prototype.updateUserList = function updateUserList(data) {
  * Should this go in the room or chat model?
  * - may have to wait until room and chat are combined
  */
-SocketServer.prototype.updateActiveUsers = function updateActiveUsers(chatId) {
+SocketServer.prototype.updateActiveUsers = function updateActiveUsers(socket, chatId) {
   var self = this;
 
   logger.debug("[socketServer.updateActiveUsers] Getting active users...");
@@ -1301,23 +1308,23 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
 
 
 
-SocketServer.prototype.leaveRoom = function leaveRoom(roomId) {
+SocketServer.prototype.leaveRoom = function leaveRoom(socket, roomId) {
   logger.debug("[socketServer.leaveRoom] Got leave room for id: " + roomId);
 };
 
 // This was from a version of socket.io that I hacked and won't get used until the MR is accepted
-SocketServer.prototype.disconnecting = function(disconnecting) {
+SocketServer.prototype.disconnecting = function(socket, disconnecting) {
   var self = this;
-  if (self.socket) {
-    var userId = self.socket.user.id;
-    var username = self.socket.user.username;
+  if (socket) {
+    var userId = socket.user.id;
+    var username = socket.user.username;
     // BOOKMARK BOOKMARK BOOKMARK
-    var roomIds = Object.keys(self.socket.rooms);
+    var roomIds = Object.keys(socket.rooms);
 
     logger.debug("[socketServer.disconnecting] roomIds: ", roomIds);
 
     logger.debug("[socketServer.disconnecting] User '" + username + "' is disconnecting.");
-    logger.debug("[socketServer.disconnecting] rooms: ", Object.keys(self.socket.rooms));
+    logger.debug("[socketServer.disconnecting] rooms: ", Object.keys(socket.rooms));
 
     //roomIds.forEach(function(id) {
     //  self.updateActiveUsers(id);
@@ -1326,20 +1333,20 @@ SocketServer.prototype.disconnecting = function(disconnecting) {
 };
 
 
-SocketServer.prototype.disconnect = function disconnect() {
+SocketServer.prototype.disconnect = function disconnect(socket) {
   var self = this;
-  if (!self.socket) {
+  if (!socket) {
     return logger.info("unknown socket");
   }
 
-  logger.info("[DISCONNECT] socket.id: " + self.socket.id);
+  logger.info("[DISCONNECT] socket.id: " + socket.id);
   // Is this necessary? Probably alreeady happens in socket
-  //self.socket.leaveAll();
+  //socket.leaveAll();
 
   // If there is a user and id in the socket
-  if (self.socket.user && self.socket.user.id) {
-    var userId = self.socket.user.id;
-    var username = self.socket.user.username;
+  if (socket.user && socket.user.id) {
+    var userId = socket.user.id;
+    var username = socket.user.username;
 
     logger.info("[SOCKET SERVER] (disconnect) username: "+username);
 
@@ -1382,10 +1389,10 @@ SocketServer.prototype.disconnect = function disconnect() {
 
     // Delete disconnecting users socket from socket array
     // TODO: May be better to find a way to use socketIO's namespace and the users username to check all active sockets
-    if (self.namespace.userMap && self.namespace.userMap[self.socket.user._id.toString()]) {
-      var indexOfSocketId = self.namespace.userMap[self.socket.user._id.toString()].indexOf(self.socket.id);
+    if (self.namespace.userMap && self.namespace.userMap[socket.user._id.toString()]) {
+      var indexOfSocketId = self.namespace.userMap[socket.user._id.toString()].indexOf(socket.id);
       if (indexOfSocketId > -1) {
-        self.namespace.userMap[self.socket.user._id.toString()].splice(indexOfSocketId, 1);
+        self.namespace.userMap[socket.user._id.toString()].splice(indexOfSocketId, 1);
       };
     };
 
@@ -1398,7 +1405,7 @@ SocketServer.prototype.disconnect = function disconnect() {
     // - socketLeave
     // or something like that...
 
-    var userId = self.socket.user._id.toString();
+    var userId = socket.user._id.toString();
 
     logger.debug('[socketServer.disconnect] userId: %s', userId);
 
@@ -1407,7 +1414,7 @@ SocketServer.prototype.disconnect = function disconnect() {
     if (userNamespace) {
       var userNamespaceSocketCount = userNamespace.length;
       if (userNamespaceSocketCount == 0) {
-        delete self.namespace.userMap[self.socket.user._id.toString()];
+        delete self.namespace.userMap[socket.user._id.toString()];
       }
     }
   } else {

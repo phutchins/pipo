@@ -760,22 +760,24 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(usernam
 EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(username, publicKey, callback) {
   console.log("Verifying remote public key for user '"+username+"'");
 
-  var server = window.location.protocol + "//" + window.location.host;
+  var protocol = window.location.protocol;
+  var host = window.location.host;
+  var port = window.location.port
 
   if (window.config) {
-    var host = window.config.client.host;
-    var port = window.config.client.port;
-    var proto = "http";
+    host = window.config.client.host;
+    port = window.config.client.port;
 
     if (window.config.client.ssl) {
-      proto = "https";
-    };
-
-    server = proto + "://" + host + ":" + port;
+      protocol = "https:";
+    } else {
+      protocol = "http:";
+    }
   }
 
-  Authentication.getAuthData({}, function(headers) {
+  var server = protocol + '//' + host + ':' + port;
 
+  Authentication.getAuthData({}, function(headers) {
     $.ajax({
       type: "GET",
       url: server + "/key/publickey",

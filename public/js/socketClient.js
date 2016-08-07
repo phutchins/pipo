@@ -11,14 +11,12 @@ function SocketClient() {
     port = window.config.client.port;
 
     if (window.config.client.ssl) {
-      protocol = "https";
+      protocol = "https:";
     } else {
-      protocol = "http";
+      protocol = "http:";
     }
   }
-  var server = protocol + '://' + host + ':' + port;
-
-  debugger;
+  var server = protocol + '//' + host + ':' + port;
 
   console.log("Server: " + server);
   this.socket = window.io(server + '/socket');

@@ -404,4 +404,17 @@ html
           | Members
         ul.manage-members-list
       .actions
+  if(platform == "electron")
+    script.
+      window.config = !{JSON.stringify(config)};
+      window.$ = window.jQuery = require('jquery');
+      window.io = io = require('socket.io-client');
+      window.async = require('async');
+  else
+    script(src='/socket.io/socket.io.js')
+    script.
+      var config = !{JSON.stringify(config)};
+    if(config)
+      script.
+        window.config = !{JSON.stringify(config)};
   |!{postDeps}

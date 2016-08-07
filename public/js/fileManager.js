@@ -23,7 +23,10 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   var toChatId = data.toChatId;
   var description = data.description;
   var chatType = data.chatType;
+
+  // Need to add socketServer host and port to options here from a config object
   var options = {};
+
   var binSocketClient = new BinSocketClient(options);
   var fileReader = new window.FlipStream.Readable(file);
 

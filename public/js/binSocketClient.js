@@ -11,13 +11,11 @@ function BinSocketClient(options) {
 
   var binServerProtocol = 'ws';
 
-
   var protocol = window.location.protocol;
-  var binServerPort = 3031;
+  var binServerPort = window.config.binServer.externalPort;
 
   if (protocol === 'https:') {
     binServerProtocol = 'wss';
-    binServerPort = 3031;
   }
 
   var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;

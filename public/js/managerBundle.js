@@ -22871,20 +22871,22 @@ var FileManager = require('./fileManager');
 function SocketClient() {
   var self = this;
   var protocol = window.location.protocol;
-  var server = protocol + "//" + window.location.host;
+  var host = window.location.host;
+  var port = window.location.port;
 
   if (window.config) {
-    var host = window.config.server.host;
-    var port = window.config.server.port;
+    host = window.config.server.host;
+    port = window.config.client.port;
 
-    var proto = "http";
-
-    if (window.config.server.ssl) {
-      proto = "https";
+    if (window.config.client.ssl) {
+      protocol = "https";
+    } else {
+      protocol = "http";
     }
-
-    server = proto + '://' + host + ':' + port;
   }
+  var server = protocol + '://' + host + ':' + port;
+
+  debugger;
 
   console.log("Server: " + server);
   this.socket = window.io(server + '/socket');

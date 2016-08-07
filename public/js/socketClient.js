@@ -8,15 +8,15 @@ function SocketClient() {
 
   if (window.config) {
     host = window.config.server.host;
-    port = window.config.server.externalPort;
+    port = window.config.client.port;
 
-    if (window.config.server.externalSSL) {
+    if (window.config.client.ssl) {
       protocol = "https";
     } else {
       protocol = "http";
     }
   }
-  server = protocol + '://' + host + ':' + port;
+  var server = protocol + '://' + host + ':' + port;
 
   debugger;
 

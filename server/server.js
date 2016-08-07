@@ -68,9 +68,9 @@ function Server(options) {
     this.webServer = http.Server(this.app);
   }
 
-  if (configPipo.binServer.localSSL) {
+  if (configPipo.binServer.ssl) {
     console.log('Creating HTTPS server for Binary Transfer');
-    this.binWebServer = https.createServer({port: configPipo.binServer.localPort, key: configHttps.serviceKey, cert: configHttps.certificate});
+    this.binWebServer = https.createServer({port: configPipo.binServer.port, key: configHttps.serviceKey, cert: configHttps.certificate});
   } else {
     console.log('Creating HTTP server for Binary Transfer');
     this.binWebServer = http.createServer();
@@ -139,7 +139,7 @@ function Server(options) {
       throw error;
     }
 
-    var port = configHttp.port;
+    var port = configPipo.binServer.port;
     var bind = typeof port === 'string'
       ? 'Pipe ' + port
       : 'Port ' + port;
@@ -160,10 +160,10 @@ function Server(options) {
   });
 
   this.binWebServer.on('listening', function listening() {
-    logger.info('[SERVER] Binary Server listening on %s', configPipo.binServer.localPort);
+    logger.info('[SERVER] Binary Server listening on %s', configPipo.binServer.port);
   });
 
-  this.binWebServer.listen(configPipo.binServer.localPort);
+  this.binWebServer.listen(configPipo.binServer.port);
 
   this.webServer.on('listening', function listening() {
     var addr = self.webServer.address();

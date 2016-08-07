@@ -21521,28 +21521,22 @@ function BinSocketClient(options) {
   }
 
   this._options = options || {};
+  var protocol = window.location.protocol;
 
   var binServerProtocol = 'ws';
+  var binServerHost = '';
+  var binServerPort = '';
 
-  var protocol = window.location.protocol;
-  var binServerPort = window.config.binServer.externalPort;
+  if (window.config) {
+    binServerHost = window.config.binServer.host;
+    binServerPort = window.config.binServer.externalPort;
 
-  if (protocol === 'https:') {
-    binServerProtocol = 'wss';
+    if (window.config.binServer.externalSSL) {
+      binServerProtocol = 'wss';
+    }
   }
 
   var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
-
-  if (window.config) {
-    var binServerHost = window.config.binServer.host;
-    var binServerPort = window.config.binServer.port;
-
-    var binServerProto = 'ws';
-
-    if (window.config.binServer.ssl) {
-      binServerProto = 'wss';
-    }
-  }
 
   console.log("Binary Server: " + binServer);
 

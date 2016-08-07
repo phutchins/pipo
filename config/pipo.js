@@ -2,6 +2,7 @@ module.exports = function(){
   switch(process.env.NODE_ENV){
     case 'development':
       return {
+      environment: "development",
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
         chats: {
@@ -24,6 +25,7 @@ module.exports = function(){
 
     case 'production':
       return {
+        environment: "production",
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
         chats: {
@@ -46,6 +48,7 @@ module.exports = function(){
 
     default:
       return {
+        environment: "default",
         encryptionStrategy: "clientKey",
         encryptionType: "aes256",
         chats: {

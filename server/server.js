@@ -28,7 +28,7 @@ var AuthenticationManager = require('./js/managers/authentication');
 var database = require('./js/database');
 
 //Configuration
-var configPipo = require('../config/pipo')();
+var configPipo = require('../config/pipo')(process.env.NODE_ENV);
 var configMD = require('../config/markdown');
 var logger = require('../config/logger');
 var configHttp = require('../config/http');

@@ -98,9 +98,6 @@ function FileManager() {
       fileStream.write({rx: chunkBuffer.length / data.size});
     });
 
-    // Save the file stream to disk
-    fileStream.pipe(tmpFile);
-
     // When the stream has ended,
     fileStream.on('end', function() {
       logger.debug('[socketServer.onBinarySocketConnection] fileStream ended');
@@ -182,6 +179,9 @@ function FileManager() {
         });
       //});
     });
+
+    // Save the file stream to disk
+    fileStream.pipe(tmpFile);
   };
 
   this.handleChunk = function handleChunk(data) {

@@ -3,20 +3,22 @@
 function SocketClient() {
   var self = this;
   var protocol = window.location.protocol;
-  var server = protocol + "//" + window.location.host;
+  var host = window.location.host;
+  var port = window.location.port;
 
   if (window.config) {
-    var host = window.config.server.host;
-    var port = window.config.server.port;
-
-    var proto = "http";
+    host = window.config.server.host;
+    port = window.config.server.externalPort;
 
     if (window.config.server.externalSSL) {
-      proto = "https";
+      protocol = "https";
+    } else {
+      protocol = "http";
     }
-
-    server = proto + '://' + host + ':' + port;
   }
+  server = protocol + '://' + host + ':' + port;
+
+  debugger;
 
   console.log("Server: " + server);
   this.socket = window.io(server + '/socket');

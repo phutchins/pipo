@@ -16,7 +16,7 @@ module.exports = function(){
         },
         binServer: {
           localPort: 3031,
-          externalPort: 8543,
+          externalPort: 3031,
           localSSL: false,
           externalSSL: false
         }

@@ -763,11 +763,11 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
   var server = window.location.protocol + "//" + window.location.host;
 
   if (window.config) {
-    var host = window.config.server.host;
-    var port = window.config.server.port;
+    var host = window.config.client.host;
+    var port = window.config.client.port;
     var proto = "http";
 
-    if (window.config.server.ssl) {
+    if (window.config.client.ssl) {
       proto = "https";
     };
 

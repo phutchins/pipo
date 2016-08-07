@@ -13,7 +13,8 @@ module.exports = function(){
           localSSL: false,
           externalSSL: false,
           host: "localhost",
-          port: 3030
+          localPort: 3030,
+          externalPort: 3030
         },
         binServer: {
           localPort: 3031,
@@ -36,7 +37,8 @@ module.exports = function(){
           localSSL: false,
           externalSSL: true,
           host: "pipo.chat",
-          port: 443
+          localPort: 443,
+          externalPort: 443
         },
         binServer: {
           localPort: 3031,
@@ -59,7 +61,8 @@ module.exports = function(){
           localSSL: false,
           externalSSL: false,
           host: "localhost",
-          port: 3030
+          localPort: 3030,
+          externalPort: 3030
         },
         binServer: {
           localPort: 3031,

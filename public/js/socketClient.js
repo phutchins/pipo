@@ -11,7 +11,7 @@ function SocketClient() {
 
     var proto = "http";
 
-    if (window.config.server.ssl) {
+    if (window.config.server.externalSSL) {
       proto = "https";
     }
 

@@ -40,7 +40,7 @@ module.exports = function(){
     server: {
       ssl: false,
       host: 'pipo.chat',
-      port: 443
+      port: 3030
     },
     client: {
       ssl: true,

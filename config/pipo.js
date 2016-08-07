@@ -9,14 +9,16 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: true,
+          localSSL: false,
+          externalSSL: false,
           host: "localhost",
           port: 3030
         },
         binServer: {
-          ssl: true,
-          port: 3031,
-          externalPort: 8543
+          localPort: 3031,
+          externalPort: 8543,
+          localSSL: false,
+          externalSSL: false
         }
       };
 
@@ -29,14 +31,16 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: true,
+          localSSL: false,
+          externalSSL: true,
           host: "pipo.chat",
           port: 443
         },
         binServer: {
-          ssl: true,
-          port: 3031,
-          externalPort: 8543
+          localPort: 3031,
+          externalPort: 8543,
+          localSSL: false,
+          externalSSL: true
         }
     };
 
@@ -49,15 +53,16 @@ module.exports = function(){
           initialPagesToLoad: 1
         },
         server: {
-          ssl: false,
+          localSSL: false,
+          externalSSL: false,
           host: "localhost",
           port: 3030
         },
         binServer: {
-          localSSL: false,
           localPort: 3031,
-          externalSSL: false,
-          externalPort: 3031
+          externalPort: 3031,
+          localSSL: false,
+          externalSSL: false
         }
       };
     }

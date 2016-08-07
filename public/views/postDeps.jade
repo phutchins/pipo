@@ -1,15 +1,3 @@
-- console.log("CONFIG: ", config);
-if(platform == "electron")
-  script.
-    window.config = !{JSON.stringify(config)};
-    window.$ = window.jQuery = require('jquery');
-    window.io = io = require('socket.io-client');
-    window.async = require('async');
-else
-  script(src='/socket.io/socket.io.js')
-  if(config)
-    script.
-      window.config = !{JSON.stringify(config)};
 script(src='#{depRoot}js/lib/kbpgp.js')
 script(src='#{depRoot}js/lib/jquery-1.11.1.js')
 script(src='#{depRoot}js/lib/semantic.js')

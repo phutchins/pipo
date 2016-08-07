@@ -1,8 +1,9 @@
+'use strict';
 // routes/chat.js
-var logger = require('../../config/logger');
-var clientConfig = require('../../config/pipo');
 
 module.exports = function(app, pipo) {
+  var logger = require('../../config/logger');
+  var clientConfig = require('../../config/pipo')();
 
   /*
    * Serve up the client code
@@ -23,12 +24,16 @@ module.exports = function(app, pipo) {
 
         var postDeps = postDeps;
 
-        res.render('client.jade', {
+        var locals = {
           username : username,
           preDeps: preDeps,
           postDeps: postDeps,
           config: clientConfig
-        });
+        };
+
+        logger.debug('[client.get] locals sending to res.render is: ', locals);
+
+        res.render('client.jade', locals);
       });
     });
   });
@@ -58,4 +63,4 @@ module.exports = function(app, pipo) {
   })
   */
 
-}
+};

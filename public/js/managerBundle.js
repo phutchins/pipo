@@ -21524,13 +21524,11 @@ function BinSocketClient(options) {
 
   var binServerProtocol = 'ws';
 
-
   var protocol = window.location.protocol;
-  var binServerPort = 3031;
+  var binServerPort = window.config.binServer.externalPort;
 
   if (protocol === 'https:') {
     binServerProtocol = 'wss';
-    binServerPort = 3031;
   }
 
   var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
@@ -22590,7 +22588,10 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
   var toChatId = data.toChatId;
   var description = data.description;
   var chatType = data.chatType;
+
+  // Need to add socketServer host and port to options here from a config object
   var options = {};
+
   var binSocketClient = new BinSocketClient(options);
   var fileReader = new window.FlipStream.Readable(file);
 

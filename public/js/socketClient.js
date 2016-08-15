@@ -162,6 +162,7 @@ SocketClient.prototype.addListeners = function() {
     };
 
     var chatName = ChatManager.chats[chatId].name;
+
     var activeUsers = data.activeUsers;
     var roomUsers = data.activeUsers;
 
@@ -179,7 +180,7 @@ SocketClient.prototype.addListeners = function() {
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
 
-    if (ChatManager.activeChat == chatId) {
+    if (ChatManager.activeChat === chatId) {
       window.Userlist.update({ chatId: chatId });
     }
   });

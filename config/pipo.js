@@ -3,7 +3,7 @@
 module.exports = function(){
   var development = {
     environment: 'development',
-    encryptionStrategy: 'clientKey',
+    encryptionScheme: 'clientKey',
     encryptionType: 'aes256',
     chats: {
       messagesPerPage: 50,

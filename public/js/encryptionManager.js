@@ -301,6 +301,7 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
  * For public rooms this includes all users
  */
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
+  var self = this;
   var chatId = data.chatId;
   var membershipRequired = ChatManager.chats[chatId].membershipRequired;
   var keyRing = new window.kbpgp.keyring.KeyRing();
@@ -311,20 +312,20 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
     ChatManager.chats[chatId].members.forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        keyRing.add_key_manager(keyInstance);
+        self.keyRing.add_key_manager(keyInstance);
       };
     });
 
     ChatManager.chats[chatId].admins.forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        keyRing.add_key_manager(keyInstance);
+        self.keyRing.add_key_manager(keyInstance);
       };
     });
 
     var ownerId = ChatManager.chats[chatId].owner;
     var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
-    keyRing.add_key_manager(ownerKeyInstance);
+    self.keyRing.add_key_manager(ownerKeyInstance);
   };
 
   if (!membershipRequired) {
@@ -339,10 +340,16 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
         }
 
         console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
-        keyRing.add_key_manager(keyInstance);
+        if (keyInstance) {
+          self.keyRing.add_key_manager(keyInstance);
+        } else {
+          console.log('No keyInstance found for user %s', ChatManager.userlist[userId].username);
+        }
       };
     });
   };
+
+  console.log('[encryptionManager.buildChatKeyRing] Returning keyRing');
 
   return callback(keyRing);
 };

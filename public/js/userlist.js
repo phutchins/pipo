@@ -1,3 +1,5 @@
+'use strict';
+
 var Userlist = {};
 
 /*
@@ -59,6 +61,9 @@ Userlist.build = function build(data) {
 
   var isActive = function(userId) {
     // If this is a room, get the chat status from the rooms active users
+
+    // Is type defined here? Do we need a default??
+    console.log('[userlist.build] type in isActive for %s is %s', ChatManager.userlist[userId].username, type);
     if ( type == 'room' ) {
       if (ChatManager.chats[chatId].activeUsers && ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
         console.log("[userlist.update] activeUsers for '" + userId + "' and indexOf is true");
@@ -81,9 +86,6 @@ Userlist.build = function build(data) {
     var active = isActive(userId);
     var user = ChatManager.userlist[userId];
 
-    console.log("[userlist.update] activeUsers is: ", ChatManager.chats[chatId].activeUsers);
-    console.log("[userlist.update] looping user:",username);
-
     if ( !ChatManager.chats[userId] && username != window.username ) {
       console.log("chat for ",username," was empty so initializing");
     }
@@ -94,7 +96,6 @@ Userlist.build = function build(data) {
       var emailHash = user.emailHash;
     }
 
-    // If user is active class = active
     if (active) {
       userListHtml += "<li class='user-list-li user-active' userId='" + userId + "' id='userlist-" + userId + "' name='" + username + "' data-content='" + username + "'>\n";
     } else {
@@ -106,6 +107,7 @@ Userlist.build = function build(data) {
     userListHtml += "</li>\n";
   });
 
+  // Looks like the HTML may be right, but its not getting refreshed or set???
   $('#user-list').html(userListHtml);
 };
 

@@ -21868,6 +21868,7 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
  * For public rooms this includes all users
  */
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
+  var self = this;
   var chatId = data.chatId;
   var membershipRequired = ChatManager.chats[chatId].membershipRequired;
   var keyRing = new window.kbpgp.keyring.KeyRing();
@@ -21878,20 +21879,20 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
     ChatManager.chats[chatId].members.forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        keyRing.add_key_manager(keyInstance);
+        self.keyRing.add_key_manager(keyInstance);
       };
     });
 
     ChatManager.chats[chatId].admins.forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
         var keyInstance = ChatManager.userlist[userId].keyInstance;
-        keyRing.add_key_manager(keyInstance);
+        self.keyRing.add_key_manager(keyInstance);
       };
     });
 
     var ownerId = ChatManager.chats[chatId].owner;
     var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
-    keyRing.add_key_manager(ownerKeyInstance);
+    self.keyRing.add_key_manager(ownerKeyInstance);
   };
 
   if (!membershipRequired) {
@@ -21906,10 +21907,16 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
         }
 
         console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
-        keyRing.add_key_manager(keyInstance);
+        if (keyInstance) {
+          self.keyRing.add_key_manager(keyInstance);
+        } else {
+          console.log('No keyInstance found for user %s', ChatManager.userlist[userId].username);
+        }
       };
     });
   };
+
+  console.log('[encryptionManager.buildChatKeyRing] Returning keyRing');
 
   return callback(keyRing);
 };
@@ -22327,22 +22334,24 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(usernam
 EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(username, publicKey, callback) {
   console.log("Verifying remote public key for user '"+username+"'");
 
-  var server = window.location.protocol + "//" + window.location.host;
+  var protocol = window.location.protocol;
+  var host = window.location.host;
+  var port = window.location.port
 
   if (window.config) {
-    var host = window.config.server.host;
-    var port = window.config.server.port;
-    var proto = "http";
+    host = window.config.client.host;
+    port = window.config.client.port;
 
-    if (window.config.server.ssl) {
-      proto = "https";
-    };
-
-    server = proto + "://" + host + ":" + port;
+    if (window.config.client.ssl) {
+      protocol = "https:";
+    } else {
+      protocol = "http:";
+    }
   }
 
-  Authentication.getAuthData({}, function(headers) {
+  var server = protocol + '//' + host + ':' + port;
 
+  Authentication.getAuthData({}, function(headers) {
     $.ajax({
       type: "GET",
       url: server + "/key/publickey",
@@ -22879,14 +22888,12 @@ function SocketClient() {
     port = window.config.client.port;
 
     if (window.config.client.ssl) {
-      protocol = "https";
+      protocol = "https:";
     } else {
-      protocol = "http";
+      protocol = "http:";
     }
   }
-  var server = protocol + '://' + host + ':' + port;
-
-  debugger;
+  var server = protocol + '//' + host + ':' + port;
 
   console.log("Server: " + server);
   this.socket = window.io(server + '/socket');
@@ -23032,6 +23039,7 @@ SocketClient.prototype.addListeners = function() {
     };
 
     var chatName = ChatManager.chats[chatId].name;
+
     var activeUsers = data.activeUsers;
     var roomUsers = data.activeUsers;
 
@@ -23049,7 +23057,7 @@ SocketClient.prototype.addListeners = function() {
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
 
-    if (ChatManager.activeChat == chatId) {
+    if (ChatManager.activeChat === chatId) {
       window.Userlist.update({ chatId: chatId });
     }
   });

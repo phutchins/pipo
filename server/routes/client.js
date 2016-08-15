@@ -31,8 +31,6 @@ module.exports = function(app, pipo) {
           config: clientConfig
         };
 
-        logger.debug('[client.get] locals sending to res.render is: ', locals);
-
         res.render('client.jade', locals);
       });
     });

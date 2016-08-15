@@ -195,7 +195,7 @@ Server.prototype.initServer = function(config) {
   // Need to make this run an init method that then runs createSystemUser
   this.createSystemUser(function() {
     var socketServer;
-    switch (configPipo.encryptionStrategy) {
+    switch (configPipo.encryptionScheme) {
       // Use master shared key encryption (faster but slightly less secure possibly)
       case 'masterKey':
         logger.info("[START] Starting in MASTER KEY mode");

@@ -949,8 +949,6 @@ ChatManager.focusChat = function focusChat(data, callback) {
       var keyRing = ChatManager.chats[chatId].keyRing;
       var fileManager = FileManager();
 
-      debugger;
-
       fileManager.getFile({ keyRing: keyRing, id: fileId });
     };
 

@@ -33,7 +33,7 @@ module.exports = function(){
 
   var production = {
     environment: 'production',
-    encryptionStrategy: 'clientKey',
+    encryptionScheme: 'clientKey',
     encryptionType: 'aes256',
     chats: {
       messagesPerPage: 50,

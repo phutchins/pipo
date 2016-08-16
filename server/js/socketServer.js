@@ -451,25 +451,18 @@ SocketServer.prototype.updateClientKey = function updateClientKey(data) {
 SocketServer.prototype.onMessage = function onMessage(socket, data) {
   var self = this;
 
-  logger.debug('[socketServer.onMessage] data: ', data);
-
   if (!data) {
     return logger.error('[socketServer.onMessage] No data provided with onMessage');
   }
 
   var chatId = data.chatId;
 
-  logger.debug('[socketServer.onMessage] Got message from socket ID: %s', socket.client.id);
-  logger.debug('[socketServer.onMessage] self.namespace.socketMap[this.socket.id]: %s', self.namespace.socketMap[socket.client.id]);
-  logger.debug('[socketServer.onMessage] namespace.userMap: ', self.namespace.userMap);
-
   if (!socket.user) {
     logger.info("[MSG] Ignoring message from unauthenticated user");
     return socket.emit('errorMessage', {message: 401});
   }
 
-  logger.debug('[MSG] this.socket.user.username: %s', socket.user.username);
-  logger.info("[MSG] Server got chat message from " + socket.user.username);
+  logger.info("[socketServer.onMessage] Server got chat message from " + socket.user.username);
 
   //TODO: Log messages
   Room.findOne({ _id: chatId }, function(err, room) {

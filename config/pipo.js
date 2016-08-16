@@ -21,10 +21,12 @@ module.exports = function(){
     },
     binServer: {
       port: 3031,
+      host: 'localhost',
       ssl: false,
     },
     binClient: {
       port: 3031,
+      host: 'localhost',
       ssl: false
     }
   };
@@ -49,10 +51,12 @@ module.exports = function(){
     },
     binServer: {
       port: 3031,
+      host: 'localhost',
       ssl: false
     },
     binClient: {
       ssl: true,
+      host: 'localhost',
       port: 443
     }
   };

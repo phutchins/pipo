@@ -840,7 +840,7 @@ ChatManager.arrayHash = function arrayHash(array, callback) {
   var orderedArray = array.sort();
 
   // MD5 participantIds
-  encryptionManager.sha256(orderedArray.toString()).then(function(arrayHash) {
+  encryptionManager.sha256(orderedArray.toString(), function(arrayHash) {
     return callback(arrayHash);
   });
 };

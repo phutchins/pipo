@@ -11,14 +11,15 @@ function BinSocketClient(options) {
   var protocol = window.location.protocol;
 
   var binServerProtocol = 'ws';
+  // Need to set sane defaults for these or derive them from window.location
   var binServerHost = '';
   var binServerPort = '';
 
   if (window.config) {
-    binServerHost = window.config.binServer.host;
-    binServerPort = window.config.binServer.externalPort;
+    binServerHost = window.config.binClient.host;
+    binServerPort = window.config.binClient.port;
 
-    if (window.config.binServer.externalSSL) {
+    if (window.config.binClient.ssl) {
       binServerProtocol = 'wss';
     }
   }

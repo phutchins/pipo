@@ -308,6 +308,12 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + ChatManager.chats[chatId].name);
 
+  // ***
+  // It's currently adding members, admins and owner.
+  // Members is only the initial creator of the room, not any new members
+  // We would normally add the entire userlist for a room with open membership
+  // ***
+
   if (membershipRequired) {
     ChatManager.chats[chatId].members.forEach(function(userId) {
       if (ChatManager.userlist[userId].username != window.username) {
@@ -341,7 +347,7 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
         console.log("[encryptionManager.buildChatKeyRing] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         if (keyInstance) {
-          self.keyRing.add_key_manager(keyInstance);
+          keyRing.add_key_manager(keyInstance);
         } else {
           console.log('No keyInstance found for user %s', ChatManager.userlist[userId].username);
         }
@@ -569,7 +575,9 @@ EncryptionManager.prototype.sign = function encryptPrivateMessage(message, callb
 EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callback) {
   var self = this;
   var encryptedMessage = data.encryptedMessage;
-  var keyRing = data.keyRing || this.keyRing;
+  // Should probably only accept a keyring as argument or use the self.keyRing
+  // for consistency sake...
+  var keyRing = data.keyRing || self.keyRing;
 
   Object.keys(keyRing._keys).forEach(function(keyId) {
     //console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
@@ -582,9 +590,9 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
 
   window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedMessage }, function(err, literals) {
 
-    //if (err) {
-    //  console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);
-    //}
+    if (err) {
+      console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);
+    }
 
     return callback(err, literals);
   });
@@ -972,15 +980,9 @@ EncryptionManager.prototype.hex = function hex(buffer) {
 EncryptionManager.prototype.sha256 = function rmd160(data, callback) {
   var self = this;
   var buffer = new TextEncoder("utf-8").encode(data);
-
-  // Should use nodeCrypto here probably
-  /*
-  return crypto.subtle.digest("SHA-256", buffer).then(function (hash) {
-    return self.hex(hash);
-  });
-  */
- // FIX THIS!
- return callback("123123123123123123123123h");
+  var hash = crypto.createHash('sha256');
+  hash.update(buffer);
+  return callback(hash.digest('hex'));
 };
 
 EncryptionManager.prototype.rmd160 = function rmd160(data) {

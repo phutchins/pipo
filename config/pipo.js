@@ -57,7 +57,7 @@ module.exports = function(){
     binClient: {
       ssl: true,
       host: 'localhost',
-      port: 443
+      port: 8543
     }
   };
 

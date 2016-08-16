@@ -260,6 +260,7 @@ FileManager.prototype.getFile = function getFile(data) {
   var options = {};
   var id = data.id;
   var binSocketClient = BinSocketClient(options);
+  var keyRing = data.keyRing;
 
   binSocketClient.binSocket.on('open', function() {
     console.log('[fileManager.getFile] binSocketClient connected, moving along...');
@@ -271,6 +272,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
       var decipherData = {
         encryptedKey: encryptedKey,
+        keyRing: keyRing,
         iv: iv
       };
 

@@ -943,18 +943,23 @@ ChatManager.focusChat = function focusChat(data, callback) {
     // This needs to be reset every time but probably don't want to reset $(document)
     var fileLinks = $('.pfile-link');
 
-    var downloadLinkBindClick = function(fileId) {
+    var downloadLinkBindClick = function(fileId, chatId) {
       console.log('Pfile link clicked, id: %s', fileId);
 
+      var keyRing = ChatManager.chats[chatId].keyRing;
       var fileManager = FileManager();
-      fileManager.getFile({ id: fileId });
+
+      debugger;
+
+      fileManager.getFile({ keyRing: keyRing, id: fileId });
     };
 
     $(document).off("click", ".pfile-link");
     $(document).on('click', '.pfile-link', function() {
       var fileId = $(this)[0].id;
+      var chatId = id;
 
-      downloadLinkBindClick(fileId);
+      downloadLinkBindClick(fileId, chatId);
     });
 
   });

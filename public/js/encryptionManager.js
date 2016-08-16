@@ -537,6 +537,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
   var iv = new Buffer(data.iv, 'hex');
 
   // Add our own decrypted private key to the key manager so we can decrypt the key
+
   if (self.keyManager) {
     keyRing.add_key_manager(self.keyManager);
   };

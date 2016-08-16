@@ -22102,6 +22102,7 @@ EncryptionManager.prototype.getFileDecipher = function getFileDecipher(data, cal
   var iv = new Buffer(data.iv, 'hex');
 
   // Add our own decrypted private key to the key manager so we can decrypt the key
+
   if (self.keyManager) {
     keyRing.add_key_manager(self.keyManager);
   };
@@ -22140,8 +22141,9 @@ EncryptionManager.prototype.sign = function encryptPrivateMessage(message, callb
 EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callback) {
   var self = this;
   var encryptedMessage = data.encryptedMessage;
+  // Should probably only accept a keyring as argument or use the self.keyRing
+  // for consistency sake...
   var keyRing = data.keyRing || self.keyRing;
-  //var keyRing = self.keyRing;
 
   Object.keys(keyRing._keys).forEach(function(keyId) {
     //console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
@@ -22154,9 +22156,9 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
 
   window.kbpgp.unbox({ keyfetch: keyRing, armored: encryptedMessage }, function(err, literals) {
 
-    //if (err) {
-    //  console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);
-    //}
+    if (err) {
+      console.log("[encryptionManager.decryptMessage] Error decrypting message: ",err);
+    }
 
     return callback(err, literals);
   });
@@ -22827,6 +22829,7 @@ FileManager.prototype.getFile = function getFile(data) {
   var options = {};
   var id = data.id;
   var binSocketClient = BinSocketClient(options);
+  var keyRing = data.keyRing;
 
   binSocketClient.binSocket.on('open', function() {
     console.log('[fileManager.getFile] binSocketClient connected, moving along...');
@@ -22838,6 +22841,7 @@ FileManager.prototype.getFile = function getFile(data) {
 
       var decipherData = {
         encryptedKey: encryptedKey,
+        keyRing: keyRing,
         iv: iv
       };
 

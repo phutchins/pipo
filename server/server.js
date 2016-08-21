@@ -218,30 +218,15 @@ Server.prototype.initServer = function(config) {
 
         ioMain.on('connection', function(socket) {
           logger.debug('Connection to ioMain with socket id', socket.client.id);
-          // Could log the ioMain.server['/'].sockets or something like that
-          // as this is really noisy
-          //logger.debug("IOMAIN: ", ioMain);
+
           socket.emit('certificate', AdminCertificate);
+
           socketServer.onSocket(socket);
         });
 
         bs.on('connection', function(binSocket) {
           logger.debug("[server] Got binary client connection");
 
-/*
-          binSocket.on('stream', function(stream, data) {
-            //data.socketServer = self;
-
-            logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
-
-            data.fileBuffer = stream;
-
-            FileManager.handleChunk(data);
-          });
-*/
-
-          //var testFile = fs.createReadStream(__dirname + 'testFile');
-          //binSocket.send(testFile);
           socketServer.onBinarySocketConnection(binSocket);
         });
         break;

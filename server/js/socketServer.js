@@ -289,10 +289,6 @@ SocketServer.prototype.authenticate = function authenticate(socket, data) {
 
     logger.debug('[socketServer.authenticate] Added user if needed, socket.id: %s username: %s userId: %s', socket.id, user.username, user._id.toString());
 
-    // When adding a new user to the socket map, their socket ID overlaps
-    // a previous user so messages are getting routed incorrectly until
-    // this is refreshed
-
     // Add the user's socketId to the socket map
     self.namespace.socketMap[socket.id] = {
       username: user.username,
@@ -1354,8 +1350,9 @@ SocketServer.prototype.disconnect = function disconnect(socket) {
   }
 
   logger.info("[DISCONNECT] socket.id: " + socket.id);
-  // Is this necessary? Probably alreeady happens in socket
-  //socket.leaveAll();
+
+  // Remove user from the socket map as they have disconnected
+  delete self.namespace.socketMap[socket.id];
 
   // If there is a user and id in the socket
   if (socket.user && socket.user.id) {
@@ -1375,6 +1372,9 @@ SocketServer.prototype.disconnect = function disconnect(socket) {
       }
 
       logger.info("[DISCONNECT] Found user, disconnecting...");
+
+      // This looks to be correct
+      logger.debug('[socketServer.disconnect] user.membership._currentRooms.length is %s', user.membership._currentRooms.length);
 
       // Send an updated userlist to all users?
       User.setActive({ userId: user._id, active: false }, function(err) {

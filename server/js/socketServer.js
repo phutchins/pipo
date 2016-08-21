@@ -1373,9 +1373,6 @@ SocketServer.prototype.disconnect = function disconnect(socket) {
 
       logger.info("[DISCONNECT] Found user, disconnecting...");
 
-      // This looks to be correct
-      logger.debug('[socketServer.disconnect] user.membership._currentRooms.length is %s', user.membership._currentRooms.length);
-
       // Send an updated userlist to all users?
       User.setActive({ userId: user._id, active: false }, function(err) {
         self.updateUserList({ scope: 'all' });

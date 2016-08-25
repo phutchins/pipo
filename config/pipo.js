@@ -51,12 +51,12 @@ module.exports = function(){
     },
     binServer: {
       port: 3031,
-      host: 'localhost',
+      host: 'pipo.chat',
       ssl: false
     },
     binClient: {
       ssl: true,
-      host: 'localhost',
+      host: 'pipo.chat',
       port: 8543
     }
   };

@@ -689,6 +689,15 @@ ChatManager.initChat = function initChat(chat, callback) {
   if (chat.participants.length == 2) {
     chat.participants.forEach(function(participantId) {
       // Set the chatName to the name of the user with this userid
+
+      // The username here does not exist for users that have just signed up
+      // To replicate,
+      // - Fresh DB
+      // - User 1 signs up and joins default room
+      // - User 2 signs up and joins default room
+      // - User 1 attempts to initiate a private message session with User 2
+      // - User 1 gets error: ChatManager.userlist[participantId].username is not defined
+      debugger;
       if  (participantId !== myUserId) {
         chatName = ChatManager.userlist[participantId].username;
       }

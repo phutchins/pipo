@@ -151,7 +151,7 @@ chatSchema.statics.sanatize = function sanatize(chat, callback) {
   if (chat._participants.length > 0) {
     logger.debug("[Chat.sanatize] We have " + chat._participants.length + " participants");
     chat._participants.forEach(function(participant) {
-      participantIds.push(participant.id);
+      participantIds.push(participant._id.toString());
     })
   }
 

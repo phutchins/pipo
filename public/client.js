@@ -1,6 +1,6 @@
 'use strict';
 
-var jade = require('jade');
+var pug = require('pug');
 
 var electron = require('electron');
 // Module to control application life.
@@ -10,8 +10,8 @@ var BrowserWindow = electron.BrowserWindow;
 
 var appDir = app.getAppPath();
 
-var preDepsFn = jade.compileFile(appDir + '/public/views/predeps.jade');
-var postDepsFn = jade.compileFile(appDir + '/public/views/postdeps.jade');
+var preDepsFn = pug.compileFile(appDir + '/public/views/predeps.pug');
+var postDepsFn = pug.compileFile(appDir + '/public/views/postdeps.pug');
 var clientConfig = require(appDir + '/config/pipo.js')();
 
 var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
@@ -23,7 +23,7 @@ var locals = {
   config: clientConfig
 };
 
-var ej = require('electron-jade')({ pretty: true }, locals);
+var ep = require('electron-pug')({ pretty: true }, locals);
 
 // Keep a global reference of the window object, if you don't, the window will
 // be closed automatically when the JavaScript object is garbage collected.
@@ -42,10 +42,10 @@ function createWindow () {
   });
 
   // and load the index.html of the app.
-  mainWindow.loadURL('file://' + __dirname + '/views/client.jade');
+  mainWindow.loadURL('file://' + __dirname + '/views/client.pug');
 
   // Open the DevTools.
-  //mainWindow.webContents.openDevTools();
+  // mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

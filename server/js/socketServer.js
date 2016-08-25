@@ -698,6 +698,8 @@ SocketServer.prototype.arrayHash = function arrayHash(array, callback) {
 SocketServer.prototype.getChat = function getChat(socket, data) {
   var self = this;
 
+  logger.debug('[socketServer.getChat] participantIds is', participantIds);
+
   // How do we find the chat using the participants (or some other thing)?
   var chatId = data.chatId;
   var chatHash = data.chatHash;

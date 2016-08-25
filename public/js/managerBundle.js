@@ -21534,7 +21534,7 @@ function BinSocketClient(options) {
     }
   }
 
-  var binServer = binServerProtocol + '://' + window.location.hostname + ':' + binServerPort;
+  var binServer = binServerProtocol + '://' + binServerHost + ':' + binServerPort;
 
   console.log("Binary Server: " + binServer);
 

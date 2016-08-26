@@ -14,12 +14,12 @@ module.exports = function(app, pipo) {
     logger.debug("[ROUTE] '/'");
     var username = 'default';
 
-    res.render('preDeps.jade', { depRoot: '' }, function(err, preDeps) {
+    res.render('preDeps', { depRoot: '' }, function(err, preDeps) {
       if (err) { return console.log("Failed to render preDeps: " + err); }
 
       var preDeps = preDeps;
 
-      res.render('postDeps.jade', { depRoot: '' }, function(err, postDeps) {
+      res.render('postDeps', { depRoot: '' }, function(err, postDeps) {
         if (err) { return console.log("Failed to render postDeps: " + err); }
 
         var postDeps = postDeps;
@@ -31,7 +31,9 @@ module.exports = function(app, pipo) {
           config: clientConfig
         };
 
-        res.render('client.jade', locals);
+        console.log('Rendering client.pug now');
+
+        res.render('client', locals);
       });
     });
   });
@@ -45,13 +47,13 @@ module.exports = function(app, pipo) {
 
     console.log("THIS IS USED!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!");
 
-    res.render('preDeps.jade', { depRoot: '' }, function(err, preDeps) {
+    res.render('preDeps.pug', { depRoot: '' }, function(err, preDeps) {
       if (err) { return console.log("Failed to render preDeps: " + err); }
 
-      res.render('postDeps.jade', { depRoot: '' }, function(err, postDeps) {
+      res.render('postDeps.pug', { depRoot: '' }, function(err, postDeps) {
         if (err) { return console.log("Failed to render postDeps: " + err); }
 
-        res.render('client.jade', {
+        res.render('client.pug', {
           username : username,
           preDeps: preDeps,
           postDeps: postDeps

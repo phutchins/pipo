@@ -1035,6 +1035,7 @@ ChatManager.updateRoomList = function updateRoomList(callback) {
           roomListItemClasses.push('chat-list-item');
         };
 
+        debugger;
         if ( !unreadMessages ) {
           unreadIconClasses.push('hidden');
         }

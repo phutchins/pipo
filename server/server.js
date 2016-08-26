@@ -81,7 +81,7 @@ function Server(options) {
 
   //Express
   this.app.set('views', path.join(__dirname, '../public/views'));
-  this.app.set('view engine', 'jade');
+  this.app.set('view engine', 'pug');
   this.app.set('x-powered-by', false);
 
   //Middleware

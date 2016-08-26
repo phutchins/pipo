@@ -3826,6 +3826,10 @@ PEMEncoder.prototype.encode = function encode(data, options) {
 
     assert(this.negative === 0, 'imaskn works only with positive numbers');
 
+    if (this.length <= s) {
+      return this;
+    }
+
     if (r !== 0) {
       s++;
     }

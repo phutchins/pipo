@@ -742,6 +742,12 @@ SocketServer.prototype.getChat = function getChat(socket, data) {
           chatHash: chatHash,
           type: 'chat'
         }, function(err, newChat) {
+          if (err) {
+            return logger.error('[socketServer.getChat.finish] Error creating new chat with chatHash %s', chatHash);
+          }
+
+          logger.debug('[socketServer.getChat.finish] Created new chat with id %s', newChat._id);
+
           Chat.sanatize(newChat, function(newSanatizedChat) {
             return socket.emit('chatUpdate-' + chatHash, { chat: newSanatizedChat });
           });

@@ -688,16 +688,6 @@ ChatManager.initChat = function initChat(chat, callback) {
   // Private chat between two users
   if (chat.participants.length == 2) {
     chat.participants.forEach(function(participantId) {
-      // Set the chatName to the name of the user with this userid
-
-      // The username here does not exist for users that have just signed up
-      // To replicate,
-      // - Fresh DB
-      // - User 1 signs up and joins default room
-      // - User 2 signs up and joins default room
-      // - User 1 attempts to initiate a private message session with User 2
-      // - User 1 gets error: ChatManager.userlist[participantId].username is not defined
-      debugger;
       if  (participantId !== myUserId) {
         chatName = ChatManager.userlist[participantId].username;
       }
@@ -833,15 +823,6 @@ ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback)
     })
   })
 };
-
-
-
-/*
- * This is being replaced by listeners with ids
-ChatManager.waitForInit = function waitForInit(chatHash) {
-  ChatManager.activeChat.awaitingInit = chatHash;
-}
-*/
 
 
 ChatManager.arrayHash = function arrayHash(array, callback) {
@@ -1085,7 +1066,7 @@ ChatManager.updateChatList = function updateChatList() {
       unreadIconClasses.push('hidden');
     }
 
-    if ( ChatManager.activeChat == id ) {
+    if ( ChatManager.activeChat === id ) {
       chatListItemClasses.push('chat-list-item-selected');
     } else {
       chatListItemClasses.push('chat-list-item');
@@ -1508,8 +1489,7 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
     };
   };
 
-
-  if (!ChatManager.activeChat == chatId) {
+  if (ChatManager.activeChat != chatId) {
     ChatManager.chats[chatId].unread = true;
     ChatManager.chats[chatId].unreadCount++;
 

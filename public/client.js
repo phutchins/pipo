@@ -10,8 +10,8 @@ var BrowserWindow = electron.BrowserWindow;
 
 var appDir = app.getAppPath();
 
-var preDepsFn = pug.compileFile(appDir + '/public/views/predeps.pug');
-var postDepsFn = pug.compileFile(appDir + '/public/views/postdeps.pug');
+var preDepsFn = pug.compileFile(appDir + '/public/views/preDeps.pug');
+var postDepsFn = pug.compileFile(appDir + '/public/views/postDeps.pug');
 var clientConfig = require(appDir + '/config/pipo.js')();
 
 var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })

@@ -172,8 +172,6 @@ Userlist.populateUserPopup = function populateUserPopup(data) {
       ChatManager.arrayHash(participantIds, function(chatHash) {
         console.log("[userlist.populateUserPopup] Emitting getChat for private message");
 
-        debugger;
-
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {

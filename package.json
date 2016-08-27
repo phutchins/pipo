@@ -68,7 +68,7 @@
     "passport": "^0.3.2",
     "passport-keyverify": "0.0.2",
     "passport-publickey": "^1.0.3",
-    "pug": "^2.0.0-beta4",
+    "pug": "^2.0.0-beta5",
     "querystring": "^0.2.0",
     "requirejs": "^2.1.17",
     "serve-favicon": "^2.2.1",

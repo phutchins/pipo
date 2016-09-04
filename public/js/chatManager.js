@@ -1,3 +1,5 @@
+'use strict'
+
 var userMap = {};
 var roomUsers = {};
 
@@ -123,21 +125,36 @@ $('#generate-keypair-button').unbind().on('click', function() {
 $('#import-keypair-button').unbind().on('click', function() {
   console.log("Loading keypair from file...");
   ChatManager.promptForImportKeyPair(function(err, data) {
-    var keyPair = {
-      privateKey: data.privateKey,
-      publicKey: data.publicKey
+    var userData = {
+      username: data.username,
+      email: data.email,
+      fullName: data.fullName,
+      keyPair: {
+        privateKey: data.privateKey,
+        publicKey: data.publicKey
+      }
     };
-    var username = data.username;
-    window.encryptionManager.saveClientKeyPair({ username: username, keyPair: keyPair }, function(err) {
+
+    window.encryptionManager.saveClientKeyPair(userData, function(err) {
       if (err) {
         return console.log("Error saving client keyPair");
       };
       console.log("Client keypair saved to local storage");
+      /*
       window.encryptionManager.unloadClientKeyPair(function() {
         window.socketClient.init();
       });
+      */
+
+      //window.encryptionManager.clientCredentialsLoaded = false;
+      socketClient.init();
     })
   })
+});
+
+$('#sign-out-button').unbind().on('click', function() {
+  console.log('Signing out...');
+
 });
 
 /*
@@ -1313,7 +1330,8 @@ ChatManager.handleMessage = function handleMessage(data) {
     if (err) {
       return console.log(err);
     }
-    var ds = km = null;
+    var ds = null;
+    var km = null;
     ds = messageLiterals[0].get_data_signer();
     if (ds) { km = ds.get_key_manager(); }
     if (km) {
@@ -1514,7 +1532,7 @@ ChatManager.addMessageToChat = function addMessageToChat(data) {
 ChatManager.populateMessageCache = function populateMessageCache(chatId) {
   var messages = ChatManager.chats[chatId].messages;
   var messageCount = messages.length;
-  //var sortedMessages = [];
+  var sortedMessages = [];
 
   ChatManager.chats[chatId].messageCache = '';
 
@@ -1572,6 +1590,7 @@ ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
   var chatId = data.chatId;
   var messageId = data.messageId;
   var messageCache = ChatManager.chats[chatId].messageCache;
+  var container = '';
 
   container = $('<div>').html(messageCache);
   container.find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
@@ -1841,6 +1860,18 @@ ChatManager.initialPromptForCredentials = function initialPromptForCredentials()
       // Do something when registration is succcessful
     });
   });
+
+  $('.ui.button.signin').unbind().click(function(e) {
+    ChatManager.configureUIForSignin(function() {
+      console.log('UI Configured for User Signin');
+    });
+  });
+};
+
+ChatManager.configureUIForSignin = function configureUIForSignin(callback) {
+  console.log('Configuring UI for user signin');
+
+  callback();
 };
 
 
@@ -1873,6 +1904,8 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
     var privateKeyFile = document.getElementById('privatekey-file-input').files[0];
     var privateKeyContents = null;
     var username = document.getElementById('username-input').value;
+    var fullName = document.getElementById('fullname-input').value;
+    var email = document.getElementById('email-input').value;
 
     if (publicKeyFile && privateKeyFile) {
       var regex = /\r?\n|\r/g
@@ -1885,6 +1918,8 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
         reader.onload = function(e) {
           privateKeyContents = e.target.result.toString().replace(regex, '\n');
           var data = ({
+            email: email,
+            fullName: fullName,
             publicKey: publicKeyContents,
             privateKey: privateKeyContents,
             username: username,

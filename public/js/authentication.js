@@ -1,3 +1,5 @@
+'use strict'
+
 var Authentication = {};
 
 Authentication.authenticate = function authenticate(data) {
@@ -10,7 +12,7 @@ Authentication.authenticate = function authenticate(data) {
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
       self.getAuthData({}, function(data) {
-        console.log("[authentication.authenticate] Auth Data: " + data);
+        console.log('[authentication.authenticate] Auth Data: ', data);
 
         socket.emit('authenticate', {username: window.username, nonce: data.nonce, signature: data.signature, fullName: window.fullName, publicKey: publicKey, email: window.email});
       });
@@ -20,10 +22,12 @@ Authentication.authenticate = function authenticate(data) {
 
 // This needs to be exported so that it's called every time and knows what last was
 Authentication.getNonce = function getNonce(length) {
-  var last = null
-  , repeat = 0
+  var last = null;
+  var repeat = 0;
 
-  if (typeof length == 'undefined') length = 15
+  if (typeof length === 'undefined') {
+    length = 15;
+  }
 
   return function() {
     var now = Math.pow(10, 2) * +new Date()
@@ -68,7 +72,7 @@ Authentication.apiAuth = function apiAuth(data) {
       }
     };
 
-    console.log("options: ", options);
+    console.log('options: ', options);
 
     var req = http.request(options, function(res) {
       //console.log(`STATUS: ${res.statusCode}`);

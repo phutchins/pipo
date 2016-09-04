@@ -125,7 +125,6 @@ RegisterUserPrompt.init = function init(successCallback) {
             window.email = email;
             window.fullName = fullName;
 
-            //console.log("[CHAT MANAGER] (promptForCredentials) username: "+username+" window.username: "+window.username);
             localStorage.setItem('username', username);
             localStorage.setItem('fullName', fullName);
             localStorage.setItem('email', email);
@@ -135,7 +134,6 @@ RegisterUserPrompt.init = function init(successCallback) {
             // Need to unload an old keypair if it existed
             window.encryptionManager.clientCredentialsLoaded = false;
 
-            //console.log("[CHAT MANAGER] (promptForCredentials) Saved clientKeyPair to localStorage");
             socketClient.init();
           }
         });

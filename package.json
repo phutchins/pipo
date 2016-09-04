@@ -79,6 +79,7 @@
     "flip-stream-js": "^0.1.1",
     "highlight": "^0.2.3",
     "jasmine-node": "^1.14.5",
+    "jquery": "^2.2.4",
     "kbpgp": "^2.0.11",
     "kerberos": "0.0.18",
     "marked": "^0.3.3",

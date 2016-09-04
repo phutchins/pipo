@@ -12,10 +12,14 @@ var appDir = app.getAppPath();
 
 var preDepsFn = pug.compileFile(appDir + '/public/views/preDeps.pug');
 var postDepsFn = pug.compileFile(appDir + '/public/views/postDeps.pug');
-var clientConfig = require(appDir + '/config/pipo.js')();
+var clientConfig = require(appDir + '/config/pipo.js')(process.env.NODE_ENV);
 
-var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
-var renderedPostDeps = postDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig })
+console.log('NODE_ENV: ', process.env.NODE_ENV);
+
+console.log('Platform is electron');
+
+var renderedPreDeps = preDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig });
+var renderedPostDeps = postDepsFn({ depRoot: '../', platform: 'electron', config: clientConfig });
 
 var locals = {
   preDeps: renderedPreDeps,
@@ -45,7 +49,7 @@ function createWindow () {
   mainWindow.loadURL('file://' + __dirname + '/views/client.pug');
 
   // Open the DevTools.
-  // mainWindow.webContents.openDevTools();
+  //mainWindow.webContents.openDevTools();
 
   // Emitted when the window is closed.
   mainWindow.on('closed', function() {

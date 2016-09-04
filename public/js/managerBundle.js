@@ -21876,13 +21876,13 @@ EncryptionManager.prototype.generateClientKeyPair = function generateClientKeyPa
  */
 EncryptionManager.prototype.unloadClientKeyPair = function unloadClientKeyPair(callback) {
   // Set loaded flag to false
-  self.clientCredentialsLoaded = false;
+  this.clientCredentialsLoaded = false;
 
   // Clear all variables related to decrypted client credentials
   // self.keyRing, localStorage.getItem('keyPair'),
-  self.keyRing = new window.kbpgp.keyring.keyRing();
+  this.keyRing = new window.kbpgp.keyring.keyRing();
   return callback();
-}
+};
 
 
 /**
@@ -21906,13 +21906,13 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
       keyPairData = JSON.parse(keyPairData);
     }
     catch(err) {
-      console.log("Error parsing keyPair data from localStorage", e);
+      console.log('Error parsing keyPair data from localStorage', e);
       return callback(err, false);
     }
   } else {
-    console.log("[ENCRYPTION MANAGER] (loadClientKeyPair) No keyPairData found in local storage...");
+    console.log('[ENCRYPTION MANAGER] (loadClientKeyPair) No keyPairData in local storage...');
     return callback(null, false);
-  };
+  }
 
   //Load decrypted key into keyRing
   kbpgp.KeyManager.import_from_armored_pgp({
@@ -22430,14 +22430,24 @@ EncryptionManager.prototype.removeClientKeyPair = function removeClientKeyPair(f
   };
 };
 
-EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(data, callback) {
-  var keyPair = data.keyPair;
-  var username = data.username;
+EncryptionManager.prototype.saveClientKeyPair = function saveClientKeyPair(userData, callback) {
+  var keyPair = userData.keyPair;
+  var username = userData.username;
+  var fullName = userData.fullName;
+  var email = userData.email;
+
   console.log("Saving client keyPair with username: " + username);
+
   // TODO: Save with username in namespace of key name?
   window.username = username;
+  window.email = email;
+  window.fullName = fullName;
+
+  localStorage.setItem('email', email);
+  localStorage.setItem('fullName', fullName);
   localStorage.setItem('username', username);
   localStorage.setItem('keyPair', JSON.stringify(keyPair));
+
   callback(null);
 }
 

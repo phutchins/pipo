@@ -47,23 +47,26 @@ html(lang="en", class="js")
       #menu
         #left-menu-profile
           #menu-header-profile
-            .ui.labeled.dropdown.header-profile-dropdown
+            .ui.labeled.pointing.dropdown.header-profile-dropdown
               .trpDisplayPicture.avatar-s.avatar(style='', data-original-title='')
-              span.text.username Unauthenticated
+              span.text.username Sign In
               i.chevron.down.icon
               #options-menu-dropdown.menu
                 #edit-profile-button.item
                   i.edit.icon
                   |  Edit Profile
-                #generate-keypair-button.item
-                  i.spy.icon
-                  |  Generate new client key pair
                 #import-keypair-button.item
-                  i.folder.open.icon
-                  |  Import existing key pair
+                  i.sign.in.icon
+                  |  Sign In ( Import existing key pair )
                 #export-keypair-button.item
                   i.download.icon
                   |  Export client key pair
+                #generate-keypair-button.item
+                  i.spy.icon
+                  |  Generate new client key pair
+                #sign-out-button.item
+                  i.sign.out.icon
+                  |  Sign Out ( Unloads current key pair )
         #left-menu-scroll
           .room-list-container
             h5.room-list-header Active Rooms
@@ -90,11 +93,8 @@ html(lang="en", class="js")
               i#add-button-icon.plus.icon
               .menu
                 .item.send-file-button
-                  i#send-file-button.add-button.send.icon
-                  span.text Direct Send (encrypted)
-                .item.attach-file-button
-                  i#attach-file-button.add-button.file.icon
-                  span.text Attach File (encrypted)
+                  i#send-file-button.add-button.file.icon
+                  span.text Upload File to Chat (encrypted)
           textarea#message-input.message-input.ui.left.icon.loading(autocorrect='off', spellcheck='true', autocomplete='off', type='text', placeholder='          Please wait while your secure connection is configured...')
           i#loading-icon.search.icon
           button#send-button.ui.button(disabled='true') Send
@@ -148,11 +148,18 @@ html(lang="en", class="js")
         | Import Client Key Pair
       .ui
         .description
-          p Please locate your keys...
+          p Please add the following information and select your public and private key and click OK to load your user
+          p
         form.ui.form.content.create
           .field
             label(for='username') Username
             input#username-input.username-input(type='text')
+          .field
+            label(for='fullname') Full Name
+            input#fullname-input.fullname-input(type='text')
+          .field
+            label(for='email') Email
+            input#email-input.email-input(type='email')
           .ui
             a#select-publickey(href='#') Public Key:
             input#publickey-file-input(type='file')
@@ -171,8 +178,8 @@ html(lang="en", class="js")
       .content
         | You do not appear to have signed in from this computer before. Would you like to Register as a new user or Sign In using your existing keys?
       .actions
-        .ui.button.approve.green.register(data-value='generate') Register
-        .ui.button.approve.blue.authenticate(data-value='authenticate') Sign In
+        .ui.button.approve.green.register(data-value='generate') Register ( new user )
+        .ui.button.approve.blue.signin(data-value='authenticate') Sign In ( I have my keys )
     .ui.small.modal.register
       .header Register
       form.ui.form.error.segment.register
@@ -204,8 +211,8 @@ html(lang="en", class="js")
         |  Generating credentials (this may take a bit)
     .ui.small.modal.unlock
       .header
-        | Unlock Credentials for
-        span.username your user
+        | Unlock Credentials for &nbsp
+        span.username
       form.ui.form.error.content.unlock
         .field
           | Enter the passphrase you selected to decrypt your keys. You will be prompted for this password once more after you submit this form to sign in.
@@ -215,6 +222,7 @@ html(lang="en", class="js")
           input#password.password(type='password')
         .actions
           .ui.submit.button.green.decrypt Decrypt
+          .ui.cancel.button.red Cancel
           .ui.error.message
     .ui.small.modal.authenticate
       .header Authenticate
@@ -236,7 +244,7 @@ html(lang="en", class="js")
     .ui.small.long.modal.sendfile
       i.close.icon
       .header
-        | Send File (encrypted)
+        | Upload File to Chat (encrypted)
       .content
         form.ui.form.sendfile
           .ui.segment

@@ -1,8 +1,10 @@
+'use strict'
+
 /*
  * Password Prompt Modal
  */
 
-var UnlockClientKeyPairModal = {};
+var unlockClientKeyPairModal = {};
 
 var init = function(successCallback) {
   var self = this;
@@ -63,17 +65,16 @@ var init = function(successCallback) {
   $('.ui.modal.unlock').form(UnlockClientKeyPairModalFormSettings);
 };
 
-UnlockClientKeyPairModal.update = function update(callback) {
+unlockClientKeyPairModal.update = function update(callback) {
   $('.ui.modal.unlock .username').text(window.username);
   callback();
 };
 
-UnlockClientKeyPairModal.show = function show(successCallback) {
+unlockClientKeyPairModal.show = function show(successCallback) {
   init(successCallback);
   this.update(function() {
     $('.ui.modal.unlock').modal('show');
   });
 };
 
-// Commenting out to try moving this to modal show
-//$(document).ready(init);
+module.exports = unlockClientKeyPairModal;

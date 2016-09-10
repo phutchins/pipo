@@ -3,6 +3,8 @@
  * Modal for sending a file to another user
  */
 
+var FileManager = require('../files/index.js');
+
 var SendFileModal = {};
 
 SendFileModal.init = function init(successCallback) {
@@ -31,7 +33,7 @@ SendFileModal.init = function init(successCallback) {
   console.log("[sendFileModal.init] Running init for sendFileModal");
 
   SendFileModal.build(function() {
-    console.log("[sendFileModal.init] Done building modal")
+    console.log("[sendFileModal.init] Done building modal");
   });
 
   $('.ui.form.sendfile').form(sendfileFormSettings);

@@ -1,5 +1,6 @@
 'use strict'
 var crypto = require('crypto-browserify');
+var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
 
 function EncryptionManager() {
   this.keyPair = ({
@@ -129,7 +130,7 @@ EncryptionManager.prototype.loadClientKeyPair = function loadClientKeyPair(callb
         if (!err) {
           self.keyManager = keyManager;
           if (keyManager.is_pgp_locked()) {
-            UnlockClientKeyPairModal.show(function() {
+            unlockClientKeyPairModal.show(function() {
               self.keyRing.add_key_manager(keyManager);
               self.clientCredentialsLoaded = true;
               return callback(null, true);
@@ -227,11 +228,11 @@ EncryptionManager.prototype.getKeyManager = function getKeyManager(data, callbac
       return callback(err, null);
     }
   });
-}
+};
 
 EncryptionManager.prototype.promptForPassphrase = function promptForPassphrase(callback) {
   var self = this;
-  UnlockClientKeyPairModal.show(callback);
+  unlockClientKeyPairModal.show(callback);
 };
 
 EncryptionManager.prototype.clientKeyUnlocked = function clientKeyUnlocked() {

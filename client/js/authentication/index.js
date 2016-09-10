@@ -5,8 +5,9 @@ var Authentication = {};
 Authentication.authenticate = function authenticate(data) {
   var self = this;
   var socket = data.socket;
+  var username = localStorage.getItem('username');
 
-  console.log("[AUTH] Authenticating with server with username: '"+window.username+"'");
+  console.log("[AUTH] Authenticating with server with username: '"+self.username+"'");
 
   // Generate a new unused nonce and sign it for verification
   window.encryptionManager.keyManager.sign({}, function(err) {
@@ -14,7 +15,7 @@ Authentication.authenticate = function authenticate(data) {
       self.getAuthData({}, function(data) {
         console.log('[authentication.authenticate] Auth Data: ', data);
 
-        socket.emit('authenticate', {username: window.username, nonce: data.nonce, signature: data.signature, fullName: window.fullName, publicKey: publicKey, email: window.email});
+        socket.emit('authenticate', {username: data.username, nonce: data.nonce, signature: data.signature, fullName: data.fullName, publicKey: publicKey, email: data.email});
       });
     });
   });
@@ -32,17 +33,17 @@ Authentication.getNonce = function getNonce(length) {
   return function() {
     var now = Math.pow(10, 2) * +new Date()
 
-    if (now == last) {
-      repeat++
+    if (now === last) {
+      repeat++;
     } else {
-      repeat = 0
-      last = now
+      repeat = 0;
+      last = now;
     }
 
-    var s = (now + repeat).toString()
-    return +s.substr(s.length - length)
-  }
-}
+    var s = (now + repeat).toString();
+    return +s.substr(s.length - length);
+  };
+};
 
 Authentication.apiAuth = function apiAuth(data) {
   var self = this;
@@ -96,7 +97,10 @@ Authentication.apiAuth = function apiAuth(data) {
 };
 
 Authentication.getAuthData = function getAuthData(data, callback) {
-  var username = window.username;
+  var username = localStorage.getItem('username');
+  var email = localStorage.getItem('email');
+  var fullName = localStorage.getItem('fullName');
+
   var nonce = this.getNonce(32)();
   var signature = null;
 
@@ -105,6 +109,8 @@ Authentication.getAuthData = function getAuthData(data, callback) {
 
     var authData = {
       'username': username,
+      'fullName': fullName,
+      'email': email,
       'nonce': nonce,
       'signature': signature
     };
@@ -119,6 +125,7 @@ Authentication.authenticated = function authenticated(data) {
   var userNameMap = data.userNameMap;
   var userlist = data.userlist;
   var userProfile = data.userProfile;
+  var username = localStorage.getItem('username');
 
   // Ensure that we have permission to show notifications and prompt if we don't
   clientNotification.init();
@@ -147,7 +154,9 @@ Authentication.authenticated = function authenticated(data) {
 
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
-      window.encryptionManager.verifyRemotePublicKey(window.username, publicKey, function(err, upToDate) {
+      // The key we're verifying is not working here. Need to figure out why
+      debugger;
+      window.encryptionManager.verifyRemotePublicKey(username, publicKey, function(err, upToDate) {
         if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
 
         if (upToDate) {
@@ -177,7 +186,9 @@ Authentication.authenticated = function authenticated(data) {
         } else {
           // Should not allow updating of remote key without signature from old key or admin making the change
           console.log("[INIT] Remote public key is not up to date so updating!");
+          // Should error here and eventually give options to verify previous key and updating
 
+          /*
           window.encryptionManager.updatePublicKeyOnRemote(window.username, publicKey, function(err) {
             if (err) { return console.log("[INIT] ERROR updating public key on server: "+err) };
             console.log("[AUTHENTICATED] Authenticated successfully");
@@ -191,6 +202,7 @@ Authentication.authenticated = function authenticated(data) {
               });
             });
           });
+          */
         }
       });
     });

@@ -11,7 +11,7 @@ module.exports = function(app, pipo) {
   app.get('/', function(req, res) {
     logger.debug("[ROUTE] '/'");
     var username = 'default';
-    var templateBasedir = path.join(__dirname, '../../public/views/');
+    var templateBasedir = path.join(__dirname, '../../client/views/');
 
     var templateOptions = {
       pretty: true,
@@ -28,7 +28,7 @@ module.exports = function(app, pipo) {
       config: clientConfig
     };
 
-    var renderedClient = pug.renderFile(path.join(__dirname, '../../public/views/client.pug'), locals);
+    var renderedClient = pug.renderFile(path.join(__dirname, '../../client/views/client.pug'), locals);
     res.send(renderedClient);
   });
 };

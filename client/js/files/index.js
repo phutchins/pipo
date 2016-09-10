@@ -5,7 +5,7 @@ var through = require('through');
 var crypto = require('crypto');
 
 window.FlipStream = require('flip-stream-js');
-var BinSocketClient = require('./binSocketClient');
+var BinSocketClient = require('../network/binSocketClient');
 
 function FileManager(options) {
   if (!(this instanceof FileManager)) {
@@ -298,4 +298,4 @@ FileManager.prototype.getFile = function getFile(data) {
   });
 };
 
-window.FileManager = FileManager;
+module.exports = FileManager;

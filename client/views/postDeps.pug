@@ -1,0 +1,49 @@
+if(platform == "electron")
+  script.
+    window.config = !{JSON.stringify(config)};
+    window.$ = window.jQuery = require('jquery');
+    window.io = io = require('socket.io-client');
+else
+  script(src=depRoot + 'js/lib/jquery-1.11.1.js')
+script(src=depRoot + 'js/lib/kbpgp.js')
+script(src=depRoot + 'js/lib/semantic.js')
+script(src=depRoot + 'js/lib/highlight.min.js')
+script(src=depRoot + 'js/lib/moment.min.js')
+script(src=depRoot + 'js/lib/livestamp.min.js')
+script(src=depRoot + 'js/lib/marked.js')
+script(src=depRoot + 'js/lib/FileSaver.js')
+script(src=depRoot + 'js/lib/blob.js')
+script(src=depRoot + 'js/lib/jquery.pulse.js')
+script(src=depRoot + 'js/lib/socket.io-stream.js')
+script(src=depRoot + 'js/components/querystring/querystring.js')
+script(src=depRoot + 'js/components/http/http.js')
+script(src=depRoot + 'js/components/https/https.js')
+script(src=depRoot + 'js/components/base64/base64.js')
+script(src=depRoot + 'js/components/async/lib/async.js')
+script(src=depRoot + 'js/components/buffer/buffer.js')
+script(src=depRoot + 'js/components/binaryjs/dist/binary.js')
+script(src=depRoot + 'js/components/SparkMD5/spark-md5.js')
+
+// Load Modals (Browserify these)
+//script(src=depRoot + 'js/modals/registerUserPrompt.js')
+//script(src=depRoot + 'js/modals/unlockClientKeyPairModal.js')
+//script(src=depRoot + 'js/modals/createRoomModal.js')
+//script(src=depRoot + 'js/modals/editRoomModal.js')
+//script(src=depRoot + 'js/modals/sendFileModal.js')
+
+// Browserify bundle
+script(src=depRoot + 'js/bundle.js')
+
+// Load Helpers (Browserify these)
+script(src=depRoot + 'js/users/userlist.js')
+script(src=depRoot + 'js/users/MasterUserlist.js')
+script(src=depRoot + 'js/notification/index.js')
+script(src=depRoot + 'js/chat/header.js')
+script(src=depRoot + 'js/authentication/index.js')
+script(src=depRoot + 'js/messaging/serverCommand.js')
+
+// Load main scripts (Browserify these)
+script(src=depRoot + 'js/chat/index.js')
+
+script.
+  hljs.initHighlightingOnLoad();

@@ -1,3 +1,5 @@
+'use strict'
+
 var ChatHeader = {};
 
 ChatHeader.updateFavoriteButton = function updateFavoriteButton(data) {
@@ -10,9 +12,16 @@ ChatHeader.updateFavoriteButton = function updateFavoriteButton(data) {
   if (!favorite) {
     $('.chat-header__buttons .star.icon').addClass('empty');
   };
-
 };
 
+ChatHeader.isFavorite = function isRoomFavorite(chatId) {
+  var userProfile = ChatManager.userProfile;
+  if (userProfile.membership && userProfile.membership.favoriteRooms && ( userProfile.membership.favoriteRooms.length > 0 )) {
+    return (userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
+  } else {
+    return false;
+  }
+}
 
 ChatHeader.update = function update(chatId) {
   var self = this;
@@ -26,22 +35,15 @@ ChatHeader.update = function update(chatId) {
     headerAvatarHtml = '<i class="huge spy icon"></i>';
     chatTopic = 'One to one encrypted chat with ' + chat.name;
     chatHeaderTitle = 'pm' + '/' + chat.name;
-  } else {
+  } else if (chat.type === 'room') {
     headerAvatarHtml = '<i class="huge comments outline icon"></i>';
-    chatTopic = ChatManager.chats[chatId].topic;
-    chatHeaderTitle = ChatManager.chats[chatId].group + '/' + chat.name;
+    chatTopic = chat.topic;
+    chatHeaderTitle = chat.group + '/' + chat.name;
+  } else {
+    return console.log('Error, unknown chat type');
   }
 
-  var isFavorite = function(chatId) {
-    var userProfile = ChatManager.userProfile;
-    if (userProfile && userProfile.favoriteRooms && ( userProfile.favoriteRooms.length > 0 )) {
-      return (userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
-    } else {
-      return false;
-    }
-  }
-
-  self.updateFavoriteButton({ favorite: isFavorite(chatId) });
+  self.updateFavoriteButton({ favorite: ChatHeader.isFavorite(chatId) });
 
   /*
    * Catch clicks on favorite room button (star)

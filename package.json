@@ -8,7 +8,7 @@
   "email": "philip@pipo.chat",
   "scripts": {
     "test": "npm run testsuite && npm run linter",
-    "testsuite": "NODE_ENV=test ./node_modules/.bin/mocha test/** --recursive",
+    "testsuite": "NODE_ENV=test ./node_modules/.bin/mocha test/** public/test/** --recursive",
     "coverage": "NODE_ENV=test ./node_modules/.bin/istanbul cover ./node_modules/.bin/_mocha -- --recursive",
     "linter": "jshint --config .jshintrc ./main.js ./server ./public/client.js ./public/js ./public/views ./test || true",
     "build": "browserify --no-builtins --no-commondir --insert-global-vars='global' public/browserify.js -s pipo -o public/bundle.js",
@@ -89,7 +89,7 @@
     "node-notifier": "^4.2.1",
     "nonce": "^1.0.3",
     "passport": "^0.3.2",
-    "passport-keyverify": "0.0.2",
+    "passport-keyverify": "0.0.3",
     "passport-publickey": "^1.0.3",
     "pug": "^2.0.0-beta5",
     "querystring": "^0.2.0",
@@ -128,6 +128,8 @@
     "jshint": "^2.9.2",
     "load-grunt-tasks": "^3.4.0",
     "mocha": "^2.4.5",
+    "mocha-phantomjs": "^4.1.0",
+    "mocha-phantomjs-istanbul": "0.0.2",
     "sinon": "^1.17.4",
     "supertest": "^1.2.0",
     "uglify-js": "^2.6.2"

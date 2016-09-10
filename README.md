@@ -190,6 +190,16 @@ To try out PiPo, I've included a sample adminCertificate. You should not use the
   + Sinon - Stubs & Spies
   + Proxyquire - Dependency Injection
 
+### Front End Testing
+We're still working through gathering the proper toolset to do frontend testing. Here are the pieces we are considering.
+  + Unit Testing
+    + mocha-jsdom - For mocking simple dom bits
+    +
+Possibly go with something that does all aroudn testing
+  + Browser framework
+    + https://github.com/theintern/intern-tutorial
+Statically compile pug templates
+
 ### Running
   `npm test`
 

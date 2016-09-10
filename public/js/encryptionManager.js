@@ -301,15 +301,6 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
  * For public rooms this includes all users
  */
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
-
-  // BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-  //
-  // This is not building a chat keyring correctly for private rooms.
-  // admins don't seem to get added. with an admin and an owner, noone
-  // can decrypt messages
-  //
-  // BUG!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-
   var self = this;
   var chatId = data.chatId;
   var chatName = ChatManager.chats[chatId].name;
@@ -317,12 +308,6 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
   var newKeyRing = new window.kbpgp.keyring.KeyRing();
 
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + chatName);
-
-  // ***
-  // It's currently adding members, admins and owner.
-  // Members is only the initial creator of the room, not any new members
-  // We would normally add the entire userlist for a room with open membership
-  // ***
 
   if (membershipRequired) {
     ChatManager.chats[chatId].members.forEach(function(userId) {
@@ -337,10 +322,10 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
         }
 
         console.log('[encryptionManager.buildChatKeyRing] [%s] Adding MEMBER %s to keyring and fingerprint %s',
-                    chatName,
-                    chatUsername,
-                    keyFingerPrint
-                   );
+          chatName,
+          chatUsername,
+          keyFingerPrint
+        );
 
         newKeyRing.add_key_manager(chatUserKeyInstance);
       };
@@ -877,14 +862,8 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
           return callback(null, false);
         },
         200: function(data) {
-          //console.log("[DEBUG] (updateRemotePublicKey) data: "+data);
           var remotePublicKey = data.publicKey;
-          //console.log("Key exists on remote");
-          //console.log("Remote Pub Key: "+data.publicKey);
-          //console.log("Local Pub Key: "+publicKey);
           var regex = /\r?\n|\r/g
-          //console.log("pubKey: " + JSON.stringify(publicKey));
-          //console.log("remotePubKey: " + JSON.stringify(data.publicKey));
           var parsedPublicKey = publicKey.toString().replace(regex, '');
           var parsedRemotePublicKey = data.publicKey.toString().replace(regex, '');
           if (parsedPublicKey == parsedRemotePublicKey) {
@@ -901,37 +880,6 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
     });
   });
 };
-
-/*
-//TODO: Yes... I know this is a duplicate. Will deal with it later.
-EncryptionManager.prototype.updatePublicKeyOnRemote = function updatePublicKeyOnRemote(username, publicKey, callback) {
-  console.log("Updating public key on remote");
-  Authentication.generateAuthHeaders(window.username, function(headers) {
-    $.ajax({
-      type: "POST",
-      url: "/key/publickey",
-      dataType: "json",
-      headers: headers,
-      data: {
-        username: username,
-        publicKey: publicKey
-      },
-      success: function(data, textStatus, xhr) {
-      },
-      statusCode: {
-        404: function() {
-          console.log("Got 404 when updating public key on remote");
-          return callback("Error updating public key on remote");
-        },
-        200: function(data, textStatus, xhr) {
-          console.log("Updated remote publicKey successfully");
-          return callback(null);
-        }
-      }
-    });
-  });
-};
-*/
 
 EncryptionManager.prototype.verifyCertificate = function verifyCertificate(certificate, callback) {
   var self = this;

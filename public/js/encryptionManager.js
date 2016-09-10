@@ -449,8 +449,6 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
     console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
 
-    // Make sure that we are encrypting message to the user as well as our self here
-
     self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
       callback(err, pgpMessage );
     });

@@ -26,8 +26,8 @@ function AuthenticationManager() {
 
   this.verify = function(username, nonce, signature, callback) {
     User.findByUsername(username, function (err, user) {
-      if (err) { return done(err); }
-      if (!user) { return done(null, false); }
+      if (err) { return callback(err); }
+      if (!user) { return callback(null, false); }
 
       var sigBuffer = new Buffer(signature, 'base64');
       var sigString = sigBuffer.toString();

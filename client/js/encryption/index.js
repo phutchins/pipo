@@ -1,8 +1,10 @@
 'use strict'
 var crypto = require('crypto-browserify');
 var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
+var authentication = require('../authentication/index.js');
 
 function EncryptionManager() {
+  this.ChatManager = window.ChatManager;
   this.keyPair = ({
     publicKey: null,
     privateKey: null
@@ -304,19 +306,19 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
   var self = this;
   var chatId = data.chatId;
-  var chatName = ChatManager.chats[chatId].name;
-  var membershipRequired = ChatManager.chats[chatId].membershipRequired;
+  var chatName = self.ChatManager.chats[chatId].name;
+  var membershipRequired = self.ChatManager.chats[chatId].membershipRequired;
   var newKeyRing = new window.kbpgp.keyring.KeyRing();
 
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + chatName);
 
   if (membershipRequired) {
-    ChatManager.chats[chatId].members.forEach(function(userId) {
-      var chatUsername = ChatManager.userlist[userId].username;
+    self.chats[chatId].members.forEach(function(userId) {
+      var chatUsername = self.userlist[userId].username;
       var keyFingerPrint = '';
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
 
         if (chatUserKeyInstance) {
           keyFingerPrint = chatUserKeyInstance.get_pgp_fingerprint_str();
@@ -332,11 +334,11 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    ChatManager.chats[chatId].admins.forEach(function(userId) {
-      var chatUsername = ChatManager.userlist[userId].username;
+    self.ChatManager.chats[chatId].admins.forEach(function(userId) {
+      var chatUsername = self.ChatManager.userlist[userId].username;
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (chatUserKeyInstance) {
@@ -353,13 +355,13 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    var ownerId = ChatManager.chats[chatId].owner;
-    var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
+    var ownerId = self.ChatManager.chats[chatId].owner;
+    var ownerKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
 
     newKeyRing.add_key_manager(ownerKeyInstance);
 
-    var chatUsername = ChatManager.userlist[ownerId].username;
-    var chatUserKeyInstance = ChatManager.userlist[ownerId].keyInstance;
+    var chatUsername = self.ChatManager.userlist[ownerId].username;
+    var chatUserKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
     console.log('[encryptionManager.buildChatKeyRing] [%s] Adding OWNER %s to keyring with key %s',
                 chatName,
                 chatUsername,
@@ -369,21 +371,21 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
   if (!membershipRequired) {
     console.log("[encryptionManager.buildChatKeyRing] Building keyRing for public chat");
-    Object.keys(ChatManager.userlist).forEach(function(userId) {
-      if (ChatManager.userlist[userId].username != window.username) {
-        var keyInstance = ChatManager.userlist[userId].keyInstance;
+    Object.keys(self.ChatManager.userlist).forEach(function(userId) {
+      if (self.ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = self.ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (keyInstance) {
           keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
         }
 
-        var roomName = ChatManager.chats[chatId].name;
-        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
+        var roomName = self.ChatManager.chats[chatId].name;
+        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + self.ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         if (keyInstance) {
           newKeyRing.add_key_manager(keyInstance);
         } else {
-          console.log('No keyInstance found for user %s in room %s', ChatManager.userlist[userId].username, roomName);
+          console.log('No keyInstance found for user %s in room %s', self.ChatManager.userlist[userId].username, roomName);
         }
       };
     });
@@ -440,13 +442,13 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
   var keys = self.getChatKeys(chatId);
 
   //Encrypt the message
-  if (ChatManager.chats[chatId].encryptionScheme == "masterKey") {
+  if (self.ChatManager.chats[chatId].encryptionScheme == "masterKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
 
     self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
       callback(err, pgpMessage );
     });
-  } else if (ChatManager.chats[chatId].encryptionScheme == "clientKey") {
+  } else if (self.ChatManager.chats[chatId].encryptionScheme == "clientKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
     console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
 
@@ -465,8 +467,8 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
 
 EncryptionManager.prototype.getChatKeys = function getChatKeys(chatId) {
   var keys = [];
-  var chatKeyRing = ChatManager.chats[chatId].keyRing;
-  var chatName = ChatManager.chats[chatId].name;
+  var chatKeyRing = self.ChatManager.chats[chatId].keyRing;
+  var chatName = self.ChatManager.chats[chatId].name;
 
   console.log('Getting keyring for chat %s', chatName);
 
@@ -493,12 +495,12 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
   });
   */
 
-  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+  Object.keys(self.ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    keys.push(self.ChatManager.chats[chatId].keyRing._kms[userId]);
   });
 
-  ChatManager.chats[chatId].participants.forEach(function(userId) {
-    keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+  self.ChatManager.chats[chatId].participants.forEach(function(userId) {
+    keyFingerPrints[self.ChatManager.userlist[userId].username] = self.ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
   });
 
   self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
@@ -539,12 +541,12 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
 
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
-  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    var userKey = ChatManager.chats[chatId].keyRing._kms[userId];
+  Object.keys(self.ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    var userKey = self.ChatManager.chats[chatId].keyRing._kms[userId];
 
     userKey.sign({}, function(err) {
       userKey.export_pgp_public({}, function(err, pgp_public) {
-        keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+        keys.push(self.ChatManager.chats[chatId].keyRing._kms[userId]);
 
         // Need to make the pgp_public key here pem encoded and possibly base64
         sessionKeys['userId'] = {
@@ -846,7 +848,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
 
   var server = protocol + '//' + host + ':' + port;
 
-  Authentication.getAuthData({}, function(headers) {
+  authentication.getAuthData({}, function(headers) {
     $.ajax({
       type: "GET",
       url: server + "/key/publickey",

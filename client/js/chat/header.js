@@ -1,29 +1,29 @@
-'use strict'
+'use strict';
 
-var ChatHeader = {};
+var chatHeader = {};
 
-ChatHeader.updateFavoriteButton = function updateFavoriteButton(data) {
+chatHeader.updateFavoriteButton = function updateFavoriteButton(data) {
   var favorite = data.favorite;
 
   if (favorite) {
     $('.chat-header__buttons .star.icon').removeClass('empty');
-  };
+  }
 
   if (!favorite) {
     $('.chat-header__buttons .star.icon').addClass('empty');
-  };
+  }
 };
 
-ChatHeader.isFavorite = function isRoomFavorite(chatId) {
+chatHeader.isFavorite = function isRoomFavorite(chatId) {
   var userProfile = ChatManager.userProfile;
   if (userProfile.membership && userProfile.membership.favoriteRooms && ( userProfile.membership.favoriteRooms.length > 0 )) {
     return (userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
   } else {
     return false;
   }
-}
+};
 
-ChatHeader.update = function update(chatId) {
+chatHeader.update = function update(chatId) {
   var self = this;
   var chat = ChatManager.chats[chatId];
   var headerAvatarHtml = '';
@@ -43,7 +43,7 @@ ChatHeader.update = function update(chatId) {
     return console.log('Error, unknown chat type');
   }
 
-  self.updateFavoriteButton({ favorite: ChatHeader.isFavorite(chatId) });
+  self.updateFavoriteButton({ favorite: chatHeader.isFavorite(chatId) });
 
   /*
    * Catch clicks on favorite room button (star)
@@ -57,4 +57,6 @@ ChatHeader.update = function update(chatId) {
   $('.chat-topic').text(chatTopic);
   $('.chat-header__title').text(chatHeaderTitle);
   $('.chat-header__avatar').html(headerAvatarHtml);
-}
+};
+
+module.exports = chatHeader;

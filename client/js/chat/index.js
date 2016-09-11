@@ -1,8 +1,10 @@
-'use strict'
+'use strict';
 
+var ChatHeader = require('./header.js');
+var clientNotification = require('../notification/index.js');
+var userlist
 var userMap = {};
 var roomUsers = {};
-
 var ChatManager = {};
 
 // Chats are rooms or private chats that the user is currently participating in
@@ -589,7 +591,7 @@ ChatManager.initRoom = function initRoom(room, callback) {
    * Should only buldChatKeyRing for private rooms
    * Should build allUserKeyRing once and use that for public rooms
    */
-  encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
+  encryptionManager.buildChatKeyRing.call(self, { chatId: room.id }, function(keyRing) {
     ChatManager.chats[room.id].keyRing = keyRing;
 
     console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
@@ -1938,3 +1940,5 @@ ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
     callback(id);
   };
 };
+
+module.exports = ChatManager;

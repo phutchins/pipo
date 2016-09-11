@@ -1,10 +1,19 @@
-'use strict'
+'use strict';
+
+var authentication = require('../authentication/index.js');
+var ChatManager = require('../chat/index.js');
+var masterUserlist = require('../users/masterUserlist.js');
+var chatHeader = require('../chat/header.js');
+var Userlist = require('../users/userlist.js');
 
 function SocketClient() {
   var self = this;
   var protocol = window.location.protocol;
   var host = window.location.host;
   var port = window.location.port;
+
+  window.ChatManager = self.ChatManager;
+  window.Userlist = self.Userlist;
 
   if (window.config) {
     host = window.config.server.host;
@@ -55,7 +64,7 @@ SocketClient.prototype.addListeners = function() {
   self.socket.on('authenticated', function(data) {
     data.socket = this;
 
-    Authentication.authenticated(data);
+    authentication.authenticated(data);
   });
 
   self.socket.on('roomUpdate', function(data) {
@@ -132,11 +141,12 @@ SocketClient.prototype.addListeners = function() {
     var userlist = data.userlist;
     var userNameMap = data.userNameMap;
 
-    console.log("[SOCKET] 'userlistUpdate'");
+    console.log('[SOCKET] userlistUpdate');
 
     ChatManager.userNameMap = userNameMap;
 
-    MasterUserlist.update(userlist, function(err) {
+    // Passing ChatManager for now, shouldn't do this...
+    masterUserlist.update(ChatManager, userlist, function(err) {
       console.log("[socketClient.on userlistUpdate] Updated userlist");
       // Update userlist if the current chat is a private chat
       //   there is a better way to do this, should likely do this
@@ -220,7 +230,7 @@ SocketClient.prototype.init = function() {
       self.addListeners();
     }
 
-    return Authentication.authenticate({ socket: self.socket });
+    return authentication.authenticate({ socket: self.socket });
   });
 };
 
@@ -416,7 +426,7 @@ SocketClient.prototype.toggleFavorite = function(data) {
   self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
     console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
     self.socket.removeListener('toggleFavoriteComplete-' + chatId);
-    ChatHeader.updateFavoriteButton({ favorite: data.favorite });
+    chatHeader.updateFavoriteButton({ favorite: data.favorite });
   });
 };
 
@@ -455,7 +465,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
         ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
-      ChatHeader.update(id);
+      chatHeader.update(id);
 
       ChatManager.buildRoomListModal;
 

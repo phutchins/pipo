@@ -1,10 +1,2239 @@
 (function(f){if(typeof exports==="object"&&typeof module!=="undefined"){module.exports=f()}else if(typeof define==="function"&&define.amd){define([],f)}else{var g;if(typeof window!=="undefined"){g=window}else if(typeof global!=="undefined"){g=global}else if(typeof self!=="undefined"){g=self}else{g=this}g.pipo = f()}})(function(){var define,module,exports;return (function e(t,n,r){function s(o,u){if(!n[o]){if(!t[o]){var a=typeof require=="function"&&require;if(!u&&a)return a(o,!0);if(i)return i(o,!0);var f=new Error("Cannot find module '"+o+"'");throw f.code="MODULE_NOT_FOUND",f}var l=n[o]={exports:{}};t[o][0].call(l.exports,function(e){var n=t[o][1][e];return s(n?n:e)},l,l.exports,e,t,n,r)}return n[o].exports}var i=typeof require=="function"&&require;for(var o=0;o<r.length;o++)s(r[o]);return s})({1:[function(require,module,exports){
+'use strict';
+
+var ChatManager = require('../chat/index.js');
+var masterUserlist = require('../users/masterUserlist.js');
+var clientNotification = require('../notification/index.js');
+
+var authentication = {};
+
+authentication.authenticate = function authenticate(data) {
+  var self = this;
+  var socket = data.socket;
+  var username = localStorage.getItem('username');
+
+  console.log("[AUTH] Authenticating with server with username: '"+self.username+"'");
+
+  // Generate a new unused nonce and sign it for verification
+  window.encryptionManager.keyManager.sign({}, function(err) {
+    window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+      self.getAuthData({}, function(data) {
+        console.log('[authentication.authenticate] Auth Data: ', data);
+
+        socket.emit('authenticate', {username: data.username, nonce: data.nonce, signature: data.signature, fullName: data.fullName, publicKey: publicKey, email: data.email});
+      });
+    });
+  });
+};
+
+// This needs to be exported so that it's called every time and knows what last was
+authentication.getNonce = function getNonce(length) {
+  var last = null;
+  var repeat = 0;
+
+  if (typeof length === 'undefined') {
+    length = 15;
+  }
+
+  return function() {
+    var now = Math.pow(10, 2) * +new Date()
+
+    if (now === last) {
+      repeat++;
+    } else {
+      repeat = 0;
+      last = now;
+    }
+
+    var s = (now + repeat).toString();
+    return +s.substr(s.length - length);
+  };
+};
+
+authentication.apiAuth = function apiAuth(data) {
+  var self = this;
+  var username = data.username;
+  var nonce = this.getNonce(8)();
+  var signature;
+
+  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
+    signature = btoa(sig);
+
+    var postData = querystring.stringify({
+      'msg' : 'Hello World!'
+    });
+
+    var options = {
+      hostname: 'localhost',
+      port: 3030,
+      path: '/sessiontest',
+      method: 'POST',
+      encoding: 'utf8',
+      headers: {
+        'Content-Type': 'application/x-www-form-urlencoded',
+        'Content-Length': postData.length,
+        'username': username,
+        'nonce': nonce,
+        'signature': signature
+      }
+    };
+
+    console.log('options: ', options);
+
+    var req = http.request(options, function(res) {
+      //console.log(`STATUS: ${res.statusCode}`);
+      //console.log(`HEADERS: ${JSON.stringify(res.headers)}`);
+      res.on('data', function(chunk) {
+        //console.log(`BODY: ${chunk}`);
+      });
+      res.on('end', function() {
+        console.log('No more data in response.');
+      });
+    });
+
+    req.on('error', function(e) {
+      console.log(`problem with request: ${e.message}`);
+    });
+
+    // write data to request body
+    req.write(postData);
+    req.end();
+  });
+};
+
+authentication.getAuthData = function getAuthData(data, callback) {
+  var username = localStorage.getItem('username');
+  var email = localStorage.getItem('email');
+  var fullName = localStorage.getItem('fullName');
+
+  var nonce = this.getNonce(32)();
+  var signature = null;
+
+  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
+    signature = btoa(sig);
+
+    var authData = {
+      'username': username,
+      'fullName': fullName,
+      'email': email,
+      'nonce': nonce,
+      'signature': signature
+    };
+
+    return callback(authData);
+  });
+};
+
+authentication.authenticated = function authenticated(data) {
+  var favoriteRooms = data.favoriteRooms;
+  var defaultRoomId = data.defaultRoomId;
+  var userNameMap = data.userNameMap;
+  var userlist = data.userlist;
+  var userProfile = data.userProfile;
+  var username = localStorage.getItem('username');
+
+  // Ensure that we have permission to show notifications and prompt if we don't
+  clientNotification.init();
+
+  if (data.message !== 'ok') {
+    return console.log('[SOCKET CLIENT] (addListeners) Error from server during authentication');
+  };
+
+  if (window.activeChat) {
+    ChatManager.activeChat = window.activeChat;
+  }
+
+  ChatManager.defaultRoomId = data.defaultRoomId;
+
+  //if (!ChatManager.activeChat) {
+  //  ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
+  //}
+
+  masterUserlist.update(ChatManager, userlist, function(err) {
+    console.log("[authentication.authenticated] Updated Main Userlist");
+  });
+  ChatManager.userNameMap = userNameMap;
+  ChatManager.userProfile = userProfile;
+
+  ChatManager.updateProfileHeader();
+
+  window.encryptionManager.keyManager.sign({}, function(err) {
+    window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+      // The key we're verifying is not working here. Need to figure out why
+      window.encryptionManager.verifyRemotePublicKey(username, publicKey, function(err, upToDate) {
+        if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
+
+        if (upToDate) {
+          //console.log("[INIT] Your public key matches what is on the server");
+          console.log("[AUTHENTICATED] Authenticated successfully");
+
+          // Use cilent keys and enable chat for each room user is currently in
+          if (favoriteRooms.length > 0) {
+
+            favoriteRooms.forEach(function(roomId) {
+              console.log("[SOCKET] (authenticated) Joining room ",roomId);
+              if (roomId && typeof roomId !== 'undefined') {
+                socketClient.joinRoom(roomId, function(err) {
+                  console.log("[SOCKET] (authenticated) Sent join request for room "+roomId);
+                });
+              }
+            });
+          } else {
+            var defaultRoomId = ChatManager.defaultRoomId;
+
+            //console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
+
+            socketClient.joinRoom(defaultRoomId, function(err) {
+              console.log("[authentication.authenticated] Joined default room becuase favoriteRooms was empty");
+            })
+          }
+        } else {
+          // Should not allow updating of remote key without signature from old key or admin making the change
+          console.log("[INIT] Remote public key is not up to date so updating!");
+          // Should error here and eventually give options to verify previous key and updating
+
+          /*
+          window.encryptionManager.updatePublicKeyOnRemote(window.username, publicKey, function(err) {
+            if (err) { return console.log("[INIT] ERROR updating public key on server: "+err) };
+            console.log("[AUTHENTICATED] Authenticated successfully");
+
+            // Use cilent keys and enable chat for each room user is currently in
+            favoriteRooms.forEach(function(room) {
+              console.log("[SOCKET] (authenticated) Joining room ",room);
+
+              socketClient.joinRoom(room, function(err) {
+                console.log("[SOCKET] (authenticated) Sent join request for room "+room);
+              });
+            });
+          });
+          */
+        }
+      });
+    });
+  });
+};
+
+module.exports = authentication;
+
+},{"../chat/index.js":3,"../notification/index.js":13,"../users/masterUserlist.js":14}],2:[function(require,module,exports){
+'use strict';
+
+var chatHeader = {};
+
+chatHeader.updateFavoriteButton = function updateFavoriteButton(data) {
+  var favorite = data.favorite;
+
+  if (favorite) {
+    $('.chat-header__buttons .star.icon').removeClass('empty');
+  }
+
+  if (!favorite) {
+    $('.chat-header__buttons .star.icon').addClass('empty');
+  }
+};
+
+chatHeader.isFavorite = function isRoomFavorite(chatId) {
+  var userProfile = ChatManager.userProfile;
+  if (userProfile.membership && userProfile.membership.favoriteRooms && ( userProfile.membership.favoriteRooms.length > 0 )) {
+    return (userProfile.membership.favoriteRooms.indexOf(chatId) > -1);
+  } else {
+    return false;
+  }
+};
+
+chatHeader.update = function update(chatId) {
+  var self = this;
+  var chat = ChatManager.chats[chatId];
+  var headerAvatarHtml = '';
+  var chatTopic = '';
+  var chatHeaderTitle = '';
+  var activeChatId = ChatManager.activeChat;
+
+  if (chat.type == 'chat') {
+    headerAvatarHtml = '<i class="huge spy icon"></i>';
+    chatTopic = 'One to one encrypted chat with ' + chat.name;
+    chatHeaderTitle = 'pm' + '/' + chat.name;
+  } else if (chat.type === 'room') {
+    headerAvatarHtml = '<i class="huge comments outline icon"></i>';
+    chatTopic = chat.topic;
+    chatHeaderTitle = chat.group + '/' + chat.name;
+  } else {
+    return console.log('Error, unknown chat type');
+  }
+
+  self.updateFavoriteButton({ favorite: chatHeader.isFavorite(chatId) });
+
+  /*
+   * Catch clicks on favorite room button (star)
+   */
+  $('.chat-header__favorite').unbind().click(function(e) {
+    console.log("[chatManager.chat-header__favorite] (click) Got click on favorite button");
+
+    socketClient.toggleFavorite({ chatId: activeChatId });
+  });
+
+  $('.chat-topic').text(chatTopic);
+  $('.chat-header__title').text(chatHeaderTitle);
+  $('.chat-header__avatar').html(headerAvatarHtml);
+};
+
+module.exports = chatHeader;
+
+},{}],3:[function(require,module,exports){
+'use strict';
+
+var ChatHeader = require('./header.js');
+var clientNotification = require('../notification/index.js');
+var userlist
+var userMap = {};
+var roomUsers = {};
+var ChatManager = {};
+
+// Chats are rooms or private chats that the user is currently participating in
+// chats['chatname'] = { type: 'room', name: 'chatname', messages: [ { fromuser: 'username', message: 'hi there' } ] }
+ChatManager.chats = {};
+
+// userlist is a list of all users that exist on the server
+//   This will be paginated and populated as needed in the future
+ChatManager.userlist = {};
+// Private chats are conversations outside of a room between two or more users
+ChatManager.userNameMap  = {};
+
+// Stores the users profile information
+ChatManager.userProfile = {};
+
+// activeChat is the chatId of the currently active chat
+ChatManager.activeChat = null;
+ChatManager.lastActiveChat = null;
+
+var host = window.location.host;
+var socket = io(host+'/main');
+var clientKeyPassword = null;
+var masterKeyPassword = 'pipo';
+var amountOfSpaceNeeded = 5000000;
+var defaultRoomId = null;
+var keyPair = ({
+  publicKey: null,
+  privateKey: null
+});
+var encryptedMasterKeyPair = ({
+  publicKey: null,
+  privateKey: null
+});
+var masterKeyPair = ({
+  publicKey: null,
+  privateKey: null
+});
+var username = null;
+
+marked.setOptions({
+  renderer: new marked.Renderer(),
+  gfm: true,
+  tables: true,
+  breaks: true,
+  pedantic: false,
+  sanatize: true,
+  smartLists: true,
+  smartypants: false,
+  highlight: function (code) {
+    return hljs.highlightAuto(code).value;
+  }
+});
+
+
+function fitToContent(id, maxHeight) {
+  var text = id && id.style ? id : document.getElementById(id);
+  if ( !text )
+    return;
+
+  /* Accounts for rows being deleted, pixel value may need adjusting */
+  if (text.clientHeight == text.scrollHeight) {
+    text.style.height = "30px";
+  }
+
+  var adjustedHeight = text.clientHeight;
+  if ( !maxHeight || maxHeight > adjustedHeight ) {
+    adjustedHeight = Math.max(text.scrollHeight, adjustedHeight);
+    if ( maxHeight )
+      adjustedHeight = Math.min(maxHeight, adjustedHeight);
+    if ( adjustedHeight > text.clientHeight )
+      text.style.height = adjustedHeight + "px";
+  }
+}
+
+
+$('#message-input').unbind().keyup(function (event) {
+  if (event.keyCode == 13 && event.shiftKey) {
+    var content = this.value;
+    var caret = ChatManager.getCaret(this);
+    this.value = content.substring(0,caret)+content.substring(caret,content.length);
+    event.stopPropagation();
+    console.log("got shift+enter");
+    var $messageInput = $('#message-input');
+    fitToContent('message-input', 156);
+    $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+    return false;
+  } else if(event.keyCode == 13) {
+    console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
+    ChatManager.sendMessage(function() {
+      fitToContent('message-input', 156);
+      return false;
+    })
+  } else {
+    fitToContent('message-input', 156);
+  };
+});
+
+$('.dropdown')
+  .dropdown({
+    transition: 'drop'
+  })
+;
+
+$('#edit-profile-button').unbind().on('click', function() {
+  console.log("Editing users profile");
+  ChatManager.editProfile();
+  return false;
+});
+
+$('#generate-keypair-button').unbind().on('click', function() {
+  console.log("Regenerating client keypair");
+  // Warn the user that this will clear their current key and they should export it if they
+  // want to keep it
+
+  ChatManager.promptForCredentials(function() {
+    // Do something after the prompt is shown
+  });
+});
+
+$('#import-keypair-button').unbind().on('click', function() {
+  console.log("Loading keypair from file...");
+  ChatManager.promptForImportKeyPair(function(err, data) {
+    var userData = {
+      username: data.username,
+      email: data.email,
+      fullName: data.fullName,
+      keyPair: {
+        privateKey: data.privateKey,
+        publicKey: data.publicKey
+      }
+    };
+
+    window.encryptionManager.saveClientKeyPair(userData, function(err) {
+      if (err) {
+        return console.log("Error saving client keyPair");
+      };
+      console.log("Client keypair saved to local storage");
+      /*
+      window.encryptionManager.unloadClientKeyPair(function() {
+        window.socketClient.init();
+      });
+      */
+
+      //window.encryptionManager.clientCredentialsLoaded = false;
+      socketClient.init();
+    })
+  })
+});
+
+$('#sign-out-button').unbind().on('click', function() {
+  console.log('Signing out...');
+
+});
+
+/*
+ * Triggered when user clicks the 'Export Key Pair button'
+ */
+$('#export-keypair-button').unbind().on('click', function() {
+  console.log("Exporting keypair to file");
+  var keyPairData = window.localStorage.getItem('keyPair');
+
+  if (!keyPairData) {
+    console.log("No keypair data to export to file");
+    return ChatManager.showError("No keypair data exists to export to file");
+  }
+
+  var keyPair = JSON.parse(keyPairData);
+  console.log("Got keyPair data to export");
+
+  var get_blob = function() {
+    return window.Blob;
+  }
+
+  var BB = get_blob();
+  saveAs(
+      new BB(
+        [keyPair.publicKey.toString()]
+      , {type: "text/plain;charset=" + document.characterSet}
+    )
+    , (window.username + ".pub")
+  );
+
+  var BB = get_blob();
+  saveAs(
+      new BB(
+        [keyPair.privateKey.toString()]
+      , {type: "text/plain;charset=" + document.characterSet}
+    )
+    , (window.username + ".key")
+  );
+
+});
+
+
+
+var buildRoomListModal = function() {
+  $('.modal.join-room-list-modal').modal({
+    detachable: true,
+    closable: true,
+    transition: 'fade up'
+  })
+  $('#room-list-button').unbind().click(function(e) {
+    var roomListModalHtml = '';
+    var roomName;
+
+    Object.keys(ChatManager.chats).forEach(function(chatId) {
+      roomName = ChatManager.chats[chatId].name;
+      if (ChatManager.chats[chatId].type == 'room') {
+        roomListModalHtml += "<div class='item'>\n";
+        if (ChatManager.chats[chatId].membershipRequired) {
+          roomListModalHtml += "  <i class='ui avatar huge lock icon room-list-avatar'></i>\n";
+        } else {
+          roomListModalHtml += "  <i class='ui avatar huge unlock alternate icon room-list-avatar'></i>\n";
+        }
+        roomListModalHtml += "  <div class='content'>\n";
+        roomListModalHtml += "    <a id='" + chatId + "' class='header'>" + roomName + "</a>\n";
+        roomListModalHtml += "    <div class='description'>" + ChatManager.chats[chatId].topic + "</div>\n";
+        roomListModalHtml += "  </div>\n";
+        roomListModalHtml += "</div>\n";
+      }
+    })
+    $('.modal.join-room-list-modal .join-room-list').html(roomListModalHtml);
+    Object.keys(ChatManager.chats).forEach(function(chatId) {
+      if (ChatManager.chats[chatId].type == 'room') {
+        $('.modal.join-room-list-modal a[id="' + chatId + '"]').unbind().click(function() {
+          socketClient.joinRoom(chatId, function(err) {
+            $('.modal.join-room-list-modal').modal('hide');
+            if (err) {
+              return console.log("Error joining room: " + err);
+            }
+            // Set the active chat to the currently joined room so that it is displayed when the join is complete
+            ChatManager.lastActiveChat = ChatManager.activeChat;
+            ChatManager.activeChat = chatId;
+
+            console.log("Joined room " + ChatManager.chats[chatId].name);
+          })
+        })
+      }
+    })
+    $('.modal.join-room-list-modal').modal('show');
+  })
+};
+
+$(document).ready( buildRoomListModal );
+
+/*
+ * Catch clicks on room options dropdown
+ */
+$('.chat-header__settings .room-options.leave-room').unbind().click(function(e) {
+  var chatId = ChatManager.activeChat;
+  var chatName = ChatManager.chats[chatId].name;
+
+  if (ChatManager.chats[chatId].type == 'chat') {
+    console.log("Destroying chat '", chatName, "'");
+
+    ChatManager.destroyChat(chatId, function(err) {
+      console.log("Chat destroyed. Updating private chats...");
+      ChatManager.updateChatList();
+    });
+
+  } else {
+
+    socketClient.partRoom({ chatId: chatId }, function(err) {
+      console.log("Sent request to part room " + chatName);
+    })
+
+  }
+});
+
+
+
+$('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
+  ChatManager.populateManageMembersModal({ chatId: ChatManager.activeChat, clearMessages: true });
+
+  $('.manage-members-modal').modal('show');
+});
+
+
+$('.message_input__add .add-button.send').unbind().click(function(e) {
+  SendFileModal.show();
+});
+
+
+/*
+ * Populate edit-room modal
+ */
+ChatManager.populateEditRoomModal = function populateEditRoomModal(data) {
+  $('.modal.editroom [name="id"]').val(data.id);
+  $('.modal.editroom [name="name"]').val(data.name);
+  $('.modal.editroom [name="group"]').val(data.group);
+  $('.modal.editroom [name="topic"]').val(data.topic);
+  $('.modal.editroom [name="encryptionscheme"]').val(data.encryptionScheme);
+  $('.modal.editroom .keephistory').dropdown('set selected', data.keepHistory);
+  $('.modal.editroom .membershiprequired').dropdown('set selected', data.membershipRequired);
+};
+
+/*
+ * Create the manage members modal for manage users
+ */
+ChatManager.populateManageMembersModal = function populateManageMembersModal(data) {
+  if (!data) { data = {} }
+
+  // There are circumstances where this is populating a modal for a private chat which does not currently have an owner
+  // There might should be at least two owners for a private chat which would default to the first two participants
+
+  if (!ChatManager.activeChat || !ChatManager.chats[ChatManager.activeChat]) {
+    return;
+  };
+
+  var chatId = (typeof data.chatId === 'undefined') ? ChatManager.activeChat : data.chatId;
+  var chatName = ChatManager.chats[chatId].name;
+  var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
+
+  var members = ChatManager.chats[chatId].members || [];
+  var admins = ChatManager.chats[chatId].admins || [];
+  var ownerId = ChatManager.chats[chatId].owner;
+
+  // Clear notifications
+  if (clearMessages) {
+    $('.manage-members-modal #manageMembersError').text('');
+    $('.manage-members-modal #manageMembersMessage').text('');
+  }
+
+  var manageMembersList = $('.manage-members-modal .manage-members-list');
+  $('.manage-members-modal .chatname').val(chatName);
+  $('.manage-members-modal').attr('id', chatId);
+
+  manageMembersList.empty();
+
+  var memberDropdownTypes = ['admin', 'member'];
+
+  var memberList = {};
+
+  var autoCompleteUsers = [];
+  Object.keys(ChatManager.userNameMap).forEach(function(username) {
+    autoCompleteUsers.push({title: username});
+  });
+
+  //var autoCompleteArray = Object.keys(ChatManager.userNameMap);
+  $('.ui.modal.manage-members-modal .ui.search').search({
+    source: autoCompleteUsers,
+  });
+
+  members.forEach(function(memberId) {
+    memberList[memberId] = 'member';
+  });
+
+  if (ownerId) {
+    memberList[ownerId] = 'owner';
+  };
+
+  admins.forEach(function(adminId) {
+    memberList[adminId] = 'admin';
+  });
+
+  Object.keys(memberList).forEach(function(memberId) {
+    var membershipType = memberList[memberId];
+    var memberName = ChatManager.userlist[memberId].username;
+    var dropdownHtml = '';
+
+    var li = $('<li/>')
+      .addClass('manage-members-list-item')
+      .addClass(memberName)
+      .appendTo(manageMembersList);
+
+    var memberSpan = $('<span/>')
+      .addClass('manage-members-list-member')
+      .text(memberName)
+      .appendTo(li);
+
+    var optionsDiv = $('<div/>')
+      .addClass('manage-members-list-options')
+      .appendTo(li);
+
+    var membershipDropdown = $('<select/>')
+      .addClass('ui')
+      .addClass('dropdown')
+      .addClass('manage-members-list-membership-dropdown')
+      .html('<option class="member">member</option><option class="admin">admin</option><option class="owner">owner</option><option class="remove">remove</option>')
+      .appendTo(optionsDiv);
+
+    var membershipChangeSave = $('<button/>')
+      .attr('id', memberId)
+      .addClass('ui')
+      .addClass('primary')
+      .addClass('button')
+      .addClass('save')
+      .addClass(memberId)
+      .text('Save')
+      .appendTo(optionsDiv);
+
+    $('.manage-members-list-item.' + memberName + ' .' + membershipType).prop('selected', 'true');
+
+    /*
+     * Catch click on membership save button
+     */
+    // TODO: Need to add the users ID to the userlist object
+    $('.manage-members-list .button.save.' + memberId).unbind().click(function(e) {
+      console.log("[ADD MEMBER] Caught membership save button click");
+
+      // TODO: need to allow for change of room name
+      var chatName = $('.manage-members-modal .chatname').val();
+      var chatId = $('.manage-members-modal').attr('id');
+      var modifyMember = e.currentTarget.id;
+      var newMembership = e.currentTarget.previousSibling.value;
+
+      var membershipData = ({
+        type: 'modify',
+        member: modifyMember,
+        chatId: chatId,
+        membership: newMembership
+      });
+
+      socketClient.membership(membershipData);
+      // TODO: Create a waiting for update method to add "Please wait..." or something similar to the modal while we wait for response from server
+    })
+  })
+};
+
+
+// Catch click on .button.addmember
+$('.manage-members-modal .button.addmember').unbind().click(function(e) {
+  console.log("[ADD MEMBER] Caught add member button click");
+  var memberName = $('.manage-members-modal .membername').val();
+  var chatId = $('.manage-members-modal').attr('id');
+  var membership = $('.manage-members-modal .membership .selected').text();
+
+  // Get memberId from local array
+  var memberId = ChatManager.userNameMap[memberName.toLowerCase()]
+
+  var membershipData = ({
+    type: 'add',
+    memberId: memberId,
+    memberName: memberName,
+    chatId: chatId,
+    membership: membership
+  });
+
+  console.log("[ADD MEMBER] Sending membership data to socketClient");
+  socketClient.membership(membershipData);
+
+  $('.manage-members-modal .membername').val('');
+})
+
+
+ChatManager.init = function() {
+  if (window.username) {
+    ChatManager.updateProfileHeader();
+  };
+};
+
+
+
+
+/*
+ * Show an error to the user
+ */
+ChatManager.showError = function showError(message) {
+  // TODO: Add property for which modal to show error on
+  $(".ui.modal.error")
+    .modal('setting', 'closable', false)
+    .modal("show");
+
+  $(".ui.modal.error .content").text(message);
+};
+
+ChatManager.showErrorOnModal = function showErrorOnModal(data) {
+  var message = data.message;
+  var modal = data.modal;
+
+};
+
+
+ChatManager.updateProfileHeader = function updateProfileHeader() {
+  // TODO: This should be smarter and have a sane default in the DB as well as a better default image
+  var emailHash = "0";
+
+  if (ChatManager.userlist[ChatManager.userNameMap[window.username]]) {
+    emailHash = ChatManager.userlist[ChatManager.userNameMap[window.username]].emailHash || "0";
+  }
+
+  $('#menu-header-profile .ui.dropdown').dropdown({ action: 'select' });
+
+  $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
+  $('#menu-header-profile .ui.dropdown .text.username').text(window.username);
+};
+
+// Assists in splitting line in the case of shift+enter
+ChatManager.getCaret = function getCaret(el) {
+  if (el.selectionStart) {
+    return el.selectionStart;
+  } else if (document.selection) {
+    el.focus();
+    var r = document.selection.createRange();
+    if (r == null) {
+      return 0;
+    };
+    var re = el.createTextRange(),
+    rc = re.duplicate();
+    re.moveToBookmark(r.getBookmark());
+    rc.setEndPoint('EndToStart', re);
+    return rc.text.length;
+  };
+  return 0;
+};
+
+
+
+/*
+ * Create the room and give it focus
+ */
+ChatManager.initRoom = function initRoom(room, callback) {
+  var self = this;
+  var enabled = 'initializing';
+  var joined = false;
+  var unread = false;
+  var unreadCount = 0;
+  var pagesLoaded = 1;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
+  console.log("[ChatManager.initRoom] Running initRoom for " + room.name);
+
+  if (room.messages && room.messages.length > 0) {
+    initialLoadedMessageId = room.messages[room.messages.length - 1].messageId;
+    oldestLoadedMessageId = room.messages[0].messageId;
+  }
+
+  // TODO: Should store online status for members and messages in an object or array also
+
+  // If room already exists locally, don't overwrite local settings that should persist
+  // should probably stick these in a chats[id].local or a completely separate object all together
+  if (self.chats[room.id]) {
+    // We're going to have to decrypt all messages again to ensure that we are up to date so we shouldn't keep enabled
+    //enabled = self.chats[room.id].enabled;
+    joined = self.chats[room.id].joined;
+    unread = self.chats[room.id].unreadCount;
+    unreadCount = self.chats[room.id].unread;
+    pagesLoaded = self.chats[room.id].pagesLoaded;
+  };
+
+  // Find a better way to only use passed attributes for a room if they exist, but also
+  // handle the case where the room isnt' created yet
+
+  var messages = (typeof room.messages === 'undefined') ? self.chats[room.id].messages : room.messages;
+
+  self.chats[room.id] = { id: room.id,
+    activeUsers: room.activeUsers,
+    admins: room.admins,
+    decryptedMessages: '',
+    enabled: enabled,
+    encryptionScheme: room.encryptionScheme,
+    group: room.group,
+    joined: joined,
+    keepHistory: room.keepHistory,
+    members: room.members,
+    membershipRequired: room.membershipRequired,
+    messages: messages,
+    messageCache: '',
+    name: room.name,
+    owner: room.owner,
+    subscribers: room.subscribers,
+    type: 'room',
+    topic: room.topic,
+    pagesLoaded: pagesLoaded,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId,
+    unread: unread,
+    unreadCount: unreadCount,
+  };
+
+  ChatManager.updateChatStatus();
+
+  // Decrypt messages and HTMLize them
+  var messages = self.chats[room.id].messages.sort(dynamicSort("date"));
+  var count = 0;
+  var messageArray = Array(messages.length);
+
+  /*
+   * Also we should only send messages to each user starting at their join date or
+   * the date/time that they were added to a room
+   */
+
+  /*
+   * Should only buldChatKeyRing for private rooms
+   * Should build allUserKeyRing once and use that for public rooms
+   */
+  encryptionManager.buildChatKeyRing.call(self, { chatId: room.id }, function(keyRing) {
+    ChatManager.chats[room.id].keyRing = keyRing;
+
+    console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
+
+    // TODO:
+    // Display notice in the chatContainer that we are decrypting messages
+    // ...or display an encrypted message representing each message and replace as they are decrypted
+
+    console.log("[ChatManager.initRoom] (1) Running ChatManager.updateChatStatus();");
+    ChatManager.updateChatStatus({ chatId: room.id, status: 'decrypting' });
+
+    messages.forEach(function(message, key) {
+      window.encryptionManager.decryptMessage({
+        keyRing: ChatManager.chats[room.id].keyRing,
+        encryptedMessage: message.encryptedMessage
+      }, function(err, decryptedMessage) {
+        var encryptedMessage = message.encryptedMessage;
+        var decryptedMessage = decryptedMessage;
+        var myFingerprint = window.encryptionManager.keyManager.get_pgp_key_id().toString('hex');
+
+        if (err) {
+          decryptedMessage = 'This message was not encrypted to you...\n';
+          console.log("Error decrypting message : ");
+        }
+
+        // Cache the decrypted message
+        messageArray[key] = decryptedMessage.toString();
+        count++;
+        if (messages.length === count) {
+          messageArray.forEach(function(decryptedMessageString, key) {
+            var fromUserId = self.chats[room.id].messages[key].fromUser;
+            var date = self.chats[room.id].messages[key].date;
+
+            self.chats[room.id].messages[key].decryptedMessage = decryptedMessageString;
+          });
+
+          ChatManager.populateMessageCache(room.id);
+
+          var isAutoJoin = (ChatManager.userProfile.membership.favoriteRooms.indexOf(room.id) > -1)
+
+          // If there is no active chat and this room is set to auto join, set it as active
+          if (!ChatManager.activeChat && isAutoJoin) {
+            ChatManager.setActiveChat(room.id);
+          };
+
+          if (ChatManager.activeChat == room.id) {
+            var chatContainer = $('#chat');
+
+            ChatManager.refreshChatContent(room.id);
+            chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+          }
+
+          console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name);
+
+          // Do this inside of updateChatStatus
+          //ChatManager.setChatEnabled([room.id]);
+
+          console.log("[ChatManager.initRoom] (2) Running ChatManager.updateChatStatus();");
+          ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
+        };
+      });
+    });
+
+    // If there are no messages, we still need to enable chat
+    // Better way to do this?
+    if (messages.length == 0) {
+      //ChatManager.setChatEnabled([room.id]);
+      console.log("[ChatManager.initRoom] (3) Running ChatManager.updateChatStatus();");
+      console.log("[ChatManager.initRoom] Done decrypting messages for room #" + room.name + ", no messages to decrypt");
+      ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
+    }
+  });
+
+  // DOES THIS BELONG HERE???!? FIX ME!!! :D
+  if (ChatManager.activeChat == room.id) {
+    window.Userlist.update({ chatId: room.id });
+  }
+
+  self.updateRoomList(function(err) {
+    console.log("Update room list done...");
+    callback(null);
+  });
+};
+
+ChatManager.initChat = function initChat(chat, callback) {
+  var self = this;
+  var enabled = false;
+  var chatId = chat.id;
+  var myUserId = ChatManager.userNameMap[window.username];
+  var chatName = '';
+  var unread = false;
+  var unreadCount = 0;
+  var initialLoadedMessageId;
+  var oldestLoadedMessageId;
+  //var messages = chat.messages || [];
+  var messages = chat.messages.sort(dynamicSort("date"));
+  var participants = chat.participants || [];
+
+  console.log("Running init on chat " + chatId);
+
+  if (chat.messages && chat.messages.length > 0) {
+    initialLoadedMessageId = chat.messages[chat.messages.length - 1].messageId;
+    oldestLoadedMessageId = chat.messages[0].messageId;
+  }
+
+  // Persist certain values through an init chat if we've already constructed a chat object
+  if (ChatManager.chats[chatId]) {
+    unread = ChatManager.chats[chatId].unread;
+    unreadCount = ChatManager.chats[chatId].unreadCount;
+    enabled = ChatManager.chats[chatId].enabled;
+  }
+
+  // Private chat between two users
+  if (chat.participants.length == 2) {
+    chat.participants.forEach(function(participantId) {
+      if  (participantId !== myUserId) {
+        chatName = ChatManager.userlist[participantId].username;
+      }
+    });
+  }
+
+  console.log("[chatManager.initChat] chatName set to: " + chatName);
+
+  // Group chat between 3 or more users
+  if (participants.length > 2) {
+
+  }
+
+  // Need to save and pull unread bits here too
+  self.chats[chatId] = {
+    enabled: enabled,
+    id: chatId,
+    messages: messages,
+    messageCache: '',
+    name: chatName,
+    participants: participants,
+    type: 'chat',
+    unread: unread,
+    unreadCount: unreadCount,
+    initialLoadedMessageId: initialLoadedMessageId,
+    oldestLoadedMessageId: oldestLoadedMessageId
+  };
+
+  var count = 0;
+  var messageArray = Array(messages.length);
+
+  var finish = function finish() {
+    ChatManager.populateMessageCache(chatId);
+
+    self.updateChatList();
+
+    if (ChatManager.activeChat == chatId) {
+      var chatContainer = $('#chat');
+
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    }
+
+    //ChatManager.setChatEnabled([chatId]);
+    console.log("[ChatManager.initChat] (1) Running ChatManager.updateChatStatus();");
+    ChatManager.updateChatStatus({ chatId: chatId, status: 'enabled' });
+
+    return callback(null);
+
+  };
+
+  encryptionManager.buildChatKeyRing({ chatId: chatId }, function(keyRing) {
+    ChatManager.chats[chatId].keyRing = keyRing;
+
+    if (messages.length == 0) {
+      finish();
+    };
+
+    messages.forEach(function(message, key) {
+
+      window.encryptionManager.decryptMessage({
+        keyRing: ChatManager.chats[chatId].keyRing,
+        encryptedMessage: message.encryptedMessage
+      }, function(err, decryptedMessage) {
+        var encryptedMessage = message.encryptedMessage;
+        var decryptedMessage = decryptedMessage;
+
+        count++;
+
+        if (err) {
+          decryptedMessage = 'Unable to decrypt...\n';
+          console.log("Error decrypteing message: ", err);
+        }
+
+        messageArray[key] = decryptedMessage.toString();
+        console.log("[initChat] messages.length '" + messages.length + "' count '" + count + "'");
+        if (messages.length === count) {
+          messageArray.forEach(function(decryptedMessageString, key) {
+
+            var fromUserId = messages[key].fromUser;
+            var date = messages[key].date;
+
+            self.chats[chatId].messages[key].decryptedMessage = decryptedMessageString;
+          });
+          finish();
+        };
+      })
+    });
+  });
+};
+
+
+
+ChatManager.decryptMessagesArray = function decryptMessagesArray(data, callback) {
+  var self = this;
+  var chatId = data.chatId;
+  var messagesArray = data.messages;
+  var count = 0;
+  var messageCount = 0;
+
+  var finish = function finish() {
+    return callback(messagesArray);
+  }
+
+  if (messagesArray) {
+    messageCount = messagesArray.length;
+  }
+
+  if (messageCount == 0) {
+    console.log("[chatManager.decryptMessagesArray] No messages provided for decrypting. Finishing.");
+    return finish();
+  }
+
+  messagesArray.forEach(function(message, key) {
+    var encryptedMessage = message.encryptedMessage;
+
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, decryptedMessage) {
+      count ++;
+
+      if (err) {
+        decryptedMessage = 'Unable to decrypt...\n';
+        console.log("Error decrypting message: ", err);
+      }
+
+      messagesArray[key].decryptedMessage = decryptedMessage.toString();
+
+      if (messageCount === count) {
+        return finish();
+      }
+    })
+  })
+};
+
+
+ChatManager.arrayHash = function arrayHash(array, callback) {
+  // Sort participantIds
+  var orderedArray = array.sort();
+
+  // MD5 participantIds
+  encryptionManager.sha256(orderedArray.toString(), function(arrayHash) {
+    return callback(arrayHash);
+  });
+};
+
+
+// move to util.dynamicSort (in utils.js) (( need to create ))
+function dynamicSort(property) {
+    var sortOrder = 1;
+    if(property[0] === "-") {
+        sortOrder = -1;
+        property = property.substr(1);
+    }
+    return function (a,b) {
+        var result = (a[property] < b[property]) ? -1 : (a[property] > b[property]) ? 1 : 0;
+        return result * sortOrder;
+    }
+}
+
+
+
+
+/*
+ * Remove room from client
+ */
+ChatManager.destroyChat = function destroyChat(chatId, callback) {
+  var self = this;
+  delete ChatManager.chats[chatId];
+
+  self.focusLastChat(function(err) {
+    if (err) {
+      return console.log("[chatManager.destroyChat] Error focusing on last active chat");
+    };
+
+    callback(null);
+  });
+}
+
+
+/*
+ * Part a chat but keep the chat data cached
+ */
+ChatManager.partChat = function partChat(chatId, callback) {
+  var self = this;
+  ChatManager.chats[chatId].joined = false;
+
+  self.focusLastChat(function(err) {
+    callback(err);
+  });
+};
+
+
+/*
+ * Focus on the last active chat
+ */
+ChatManager.focusLastChat = function focusLastChat(callback) {
+  // Create a sorted list of chats that are joined
+  var sortedChats = Object.keys(ChatManager.chats).sort().filter(function(chatId) {
+    return ChatManager.chats[chatId].joined;
+  });
+
+  // Should check here for an empty chat list and do something sane if we have parted the last chat
+  var lastChat = ChatManager.chats[sortedChats[sortedChats.length - 1]];
+  ChatManager.activeChat = lastChat;
+  // TODO: Make this focusChat and do th elogic inside of the function to determine what to do for private chats vs rooms
+  ChatManager.focusChat({ id: lastChat.id }, function(err) {
+    if (err) {
+      return callback(err);
+    };
+
+    ChatManager.updateRoomList(function(err) {
+      callback(null);
+    });
+  });
+};
+
+
+/*
+ * Set the specified chat to be in focus for the user
+ */
+ChatManager.focusChat = function focusChat(data, callback) {
+  var id = data.id;
+  var type = ChatManager.chats[id].type;
+  var chatName = ChatManager.chats[id].name;
+  var messages = $('#chat');
+
+  // Set the active chat to the one we're focusing on
+  console.log("Setting activeChat to room: " + ChatManager.chats[id].name + " which has ID: " + id);
+  ChatManager.setActiveChat(id);
+
+  if (ChatManager.chats[id].unread) {
+    ChatManager.chats[id].unread = false;
+    ChatManager.chats[id].unreadCount = 0;
+  };
+
+  window.Userlist.update({ chatId: id });
+
+  ChatManager.refreshChatContent(id, function() {
+
+    // TODO
+    // This needs to be reset every time but probably don't want to reset $(document)
+    var fileLinks = $('.pfile-link');
+
+    var downloadLinkBindClick = function(fileId, chatId) {
+      console.log('Pfile link clicked, id: %s', fileId);
+
+      var keyRing = ChatManager.chats[chatId].keyRing;
+      var fileManager = FileManager();
+
+      fileManager.getFile({ keyRing: keyRing, id: fileId });
+    };
+
+    $(document).off("click", ".pfile-link");
+    $(document).on('click', '.pfile-link', function() {
+      var fileId = $(this)[0].id;
+      var chatId = id;
+
+      downloadLinkBindClick(fileId, chatId);
+    });
+
+  });
+
+  // TODO:
+  // Enabling chat here but only we are in a good state which consists of
+  // - Connected to the server
+  // - All messages have been decrypted and displayed
+  // - You are signed in and your key has been decrypted
+  // -
+  // Each one of these things needs to know how to enable and disable the main chat status or request a recheck of all statuses
+  // so that it can set the main status on a change
+  //ChatManager.chats[id].enabled = true;
+
+  messages[0].scrollTop = messages[0].scrollHeight;
+
+
+  // Update the room list to reflect the desired room to be infocus
+  $('.chat-list-item-selected')
+    .addClass('chat-list-item')
+    .removeClass('chat-list-item-selected');
+
+  $('#' + id)
+    .removeClass('chat-list-item')
+    .addClass('chat-list-item-selected');
+
+  callback(null);
+};
+
+
+/*
+ * Set the active chat
+ */
+ChatManager.setActiveChat = function setActiveChat(id) {
+  ChatManager.activeChat = id;
+  window.activeChat = id;
+};
+
+
+/*
+ * Update the list of rooms on the left bar
+ */
+ChatManager.updateRoomList = function updateRoomList(callback) {
+  //console.log("[chatManager.updateRoomList] Chats: ", ChatManager.chats);
+
+  $('#room-list').empty();
+  console.log("Updating room list!");
+
+  var chatIds = Object.keys(ChatManager.chats)
+
+  chatIds.forEach(function(id) {
+    if (ChatManager.chats[id].type == 'room' && ChatManager.chats[id].joined) {
+      var roomName = ChatManager.chats[id].name;
+      var unreadMessages = ChatManager.chats[id].unread;
+
+      if ( !$('#room-list #' + id).length ) {
+
+        var roomListItemClasses = [];
+        var unreadIconClasses = [];
+
+        if ( ChatManager.activeChat == id ) {
+          console.log("Active chat is " + ChatManager.activeChat);
+
+          roomListItemClasses.push('chat-list-item-selected');
+        } else {
+          roomListItemClasses.push('chat-list-item');
+        };
+
+        if ( !unreadMessages ) {
+          unreadIconClasses.push('hidden');
+        }
+
+        var roomListHtml = '<li class="room ' + roomListItemClasses.join() + '" id="' + id + '">' + roomName + '<i class="icon idea ' + unreadIconClasses.join() + '"></i></li>';
+
+
+        $('#room-list').append(roomListHtml);
+        console.log("Added " + roomName + " to room-list");
+      }
+
+      $("#" + id).unbind().click(function() {
+        // Catch clicks on the room list to update room focus
+        ChatManager.focusChat({ id: id }, function(err) {
+          // Room focus complete
+          // We need to update the room list here to update the read/unread marker
+          ChatManager.updateRoomList(function() {
+            // Room list updated
+          });
+        });
+      });
+    }
+  });
+  callback(null);
+};
+
+
+
+ChatManager.updateChatList = function updateChatList() {
+  var self = this;
+  var userListHtml = "";
+
+  // Get a list of all chats that are type private message
+  var chatIds = Object.keys(ChatManager.chats).filter(function(id) {
+    console.log("Looping chat id: " + id + " and type is: " + ChatManager.chats[id].type);
+    return ChatManager.chats[id].type == 'chat';
+  });
+
+  // Add the html elements for each chat to a string
+  chatIds.forEach(function(id) {
+    console.log("[chatManager.updateChatList] Adding chat with ID: " + id + " to the chat list");
+    var privateChat = ChatManager.chats[id];
+    var unread = ChatManager.chats[id].unread;
+    var chatListItemClasses = [];
+    var unreadIconClasses = [];
+
+    if ( !unread ) {
+      unreadIconClasses.push('hidden');
+    }
+
+    if ( ChatManager.activeChat === id ) {
+      chatListItemClasses.push('chat-list-item-selected');
+    } else {
+      chatListItemClasses.push('chat-list-item');
+    };
+
+    userListHtml += '<li class="private-chat ' + chatListItemClasses.join() + '" id="' + id + '">' + privateChat.name + '<i class="icon idea ' + unreadIconClasses.join() + '"></i></li>\n';
+
+  });
+
+  // Push the newly generated chat list to the chat-list
+  $('#chat-list').html(userListHtml);
+
+  // Bind click events to each chat list entry to focus that chat
+  chatIds.forEach(function(id) {
+    console.log("[chatManager.updateChatList] Setting on click for chat with ID: " + id);
+    if (id !== ChatManager.userNameMap[window.username]) {
+      $('#' + id).unbind().click(function() {
+        console.log("[chatManager.updateChatList] Got click on id: " + id);
+        ChatManager.focusChat({ id: id }, function(err) {
+          ChatManager.updateChatList(function() {
+            // Room list updated
+          });
+        });
+      });
+    };
+  });
+
+};
+
+
+
+/*
+ * This should receive updates regarding the status of the individual chats and the chat server as a whole
+ * The conneciton status should be stored in a main object and the decrypting (or other statuses related to
+ * the room itself) should be stored in the room object on the client side
+ */
+ChatManager.updateChatStatus = function updateChatStatus(data) {
+  var chatId;
+  var status;
+
+  if (data) {
+    if (data.chatId) {
+      chatId = data.chatId;
+    };
+
+    if (data.status) {
+      status = data.status;
+    };
+  };
+
+  if (chatId && !status) {
+    console.log("[ChatManager.updateChatStatus] ERROR: You must specify a status when providing a chatId");
+  };
+
+  // If we have a chatId, change the status for that chat
+  if (chatId && status) {
+    if (ChatManager.chats[chatId].status != status) {
+      ChatManager.chats[chatId].status = status;
+    };
+  };
+
+  // If we have no chatId but have a stauts, set that status for all chats
+  if (!chatId && status) {
+    var allRoomIds = Object.keys(ChatManager.chats);
+
+    allRoomIds.forEach(function(id) {
+      if (ChatManager.chats[id].status != status) {
+        ChatManager.chats[id].status = status;
+      };
+    });
+  };
+
+  // Always run the update for the activeChat
+  if (ChatManager.activeChat) {
+    var activeChatId = ChatManager.activeChat;
+
+    if (chatId == activeChatId) {
+      if (ChatManager.chats[activeChatId].status == 'enabled') {
+        ChatManager.enableScrollback();
+        return ChatManager.enableMessageInput();
+      };
+
+      if (ChatManager.chats[activeChatId].status != 'enabled') {
+        ChatManager.disableScrollback();
+        return ChatManager.disableMessageInput({ status: ChatManager.chats[activeChatId].status });
+      };
+      console.log("[chatManager.updateChatStatus] ERROR: chat.enabled not set?");
+    };
+  } else {
+    console.log("[ChatManager.updateChatStatus] Currently no active chat...");
+  };
+};
+
+
+ChatManager.enableScrollback = function enableScrollback() {
+  var self = this;
+	jQuery(
+    function($) {
+      $('.chat-window').unbind().bind('scroll', function() {
+ 			  if($(this).scrollTop() == 0) {
+          // Load the previous page of messages
+          //   May should pass the chat id that we're loading the previous page for
+          //   in case we switch chats before the response comes back
+          var chatId = ChatManager.activeChat;
+          ChatManager.loadPreviousPage({ chatId: self.activeChat });
+        }
+      })
+    }
+  )
+};
+
+ChatManager.disableScrollback = function disableScrollback() {
+  $('.chat-window').unbind();
+};
+
+ChatManager.loadPreviousPage = function loadPreviousPage(data) {
+  var chatId = data.chatId;
+  var type = ChatManager.chats[chatId].type;
+  var oldestLoadedMessageId = this.chats[chatId].oldestLoadedMessageId;
+
+  console.log("[chatManager.loadPreviousPage] Loading previous page of messages prior to message with id '" + oldestLoadedMessageId + "'");
+
+  // Emit event to server asking for the previous page of messages from the server
+  window.socketClient.socket.emit('getPreviousPage', {
+    chatId: chatId,
+    type: type,
+    referenceMessageId: oldestLoadedMessageId
+  });
+};
+
+
+ChatManager.enableMessageInput = function enableMessageInput() {
+  var self = this;
+
+  // Add conditional to check if the generate modal is displayed
+  $('.ui.modal.generate').modal('hide');
+
+  //Make input usable
+  $('#message-input').attr('placeHolder', 'Type your message here...').prop('disabled', false);
+  $('#add-button').prop('disabled', false);
+  $('#send-button').prop('disabled', false);
+  $('#loading-icon').hide();
+
+  $("#input-container").find('textarea.message-input').keydown(function (event) {
+    var element = this;
+
+    //Prevent shift+enter from sending
+    if (event.keyCode === 13 && event.shiftKey) {
+      var content = element.value;
+      var caret = self.getCaret(this);
+
+      element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
+      event.stopPropagation();
+
+      var $messageInput = $('#message-input');
+      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
+      return false;
+    }
+    else if (event.keyCode === 13) {
+      $('#main-input-form').submit();
+      return false;
+    }
+  });
+
+  $('#send-button').unbind().on('click', function() {
+    console.log("Got send button click!");
+
+    ChatManager.sendMessage(function() {
+      fitToContent('message-input', 156);
+      return false;
+    })
+    return false;
+  });
+
+  $('#add-button').unbind().on('click', function() {
+    console.log("Got add button click!");
+  });
+};
+
+ChatManager.disableMessageInput = function disableMessageInput(data) {
+  var self = this;
+  var status = data.status;
+
+  var statusMessages = {
+    'disconnected': '          Waiting for connection... Please wait...',
+    'initializing': '          Initializing chat... Please wait...',
+    'decrypting': '          Decrypting messages... Please wait...',
+    'generating': '          Generating key pair... Please wait...'
+  };
+
+  $('textarea').off("keydown", "**");
+  $('#message-input').attr('placeHolder', statusMessages[status]).prop('disabled', true);
+  $('#add-button').prop('disabled', true);
+  $('#send-button').prop('disabled', true);
+  $('#loading-icon').show();
+};
+
+ChatManager.getCaret = function getCaret(el) {
+  if (el.selectionStart) {
+    return el.selectionStart;
+  } else if (document.selection) {
+    el.focus();
+    var r = document.selection.createRange();
+    if (r === null) {
+      return 0;
+    }
+    var re = el.createTextRange(),
+        rc = re.duplicate();
+    re.moveToBookmark(r.getBookmark());
+    rc.setEndPoint('EndToStart', re);
+    return rc.text.length;
+  }
+  return 0;
+};
+
+
+ChatManager.prepareMessage = function prepareMessage(message, callback) {
+  var parsedMessage = window.marked(message).replace(/(<p>|<\/p>)/g, '');
+  var container = $('<div>').html(parsedMessage);
+
+  // Check the hostname to make sure that it's not a local link...
+  container.find('a').attr('target','_blank');
+  container.find('code').addClass('hljs');
+
+  callback(null, container.html());
+};
+
+
+ChatManager.handleMessage = function handleMessage(data) {
+  var self = this;
+  var message = data.message;
+  var messageId = data.messageId;
+  var chatId = data.chatId;
+  var fromUserId = data.fromUserId;
+  var fromUserName = ChatManager.userlist[fromUserId].username;
+  var date = data.date || new Date().toISOString();
+  var mentionRegexString = '.*@' + window.username + '.*';
+  var mentionRegex = new RegExp(mentionRegexString);
+
+  window.encryptionManager.decryptMessage({
+    keyRing: ChatManager.chats[chatId].keyRing,
+    encryptedMessage: data.message
+  }, function(err, messageLiterals) {
+    if (err) {
+      return console.log(err);
+    }
+    var ds = null;
+    var km = null;
+    ds = messageLiterals[0].get_data_signer();
+    if (ds) { km = ds.get_key_manager(); }
+    if (km) {
+      console.log("socketClient.handleMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
+      console.log(km.get_pgp_fingerprint().toString('hex'));
+
+      return finish(messageLiterals);
+    } else {
+      return console.log("[socketClient.handleMessage] WARNING: Message signature invalid!");
+    }
+  });
+
+  var finish = function(messageLiterals) {
+    var messageString = messageLiterals.toString();
+    console.log("Running mention regex: " + messageString.match(mentionRegex));
+    if (messageString.match(mentionRegex)) {
+      clientNotification.send(null, 'You were just mentioned by ' + fromUserName + ' in room #' + ChatManager.chats[chatId].name, messageString, 3000);
+    };
+
+    self.addMessageToChat({ confirmed: true, messageId: messageId, type: 'room', chatId: chatId, messageString: messageString, fromUserId: fromUserId, date: date });
+  };
+};
+
+
+
+/*
+* Handle an incoming one to one message (privateMessage)
+*
+* When receiving a message that we sent, we should change the message that we already
+* added to our local chat from grey to black to show that it has been sent or received
+* by the other user
+*/
+ChatManager.handlePrivateMessage = function handlePrivateMessage(data) {
+  var self = this;
+  //var socket = data.socket;
+
+  var messageId = data.messageId;
+  var encryptedMessage = data.message;
+  var chatId = data.chatId;
+  var fromUserId = data.fromUserId;
+  var fromUsername = ChatManager.userlist[fromUserId].username;
+  var myUserId = ChatManager.userNameMap[window.username];
+  var toUserIds = data.toUserIds;
+  var date = data.date;
+  var participantIds = [ ChatManager.userlist[fromUserId].id, myUserId];
+  var chatName;
+
+  var decrypt = function decrypt(chatId, encryptedMessage, callback) {
+    window.encryptionManager.decryptMessage({
+      keyRing: ChatManager.chats[chatId].keyRing,
+      encryptedMessage: encryptedMessage
+    }, function(err, messageLiterals) {
+      if (err) {
+        return console.log(err);
+      };
+      var ds = km = null;
+      ds = messageLiterals[0].get_data_signer();
+      if (ds) { km = ds.get_key_manager(); }
+      if (km) {
+        console.log("socketClient.handlePrivateMessage] OK: Message signature valid. Fingerprint: '" + km.get_pgp_fingerprint().toString('hex') + "'");
+        console.log(km.get_pgp_fingerprint().toString('hex'));
+        return callback(null, messageLiterals);
+      } else {
+        console.log("[socketClient.handlePrivateMessage] WARNING: Message signature invalid!");
+        return callback("Invalid message signature", messageLiterals);
+      }
+    });
+  };
+
+  if (ChatManager.chats[chatId]) {
+    decrypt(chatId, encryptedMessage, function(err, message) {
+      clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+
+      ChatManager.addMessageToChat({ confirmed: true, messageId: messageId, type: 'chat', fromUserId: fromUserId, chatId: chatId, messageString: message, date: date });
+    });
+  };
+
+  // If we don't have a private chat created for this
+  if (!ChatManager.chats[chatId]) {
+    chatName = fromUsername;
+    // Should save and pull unreadCount from the DB
+    ChatManager.chats[chatId] = { id: chatId, type: 'chat', name: chatName, messageCache: '', unread: true, unreadCount: 0, messages: [] };
+
+    // Set unread to true for now. When these windows are cached open, we need a better way to determine if it is an unread message or not.
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
+
+    console.log("Updating private chats");
+
+    ChatManager.updateChatList();
+
+    ChatManager.arrayHash(participantIds, function(chatHash) {
+      decrypt(chatId, encryptedMessage, function(message) {
+        clientNotification.send(null, 'Private message from ' + fromUsername, message, 3000);
+        ChatManager.addMessageToChat({ type: 'chat', fromUserId: fromUserId, confirmed: true, messageId: messageId, chatId: chatId, messageString: message, date: date });
+      });
+
+      window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
+
+      window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+        self.handleChatUpdate(data, function() {
+        });
+        window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
+      });
+    });
+  };
+};
+
+
+
+/*
+* Display an outgoing message locally greyed out then wait for it to be confirmed as sent by the server
+*/
+ChatManager.handleLocalMessage = function handleLocalMessage(data) {
+  var messageId = data.messageId;
+  var chatId = data.chatId;
+  var type = ChatManager.chats[chatId].type;
+  var messageString = data.messageString;
+  var fromUserId = data.fromUserId;
+  var date = data.date;
+
+  // Should set the message to unconfirmed here (only if it's a local message tho)
+  ChatManager.addMessageToChat({ messageId: messageId, confirmed: false, type: type, fromUserId: fromUserId, chatId: chatId, messageString: messageString, date: date });
+};
+
+
+
+ChatManager.addMessageToChat = function addMessageToChat(data) {
+  var messageId = data.messageId;
+  var confirmed = data.confirmed;
+  var type = data.type;
+  var messageString = data.messageString;
+  var date = data.date;
+  var fromUserId = data.fromUserId;
+  var fromUsername = ChatManager.userlist[fromUserId].username;
+  var chatId = data.chatId;
+  var chatContainer = $('#chat');
+
+  //Add timestamp
+  var time = date || new Date().toISOString();
+
+  // If the message is confirmed (comes from the server), it has an
+  // ID, and it is from me, find it in the message cache
+  // and mark it as confirmed
+  if (confirmed && messageId && (fromUserId == ChatManager.userNameMap[window.username])) {
+    // Update teh message in message cache to be confirmed
+    ChatManager.confirmChatMessage({ chatId: chatId, messageId: messageId }, function(modifiedMessageCache) {
+      if (!modifiedMessageCache) {
+        // Was not able to find and confirm the message
+        return console.log("[ChatManager.addMessageToChat] Returned no messageCache");
+      }
+      ChatManager.chats[chatId].messageCache = modifiedMessageCache;
+    });
+  } else {
+
+    // Need to figure out how to change the class of a message after it's in the message cache
+    ChatManager.formatChatMessage({
+      messageId: messageId,
+      messageString: messageString,
+      fromUserId: fromUserId,
+      fromUsername: fromUsername,
+      date: date,
+      confirmed: confirmed
+    }, function(formattedMessage) {
+      // Is it really taking this long to get the message displayed locally?
+      ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
+    });
+
+    if (ChatManager.activeChat == chatId) {
+      ChatManager.refreshChatContent(chatId);
+      chatContainer[0].scrollTop = chatContainer[0].scrollHeight;
+    };
+  };
+
+  if (ChatManager.activeChat != chatId) {
+    ChatManager.chats[chatId].unread = true;
+    ChatManager.chats[chatId].unreadCount++;
+
+    console.log("[chatManager.handlePrivateMessage] unreadCount: " + ChatManager.chats[chatId].unreadCount);
+    ChatManager.updateRoomList(function() {
+      return;
+    });
+    ChatManager.updateChatList(function() {
+      return;
+    });
+  }
+};
+
+
+
+
+/*
+ * Take the message array obtained from the server and add them to the cache for the appropriate chat
+ * This is instead of using addMessageToChat to add them one by one
+ * TODO: Should pass messages around the same way everywhere instead of a string some places and object others
+ */
+ChatManager.populateMessageCache = function populateMessageCache(chatId) {
+  var messages = ChatManager.chats[chatId].messages;
+  var messageCount = messages.length;
+  var sortedMessages = [];
+
+  ChatManager.chats[chatId].messageCache = '';
+
+  if (messageCount > 0) {
+
+    sortedMessages = messages.sort(function(a,b) {
+      return new Date(a.date) - new Date(b.date);
+    });
+
+    ChatManager.chats[chatId].oldestLoadedMessageId = sortedMessages[0].messageId;
+
+    messages.forEach(function(message) {
+      var fromUsername = ChatManager.userlist[message.fromUser].username;
+      ChatManager.formatChatMessage({ confirmed: true, messageString: message.decryptedMessage, date: message.date, fromUserId: message.fromUser, fromUsername: fromUsername }, function(formattedMessage) {
+        ChatManager.chats[chatId].messageCache = ChatManager.chats[chatId].messageCache.concat(formattedMessage);
+      });
+    });
+  };
+};
+
+ChatManager.formatChatMessage = function formatChatMessage(data, callback) {
+  var messageId = data.messageId;
+  var messageString = data.messageString;
+  var fromUserId = data.fromUserId;
+  var fromUsername = data.fromUsername;
+  var confirmed = data.confirmed;
+  var date = data.date;
+  var emailHash = ChatManager.userlist[fromUserId].emailHash || "00000000000";
+
+  var time = date || new Date().toISOString();
+
+  var messageIdHtml = '';
+
+  if (messageId) {
+    var messageIdHtml = ' data-messageId="' + messageId + '"';
+  };
+
+  var confirmedClass = '';
+  if (!confirmed) {
+    confirmedClass = 'unconfirmedMessage';
+  };
+
+  var messageHtml = '<div class="chat-item"><div class="chat-item__container ' + confirmedClass + '"' + messageIdHtml + '> <div class="chat-item__aside"> <div class="chat-item__avatar"> <span class="widget"><div class="trpDisplayPicture avatar-s avatar" style="background-image: url(\'https://www.gravatar.com/avatar/' + emailHash + '?s=64\')" data-original-title=""> </div> </span> </div> </div> <div class="chat-item__actions js-chat-item-actions"> <i class="chat-item__icon chat-item__icon--read icon-check js-chat-item-readby"></i> <i class="chat-item__icon icon-ellipsis"></i> </div> <div class="chat-item__content"> <div class="chat-item__details"> <div class="chat-item__from js-chat-item-from">' + fromUsername + '</div> <div class="chat-item__time js-chat-item-time chat-item__time--permalinkable"> <span style="float:right;" title="' + time + '" data-livestamp="' +  time + '"></span> </div> </div> <div class="chat-item__text js-chat-item-text">' + messageString + '</div> </div> </div></div>';
+  return callback(messageHtml);
+};
+
+
+/*
+ * Once we receive a message from the server, we need to check the sent messages array (need to create this)
+ * for ID's that match the incoming message. If the incoming message ID is in that array, we should confirm it
+ * by searching the message cache for an item with that ID and changing it's class from unconfirmed to
+ * confirmed (need to create these classes)
+ */
+ChatManager.confirmChatMessage = function confirmChatMessage(data, callback) {
+  var chatId = data.chatId;
+  var messageId = data.messageId;
+  var messageCache = ChatManager.chats[chatId].messageCache;
+  var container = '';
+
+  container = $('<div>').html(messageCache);
+  container.find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
+  $('.chat-window').find('[data-messageId="' + messageId + '"].unconfirmedMessage').removeClass('unconfirmedMessage');
+
+  return callback(container.html());
+};
+
+
+
+/*
+ * Displays room messages in the chat window
+ */
+ChatManager.refreshChatContent = function refreshChatContent(chatId, callback) {
+  var self = this;
+  var messageCache = ChatManager.chats[chatId].messageCache;
+
+  console.log("Refreshing chat content for ", ChatManager.chats[chatId].name);
+
+  $('#chat').html(messageCache);
+  ChatHeader.update(chatId);
+
+  // Add padding above messages if needed to keep newest message at the bottom
+  // If not needed, only take up a small space for displaying pulling older messages notice
+
+  if (callback) {
+    return callback();
+  }
+}
+
+
+
+ChatManager.handleChatUpdate = function handleChatUpdate(data, callback) {
+  var chat = data.chat;
+  var self = this;
+
+  console.log("[handleChatUpdate] got 'chatUpdate' from server");
+
+  // Init the chat
+  ChatManager.initChat(chat, function() {
+
+    self.updateChatList();
+    self.updateRoomList(function() {
+    });
+
+    if (chat.participants) {
+      if (ChatManager.activeChat == chat.id) {
+        console.log("[chatManager.handleChatUpdate] Focusing chat with id '" + chat.id + "'");
+        self.focusChat({ id: chat.id }, function(err) {
+          console.log("Room focus for " + chat.id + " done");
+        });
+      };
+    };
+
+    console.log("[handleChatUpdate] initChat done.");
+    return callback();
+  });
+
+};
+
+
+/*
+ * Should call this PageUpdate or something?
+ */
+ChatManager.handlePreviousPageUpdate = function handlePreviousPageUpdate(data) {
+  var messages = data.messages;
+  var chatId = data.chatId;
+
+  ChatManager.decryptMessagesArray({ chatId: chatId, messages: messages }, function(decryptedMessages) {
+    if (decryptedMessages) {
+      ChatManager.chats[chatId].messages = decryptedMessages.concat(ChatManager.chats[chatId].messages);
+    }
+
+    ChatManager.populateMessageCache(chatId);
+    ChatManager.refreshChatContent(chatId);
+  });
+};
+
+
+ChatManager.sendMessage = function sendMessage(callback) {
+  var input = $('#message-input').val();
+
+  // Is one of these faster? Both seem to work just fine...
+  //$('#message-input').val('');
+  console.log("Clearing message-input...");
+  document.getElementById('message-input').value='';
+
+  setTimeout(function() {
+    console.log("1 sendMessage input: " + input);
+
+    //input = input.replace(/(<p>|<\/p>)/g, '');
+    //console.log("2 sendMessage input: " + input);
+
+    var commandRegex = /^\/(.*)$/;
+    var regexResult = input.match(commandRegex);
+
+    if (input === "") {
+      return callback();
+    }
+
+    else if (regexResult !== null) {
+      ServerCommand.parse(regexResult, function() {
+        return callback();
+      });
+    }
+
+    else {
+
+      ChatManager.prepareMessage(input, function(err, preparedInput) {
+        var activeChatId = ChatManager.activeChat;
+        var activeChatType = ChatManager.chats[activeChatId].type;
+        var activeChatName = ChatManager.chats[activeChatId].name;
+
+        console.log("Active chat type is: " + activeChatType);
+        var date = new Date().toISOString();
+
+        // Create a message ID using the current time and a random number
+        var messageId = ChatManager.createMessageId();
+
+        if (activeChatType == 'room') {
+          console.log("Sending message to room #"+ activeChatName);
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
+          return callback();
+        }
+        else if (activeChatType == 'chat') {
+          var sendToIds = ChatManager.chats[activeChatId].participants;
+
+          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
+          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+
+          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+
+          // Add the message to the chat locally and wait for it to be confirmed
+          ChatManager.handleLocalMessage({
+            messageId: messageId,
+            chatId: activeChatId,
+            messageString: preparedInput,
+            fromUserId: ChatManager.userNameMap[window.username],
+            date: date
+          });
+
+          return callback();
+        }
+        else {
+          return console.log("ERROR: No activeChatType!");
+        }
+      })
+    }
+  }, 0);
+};
+
+
+ChatManager.createMessageId = function createMessageId() {
+  var timeString = (new Date().getTime()).toString();
+  var rand = Math.floor((Math.random() * 1000) + 1).toString();
+  var messageId = timeString.concat(rand);
+
+  return messageId;
+  //return callback(messageId);
+}
+
+
+
+ChatManager.showHelp = function showHelp() {
+  var activeChatId = ChatManager.activeChat;
+  var activeChatType = ChatManager.chats[activeChatId].type;
+
+  var helpTextArray = [ "** ROOM Commands **", "/room [room] member add [member]" ];
+  helpTextArray.forEach(function(msg) {
+    ChatManager.addMessageToChat({ type: activeChatType, messageString: msg, chat: activeChatId });
+  })
+};
+
+ChatManager.membershipUpdateError = function membershipUpdateError(message) {
+  var errorDisplay = $('.manage-members-modal #manageMembersError');
+  var messageDisplay = $('.manage-members-modal #manageMembersMessage');
+  console.log("[MEMBERSHIP UPDATE ERROR] Displaying error message");
+
+  if (errorDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
+  if (errorDisplay.transition('is visible')) {
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s',
+      onComplete: function() {
+        errorDisplay.text(message);
+      }
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+
+  } else {
+    errorDisplay.text(message);
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+  }
+  return false;
+};
+
+ChatManager.membershipUpdateMessage = function membershipUpdateMessage(message) {
+  var messageDisplay = $('.manage-members-modal #manageMembersMessage');
+  var errorDisplay = $('.manage-members-modal #manageMembersError');
+
+  if (messageDisplay.text().toLowerCase().indexOf(message) !== -1) {
+    return false;
+  }
+  if (messageDisplay.transition('is visible')) {
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s',
+      onComplete: function() {
+        messageDisplay.text(message);
+      }
+    });
+
+    errorDisplay.transition({
+      animation: 'fade up',
+      duration: '0.5s'
+    });
+
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+
+  } else {
+    messageDisplay.text(message);
+    messageDisplay.transition({
+      animation: 'fade up',
+      duration: '1s'
+    });
+  }
+  return false;
+};
+
+ChatManager.initialPromptForCredentials = function initialPromptForCredentials() {
+  var self = this;
+  console.log("Prompting for credentials!");
+
+  $(".ui.modal.initial")
+    .modal('setting', 'closable', false)
+    .modal("show");
+
+  $('.ui.button.register').unbind().click(function(e) {
+    RegisterUserPrompt.show(function(data) {
+      // Do something when registration is succcessful
+    });
+  });
+
+  $('.ui.button.signin').unbind().click(function(e) {
+    ChatManager.configureUIForSignin(function() {
+      console.log('UI Configured for User Signin');
+    });
+  });
+};
+
+ChatManager.configureUIForSignin = function configureUIForSignin(callback) {
+  console.log('Configuring UI for user signin');
+
+  callback();
+};
+
+
+ChatManager.promptForCredentials = function promptForCredentials(callback) {
+  var self = this;
+  console.log("Prompting for credentials!");
+  RegisterUserPrompt.show(function(data) {
+    return callback()
+  });
+}
+
+ChatManager.promptForImportKeyPair = function promptForImportKeyPair(callback) {
+  console.log("Prompting user to import existing keypair");
+  $('.modal.import-keypair-modal').modal('show');
+  //TODO: Use this to hide the default file open dialog and replace with more stylish bits
+  //$('.basic.modal.import-keypair-modal #publickey-file-input').css('opacity', '0');
+  //$('.basic.modal.import-keypair-modal #privatekey-file-input').css('opacity', '0');
+  $('.import-keypair-modal #select-publickey').click(function(e) {
+    e.preventDefault();
+    $('#publickey-file-input').trigger('click');
+  });
+  $('.import-keypair-modal #select-privatekey').click(function(e) {
+    e.preventDefault();
+    $('#privatekey-file-input').trigger('click');
+  });
+  $('.import-keypair-submit-button').click(function(e) {
+
+    var publicKeyFile = document.getElementById('publickey-file-input').files[0];
+    var publicKeyContents = null;
+    var privateKeyFile = document.getElementById('privatekey-file-input').files[0];
+    var privateKeyContents = null;
+    var username = document.getElementById('username-input').value;
+    var fullName = document.getElementById('fullname-input').value;
+    var email = document.getElementById('email-input').value;
+
+    if (publicKeyFile && privateKeyFile) {
+      var regex = /\r?\n|\r/g
+      var reader = new FileReader();
+      reader.readAsText(publicKeyFile);
+      reader.onload = function(e) {
+        publicKeyContents = e.target.result
+        console.log("TEST: " + publicKeyContents.toString().replace(regex, '\n'));
+        reader.readAsText(privateKeyFile);
+        reader.onload = function(e) {
+          privateKeyContents = e.target.result.toString().replace(regex, '\n');
+          var data = ({
+            email: email,
+            fullName: fullName,
+            publicKey: publicKeyContents,
+            privateKey: privateKeyContents,
+            username: username,
+          });
+          callback(null, data);
+        };
+      };
+    } else {
+      err = "Error importing key pair from file";
+      callback(err, null);
+    };
+  });
+
+  function getNewMessageId(callback) {
+    var id = new Date().getTime();
+    callback(id);
+  };
+};
+
+module.exports = ChatManager;
+
+},{"../notification/index.js":13,"./header.js":2}],4:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 var crypto = require('crypto-browserify');
 var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
+var authentication = require('../authentication/index.js');
 
 function EncryptionManager() {
+  this.ChatManager = window.ChatManager;
   this.keyPair = ({
     publicKey: null,
     privateKey: null
@@ -306,19 +2535,19 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
   var self = this;
   var chatId = data.chatId;
-  var chatName = ChatManager.chats[chatId].name;
-  var membershipRequired = ChatManager.chats[chatId].membershipRequired;
+  var chatName = self.ChatManager.chats[chatId].name;
+  var membershipRequired = self.ChatManager.chats[chatId].membershipRequired;
   var newKeyRing = new window.kbpgp.keyring.KeyRing();
 
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + chatName);
 
   if (membershipRequired) {
-    ChatManager.chats[chatId].members.forEach(function(userId) {
-      var chatUsername = ChatManager.userlist[userId].username;
+    self.chats[chatId].members.forEach(function(userId) {
+      var chatUsername = self.userlist[userId].username;
       var keyFingerPrint = '';
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
 
         if (chatUserKeyInstance) {
           keyFingerPrint = chatUserKeyInstance.get_pgp_fingerprint_str();
@@ -334,11 +2563,11 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    ChatManager.chats[chatId].admins.forEach(function(userId) {
-      var chatUsername = ChatManager.userlist[userId].username;
+    self.ChatManager.chats[chatId].admins.forEach(function(userId) {
+      var chatUsername = self.ChatManager.userlist[userId].username;
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (chatUserKeyInstance) {
@@ -355,13 +2584,13 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    var ownerId = ChatManager.chats[chatId].owner;
-    var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
+    var ownerId = self.ChatManager.chats[chatId].owner;
+    var ownerKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
 
     newKeyRing.add_key_manager(ownerKeyInstance);
 
-    var chatUsername = ChatManager.userlist[ownerId].username;
-    var chatUserKeyInstance = ChatManager.userlist[ownerId].keyInstance;
+    var chatUsername = self.ChatManager.userlist[ownerId].username;
+    var chatUserKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
     console.log('[encryptionManager.buildChatKeyRing] [%s] Adding OWNER %s to keyring with key %s',
                 chatName,
                 chatUsername,
@@ -371,21 +2600,21 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
   if (!membershipRequired) {
     console.log("[encryptionManager.buildChatKeyRing] Building keyRing for public chat");
-    Object.keys(ChatManager.userlist).forEach(function(userId) {
-      if (ChatManager.userlist[userId].username != window.username) {
-        var keyInstance = ChatManager.userlist[userId].keyInstance;
+    Object.keys(self.ChatManager.userlist).forEach(function(userId) {
+      if (self.ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = self.ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (keyInstance) {
           keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
         }
 
-        var roomName = ChatManager.chats[chatId].name;
-        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
+        var roomName = self.ChatManager.chats[chatId].name;
+        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + self.ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         if (keyInstance) {
           newKeyRing.add_key_manager(keyInstance);
         } else {
-          console.log('No keyInstance found for user %s in room %s', ChatManager.userlist[userId].username, roomName);
+          console.log('No keyInstance found for user %s in room %s', self.ChatManager.userlist[userId].username, roomName);
         }
       };
     });
@@ -442,13 +2671,13 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
   var keys = self.getChatKeys(chatId);
 
   //Encrypt the message
-  if (ChatManager.chats[chatId].encryptionScheme == "masterKey") {
+  if (self.ChatManager.chats[chatId].encryptionScheme == "masterKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
 
     self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
       callback(err, pgpMessage );
     });
-  } else if (ChatManager.chats[chatId].encryptionScheme == "clientKey") {
+  } else if (self.ChatManager.chats[chatId].encryptionScheme == "clientKey") {
     console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
     console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
 
@@ -467,8 +2696,8 @@ EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(dat
 
 EncryptionManager.prototype.getChatKeys = function getChatKeys(chatId) {
   var keys = [];
-  var chatKeyRing = ChatManager.chats[chatId].keyRing;
-  var chatName = ChatManager.chats[chatId].name;
+  var chatKeyRing = self.ChatManager.chats[chatId].keyRing;
+  var chatName = self.ChatManager.chats[chatId].name;
 
   console.log('Getting keyring for chat %s', chatName);
 
@@ -495,12 +2724,12 @@ EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessa
   });
   */
 
-  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+  Object.keys(self.ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    keys.push(self.ChatManager.chats[chatId].keyRing._kms[userId]);
   });
 
-  ChatManager.chats[chatId].participants.forEach(function(userId) {
-    keyFingerPrints[ChatManager.userlist[userId].username] = ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
+  self.ChatManager.chats[chatId].participants.forEach(function(userId) {
+    keyFingerPrints[self.ChatManager.userlist[userId].username] = self.ChatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
   });
 
   self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
@@ -541,12 +2770,12 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
 
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
-  Object.keys(ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    var userKey = ChatManager.chats[chatId].keyRing._kms[userId];
+  Object.keys(self.ChatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
+    var userKey = self.ChatManager.chats[chatId].keyRing._kms[userId];
 
     userKey.sign({}, function(err) {
       userKey.export_pgp_public({}, function(err, pgp_public) {
-        keys.push(ChatManager.chats[chatId].keyRing._kms[userId]);
+        keys.push(self.ChatManager.chats[chatId].keyRing._kms[userId]);
 
         // Need to make the pgp_public key here pem encoded and possibly base64
         sessionKeys['userId'] = {
@@ -848,7 +3077,7 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
 
   var server = protocol + '//' + host + ':' + port;
 
-  Authentication.getAuthData({}, function(headers) {
+  authentication.getAuthData({}, function(headers) {
     $.ajax({
       type: "GET",
       url: server + "/key/publickey",
@@ -1018,7 +3247,7 @@ EncryptionManager.prototype.rmd160 = function rmd160(data) {
 window.encryptionManager = new EncryptionManager();
 
 }).call(this,require("buffer").Buffer)
-},{"../modals/unlockClientKeyPairModal.js":7,"buffer":55,"crypto-browserify":63}],2:[function(require,module,exports){
+},{"../authentication/index.js":1,"../modals/unlockClientKeyPairModal.js":10,"buffer":61,"crypto-browserify":69}],5:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 
@@ -1323,7 +3552,7 @@ FileManager.prototype.getFile = function getFile(data) {
 module.exports = FileManager;
 
 }).call(this,require("buffer").Buffer)
-},{"../network/binSocketClient":8,"buffer":55,"crypto":63,"flip-stream-js":93,"stream":143,"through":145}],3:[function(require,module,exports){
+},{"../network/binSocketClient":11,"buffer":61,"crypto":69,"flip-stream-js":99,"stream":149,"through":151}],6:[function(require,module,exports){
 /*
  * Create a new room
  */
@@ -1431,7 +3660,7 @@ $(document).ready( function() {
   });
 });
 
-},{}],4:[function(require,module,exports){
+},{}],7:[function(require,module,exports){
 /*
  * Edit a room
  */
@@ -1548,7 +3777,7 @@ $(document).ready( function() {
 });
 
 
-},{}],5:[function(require,module,exports){
+},{}],8:[function(require,module,exports){
 /*
  * Register New User Modal Setup
  */
@@ -1709,7 +3938,7 @@ RegisterUserPrompt.show = function show(callback) {
 };
 
 
-},{}],6:[function(require,module,exports){
+},{}],9:[function(require,module,exports){
 'use strict'
 /*
  * Modal for sending a file to another user
@@ -1801,7 +4030,7 @@ $(document).ready( function() {
   });
 });
 
-},{"../files/index.js":2}],7:[function(require,module,exports){
+},{"../files/index.js":5}],10:[function(require,module,exports){
 'use strict'
 
 /*
@@ -1883,7 +4112,7 @@ unlockClientKeyPairModal.show = function show(successCallback) {
 
 module.exports = unlockClientKeyPairModal;
 
-},{}],8:[function(require,module,exports){
+},{}],11:[function(require,module,exports){
 'use strict'
 
 var through = require('through');
@@ -1937,14 +4166,23 @@ BinSocketClient.prototype.listenForFileStream = function(callback) {
 
 module.exports = BinSocketClient;
 
-},{"through":145}],9:[function(require,module,exports){
-'use strict'
+},{"through":151}],12:[function(require,module,exports){
+'use strict';
+
+var authentication = require('../authentication/index.js');
+var ChatManager = require('../chat/index.js');
+var masterUserlist = require('../users/masterUserlist.js');
+var chatHeader = require('../chat/header.js');
+var Userlist = require('../users/userlist.js');
 
 function SocketClient() {
   var self = this;
   var protocol = window.location.protocol;
   var host = window.location.host;
   var port = window.location.port;
+
+  window.ChatManager = self.ChatManager;
+  window.Userlist = self.Userlist;
 
   if (window.config) {
     host = window.config.server.host;
@@ -1995,7 +4233,7 @@ SocketClient.prototype.addListeners = function() {
   self.socket.on('authenticated', function(data) {
     data.socket = this;
 
-    Authentication.authenticated(data);
+    authentication.authenticated(data);
   });
 
   self.socket.on('roomUpdate', function(data) {
@@ -2072,11 +4310,12 @@ SocketClient.prototype.addListeners = function() {
     var userlist = data.userlist;
     var userNameMap = data.userNameMap;
 
-    console.log("[SOCKET] 'userlistUpdate'");
+    console.log('[SOCKET] userlistUpdate');
 
     ChatManager.userNameMap = userNameMap;
 
-    MasterUserlist.update(userlist, function(err) {
+    // Passing ChatManager for now, shouldn't do this...
+    masterUserlist.update(ChatManager, userlist, function(err) {
       console.log("[socketClient.on userlistUpdate] Updated userlist");
       // Update userlist if the current chat is a private chat
       //   there is a better way to do this, should likely do this
@@ -2160,7 +4399,7 @@ SocketClient.prototype.init = function() {
       self.addListeners();
     }
 
-    return Authentication.authenticate({ socket: self.socket });
+    return authentication.authenticate({ socket: self.socket });
   });
 };
 
@@ -2356,7 +4595,7 @@ SocketClient.prototype.toggleFavorite = function(data) {
   self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
     console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
     self.socket.removeListener('toggleFavoriteComplete-' + chatId);
-    ChatHeader.updateFavoriteButton({ favorite: data.favorite });
+    chatHeader.updateFavoriteButton({ favorite: data.favorite });
   });
 };
 
@@ -2395,7 +4634,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
         ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
-      ChatHeader.update(id);
+      chatHeader.update(id);
 
       ChatManager.buildRoomListModal;
 
@@ -2529,7 +4768,337 @@ SocketClient.prototype.listenForStreamData = function(id, callback) {
 
 window.socketClient = new SocketClient();
 
-},{}],10:[function(require,module,exports){
+},{"../authentication/index.js":1,"../chat/header.js":2,"../chat/index.js":3,"../users/masterUserlist.js":14,"../users/userlist.js":15}],13:[function(require,module,exports){
+'use strict'
+
+var clientNotification = {};
+
+clientNotification.init = function init() {
+  this.getPermission(function(permission) {
+    if (permission) {
+      console.log('Have notification permissions!');
+    }
+  });
+};
+
+clientNotification.getPermission = function getPermission(callback) {
+  // check for notification compatibility
+  if(!window.Notification) {
+    // if browser version is unsupported, be silent
+    return callback(false);
+  }
+  // log current permission level
+  //console.log(Notification.permission);
+
+  // if the user has not been asked to grant or deny notifications from this domain
+  if(Notification.permission === 'default') {
+    Notification.requestPermission(function() {
+      // callback this function once a permission level has been set
+      return callback(true);
+    });
+  }
+  // if the user has granted permission for this domain to send notifications
+  else if(Notification.permission === 'granted') {
+    return callback(true);
+  }
+  // if the user does not want notifications to come from this domain
+  else if(Notification.permission === 'denied') {
+    return callback(false);
+  }
+};
+
+// Sends a notification that expires after a timeout. If timeout = 0 it does not expire
+clientNotification.send = function send(image, title, message, timeout, showOnFocus) {
+  var self = this;
+  this.getPermission(function(permission) {
+    if (permission) {
+      console.log("[NOTIFICATION] Attempting to display notification");
+      // Default values for optional params
+      timeout = (typeof timeout !== 'undefined') ? timeout : 0;
+      showOnFocus = (typeof showOnFocus !== 'undefined') ? showOnFocus : false;
+      // Check if the browser window is focused
+      var isWindowFocused = document.querySelector(":focus") !== null;
+      // Check if we should send the notification based on the showOnFocus parameter
+      var shouldNotify = !isWindowFocused || isWindowFocused && showOnFocus;
+      console.log("[NOTIFICATION] shouldNotify is "+shouldNotify);
+      if (shouldNotify) {
+        console.log("[NOTIFCATION] Sending notification now...");
+        var notification = new Notification(title, { body: message });
+				console.log("[clientNotification.send] Flashing title bar!");
+			  self.flashTitleBar("New Messages")();
+        if (timeout > 0) {
+          // Hide the notification after the timeout
+          setTimeout(function(){
+            notification.close();
+          }, timeout);
+        }
+      }
+    } else {
+      console.log("Don't have permission to display notification");
+    }
+  });
+};
+
+// Make a chat list item pulse
+clientNotification.pulseChat = function pulseChat(chatId) {
+  var properties = {
+       backgroundColor : '#ddd'
+  };
+
+  var el = $('#' + chatId);
+
+  el.pulse(properties, {
+    duration : 3250,
+    pulses   : 5,
+    interval : 800
+  })
+};
+
+clientNotification.flashTitleBar = function flashTitleBar(message) {
+    var oldTitle = document.title;
+    var timeoutId;
+    var blink = function() { document.title = document.title == message ? ' ' : message; };
+    var clear = function() {
+        clearInterval(timeoutId);
+        document.title = oldTitle;
+        window.onmousemove = null;
+        timeoutId = null;
+    };
+    return function () {
+        if (!timeoutId) {
+            timeoutId = setInterval(blink, 1000);
+            window.onmousemove = clear;
+        }
+    };
+};
+
+module.exports = clientNotification;
+
+},{}],14:[function(require,module,exports){
+'use strict';
+
+var masterUserlist = {};
+
+/*
+ * Update the master userlist
+ */
+masterUserlist.update = function update(ChatManager, userlist, callback) {
+  ChatManager.userlist = userlist;
+
+  // Update key instance for all users
+  Object.keys(userlist).forEach(function(userId) {
+    var userPubKey = userlist[userId].publicKey;
+    if (userPubKey) {
+      window.encryptionManager.getKeyInstance(
+        userPubKey,
+        function(keyInstance) {
+          ChatManager.userlist[userId].keyInstance = keyInstance;
+        }
+      );
+    }
+  });
+
+  return callback(null);
+};
+
+module.exports = masterUserlist;
+
+},{}],15:[function(require,module,exports){
+'use strict';
+
+var Userlist = {};
+
+/*
+ * Update the user list on the right bar
+ */
+Userlist.update = function update(data) {
+  var self = this;
+  var chatId = data.chatId;
+  var socket = window.socketClient.socket;
+  var chat = ChatManager.chats[chatId];
+  var type = chat.type;
+  var members = chat.members;
+  var participants = chat.participants;
+  var subscribers = chat.subscribers;
+
+  console.log("[userlist.update] members: "+JSON.stringify(members));
+  console.log("[userlist.update] chats: ", Object.keys(ChatManager.chats));
+
+  if (type == 'room') {
+    if (subscribers && subscribers.length > 0) {
+      var userIdArray = [];
+      var subscriberCount = subscribers.length;
+      var count = 0;
+      subscribers.forEach(function(userId) {
+        userIdArray.push(userId);
+        count++;
+      });
+      if (subscriberCount == count) {
+        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'room' });
+        this.initPopups({ userIdArray: userIdArray });
+      }
+    }
+  }
+
+  if (type == 'chat') {
+    if (participants && participants.length > 0) {
+      var userIdArray = [];
+      var participantCount = participants.length;
+      var count = 0;
+      participants.forEach(function(userId) {
+        userIdArray.push(userId);
+        count++;
+      });
+      if (participantCount == count) {
+        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
+        this.initPopups({ userIdArray: userIdArray });
+      }
+    }
+  }
+}
+
+
+Userlist.build = function build(data) {
+  var userIdArray = data.userIdArray;
+  var chatId = data.chatId;
+  var type = data.type;
+  var userListHtml = "";
+
+  var isActive = function(userId) {
+    // If this is a room, get the chat status from the rooms active users
+
+    // Is type defined here? Do we need a default??
+    console.log('[userlist.build] type in isActive for %s is %s', ChatManager.userlist[userId].username, type);
+    if ( type == 'room' ) {
+      if (ChatManager.chats[chatId].activeUsers && ChatManager.chats[chatId].activeUsers.indexOf(userId) > -1) {
+        console.log("[userlist.update] activeUsers for '" + userId + "' and indexOf is true");
+        return true;
+      }
+      console.log("[userlist.update] activeUsers for '" + userId + "' and indexOf is false");
+      return false;
+    }
+
+    if ( type == 'chat' ) {
+      if (ChatManager.userlist[userId].active) {
+        return true;
+      }
+      return false;
+    }
+  };
+
+  userIdArray.forEach(function(userId) {
+    var username = ChatManager.userlist[userId].username;
+    var active = isActive(userId);
+    var user = ChatManager.userlist[userId];
+
+    if ( !ChatManager.chats[userId] && username != window.username ) {
+      console.log("chat for ",username," was empty so initializing");
+    }
+
+    var emailHash = "0";
+
+    if (user && user.emailHash) {
+      var emailHash = user.emailHash;
+    }
+
+    if (active) {
+      userListHtml += "<li class='user-list-li user-active' userId='" + userId + "' id='userlist-" + userId + "' name='" + username + "' data-content='" + username + "'>\n";
+    } else {
+      userListHtml += "<li class='user-list-li user-inactive' userId='" + userId + "' id='userlist-" + userId + "' name='" + username + "' data-content='" + username + "'>\n";
+    }
+
+    userListHtml += "  <div class=\"user-list-avatar avatar-m avatar\" style=\"background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')\" data-original-title=''>\n";
+    userListHtml += "  </div>\n";
+    userListHtml += "</li>\n";
+  });
+
+  // Looks like the HTML may be right, but its not getting refreshed or set???
+  $('#user-list').html(userListHtml);
+};
+
+Userlist.initPopups = function initPopups(data) {
+  var userIdArray = data.userIdArray;
+
+  if (userIdArray && userIdArray.length > 0) {
+    userIdArray.forEach(function(userId) {
+      console.log("Setting up User Popup for '#userlist-" + userId + " .user-list-avatar'");
+      $('#userlist-' + userId + ' .user-list-avatar').popup({
+        inline: true,
+        position: 'left center',
+        hoverable: true,
+        target: '#userlist-' + userId,
+        popup: $('.ui.popup.userPopup'),
+        on: 'click'
+      })
+
+      $('#userlist-' + userId + ' .user-list-avatar').click(function() {
+        var userId = $( this ).parent().attr('userid');
+
+        console.log("Populating user popup for", username);
+        window.Userlist.populateUserPopup({ userId: userId });
+      });
+    });
+  }
+};
+
+
+/*
+ * Populates the popup when mousing over a users name or avatar on the user list
+ */
+Userlist.populateUserPopup = function populateUserPopup(data) {
+  var self = this;
+
+  var userId = data.userId;
+  var userObject = ChatManager.userlist[userId];
+
+  var username = userObject.username;;
+  var fullName = userObject.fullName;
+  var emailHash = userObject.emailHash;
+  var email = userObject.email;
+
+  var socket = window.socketClient.socket;
+  var participantIds = [ userId, ChatManager.userNameMap[window.username] ];
+
+  var avatarHtml = "<img src='https://www.gravatar.com/avatar/" + emailHash + "?s=256' class='avatar-l'>";
+
+  $('.userPopup .avatar').html(avatarHtml);
+  $('.userPopup .fullName').text(fullName);
+  $('.userPopup .username').text(username);
+  $('.userPopup .email').text(email);
+  $('.userPopup .email').attr('href', 'mailto:' + email);
+
+  var usernameHtml = "<a href='http://pipo.chat/users/" + username + "' target='_blank'>" + username + "</a>";
+
+  $('.userPopup .username').html(usernameHtml);
+
+  $('.userPopup .privateChatButton').unbind().click(function() {
+    if (username !== window.username) {
+      // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
+      ChatManager.arrayHash(participantIds, function(chatHash) {
+        console.log("[userlist.populateUserPopup] Emitting getChat for private message");
+
+        window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
+
+        window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
+          console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");
+          ChatManager.setActiveChat(chatHash);
+          ChatManager.handleChatUpdate(data, function() {
+          });
+
+          window.socketClient.socket.removeListener('chatUpdate-' + chatHash);
+        });
+      });
+
+
+      $('.userPopup').removeClass('popover').addClass('popover-hidden');
+
+    }
+  })
+};
+
+module.exports = Userlist;
+
+},{}],16:[function(require,module,exports){
 // Modals
 var FileManager = require('../js/files/index.js');
 
@@ -2551,7 +5120,7 @@ window.stream = stream;
 var EncryptionManager = require('../js/encryption/index.js');
 var socketClient = require('../js/network/socketClient.js');
 
-},{"../js/encryption/index.js":1,"../js/files/index.js":2,"../js/modals/createRoomModal.js":3,"../js/modals/editRoomModal.js":4,"../js/modals/registerUserPrompt.js":5,"../js/modals/sendFileModal.js":6,"../js/modals/unlockClientKeyPairModal.js":7,"../js/network/socketClient.js":9,"crypto-browserify":63,"stream-browserify":143}],11:[function(require,module,exports){
+},{"../js/encryption/index.js":4,"../js/files/index.js":5,"../js/modals/createRoomModal.js":6,"../js/modals/editRoomModal.js":7,"../js/modals/registerUserPrompt.js":8,"../js/modals/sendFileModal.js":9,"../js/modals/unlockClientKeyPairModal.js":10,"../js/network/socketClient.js":12,"crypto-browserify":69,"stream-browserify":149}],17:[function(require,module,exports){
 var asn1 = exports;
 
 asn1.bignum = require('bn.js');
@@ -2562,7 +5131,7 @@ asn1.constants = require('./asn1/constants');
 asn1.decoders = require('./asn1/decoders');
 asn1.encoders = require('./asn1/encoders');
 
-},{"./asn1/api":12,"./asn1/base":14,"./asn1/constants":18,"./asn1/decoders":20,"./asn1/encoders":23,"bn.js":26}],12:[function(require,module,exports){
+},{"./asn1/api":18,"./asn1/base":20,"./asn1/constants":24,"./asn1/decoders":26,"./asn1/encoders":29,"bn.js":32}],18:[function(require,module,exports){
 var asn1 = require('../asn1');
 var inherits = require('inherits');
 
@@ -2625,7 +5194,7 @@ Entity.prototype.encode = function encode(data, enc, /* internal */ reporter) {
   return this._getEncoder(enc).encode(data, reporter);
 };
 
-},{"../asn1":11,"inherits":104,"vm":149}],13:[function(require,module,exports){
+},{"../asn1":17,"inherits":110,"vm":155}],19:[function(require,module,exports){
 var inherits = require('inherits');
 var Reporter = require('../base').Reporter;
 var Buffer = require('buffer').Buffer;
@@ -2743,7 +5312,7 @@ EncoderBuffer.prototype.join = function join(out, offset) {
   return out;
 };
 
-},{"../base":14,"buffer":55,"inherits":104}],14:[function(require,module,exports){
+},{"../base":20,"buffer":61,"inherits":110}],20:[function(require,module,exports){
 var base = exports;
 
 base.Reporter = require('./reporter').Reporter;
@@ -2751,7 +5320,7 @@ base.DecoderBuffer = require('./buffer').DecoderBuffer;
 base.EncoderBuffer = require('./buffer').EncoderBuffer;
 base.Node = require('./node');
 
-},{"./buffer":13,"./node":15,"./reporter":16}],15:[function(require,module,exports){
+},{"./buffer":19,"./node":21,"./reporter":22}],21:[function(require,module,exports){
 var Reporter = require('../base').Reporter;
 var EncoderBuffer = require('../base').EncoderBuffer;
 var DecoderBuffer = require('../base').DecoderBuffer;
@@ -3382,7 +5951,7 @@ Node.prototype._isPrintstr = function isPrintstr(str) {
   return /^[A-Za-z0-9 '\(\)\+,\-\.\/:=\?]*$/.test(str);
 };
 
-},{"../base":14,"minimalistic-assert":108}],16:[function(require,module,exports){
+},{"../base":20,"minimalistic-assert":114}],22:[function(require,module,exports){
 var inherits = require('inherits');
 
 function Reporter(options) {
@@ -3505,7 +6074,7 @@ ReporterError.prototype.rethrow = function rethrow(msg) {
   return this;
 };
 
-},{"inherits":104}],17:[function(require,module,exports){
+},{"inherits":110}],23:[function(require,module,exports){
 var constants = require('../constants');
 
 exports.tagClass = {
@@ -3549,7 +6118,7 @@ exports.tag = {
 };
 exports.tagByName = constants._reverse(exports.tag);
 
-},{"../constants":18}],18:[function(require,module,exports){
+},{"../constants":24}],24:[function(require,module,exports){
 var constants = exports;
 
 // Helper
@@ -3570,7 +6139,7 @@ constants._reverse = function reverse(map) {
 
 constants.der = require('./der');
 
-},{"./der":17}],19:[function(require,module,exports){
+},{"./der":23}],25:[function(require,module,exports){
 var inherits = require('inherits');
 
 var asn1 = require('../../asn1');
@@ -3894,13 +6463,13 @@ function derDecodeLen(buf, primitive, fail) {
   return len;
 }
 
-},{"../../asn1":11,"inherits":104}],20:[function(require,module,exports){
+},{"../../asn1":17,"inherits":110}],26:[function(require,module,exports){
 var decoders = exports;
 
 decoders.der = require('./der');
 decoders.pem = require('./pem');
 
-},{"./der":19,"./pem":21}],21:[function(require,module,exports){
+},{"./der":25,"./pem":27}],27:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -3951,7 +6520,7 @@ PEMDecoder.prototype.decode = function decode(data, options) {
   return DERDecoder.prototype.decode.call(this, input, options);
 };
 
-},{"./der":19,"buffer":55,"inherits":104}],22:[function(require,module,exports){
+},{"./der":25,"buffer":61,"inherits":110}],28:[function(require,module,exports){
 var inherits = require('inherits');
 var Buffer = require('buffer').Buffer;
 
@@ -4246,13 +6815,13 @@ function encodeTag(tag, primitive, cls, reporter) {
   return res;
 }
 
-},{"../../asn1":11,"buffer":55,"inherits":104}],23:[function(require,module,exports){
+},{"../../asn1":17,"buffer":61,"inherits":110}],29:[function(require,module,exports){
 var encoders = exports;
 
 encoders.der = require('./der');
 encoders.pem = require('./pem');
 
-},{"./der":22,"./pem":24}],24:[function(require,module,exports){
+},{"./der":28,"./pem":30}],30:[function(require,module,exports){
 var inherits = require('inherits');
 
 var DEREncoder = require('./der');
@@ -4275,7 +6844,7 @@ PEMEncoder.prototype.encode = function encode(data, options) {
   return out.join('\n');
 };
 
-},{"./der":22,"inherits":104}],25:[function(require,module,exports){
+},{"./der":28,"inherits":110}],31:[function(require,module,exports){
 'use strict'
 
 exports.toByteArray = toByteArray
@@ -4386,7 +6955,7 @@ function fromByteArray (uint8) {
   return parts.join('')
 }
 
-},{}],26:[function(require,module,exports){
+},{}],32:[function(require,module,exports){
 (function (module, exports) {
   'use strict';
 
@@ -7815,7 +10384,7 @@ function fromByteArray (uint8) {
   };
 })(typeof module === 'undefined' || module, this);
 
-},{}],27:[function(require,module,exports){
+},{}],33:[function(require,module,exports){
 var r;
 
 module.exports = function rand(len) {
@@ -7874,9 +10443,9 @@ if (typeof window === 'object') {
   }
 }
 
-},{}],28:[function(require,module,exports){
+},{}],34:[function(require,module,exports){
 
-},{}],29:[function(require,module,exports){
+},{}],35:[function(require,module,exports){
 (function (Buffer){
 // based on the aes implimentation in triple sec
 // https://github.com/keybase/triplesec
@@ -8057,7 +10626,7 @@ AES.prototype._doCryptBlock = function (M, keySchedule, SUB_MIX, SBOX) {
 exports.AES = AES
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],30:[function(require,module,exports){
+},{"buffer":61}],36:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -8158,7 +10727,7 @@ function xorTest (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":29,"./ghash":34,"buffer":55,"buffer-xor":54,"cipher-base":56,"inherits":104}],31:[function(require,module,exports){
+},{"./aes":35,"./ghash":40,"buffer":61,"buffer-xor":60,"cipher-base":62,"inherits":110}],37:[function(require,module,exports){
 var ciphers = require('./encrypter')
 exports.createCipher = exports.Cipher = ciphers.createCipher
 exports.createCipheriv = exports.Cipheriv = ciphers.createCipheriv
@@ -8171,7 +10740,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"./decrypter":32,"./encrypter":33,"./modes":35}],32:[function(require,module,exports){
+},{"./decrypter":38,"./encrypter":39,"./modes":41}],38:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -8312,7 +10881,7 @@ exports.createDecipher = createDecipher
 exports.createDecipheriv = createDecipheriv
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":29,"./authCipher":30,"./modes":35,"./modes/cbc":36,"./modes/cfb":37,"./modes/cfb1":38,"./modes/cfb8":39,"./modes/ctr":40,"./modes/ecb":41,"./modes/ofb":42,"./streamCipher":43,"buffer":55,"cipher-base":56,"evp_bytestokey":92,"inherits":104}],33:[function(require,module,exports){
+},{"./aes":35,"./authCipher":36,"./modes":41,"./modes/cbc":42,"./modes/cfb":43,"./modes/cfb1":44,"./modes/cfb8":45,"./modes/ctr":46,"./modes/ecb":47,"./modes/ofb":48,"./streamCipher":49,"buffer":61,"cipher-base":62,"evp_bytestokey":98,"inherits":110}],39:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -8438,7 +11007,7 @@ exports.createCipheriv = createCipheriv
 exports.createCipher = createCipher
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":29,"./authCipher":30,"./modes":35,"./modes/cbc":36,"./modes/cfb":37,"./modes/cfb1":38,"./modes/cfb8":39,"./modes/ctr":40,"./modes/ecb":41,"./modes/ofb":42,"./streamCipher":43,"buffer":55,"cipher-base":56,"evp_bytestokey":92,"inherits":104}],34:[function(require,module,exports){
+},{"./aes":35,"./authCipher":36,"./modes":41,"./modes/cbc":42,"./modes/cfb":43,"./modes/cfb1":44,"./modes/cfb8":45,"./modes/ctr":46,"./modes/ecb":47,"./modes/ofb":48,"./streamCipher":49,"buffer":61,"cipher-base":62,"evp_bytestokey":98,"inherits":110}],40:[function(require,module,exports){
 (function (Buffer){
 var zeros = new Buffer(16)
 zeros.fill(0)
@@ -8540,7 +11109,7 @@ function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],35:[function(require,module,exports){
+},{"buffer":61}],41:[function(require,module,exports){
 exports['aes-128-ecb'] = {
   cipher: 'AES',
   key: 128,
@@ -8713,7 +11282,7 @@ exports['aes-256-gcm'] = {
   type: 'auth'
 }
 
-},{}],36:[function(require,module,exports){
+},{}],42:[function(require,module,exports){
 var xor = require('buffer-xor')
 
 exports.encrypt = function (self, block) {
@@ -8732,7 +11301,7 @@ exports.decrypt = function (self, block) {
   return xor(out, pad)
 }
 
-},{"buffer-xor":54}],37:[function(require,module,exports){
+},{"buffer-xor":60}],43:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -8767,7 +11336,7 @@ function encryptStart (self, data, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"buffer-xor":54}],38:[function(require,module,exports){
+},{"buffer":61,"buffer-xor":60}],44:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad
@@ -8805,7 +11374,7 @@ function shiftIn (buffer, value) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],39:[function(require,module,exports){
+},{"buffer":61}],45:[function(require,module,exports){
 (function (Buffer){
 function encryptByte (self, byteParam, decrypt) {
   var pad = self._cipher.encryptBlock(self._prev)
@@ -8824,7 +11393,7 @@ exports.encrypt = function (self, chunk, decrypt) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],40:[function(require,module,exports){
+},{"buffer":61}],46:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -8859,7 +11428,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"buffer-xor":54}],41:[function(require,module,exports){
+},{"buffer":61,"buffer-xor":60}],47:[function(require,module,exports){
 exports.encrypt = function (self, block) {
   return self._cipher.encryptBlock(block)
 }
@@ -8867,7 +11436,7 @@ exports.decrypt = function (self, block) {
   return self._cipher.decryptBlock(block)
 }
 
-},{}],42:[function(require,module,exports){
+},{}],48:[function(require,module,exports){
 (function (Buffer){
 var xor = require('buffer-xor')
 
@@ -8887,7 +11456,7 @@ exports.encrypt = function (self, chunk) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"buffer-xor":54}],43:[function(require,module,exports){
+},{"buffer":61,"buffer-xor":60}],49:[function(require,module,exports){
 (function (Buffer){
 var aes = require('./aes')
 var Transform = require('cipher-base')
@@ -8916,7 +11485,7 @@ StreamCipher.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aes":29,"buffer":55,"cipher-base":56,"inherits":104}],44:[function(require,module,exports){
+},{"./aes":35,"buffer":61,"cipher-base":62,"inherits":110}],50:[function(require,module,exports){
 var ebtk = require('evp_bytestokey')
 var aes = require('browserify-aes/browser')
 var DES = require('browserify-des')
@@ -8991,7 +11560,7 @@ function getCiphers () {
 }
 exports.listCiphers = exports.getCiphers = getCiphers
 
-},{"browserify-aes/browser":31,"browserify-aes/modes":35,"browserify-des":45,"browserify-des/modes":46,"evp_bytestokey":92}],45:[function(require,module,exports){
+},{"browserify-aes/browser":37,"browserify-aes/modes":41,"browserify-des":51,"browserify-des/modes":52,"evp_bytestokey":98}],51:[function(require,module,exports){
 (function (Buffer){
 var CipherBase = require('cipher-base')
 var des = require('des.js')
@@ -9038,7 +11607,7 @@ DES.prototype._final = function () {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"cipher-base":56,"des.js":64,"inherits":104}],46:[function(require,module,exports){
+},{"buffer":61,"cipher-base":62,"des.js":70,"inherits":110}],52:[function(require,module,exports){
 exports['des-ecb'] = {
   key: 8,
   iv: 0
@@ -9064,7 +11633,7 @@ exports['des-ede'] = {
   iv: 0
 }
 
-},{}],47:[function(require,module,exports){
+},{}],53:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 var randomBytes = require('randombytes');
@@ -9108,7 +11677,7 @@ function getr(priv) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":26,"buffer":55,"randombytes":122}],48:[function(require,module,exports){
+},{"bn.js":32,"buffer":61,"randombytes":128}],54:[function(require,module,exports){
 (function (Buffer){
 'use strict'
 exports['RSA-SHA224'] = exports.sha224WithRSAEncryption = {
@@ -9184,7 +11753,7 @@ exports['RSA-MD5'] = exports.md5WithRSAEncryption = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],49:[function(require,module,exports){
+},{"buffer":61}],55:[function(require,module,exports){
 (function (Buffer){
 var _algos = require('./algos')
 var createHash = require('create-hash')
@@ -9291,7 +11860,7 @@ module.exports = {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./algos":48,"./sign":51,"./verify":52,"buffer":55,"create-hash":59,"inherits":104,"stream":143}],50:[function(require,module,exports){
+},{"./algos":54,"./sign":57,"./verify":58,"buffer":61,"create-hash":65,"inherits":110,"stream":149}],56:[function(require,module,exports){
 'use strict'
 exports['1.3.132.0.10'] = 'secp256k1'
 
@@ -9305,7 +11874,7 @@ exports['1.3.132.0.34'] = 'p384'
 
 exports['1.3.132.0.35'] = 'p521'
 
-},{}],51:[function(require,module,exports){
+},{}],57:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var createHmac = require('create-hmac')
@@ -9494,7 +12063,7 @@ module.exports.getKey = getKey
 module.exports.makeKey = makeKey
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":50,"bn.js":26,"browserify-rsa":47,"buffer":55,"create-hmac":62,"elliptic":74,"parse-asn1":112}],52:[function(require,module,exports){
+},{"./curves":56,"bn.js":32,"browserify-rsa":53,"buffer":61,"create-hmac":68,"elliptic":80,"parse-asn1":118}],58:[function(require,module,exports){
 (function (Buffer){
 // much of this based on https://github.com/indutny/self-signed/blob/gh-pages/lib/rsa.js
 var curves = require('./curves')
@@ -9601,7 +12170,7 @@ function checkValue (b, q) {
 module.exports = verify
 
 }).call(this,require("buffer").Buffer)
-},{"./curves":50,"bn.js":26,"buffer":55,"elliptic":74,"parse-asn1":112}],53:[function(require,module,exports){
+},{"./curves":56,"bn.js":32,"buffer":61,"elliptic":80,"parse-asn1":118}],59:[function(require,module,exports){
 (function (global){
 'use strict';
 
@@ -9713,7 +12282,7 @@ exports.allocUnsafeSlow = function allocUnsafeSlow(size) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"buffer":55}],54:[function(require,module,exports){
+},{"buffer":61}],60:[function(require,module,exports){
 (function (Buffer){
 module.exports = function xor (a, b) {
   var length = Math.min(a.length, b.length)
@@ -9727,7 +12296,7 @@ module.exports = function xor (a, b) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],55:[function(require,module,exports){
+},{"buffer":61}],61:[function(require,module,exports){
 (function (global){
 /*!
  * The buffer module from node.js, for the browser.
@@ -11520,7 +14089,7 @@ function isnan (val) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"base64-js":25,"ieee754":102,"isarray":106}],56:[function(require,module,exports){
+},{"base64-js":31,"ieee754":108,"isarray":112}],62:[function(require,module,exports){
 (function (Buffer){
 var Transform = require('stream').Transform
 var inherits = require('inherits')
@@ -11614,7 +14183,7 @@ CipherBase.prototype._toString = function (value, enc, final) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"inherits":104,"stream":143,"string_decoder":144}],57:[function(require,module,exports){
+},{"buffer":61,"inherits":110,"stream":149,"string_decoder":150}],63:[function(require,module,exports){
 (function (Buffer){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -11725,7 +14294,7 @@ function objectToString(o) {
 }
 
 }).call(this,{"isBuffer":require("../../is-buffer/index.js")})
-},{"../../is-buffer/index.js":105}],58:[function(require,module,exports){
+},{"../../is-buffer/index.js":111}],64:[function(require,module,exports){
 (function (Buffer){
 var elliptic = require('elliptic');
 var BN = require('bn.js');
@@ -11851,7 +14420,7 @@ function formatReturnValue(bn, enc, len) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"bn.js":26,"buffer":55,"elliptic":74}],59:[function(require,module,exports){
+},{"bn.js":32,"buffer":61,"elliptic":80}],65:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var inherits = require('inherits')
@@ -11907,7 +14476,7 @@ module.exports = function createHash (alg) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./md5":61,"buffer":55,"cipher-base":56,"inherits":104,"ripemd160":134,"sha.js":136}],60:[function(require,module,exports){
+},{"./md5":67,"buffer":61,"cipher-base":62,"inherits":110,"ripemd160":140,"sha.js":142}],66:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var intSize = 4;
@@ -11944,7 +14513,7 @@ function hash(buf, fn, hashSize, bigEndian) {
 }
 exports.hash = hash;
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],61:[function(require,module,exports){
+},{"buffer":61}],67:[function(require,module,exports){
 'use strict';
 /*
  * A JavaScript implementation of the RSA Data Security, Inc. MD5 Message
@@ -12101,7 +14670,7 @@ function bit_rol(num, cnt)
 module.exports = function md5(buf) {
   return helpers.hash(buf, core_md5, 16);
 };
-},{"./helpers":60}],62:[function(require,module,exports){
+},{"./helpers":66}],68:[function(require,module,exports){
 (function (Buffer){
 'use strict';
 var createHash = require('create-hash/browser');
@@ -12173,7 +14742,7 @@ module.exports = function createHmac(alg, key) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"create-hash/browser":59,"inherits":104,"stream":143}],63:[function(require,module,exports){
+},{"buffer":61,"create-hash/browser":65,"inherits":110,"stream":149}],69:[function(require,module,exports){
 'use strict'
 
 exports.randomBytes = exports.rng = exports.pseudoRandomBytes = exports.prng = require('randombytes')
@@ -12252,7 +14821,7 @@ var publicEncrypt = require('public-encrypt')
   }
 })
 
-},{"browserify-cipher":44,"browserify-sign":49,"browserify-sign/algos":48,"create-ecdh":58,"create-hash":59,"create-hmac":62,"diffie-hellman":70,"pbkdf2":113,"public-encrypt":116,"randombytes":122}],64:[function(require,module,exports){
+},{"browserify-cipher":50,"browserify-sign":55,"browserify-sign/algos":54,"create-ecdh":64,"create-hash":65,"create-hmac":68,"diffie-hellman":76,"pbkdf2":119,"public-encrypt":122,"randombytes":128}],70:[function(require,module,exports){
 'use strict';
 
 exports.utils = require('./des/utils');
@@ -12261,7 +14830,7 @@ exports.DES = require('./des/des');
 exports.CBC = require('./des/cbc');
 exports.EDE = require('./des/ede');
 
-},{"./des/cbc":65,"./des/cipher":66,"./des/des":67,"./des/ede":68,"./des/utils":69}],65:[function(require,module,exports){
+},{"./des/cbc":71,"./des/cipher":72,"./des/des":73,"./des/ede":74,"./des/utils":75}],71:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -12328,7 +14897,7 @@ proto._update = function _update(inp, inOff, out, outOff) {
   }
 };
 
-},{"inherits":104,"minimalistic-assert":108}],66:[function(require,module,exports){
+},{"inherits":110,"minimalistic-assert":114}],72:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -12471,7 +15040,7 @@ Cipher.prototype._finalDecrypt = function _finalDecrypt() {
   return this._unpad(out);
 };
 
-},{"minimalistic-assert":108}],67:[function(require,module,exports){
+},{"minimalistic-assert":114}],73:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -12616,7 +15185,7 @@ DES.prototype._decrypt = function _decrypt(state, lStart, rStart, out, off) {
   utils.rip(l, r, out, off);
 };
 
-},{"../des":64,"inherits":104,"minimalistic-assert":108}],68:[function(require,module,exports){
+},{"../des":70,"inherits":110,"minimalistic-assert":114}],74:[function(require,module,exports){
 'use strict';
 
 var assert = require('minimalistic-assert');
@@ -12673,7 +15242,7 @@ EDE.prototype._update = function _update(inp, inOff, out, outOff) {
 EDE.prototype._pad = DES.prototype._pad;
 EDE.prototype._unpad = DES.prototype._unpad;
 
-},{"../des":64,"inherits":104,"minimalistic-assert":108}],69:[function(require,module,exports){
+},{"../des":70,"inherits":110,"minimalistic-assert":114}],75:[function(require,module,exports){
 'use strict';
 
 exports.readUInt32BE = function readUInt32BE(bytes, off) {
@@ -12931,7 +15500,7 @@ exports.padSplit = function padSplit(num, size, group) {
   return out.join(' ');
 };
 
-},{}],70:[function(require,module,exports){
+},{}],76:[function(require,module,exports){
 (function (Buffer){
 var generatePrime = require('./lib/generatePrime')
 var primes = require('./lib/primes.json')
@@ -12977,7 +15546,7 @@ exports.DiffieHellmanGroup = exports.createDiffieHellmanGroup = exports.getDiffi
 exports.createDiffieHellman = exports.DiffieHellman = createDiffieHellman
 
 }).call(this,require("buffer").Buffer)
-},{"./lib/dh":71,"./lib/generatePrime":72,"./lib/primes.json":73,"buffer":55}],71:[function(require,module,exports){
+},{"./lib/dh":77,"./lib/generatePrime":78,"./lib/primes.json":79,"buffer":61}],77:[function(require,module,exports){
 (function (Buffer){
 var BN = require('bn.js');
 var MillerRabin = require('miller-rabin');
@@ -13145,7 +15714,7 @@ function formatReturnValue(bn, enc) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./generatePrime":72,"bn.js":26,"buffer":55,"miller-rabin":107,"randombytes":122}],72:[function(require,module,exports){
+},{"./generatePrime":78,"bn.js":32,"buffer":61,"miller-rabin":113,"randombytes":128}],78:[function(require,module,exports){
 var randomBytes = require('randombytes');
 module.exports = findPrime;
 findPrime.simpleSieve = simpleSieve;
@@ -13252,7 +15821,7 @@ function findPrime(bits, gen) {
 
 }
 
-},{"bn.js":26,"miller-rabin":107,"randombytes":122}],73:[function(require,module,exports){
+},{"bn.js":32,"miller-rabin":113,"randombytes":128}],79:[function(require,module,exports){
 module.exports={
     "modp1": {
         "gen": "02",
@@ -13287,7 +15856,7 @@ module.exports={
         "prime": "ffffffffffffffffc90fdaa22168c234c4c6628b80dc1cd129024e088a67cc74020bbea63b139b22514a08798e3404ddef9519b3cd3a431b302b0a6df25f14374fe1356d6d51c245e485b576625e7ec6f44c42e9a637ed6b0bff5cb6f406b7edee386bfb5a899fa5ae9f24117c4b1fe649286651ece45b3dc2007cb8a163bf0598da48361c55d39a69163fa8fd24cf5f83655d23dca3ad961c62f356208552bb9ed529077096966d670c354e4abc9804f1746c08ca18217c32905e462e36ce3be39e772c180e86039b2783a2ec07a28fb5c55df06f4c52c9de2bcbf6955817183995497cea956ae515d2261898fa051015728e5a8aaac42dad33170d04507a33a85521abdf1cba64ecfb850458dbef0a8aea71575d060c7db3970f85a6e1e4c7abf5ae8cdb0933d71e8c94e04a25619dcee3d2261ad2ee6bf12ffa06d98a0864d87602733ec86a64521f2b18177b200cbbe117577a615d6c770988c0bad946e208e24fa074e5ab3143db5bfce0fd108e4b82d120a92108011a723c12a787e6d788719a10bdba5b2699c327186af4e23c1a946834b6150bda2583e9ca2ad44ce8dbbbc2db04de8ef92e8efc141fbecaa6287c59474e6bc05d99b2964fa090c3a2233ba186515be7ed1f612970cee2d7afb81bdd762170481cd0069127d5b05aa993b4ea988d8fddc186ffb7dc90a6c08f4df435c93402849236c3fab4d27c7026c1d4dcb2602646dec9751e763dba37bdf8ff9406ad9e530ee5db382f413001aeb06a53ed9027d831179727b0865a8918da3edbebcf9b14ed44ce6cbaced4bb1bdb7f1447e6cc254b332051512bd7af426fb8f401378cd2bf5983ca01c64b92ecf032ea15d1721d03f482d7ce6e74fef6d55e702f46980c82b5a84031900b1c9e59e7c97fbec7e8f323a97a7e36cc88be0f1d45b7ff585ac54bd407b22b4154aacc8f6d7ebf48e1d814cc5ed20f8037e0a79715eef29be32806a1d58bb7c5da76f550aa3d8a1fbff0eb19ccb1a313d55cda56c9ec2ef29632387fe8d76e3c0468043e8f663f4860ee12bf2d5b0b7474d6e694f91e6dbe115974a3926f12fee5e438777cb6a932df8cd8bec4d073b931ba3bc832b68d9dd300741fa7bf8afc47ed2576f6936ba424663aab639c5ae4f5683423b4742bf1c978238f16cbe39d652de3fdb8befc848ad922222e04a4037c0713eb57a81a23f0c73473fc646cea306b4bcbc8862f8385ddfa9d4b7fa2c087e879683303ed5bdd3a062b3cf5b3a278a66d2a13f83f44f82ddf310ee074ab6a364597e899a0255dc164f31cc50846851df9ab48195ded7ea1b1d510bd7ee74d73faf36bc31ecfa268359046f4eb879f924009438b481c6cd7889a002ed5ee382bc9190da6fc026e479558e4475677e9aa9e3050e2765694dfc81f56e880b96e7160c980dd98edd3dfffffffffffffffff"
     }
 }
-},{}],74:[function(require,module,exports){
+},{}],80:[function(require,module,exports){
 'use strict';
 
 var elliptic = exports;
@@ -13303,7 +15872,7 @@ elliptic.curves = require('./elliptic/curves');
 elliptic.ec = require('./elliptic/ec');
 elliptic.eddsa = require('./elliptic/eddsa');
 
-},{"../package.json":90,"./elliptic/curve":77,"./elliptic/curves":80,"./elliptic/ec":81,"./elliptic/eddsa":84,"./elliptic/hmac-drbg":87,"./elliptic/utils":89,"brorand":27}],75:[function(require,module,exports){
+},{"../package.json":96,"./elliptic/curve":83,"./elliptic/curves":86,"./elliptic/ec":87,"./elliptic/eddsa":90,"./elliptic/hmac-drbg":93,"./elliptic/utils":95,"brorand":33}],81:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -13680,7 +16249,7 @@ BasePoint.prototype.dblp = function dblp(k) {
   return r;
 };
 
-},{"../../elliptic":74,"bn.js":26}],76:[function(require,module,exports){
+},{"../../elliptic":80,"bn.js":32}],82:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -14115,7 +16684,7 @@ Point.prototype.eqXToP = function eqXToP(x) {
 Point.prototype.toP = Point.prototype.normalize;
 Point.prototype.mixedAdd = Point.prototype.add;
 
-},{"../../elliptic":74,"../curve":77,"bn.js":26,"inherits":104}],77:[function(require,module,exports){
+},{"../../elliptic":80,"../curve":83,"bn.js":32,"inherits":110}],83:[function(require,module,exports){
 'use strict';
 
 var curve = exports;
@@ -14125,7 +16694,7 @@ curve.short = require('./short');
 curve.mont = require('./mont');
 curve.edwards = require('./edwards');
 
-},{"./base":75,"./edwards":76,"./mont":78,"./short":79}],78:[function(require,module,exports){
+},{"./base":81,"./edwards":82,"./mont":84,"./short":85}],84:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -14307,7 +16876,7 @@ Point.prototype.getX = function getX() {
   return this.x.fromRed();
 };
 
-},{"../../elliptic":74,"../curve":77,"bn.js":26,"inherits":104}],79:[function(require,module,exports){
+},{"../../elliptic":80,"../curve":83,"bn.js":32,"inherits":110}],85:[function(require,module,exports){
 'use strict';
 
 var curve = require('../curve');
@@ -15247,7 +17816,7 @@ JPoint.prototype.isInfinity = function isInfinity() {
   return this.z.cmpn(0) === 0;
 };
 
-},{"../../elliptic":74,"../curve":77,"bn.js":26,"inherits":104}],80:[function(require,module,exports){
+},{"../../elliptic":80,"../curve":83,"bn.js":32,"inherits":110}],86:[function(require,module,exports){
 'use strict';
 
 var curves = exports;
@@ -15454,7 +18023,7 @@ defineCurve('secp256k1', {
   ]
 });
 
-},{"../elliptic":74,"./precomputed/secp256k1":88,"hash.js":96}],81:[function(require,module,exports){
+},{"../elliptic":80,"./precomputed/secp256k1":94,"hash.js":102}],87:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -15692,7 +18261,7 @@ EC.prototype.getKeyRecoveryParam = function(e, signature, Q, enc) {
   throw new Error('Unable to find valid recovery factor');
 };
 
-},{"../../elliptic":74,"./key":82,"./signature":83,"bn.js":26}],82:[function(require,module,exports){
+},{"../../elliptic":80,"./key":88,"./signature":89,"bn.js":32}],88:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -15801,7 +18370,7 @@ KeyPair.prototype.inspect = function inspect() {
          ' pub: ' + (this.pub && this.pub.inspect()) + ' >';
 };
 
-},{"bn.js":26}],83:[function(require,module,exports){
+},{"bn.js":32}],89:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -15938,7 +18507,7 @@ Signature.prototype.toDER = function toDER(enc) {
   return utils.encode(res, enc);
 };
 
-},{"../../elliptic":74,"bn.js":26}],84:[function(require,module,exports){
+},{"../../elliptic":80,"bn.js":32}],90:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -16058,7 +18627,7 @@ EDDSA.prototype.isPoint = function isPoint(val) {
   return val instanceof this.pointClass;
 };
 
-},{"../../elliptic":74,"./key":85,"./signature":86,"hash.js":96}],85:[function(require,module,exports){
+},{"../../elliptic":80,"./key":91,"./signature":92,"hash.js":102}],91:[function(require,module,exports){
 'use strict';
 
 var elliptic = require('../../elliptic');
@@ -16156,7 +18725,7 @@ KeyPair.prototype.getPublic = function getPublic(enc) {
 
 module.exports = KeyPair;
 
-},{"../../elliptic":74}],86:[function(require,module,exports){
+},{"../../elliptic":80}],92:[function(require,module,exports){
 'use strict';
 
 var BN = require('bn.js');
@@ -16224,7 +18793,7 @@ Signature.prototype.toHex = function toHex() {
 
 module.exports = Signature;
 
-},{"../../elliptic":74,"bn.js":26}],87:[function(require,module,exports){
+},{"../../elliptic":80,"bn.js":32}],93:[function(require,module,exports){
 'use strict';
 
 var hash = require('hash.js');
@@ -16340,7 +18909,7 @@ HmacDRBG.prototype.generate = function generate(len, enc, add, addEnc) {
   return utils.encode(res, enc);
 };
 
-},{"../elliptic":74,"hash.js":96}],88:[function(require,module,exports){
+},{"../elliptic":80,"hash.js":102}],94:[function(require,module,exports){
 module.exports = {
   doubles: {
     step: 4,
@@ -17122,7 +19691,7 @@ module.exports = {
   }
 };
 
-},{}],89:[function(require,module,exports){
+},{}],95:[function(require,module,exports){
 'use strict';
 
 var utils = exports;
@@ -17296,7 +19865,7 @@ function intFromLE(bytes) {
 utils.intFromLE = intFromLE;
 
 
-},{"bn.js":26}],90:[function(require,module,exports){
+},{"bn.js":32}],96:[function(require,module,exports){
 module.exports={
   "_args": [
     [
@@ -17408,7 +19977,7 @@ module.exports={
   "version": "6.3.1"
 }
 
-},{}],91:[function(require,module,exports){
+},{}],97:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -17712,7 +20281,7 @@ function isUndefined(arg) {
   return arg === void 0;
 }
 
-},{}],92:[function(require,module,exports){
+},{}],98:[function(require,module,exports){
 (function (Buffer){
 var md5 = require('create-hash/md5')
 module.exports = EVP_BytesToKey
@@ -17784,7 +20353,7 @@ function EVP_BytesToKey (password, salt, keyLen, ivLen) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"create-hash/md5":61}],93:[function(require,module,exports){
+},{"buffer":61,"create-hash/md5":67}],99:[function(require,module,exports){
 var Readable = require('./lib/readable.js');
 var Writable = require('./lib/writable.js');
 
@@ -17793,7 +20362,7 @@ module.exports = {
   Writable: Writable
 };
 
-},{"./lib/readable.js":94,"./lib/writable.js":95}],94:[function(require,module,exports){
+},{"./lib/readable.js":100,"./lib/writable.js":101}],100:[function(require,module,exports){
 (function (Buffer){
 const StreamReadable = require('stream').Readable;
 const inherits = require('util').inherits;
@@ -17862,7 +20431,7 @@ function blobToBuffer (blob, cb) {
 module.exports = Readable;
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"stream":143,"util":148}],95:[function(require,module,exports){
+},{"buffer":61,"stream":149,"util":154}],101:[function(require,module,exports){
 const StreamWritable = require('stream').Writable;
 const inherits = require('util').inherits;
 
@@ -17875,7 +20444,7 @@ inherits(Writable, StreamWritable);
 
 module.exports = Writable;
 
-},{"stream":143,"util":148}],96:[function(require,module,exports){
+},{"stream":149,"util":154}],102:[function(require,module,exports){
 var hash = exports;
 
 hash.utils = require('./hash/utils');
@@ -17892,7 +20461,7 @@ hash.sha384 = hash.sha.sha384;
 hash.sha512 = hash.sha.sha512;
 hash.ripemd160 = hash.ripemd.ripemd160;
 
-},{"./hash/common":97,"./hash/hmac":98,"./hash/ripemd":99,"./hash/sha":100,"./hash/utils":101}],97:[function(require,module,exports){
+},{"./hash/common":103,"./hash/hmac":104,"./hash/ripemd":105,"./hash/sha":106,"./hash/utils":107}],103:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -17985,7 +20554,7 @@ BlockHash.prototype._pad = function pad() {
   return res;
 };
 
-},{"../hash":96}],98:[function(require,module,exports){
+},{"../hash":102}],104:[function(require,module,exports){
 var hmac = exports;
 
 var hash = require('../hash');
@@ -18035,7 +20604,7 @@ Hmac.prototype.digest = function digest(enc) {
   return this.outer.digest(enc);
 };
 
-},{"../hash":96}],99:[function(require,module,exports){
+},{"../hash":102}],105:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 
@@ -18181,7 +20750,7 @@ var sh = [
   8, 5, 12, 9, 12, 5, 14, 6, 8, 13, 6, 5, 15, 13, 11, 11
 ];
 
-},{"../hash":96}],100:[function(require,module,exports){
+},{"../hash":102}],106:[function(require,module,exports){
 var hash = require('../hash');
 var utils = hash.utils;
 var assert = utils.assert;
@@ -18747,7 +21316,7 @@ function g1_512_lo(xh, xl) {
   return r;
 }
 
-},{"../hash":96}],101:[function(require,module,exports){
+},{"../hash":102}],107:[function(require,module,exports){
 var utils = exports;
 var inherits = require('inherits');
 
@@ -19006,7 +21575,7 @@ function shr64_lo(ah, al, num) {
 };
 exports.shr64_lo = shr64_lo;
 
-},{"inherits":104}],102:[function(require,module,exports){
+},{"inherits":110}],108:[function(require,module,exports){
 exports.read = function (buffer, offset, isLE, mLen, nBytes) {
   var e, m
   var eLen = nBytes * 8 - mLen - 1
@@ -19092,7 +21661,7 @@ exports.write = function (buffer, value, offset, isLE, mLen, nBytes) {
   buffer[offset + i - d] |= s * 128
 }
 
-},{}],103:[function(require,module,exports){
+},{}],109:[function(require,module,exports){
 
 var indexOf = [].indexOf;
 
@@ -19103,7 +21672,7 @@ module.exports = function(arr, obj){
   }
   return -1;
 };
-},{}],104:[function(require,module,exports){
+},{}],110:[function(require,module,exports){
 if (typeof Object.create === 'function') {
   // implementation from standard node.js 'util' module
   module.exports = function inherits(ctor, superCtor) {
@@ -19128,7 +21697,7 @@ if (typeof Object.create === 'function') {
   }
 }
 
-},{}],105:[function(require,module,exports){
+},{}],111:[function(require,module,exports){
 /*!
  * Determine if an object is a Buffer
  *
@@ -19151,14 +21720,14 @@ function isSlowBuffer (obj) {
   return typeof obj.readFloatLE === 'function' && typeof obj.slice === 'function' && isBuffer(obj.slice(0, 0))
 }
 
-},{}],106:[function(require,module,exports){
+},{}],112:[function(require,module,exports){
 var toString = {}.toString;
 
 module.exports = Array.isArray || function (arr) {
   return toString.call(arr) == '[object Array]';
 };
 
-},{}],107:[function(require,module,exports){
+},{}],113:[function(require,module,exports){
 var bn = require('bn.js');
 var brorand = require('brorand');
 
@@ -19273,7 +21842,7 @@ MillerRabin.prototype.getDivisor = function getDivisor(n, k) {
   return false;
 };
 
-},{"bn.js":26,"brorand":27}],108:[function(require,module,exports){
+},{"bn.js":32,"brorand":33}],114:[function(require,module,exports){
 module.exports = assert;
 
 function assert(val, msg) {
@@ -19286,7 +21855,7 @@ assert.equal = function assertEqual(l, r, msg) {
     throw new Error(msg || ('Assertion failed: ' + l + ' != ' + r));
 };
 
-},{}],109:[function(require,module,exports){
+},{}],115:[function(require,module,exports){
 module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.2": "aes-128-cbc",
 "2.16.840.1.101.3.4.1.3": "aes-128-ofb",
@@ -19300,7 +21869,7 @@ module.exports={"2.16.840.1.101.3.4.1.1": "aes-128-ecb",
 "2.16.840.1.101.3.4.1.43": "aes-256-ofb",
 "2.16.840.1.101.3.4.1.44": "aes-256-cfb"
 }
-},{}],110:[function(require,module,exports){
+},{}],116:[function(require,module,exports){
 // from https://github.com/indutny/self-signed/blob/gh-pages/lib/asn1.js
 // Fedor, you are amazing.
 
@@ -19419,7 +21988,7 @@ exports.signature = asn1.define('signature', function () {
   )
 })
 
-},{"asn1.js":11}],111:[function(require,module,exports){
+},{"asn1.js":17}],117:[function(require,module,exports){
 (function (Buffer){
 // adapted from https://github.com/apatil/pemstrip
 var findProc = /Proc-Type: 4,ENCRYPTED\r?\nDEK-Info: AES-((?:128)|(?:192)|(?:256))-CBC,([0-9A-H]+)\r?\n\r?\n([0-9A-z\n\r\+\/\=]+)\r?\n/m
@@ -19453,7 +22022,7 @@ module.exports = function (okey, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"browserify-aes":31,"buffer":55,"evp_bytestokey":92}],112:[function(require,module,exports){
+},{"browserify-aes":37,"buffer":61,"evp_bytestokey":98}],118:[function(require,module,exports){
 (function (Buffer){
 var asn1 = require('./asn1')
 var aesid = require('./aesid.json')
@@ -19558,7 +22127,7 @@ function decrypt (data, password) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"./aesid.json":109,"./asn1":110,"./fixProc":111,"browserify-aes":31,"buffer":55,"pbkdf2":113}],113:[function(require,module,exports){
+},{"./aesid.json":115,"./asn1":116,"./fixProc":117,"browserify-aes":37,"buffer":61,"pbkdf2":119}],119:[function(require,module,exports){
 (function (Buffer){
 var createHmac = require('create-hmac')
 var MAX_ALLOC = Math.pow(2, 30) - 1 // default in iojs
@@ -19642,7 +22211,7 @@ function pbkdf2Sync (password, salt, iterations, keylen, digest) {
 }
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"create-hmac":62}],114:[function(require,module,exports){
+},{"buffer":61,"create-hmac":68}],120:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -19689,7 +22258,7 @@ function nextTick(fn, arg1, arg2, arg3) {
 }
 
 }).call(this,require('_process'))
-},{"_process":115}],115:[function(require,module,exports){
+},{"_process":121}],121:[function(require,module,exports){
 // shim for using process in browser
 var process = module.exports = {};
 
@@ -19851,7 +22420,7 @@ process.chdir = function (dir) {
 };
 process.umask = function() { return 0; };
 
-},{}],116:[function(require,module,exports){
+},{}],122:[function(require,module,exports){
 exports.publicEncrypt = require('./publicEncrypt');
 exports.privateDecrypt = require('./privateDecrypt');
 
@@ -19862,7 +22431,7 @@ exports.privateEncrypt = function privateEncrypt(key, buf) {
 exports.publicDecrypt = function publicDecrypt(key, buf) {
   return exports.privateDecrypt(key, buf, true);
 };
-},{"./privateDecrypt":118,"./publicEncrypt":119}],117:[function(require,module,exports){
+},{"./privateDecrypt":124,"./publicEncrypt":125}],123:[function(require,module,exports){
 (function (Buffer){
 var createHash = require('create-hash');
 module.exports = function (seed, len) {
@@ -19881,7 +22450,7 @@ function i2ops(c) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"buffer":55,"create-hash":59}],118:[function(require,module,exports){
+},{"buffer":61,"create-hash":65}],124:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var mgf = require('./mgf');
@@ -19992,7 +22561,7 @@ function compare(a, b){
   return dif;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":117,"./withPublic":120,"./xor":121,"bn.js":26,"browserify-rsa":47,"buffer":55,"create-hash":59,"parse-asn1":112}],119:[function(require,module,exports){
+},{"./mgf":123,"./withPublic":126,"./xor":127,"bn.js":32,"browserify-rsa":53,"buffer":61,"create-hash":65,"parse-asn1":118}],125:[function(require,module,exports){
 (function (Buffer){
 var parseKeys = require('parse-asn1');
 var randomBytes = require('randombytes');
@@ -20090,7 +22659,7 @@ function nonZero(len, crypto) {
   return out;
 }
 }).call(this,require("buffer").Buffer)
-},{"./mgf":117,"./withPublic":120,"./xor":121,"bn.js":26,"browserify-rsa":47,"buffer":55,"create-hash":59,"parse-asn1":112,"randombytes":122}],120:[function(require,module,exports){
+},{"./mgf":123,"./withPublic":126,"./xor":127,"bn.js":32,"browserify-rsa":53,"buffer":61,"create-hash":65,"parse-asn1":118,"randombytes":128}],126:[function(require,module,exports){
 (function (Buffer){
 var bn = require('bn.js');
 function withPublic(paddedMsg, key) {
@@ -20103,7 +22672,7 @@ function withPublic(paddedMsg, key) {
 
 module.exports = withPublic;
 }).call(this,require("buffer").Buffer)
-},{"bn.js":26,"buffer":55}],121:[function(require,module,exports){
+},{"bn.js":32,"buffer":61}],127:[function(require,module,exports){
 module.exports = function xor(a, b) {
   var len = a.length;
   var i = -1;
@@ -20112,7 +22681,7 @@ module.exports = function xor(a, b) {
   }
   return a
 };
-},{}],122:[function(require,module,exports){
+},{}],128:[function(require,module,exports){
 (function (process,global,Buffer){
 'use strict'
 
@@ -20152,10 +22721,10 @@ function randomBytes (size, cb) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {},require("buffer").Buffer)
-},{"_process":115,"buffer":55}],123:[function(require,module,exports){
+},{"_process":121,"buffer":61}],129:[function(require,module,exports){
 module.exports = require("./lib/_stream_duplex.js")
 
-},{"./lib/_stream_duplex.js":124}],124:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":130}],130:[function(require,module,exports){
 // a duplex stream is just a stream that is both readable and writable.
 // Since JS doesn't have multiple prototypal inheritance, this class
 // prototypally inherits from Readable, and then parasitically from
@@ -20231,7 +22800,7 @@ function forEach(xs, f) {
     f(xs[i], i);
   }
 }
-},{"./_stream_readable":126,"./_stream_writable":128,"core-util-is":57,"inherits":104,"process-nextick-args":114}],125:[function(require,module,exports){
+},{"./_stream_readable":132,"./_stream_writable":134,"core-util-is":63,"inherits":110,"process-nextick-args":120}],131:[function(require,module,exports){
 // a passthrough stream.
 // basically just the most minimal sort of Transform stream.
 // Every written chunk gets output as-is.
@@ -20258,7 +22827,7 @@ function PassThrough(options) {
 PassThrough.prototype._transform = function (chunk, encoding, cb) {
   cb(null, chunk);
 };
-},{"./_stream_transform":127,"core-util-is":57,"inherits":104}],126:[function(require,module,exports){
+},{"./_stream_transform":133,"core-util-is":63,"inherits":110}],132:[function(require,module,exports){
 (function (process){
 'use strict';
 
@@ -21198,7 +23767,7 @@ function indexOf(xs, x) {
   return -1;
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":124,"./internal/streams/BufferList":129,"_process":115,"buffer":55,"buffer-shims":53,"core-util-is":57,"events":91,"inherits":104,"isarray":106,"process-nextick-args":114,"string_decoder/":144,"util":28}],127:[function(require,module,exports){
+},{"./_stream_duplex":130,"./internal/streams/BufferList":135,"_process":121,"buffer":61,"buffer-shims":59,"core-util-is":63,"events":97,"inherits":110,"isarray":112,"process-nextick-args":120,"string_decoder/":150,"util":34}],133:[function(require,module,exports){
 // a transform stream is a readable/writable stream where you do
 // something with the data.  Sometimes it's called a "filter",
 // but that's not a great name for it, since that implies a thing where
@@ -21379,7 +23948,7 @@ function done(stream, er) {
 
   return stream.push(null);
 }
-},{"./_stream_duplex":124,"core-util-is":57,"inherits":104}],128:[function(require,module,exports){
+},{"./_stream_duplex":130,"core-util-is":63,"inherits":110}],134:[function(require,module,exports){
 (function (process){
 // A bit simpler than readable streams.
 // Implement an async ._write(chunk, encoding, cb), and it'll handle all
@@ -21908,7 +24477,7 @@ function CorkedRequest(state) {
   };
 }
 }).call(this,require('_process'))
-},{"./_stream_duplex":124,"_process":115,"buffer":55,"buffer-shims":53,"core-util-is":57,"events":91,"inherits":104,"process-nextick-args":114,"util-deprecate":146}],129:[function(require,module,exports){
+},{"./_stream_duplex":130,"_process":121,"buffer":61,"buffer-shims":59,"core-util-is":63,"events":97,"inherits":110,"process-nextick-args":120,"util-deprecate":152}],135:[function(require,module,exports){
 'use strict';
 
 var Buffer = require('buffer').Buffer;
@@ -21973,10 +24542,10 @@ BufferList.prototype.concat = function (n) {
   }
   return ret;
 };
-},{"buffer":55,"buffer-shims":53}],130:[function(require,module,exports){
+},{"buffer":61,"buffer-shims":59}],136:[function(require,module,exports){
 module.exports = require("./lib/_stream_passthrough.js")
 
-},{"./lib/_stream_passthrough.js":125}],131:[function(require,module,exports){
+},{"./lib/_stream_passthrough.js":131}],137:[function(require,module,exports){
 (function (process){
 var Stream = (function (){
   try {
@@ -21996,13 +24565,13 @@ if (!process.browser && process.env.READABLE_STREAM === 'disable' && Stream) {
 }
 
 }).call(this,require('_process'))
-},{"./lib/_stream_duplex.js":124,"./lib/_stream_passthrough.js":125,"./lib/_stream_readable.js":126,"./lib/_stream_transform.js":127,"./lib/_stream_writable.js":128,"_process":115}],132:[function(require,module,exports){
+},{"./lib/_stream_duplex.js":130,"./lib/_stream_passthrough.js":131,"./lib/_stream_readable.js":132,"./lib/_stream_transform.js":133,"./lib/_stream_writable.js":134,"_process":121}],138:[function(require,module,exports){
 module.exports = require("./lib/_stream_transform.js")
 
-},{"./lib/_stream_transform.js":127}],133:[function(require,module,exports){
+},{"./lib/_stream_transform.js":133}],139:[function(require,module,exports){
 module.exports = require("./lib/_stream_writable.js")
 
-},{"./lib/_stream_writable.js":128}],134:[function(require,module,exports){
+},{"./lib/_stream_writable.js":134}],140:[function(require,module,exports){
 (function (Buffer){
 /*
 CryptoJS v3.1.2
@@ -22216,7 +24785,7 @@ function ripemd160 (message) {
 module.exports = ripemd160
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],135:[function(require,module,exports){
+},{"buffer":61}],141:[function(require,module,exports){
 (function (Buffer){
 // prototype class for hash functions
 function Hash (blockSize, finalSize) {
@@ -22289,7 +24858,7 @@ Hash.prototype._update = function () {
 module.exports = Hash
 
 }).call(this,require("buffer").Buffer)
-},{"buffer":55}],136:[function(require,module,exports){
+},{"buffer":61}],142:[function(require,module,exports){
 var exports = module.exports = function SHA (algorithm) {
   algorithm = algorithm.toLowerCase()
 
@@ -22306,7 +24875,7 @@ exports.sha256 = require('./sha256')
 exports.sha384 = require('./sha384')
 exports.sha512 = require('./sha512')
 
-},{"./sha":137,"./sha1":138,"./sha224":139,"./sha256":140,"./sha384":141,"./sha512":142}],137:[function(require,module,exports){
+},{"./sha":143,"./sha1":144,"./sha224":145,"./sha256":146,"./sha384":147,"./sha512":148}],143:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-0, as defined
@@ -22403,7 +24972,7 @@ Sha.prototype._hash = function () {
 module.exports = Sha
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":55,"inherits":104}],138:[function(require,module,exports){
+},{"./hash":141,"buffer":61,"inherits":110}],144:[function(require,module,exports){
 (function (Buffer){
 /*
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-1, as defined
@@ -22505,7 +25074,7 @@ Sha1.prototype._hash = function () {
 module.exports = Sha1
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":55,"inherits":104}],139:[function(require,module,exports){
+},{"./hash":141,"buffer":61,"inherits":110}],145:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -22561,7 +25130,7 @@ Sha224.prototype._hash = function () {
 module.exports = Sha224
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"./sha256":140,"buffer":55,"inherits":104}],140:[function(require,module,exports){
+},{"./hash":141,"./sha256":146,"buffer":61,"inherits":110}],146:[function(require,module,exports){
 (function (Buffer){
 /**
  * A JavaScript implementation of the Secure Hash Algorithm, SHA-256, as defined
@@ -22699,7 +25268,7 @@ Sha256.prototype._hash = function () {
 module.exports = Sha256
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":55,"inherits":104}],141:[function(require,module,exports){
+},{"./hash":141,"buffer":61,"inherits":110}],147:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var SHA512 = require('./sha512')
@@ -22759,7 +25328,7 @@ Sha384.prototype._hash = function () {
 module.exports = Sha384
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"./sha512":142,"buffer":55,"inherits":104}],142:[function(require,module,exports){
+},{"./hash":141,"./sha512":148,"buffer":61,"inherits":110}],148:[function(require,module,exports){
 (function (Buffer){
 var inherits = require('inherits')
 var Hash = require('./hash')
@@ -23022,7 +25591,7 @@ Sha512.prototype._hash = function () {
 module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
-},{"./hash":135,"buffer":55,"inherits":104}],143:[function(require,module,exports){
+},{"./hash":141,"buffer":61,"inherits":110}],149:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23151,7 +25720,7 @@ Stream.prototype.pipe = function(dest, options) {
   return dest;
 };
 
-},{"events":91,"inherits":104,"readable-stream/duplex.js":123,"readable-stream/passthrough.js":130,"readable-stream/readable.js":131,"readable-stream/transform.js":132,"readable-stream/writable.js":133}],144:[function(require,module,exports){
+},{"events":97,"inherits":110,"readable-stream/duplex.js":129,"readable-stream/passthrough.js":136,"readable-stream/readable.js":137,"readable-stream/transform.js":138,"readable-stream/writable.js":139}],150:[function(require,module,exports){
 // Copyright Joyent, Inc. and other Node contributors.
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -23374,7 +25943,7 @@ function base64DetectIncompleteChar(buffer) {
   this.charLength = this.charReceived ? 3 : 0;
 }
 
-},{"buffer":55}],145:[function(require,module,exports){
+},{"buffer":61}],151:[function(require,module,exports){
 (function (process){
 var Stream = require('stream')
 
@@ -23486,7 +26055,7 @@ function through (write, end, opts) {
 
 
 }).call(this,require('_process'))
-},{"_process":115,"stream":143}],146:[function(require,module,exports){
+},{"_process":121,"stream":149}],152:[function(require,module,exports){
 (function (global){
 
 /**
@@ -23557,14 +26126,14 @@ function config (name) {
 }
 
 }).call(this,typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{}],147:[function(require,module,exports){
+},{}],153:[function(require,module,exports){
 module.exports = function isBuffer(arg) {
   return arg && typeof arg === 'object'
     && typeof arg.copy === 'function'
     && typeof arg.fill === 'function'
     && typeof arg.readUInt8 === 'function';
 }
-},{}],148:[function(require,module,exports){
+},{}],154:[function(require,module,exports){
 (function (process,global){
 // Copyright Joyent, Inc. and other Node contributors.
 //
@@ -24154,7 +26723,7 @@ function hasOwnProperty(obj, prop) {
 }
 
 }).call(this,require('_process'),typeof global !== "undefined" ? global : typeof self !== "undefined" ? self : typeof window !== "undefined" ? window : {})
-},{"./support/isBuffer":147,"_process":115,"inherits":104}],149:[function(require,module,exports){
+},{"./support/isBuffer":153,"_process":121,"inherits":110}],155:[function(require,module,exports){
 var indexOf = require('indexof');
 
 var Object_keys = function (obj) {
@@ -24294,5 +26863,5 @@ exports.createContext = Script.createContext = function (context) {
     return copy;
 };
 
-},{"indexof":103}]},{},[10])(10)
+},{"indexof":109}]},{},[16])(16)
 });

@@ -1,12 +1,14 @@
+'use strict'
+
 var clientNotification = {};
 
 clientNotification.init = function init() {
   this.getPermission(function(permission) {
     if (permission) {
-      console.log("Have notification permissions!");
+      console.log('Have notification permissions!');
     }
-  })
-}
+  });
+};
 
 clientNotification.getPermission = function getPermission(callback) {
   // check for notification compatibility
@@ -98,3 +100,5 @@ clientNotification.flashTitleBar = function flashTitleBar(message) {
         }
     };
 };
+
+module.exports = clientNotification;

@@ -44,6 +44,7 @@
     + How to build only one file to get all files bundled?
     + Which files do I have left to bundle?
     + Compile pug templates then browserify that? (would need to have require)
+    + Why are we using Userlist and masterUserlist? Do we need both?
 
 ### Second Iteration
   + Add src directory

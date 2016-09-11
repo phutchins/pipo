@@ -7,7 +7,6 @@ var Userlist = {};
  */
 Userlist.update = function update(data) {
   var self = this;
-
   var chatId = data.chatId;
   var socket = window.socketClient.socket;
   var chat = ChatManager.chats[chatId];
@@ -191,3 +190,4 @@ Userlist.populateUserPopup = function populateUserPopup(data) {
   })
 };
 
+module.exports = Userlist;

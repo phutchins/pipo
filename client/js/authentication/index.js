@@ -1,8 +1,12 @@
-'use strict'
+'use strict';
 
-var Authentication = {};
+var ChatManager = require('../chat/index.js');
+var masterUserlist = require('../users/masterUserlist.js');
+var clientNotification = require('../notification/index.js');
 
-Authentication.authenticate = function authenticate(data) {
+var authentication = {};
+
+authentication.authenticate = function authenticate(data) {
   var self = this;
   var socket = data.socket;
   var username = localStorage.getItem('username');
@@ -22,7 +26,7 @@ Authentication.authenticate = function authenticate(data) {
 };
 
 // This needs to be exported so that it's called every time and knows what last was
-Authentication.getNonce = function getNonce(length) {
+authentication.getNonce = function getNonce(length) {
   var last = null;
   var repeat = 0;
 
@@ -45,7 +49,7 @@ Authentication.getNonce = function getNonce(length) {
   };
 };
 
-Authentication.apiAuth = function apiAuth(data) {
+authentication.apiAuth = function apiAuth(data) {
   var self = this;
   var username = data.username;
   var nonce = this.getNonce(8)();
@@ -96,7 +100,7 @@ Authentication.apiAuth = function apiAuth(data) {
   });
 };
 
-Authentication.getAuthData = function getAuthData(data, callback) {
+authentication.getAuthData = function getAuthData(data, callback) {
   var username = localStorage.getItem('username');
   var email = localStorage.getItem('email');
   var fullName = localStorage.getItem('fullName');
@@ -119,7 +123,7 @@ Authentication.getAuthData = function getAuthData(data, callback) {
   });
 };
 
-Authentication.authenticated = function authenticated(data) {
+authentication.authenticated = function authenticated(data) {
   var favoriteRooms = data.favoriteRooms;
   var defaultRoomId = data.defaultRoomId;
   var userNameMap = data.userNameMap;
@@ -131,7 +135,7 @@ Authentication.authenticated = function authenticated(data) {
   clientNotification.init();
 
   if (data.message !== 'ok') {
-    return console.log("[SOCKET CLIENT] (addListeners) Error from server during authentication")
+    return console.log('[SOCKET CLIENT] (addListeners) Error from server during authentication');
   };
 
   if (window.activeChat) {
@@ -144,7 +148,7 @@ Authentication.authenticated = function authenticated(data) {
   //  ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
   //}
 
-  MasterUserlist.update(userlist, function(err) {
+  masterUserlist.update(ChatManager, userlist, function(err) {
     console.log("[authentication.authenticated] Updated Main Userlist");
   });
   ChatManager.userNameMap = userNameMap;
@@ -155,7 +159,6 @@ Authentication.authenticated = function authenticated(data) {
   window.encryptionManager.keyManager.sign({}, function(err) {
     window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
       // The key we're verifying is not working here. Need to figure out why
-      debugger;
       window.encryptionManager.verifyRemotePublicKey(username, publicKey, function(err, upToDate) {
         if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
 
@@ -180,7 +183,7 @@ Authentication.authenticated = function authenticated(data) {
             //console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
 
             socketClient.joinRoom(defaultRoomId, function(err) {
-              console.log("[Authentication.authenticated] Joined default room becuase favoriteRooms was empty");
+              console.log("[authentication.authenticated] Joined default room becuase favoriteRooms was empty");
             })
           }
         } else {
@@ -208,3 +211,5 @@ Authentication.authenticated = function authenticated(data) {
     });
   });
 };
+
+module.exports = authentication;

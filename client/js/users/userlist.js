@@ -1,12 +1,13 @@
 'use strict';
 
 var Userlist = {};
+var ChatManager = null;
 
 /*
  * Update the user list on the right bar
  */
 Userlist.update = function update(data) {
-  var self = this;
+  ChatManager = this;
   var chatId = data.chatId;
   var socket = window.socketClient.socket;
   var chat = ChatManager.chats[chatId];
@@ -27,14 +28,14 @@ Userlist.update = function update(data) {
         userIdArray.push(userId);
         count++;
       });
-      if (subscriberCount == count) {
-        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'room' });
-        this.initPopups({ userIdArray: userIdArray });
+      if (subscriberCount === count) {
+        Userlist.build({ userIdArray: userIdArray, chatId: chatId, type: 'room' });
+        Userlist.initPopups({ userIdArray: userIdArray });
       }
     }
   }
 
-  if (type == 'chat') {
+  if (type === 'chat') {
     if (participants && participants.length > 0) {
       var userIdArray = [];
       var participantCount = participants.length;
@@ -44,8 +45,8 @@ Userlist.update = function update(data) {
         count++;
       });
       if (participantCount == count) {
-        this.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
-        this.initPopups({ userIdArray: userIdArray });
+        Userlist.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
+        Userlist.initPopups({ userIdArray: userIdArray });
       }
     }
   }

@@ -305,20 +305,21 @@ EncryptionManager.prototype.unlockMasterKey = function unlockMasterKey(room, cal
  */
 EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, callback) {
   var self = this;
+  var ChatManager = this;
   var chatId = data.chatId;
-  var chatName = self.ChatManager.chats[chatId].name;
-  var membershipRequired = self.ChatManager.chats[chatId].membershipRequired;
+  var chatName = ChatManager.chats[chatId].name;
+  var membershipRequired = ChatManager.chats[chatId].membershipRequired;
   var newKeyRing = new window.kbpgp.keyring.KeyRing();
 
   console.log("[encryptionManager.buildChatKeyRing] Building chat keyring for #" + chatName);
 
   if (membershipRequired) {
-    self.chats[chatId].members.forEach(function(userId) {
+    ChatManager.chats[chatId].members.forEach(function(userId) {
       var chatUsername = self.userlist[userId].username;
       var keyFingerPrint = '';
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
 
         if (chatUserKeyInstance) {
           keyFingerPrint = chatUserKeyInstance.get_pgp_fingerprint_str();
@@ -334,11 +335,11 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    self.ChatManager.chats[chatId].admins.forEach(function(userId) {
-      var chatUsername = self.ChatManager.userlist[userId].username;
+    ChatManager.chats[chatId].admins.forEach(function(userId) {
+      var chatUsername = ChatManager.userlist[userId].username;
 
       if (chatUsername != window.username) {
-        var chatUserKeyInstance = self.ChatManager.userlist[userId].keyInstance;
+        var chatUserKeyInstance = ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (chatUserKeyInstance) {
@@ -355,13 +356,13 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
       };
     });
 
-    var ownerId = self.ChatManager.chats[chatId].owner;
-    var ownerKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
+    var ownerId = ChatManager.chats[chatId].owner;
+    var ownerKeyInstance = ChatManager.userlist[ownerId].keyInstance;
 
     newKeyRing.add_key_manager(ownerKeyInstance);
 
-    var chatUsername = self.ChatManager.userlist[ownerId].username;
-    var chatUserKeyInstance = self.ChatManager.userlist[ownerId].keyInstance;
+    var chatUsername = ChatManager.userlist[ownerId].username;
+    var chatUserKeyInstance = ChatManager.userlist[ownerId].keyInstance;
     console.log('[encryptionManager.buildChatKeyRing] [%s] Adding OWNER %s to keyring with key %s',
                 chatName,
                 chatUsername,
@@ -371,21 +372,21 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
   if (!membershipRequired) {
     console.log("[encryptionManager.buildChatKeyRing] Building keyRing for public chat");
-    Object.keys(self.ChatManager.userlist).forEach(function(userId) {
-      if (self.ChatManager.userlist[userId].username != window.username) {
-        var keyInstance = self.ChatManager.userlist[userId].keyInstance;
+    Object.keys(ChatManager.userlist).forEach(function(userId) {
+      if (ChatManager.userlist[userId].username != window.username) {
+        var keyInstance = ChatManager.userlist[userId].keyInstance;
         var keyFingerPrint = '';
 
         if (keyInstance) {
           keyFingerPrint = keyInstance.get_pgp_fingerprint_str();
         }
 
-        var roomName = self.ChatManager.chats[chatId].name;
-        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + self.ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
+        var roomName = ChatManager.chats[chatId].name;
+        console.log("[encryptionManager.buildChatKeyRing] [" + roomName + "] Adding user '" + ChatManager.userlist[userId].username + "' key with finger print '" + keyFingerPrint + "'");
         if (keyInstance) {
           newKeyRing.add_key_manager(keyInstance);
         } else {
-          console.log('No keyInstance found for user %s in room %s', self.ChatManager.userlist[userId].username, roomName);
+          console.log('No keyInstance found for user %s in room %s', ChatManager.userlist[userId].username, roomName);
         }
       };
     });
@@ -829,6 +830,7 @@ EncryptionManager.prototype.getMasterKeyPair = function getMasterKeyPair(usernam
 
 // TODO: Change references from updateRemotePublicKey to verifyRemotePublicKey
 EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicKey(username, publicKey, callback) {
+  var self = this;
   console.log("Verifying remote public key for user '"+username+"'");
 
   var protocol = window.location.protocol;
@@ -848,7 +850,8 @@ EncryptionManager.prototype.verifyRemotePublicKey = function verifyRemotePublicK
 
   var server = protocol + '//' + host + ':' + port;
 
-  authentication.getAuthData({}, function(headers) {
+  debugger;
+  self.authentication.getAuthData({}, function(headers) {
     $.ajax({
       type: "GET",
       url: server + "/key/publickey",
@@ -1015,4 +1018,4 @@ EncryptionManager.prototype.rmd160 = function rmd160(data) {
   });
 };
 
-window.encryptionManager = new EncryptionManager();
+module.exports = EncryptionManager;

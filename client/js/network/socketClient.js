@@ -5,15 +5,22 @@ var ChatManager = require('../chat/index.js');
 var masterUserlist = require('../users/masterUserlist.js');
 var chatHeader = require('../chat/header.js');
 var Userlist = require('../users/userlist.js');
+var EncryptionManager = require('../encryption/index.js');
 
 function SocketClient() {
   var self = this;
   var protocol = window.location.protocol;
   var host = window.location.host;
   var port = window.location.port;
+  this.encryptionManager = new EncryptionManager();
+  this.chatManager = new ChatManager(encryptionManager, options);
+  chatManager.init(function(err) {
+    if (err) {
+      return console.log('Error setting up ChatManager: %s', err);
+    }
 
-  window.ChatManager = self.ChatManager;
-  window.Userlist = self.Userlist;
+    console.log('ChatManager successfully initialized');
+  });
 
   if (window.config) {
     host = window.config.server.host;
@@ -40,11 +47,12 @@ function SocketClient() {
 
   this.socket.on('certificate', function(certificate) {
     console.log("[socketClient] (certificate) Got server certificate. Verifying...");
-    window.encryptionManager.verifyCertificate(certificate, function(err) {
+    encryptionManager.verifyCertificate(certificate, function(err) {
       // This should probably check for an error and not continue if we have an error...
       console.log("[socketClient] (certificate) Veritifed server certificate! Authenticating with server.");
       self.init();
     });
+    debugger;
   });
 
   this.socket.on('connect_error', function(err) {
@@ -52,7 +60,7 @@ function SocketClient() {
     if (self.listeners) {
       // TODO: Should be updating CLIENT STATUS here instead of chat status
       console.log("[SocketClient.SocketClient] (1) connect_error, running ChatManager.updateChatStatus();");
-      ChatManager.updateChatStatus({ status: 'disabled' });
+      chatManager.updateChatStatus({ status: 'disabled' });
     }
   });
 }
@@ -92,11 +100,11 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('chatUpdate', function(data) {
-    ChatManager.handleChatUpdate(data);
+    chatManager.handleChatUpdate(data);
   });
 
   this.socket.on('previousPageUpdate', function(data) {
-    ChatManager.handlePreviousPageUpdate(data);
+    chatManager.handlePreviousPageUpdate(data);
   });
 
   this.socket.on('serverCommandComplete', function(data) {
@@ -113,7 +121,7 @@ SocketClient.prototype.addListeners = function() {
   });
 
   self.socket.on('roomMessage', function(data) {
-    ChatManager.handleMessage(data);
+    chatManager.handleMessage(data);
   });
 
 
@@ -125,15 +133,15 @@ SocketClient.prototype.addListeners = function() {
     console.log('[socketClient] (privateMessage) Got private message event. Data is: ', data);
     data.socket = self;
 
-    ChatManager.handlePrivateMessage(data);
+    chatManager.handlePrivateMessage(data);
   });
 
   this.socket.on('newMasterKey', function(data) {
     console.log("[SOCKET] 'new master key'");
     var room = data.room;
-    ChatManager.disableChat();
+    chatManager.disableChat();
     self.joinRoom(room, function(err) {
-      ChatManager.localMsg({ type: null, message: "Master key being updated. Please wait..." });
+      chatManager.localMsg({ type: null, message: "Master key being updated. Please wait..." });
     });
   });
 
@@ -143,18 +151,18 @@ SocketClient.prototype.addListeners = function() {
 
     console.log('[SOCKET] userlistUpdate');
 
-    ChatManager.userNameMap = userNameMap;
+    chatManager.userNameMap = userNameMap;
 
-    // Passing ChatManager for now, shouldn't do this...
-    masterUserlist.update(ChatManager, userlist, function(err) {
+    // Passing chatManager for now, shouldn't do this...
+    masterUserlist.update(chatManager, userlist, function(err) {
       console.log("[socketClient.on userlistUpdate] Updated userlist");
       // Update userlist if the current chat is a private chat
       //   there is a better way to do this, should likely do this
       //   the same way that we're doing it for rooms and issue an update
       //   only for the private chats that the user is a part of
-      var activeChatId = ChatManager.activeChat;
-      if (activeChatId && ChatManager.chats[activeChatId].type == 'chat') {
-        Userlist.update({ chatId: activeChatId });
+      var activeChatId = chatManager.activeChat;
+      if (activeChatId && chatManager.chats[activeChatId].type == 'chat') {
+        Userlist.update.call(chatManager, { chatId: activeChatId });
         console.log("[socketClient.on userlistUpdate] Updated userlist for private chat with id '" + activeChatId + "'");
       };
     });
@@ -167,11 +175,11 @@ SocketClient.prototype.addListeners = function() {
 
     console.log("[SOCKET] activeUsersUpdate - Got SOCKET event");
 
-    if (!ChatManager.chats[chatId]) {
+    if (!chatManager.chats[chatId]) {
       return;
     };
 
-    var chatName = ChatManager.chats[chatId].name;
+    var chatName = chatManager.chats[chatId].name;
 
     var activeUsers = data.activeUsers;
     var roomUsers = data.activeUsers;
@@ -179,7 +187,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("[SOCKET] 'roomUsersUpdate' for room #" + chatName);
 
     if (ChatManager.chats[chatId]) {
-      ChatManager.chats[chatId].activeUsers = activeUsers;
+      chatManager.chats[chatId].activeUsers = activeUsers;
     }
 
     console.log("[USERLIST UPDATE] Updating userlist");
@@ -190,8 +198,8 @@ SocketClient.prototype.addListeners = function() {
     // Break this up into roomUpdate, chatUpdate and key add/remove methods
     //
 
-    if (ChatManager.activeChat === chatId) {
-      window.Userlist.update({ chatId: chatId });
+    if (chatManager.activeChat === chatId) {
+      Userlist.update.call(chatManager, { chatId: chatId });
     }
   });
 
@@ -199,7 +207,7 @@ SocketClient.prototype.addListeners = function() {
     console.log("Got chat status...");
     var statusType = data.statusType;
     var statusMessage = data.statusMessage;
-    ChatManager.localMsg({ type: statusType, message: statusMessage });
+    chatManager.localMsg({ type: statusType, message: statusMessage });
     var $messages = $('#messages');
     $messages[0].scrollTop = $messages[0].scrollHeight;
   });
@@ -210,7 +218,7 @@ SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
 
-  window.encryptionManager.loadClientKeyPair(function (err, loaded) {
+  self.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {
       //Show error somewhere
       return console.log("[INIT] Error loading client key pair: "+err);
@@ -218,9 +226,9 @@ SocketClient.prototype.init = function() {
 
     if (!loaded) {
       console.log("[INIT] Prompting for credentials");
-      return ChatManager.initialPromptForCredentials();
+      return chatManager.initialPromptForCredentials();
     } else {
-      ChatManager.init();
+      chatManager.init();
 
       console.log("[INIT] Client credentials loaded");
     }
@@ -280,7 +288,7 @@ SocketClient.prototype.updateRoom = function(data, callback) {
 SocketClient.prototype.partRoom = function(data, callback) {
   var self = this;
   var chatId = data.chatId;
-  console.log("[PART ROOM] Parting room #" + ChatManager.chats[chatId].name);
+  console.log("[PART ROOM] Parting room #" + chatManager.chats[chatId].name);
   self.socket.emit('part', { chatId: chatId } );
   callback(null);
 };
@@ -292,7 +300,7 @@ SocketClient.prototype.sendMessage = function(data) {
   var message = data.message;
 
   console.log("Encrypting message: " + message);
-  window.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+  self.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
@@ -312,8 +320,8 @@ SocketClient.prototype.sendPrivateMessage = function(data) {
   var toUserIds = data.toUserIds;
   var message = data.message;
 
-  ChatManager.prepareMessage(message, function(err, preparedMessage) {
-    window.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
+  chatManager.prepareMessage(message, function(err, preparedMessage) {
+    self.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
       if (err) {
         console.log("Error Encrypting Message: " + err);
       }
@@ -335,23 +343,23 @@ SocketClient.prototype.joinComplete = function(data) {
 
   if (err) {
     console.log("Cannot join channel due to permissions");
-    return ChatManager.showError(err);
+    return chatManager.showError(err);
   }
 
   // Determine what the current active chat should be
   // If we have an active chat cached locally, set it to active chat but only if it exists in our chats list
-  if (!ChatManager.activeChat && window.activeChat && ChatManager.chats[window.activeChat]) {
-    ChatManager.activeChat = window.activeChat;
+  if (!chatManager.activeChat && window.activeChat && chatManager.chats[window.activeChat]) {
+    chatManager.activeChat = window.activeChat;
   };
 
   // If there is still no active chat, set it to the one we just joined
-  if (!ChatManager.activeChat) {
-    ChatManager.setActiveChat(room.id);
+  if (!chatManager.activeChat) {
+    chatManager.setActiveChat(room.id);
   };
 
   console.log("[SOCKET] (joinComplete) room: "+room.name+" data.encryptionScheme: "+data.encryptionScheme);
 
-  window.encryptionManager.encryptionScheme[room.name] = data.encryptionScheme;
+  self.encryptionManager.encryptionScheme[room.name] = data.encryptionScheme;
 
   console.log("[SOCKET] (joinComplete) encryptionScheme: "+data.encryptionScheme);
 
@@ -361,7 +369,7 @@ SocketClient.prototype.joinComplete = function(data) {
     console.log("[SOCKET] (joinComplete) Loading master key pair...");
 
     // TODO: Need to make sure clientKeyManager is decrypted here
-    window.encryptionManager.loadMasterKeyPair(room.name, masterKeyPair, function(err, loaded) {
+    self.encryptionManager.loadMasterKeyPair(room.name, masterKeyPair, function(err, loaded) {
       if (err) { return console.log("[INIT] ERROR loading master key pair") };
 
       if (!loaded) { return console.log("[JOIN COMPLETE] masterKeyPair not loaded...") };
@@ -373,17 +381,17 @@ SocketClient.prototype.joinComplete = function(data) {
   }
 
   console.log("[socketClient.joinComplete] (1) Running initRoom");
-  ChatManager.initRoom(room, function(err) {
-    ChatManager.chats[room.id].joined = true;
-    ChatManager.updateRoomList(function() {
-      if (ChatManager.activeChat == room.id) {
-        ChatManager.focusChat({ id: room.id }, function(err) {
+  chatManager.initRoom(room, function(err) {
+    chatManager.chats[room.id].joined = true;
+    chatManager.updateRoomList(function() {
+      if (chatManager.activeChat == room.id) {
+        chatManager.focusChat({ id: room.id }, function(err) {
           console.log("[chatManager.initRoom] Room focus for " + room.name + " done");
         });
       };
       // Should move this inside focusChat callback after moving enable/disable chats to room object
-      //console.log("[SocketClient.joinComplete] (1) Running ChatManager.updateChatStauts();");
-      //ChatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
+      //console.log("[SocketClient.joinComplete] (1) Running chatManager.updateChatStauts();");
+      //chatManager.updateChatStatus({ chatId: room.id, status: 'enabled' });
     });
   });
 };
@@ -391,7 +399,7 @@ SocketClient.prototype.joinComplete = function(data) {
 SocketClient.prototype.partComplete = function(data) {
   var self = this;
   var chatId = data.chatId;
-  ChatManager.partChat(chatId, function() {
+  chatManager.partChat(chatId, function() {
     console.log("Done parting room");
   });
 };
@@ -426,7 +434,7 @@ SocketClient.prototype.toggleFavorite = function(data) {
   self.socket.on('toggleFavoriteComplete-' + chatId, function(data) {
     console.log("[socketClient.toggleFavorite] Got toggleFavoriteComplete for '" + chatId + "'");
     self.socket.removeListener('toggleFavoriteComplete-' + chatId);
-    chatHeader.updateFavoriteButton({ favorite: data.favorite });
+    chatHeader.updateFavoriteButton.call(chatManager, { favorite: data.favorite });
   });
 };
 
@@ -453,24 +461,24 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
     // Should we update the room selectively in initRoom or create a new method that handles only room updates
     // while initRoom only handles the initial room setup case?
     console.log("[socketClient.handleRoomUpdate] Running initRoom from handleRoomUpdate");
-    ChatManager.initRoom(rooms[id], function(err) {
+    chatManager.initRoom(rooms[id], function(err) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
-      if (ChatManager.activeChat == id) {
-        window.Userlist.update({ chatId: id });
+      if (chatManager.activeChat && chatManager.activeChat == id) {
+        Userlist.update.call(chatManager, { chatId: id });
       }
 
-      ChatManager.updateRoomList(function() {
-        console.log("[SocketClient.handleRoomUpdate] (1) Running ChatManager.updateChatStauts();");
-        ChatManager.updateChatStatus({ chatId: id, status: 'enabled' });
+      chatManager.updateRoomList(function() {
+        console.log("[SocketClient.handleRoomUpdate] (1) Running chatManager.updateChatStauts();");
+        chatManager.updateChatStatus({ chatId: id, status: 'enabled' });
       });
 
-      chatHeader.update(id);
+      chatHeader.update.call(chatManager, id);
 
-      ChatManager.buildRoomListModal;
+      chatManager.buildRoomListModal;
 
       // if manageMembersModal is currently visible don't clear any error or ok messages
-      ChatManager.populateManageMembersModal({ clearMessages: false });
+      chatManager.populateManageMembersModal({ clearMessages: false });
     });
   })
 };
@@ -481,7 +489,7 @@ SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
 
   if (!success) {
     // display error on membership editor modal
-    ChatManager.membershipUpdateError(data.message);
+    chatManager.membershipUpdateError(data.message);
     return console.log("[HANDLE MEMBERSHIP UPDATE COMPLETE] Failed to add member: ", message);
   }
 
@@ -490,8 +498,8 @@ SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
 
   // This doesn't actually do anything becuase the room update has not been received by roomUpdate yet
   console.log("[socketClient.handleMembershipUpdateComplete] Running populateManageMembersModal");
-  ChatManager.populateManageMembersModal({ clearMessages: false });
-  ChatManager.membershipUpdateMessage(message);
+  chatManager.populateManageMembersModal({ clearMessages: false });
+  chatManager.membershipUpdateMessage(message);
 };
 
 SocketClient.prototype.sendServerCommand = function(data) {
@@ -504,9 +512,9 @@ SocketClient.prototype.sendServerCommand = function(data) {
 SocketClient.prototype.serverCommandComplete = function(data) {
   var self = this;
   var response = data.response;
-  var activeChatid = ChatManager.activeChat;
-  console.log("Displaying response from server command in chat '" + ChatManager.chats[activeChatId].name + "'");
-  ChatManager.addMessageToChat({ type: ChatManager.chats[activeChatId].type, message: response, chat: ChatManager.chats[activeChatId].name });
+  var activeChatid = chatManager.activeChat;
+  console.log("Displaying response from server command in chat '" + chatManager.chats[activeChatId].name + "'");
+  chatManager.addMessageToChat({ type: chatManager.chats[activeChatId].type, message: response, chat: chatManager.chats[activeChatId].name });
 };
 
 SocketClient.prototype.membership = function(data) {
@@ -517,14 +525,14 @@ SocketClient.prototype.membership = function(data) {
 };
 
 SocketClient.prototype.updateMasterKey = function updateMasterKey(callback) {
-  window.encryptionManager.getMasterKeyPair(username, function(err, encryptedMasterKeyPair) {
+  self.encryptionManager.getMasterKeyPair(username, function(err, encryptedMasterKeyPair) {
     if (err) {
       console.log("Error getting master key pair: "+err);
-      ChatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
+      chatManager.localMsg({ type: "ERROR", message: "Error getting master key pair" });
       return callback("Error getting master key pair");
     } else {
       pleaseWait();
-      ChatManager.localMsg({ type: null, message: "Updated master key pair" });
+      chatManager.localMsg({ type: null, message: "Updated master key pair" });
       console.log("Got master keypair, ready to encrypt/decrypt");
       encryptedMasterKeyPair.publicKey = encMasterKeyPair.publicKey;
       encryptedMasterKeyPair.privateKey = encMasterKeyPair.privateKey;

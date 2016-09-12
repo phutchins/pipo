@@ -16,5 +16,4 @@ window.nodeCrypto = nodeCrypto;
 window.stream = stream;
 
 // Managers
-var EncryptionManager = require('../js/encryption/index.js');
 var socketClient = require('../js/network/socketClient.js');

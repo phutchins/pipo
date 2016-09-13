@@ -46,6 +46,7 @@
     + Compile pug templates then browserify that? (would need to have require)
     + Why are we using Userlist and masterUserlist? Do we need both?
 
+
 ### Second Iteration
   + Add src directory
   + Src dir files are compiled into client/[specific_dir]
@@ -57,3 +58,12 @@ Make `npm run build` build all browserify things
 Exclude built files from git
 
 Clean up test directories
+
+
+## Tech Debt
++ Need to make accessing username (used to be window.username) consistent
++ Determine how to pass along references to socket, chatManager, etc...
++ modals should probably be managed from a single lib that requires them all
+
+## Questions (input required from trusted devs)
++ Which modules should be prototypes and which should me modeled like utils where it simpyl exports functions?

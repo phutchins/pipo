@@ -2,20 +2,31 @@
 
 var masterUserlist = {};
 
+function MasterUserlist(socketClient, options) {
+  if (!(this instanceof MasterUserlist)) {
+    return new MasterUserlist(socketClient, options);
+  }
+
+  this.chatManager = socketClient.chatManager;
+  this.encryptionManager = socketClient.encryptionManager;
+  this._options = options;
+}
+
 /*
  * Update the master userlist
  */
-masterUserlist.update = function update(ChatManager, userlist, callback) {
-  ChatManager.userlist = userlist;
+MasterUserlist.prototype.update = function update(userlist, callback) {
+  var self = this;
+  self.chatManager.userlist = userlist;
 
   // Update key instance for all users
   Object.keys(userlist).forEach(function(userId) {
     var userPubKey = userlist[userId].publicKey;
     if (userPubKey) {
-      window.encryptionManager.getKeyInstance(
+      self.encryptionManager.getKeyInstance(
         userPubKey,
         function(keyInstance) {
-          ChatManager.userlist[userId].keyInstance = keyInstance;
+          self.chatManager.userlist[userId].keyInstance = keyInstance;
         }
       );
     }
@@ -24,4 +35,4 @@ masterUserlist.update = function update(ChatManager, userlist, callback) {
   return callback(null);
 };
 
-module.exports = masterUserlist;
+module.exports = MasterUserlist;

@@ -1,14 +1,20 @@
-'use strict'
+'use strict';
 
 /*
  * Password Prompt Modal
  */
 
-var unlockClientKeyPairModal = {};
+function UnlockClientKeyPairModal(encryptionManager) {
+  if (!(this instanceof UnlockClientKeyPairModal)) {
+    return new UnlockClientKeyPairModal(encryptionManager);
+  }
 
-var init = function(successCallback) {
+  this.encryptionManager = encryptionManager;
+}
+
+UnlockClientKeyPairModal.prototype.init = function(successCallback) {
   var self = this;
-  console.log("[unlockClientKeyPairModal] Running unlockClientKeyPairModal init...");
+  console.log('[unlockClientKeyPairModal] Running unlockClientKeyPairModal init...');
 
   var UnlockClientKeyPairModalFormSettings = {
     inline: true,
@@ -32,7 +38,7 @@ var init = function(successCallback) {
       // Attempt to unlock the client key
       console.log("[unlockClientKeyPairModal] Unlocking client key");
 
-      window.encryptionManager.unlockClientKey({ passphrase: password }, function(data) {
+      self.encryptionManager.unlockClientKey({ passphrase: password }, function(data) {
         // If unlock fails, notify user and wait for another try
         if (data && data.err) {
           // Display error status on the modal
@@ -65,16 +71,16 @@ var init = function(successCallback) {
   $('.ui.modal.unlock').form(UnlockClientKeyPairModalFormSettings);
 };
 
-unlockClientKeyPairModal.update = function update(callback) {
+UnlockClientKeyPairModal.prototype.update = function(callback) {
   $('.ui.modal.unlock .username').text(window.username);
   callback();
 };
 
-unlockClientKeyPairModal.show = function show(successCallback) {
-  init(successCallback);
+UnlockClientKeyPairModal.prototype.show = function(successCallback) {
+  this.init(successCallback);
   this.update(function() {
     $('.ui.modal.unlock').modal('show');
   });
 };
 
-module.exports = unlockClientKeyPairModal;
+module.exports = UnlockClientKeyPairModal;

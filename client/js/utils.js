@@ -5,6 +5,10 @@
 
 'use strict';
 
+/**
+ * Dynamically sorts an object by a particular property
+ * @param {String} property - The name of the field to sort by
+ */
 module.exports.dynamicSort = function(property) {
   var sortOrder = 1;
   if(property[0] === "-") {
@@ -17,6 +21,10 @@ module.exports.dynamicSort = function(property) {
   };
 };
 
+/**
+ * Finds the location of the cursor in a text field
+ * @param {HTMLImputElement} - The text field from which to retrieve the cursor location
+ */
 module.exports.getCaret = function(el) {
   if (el.selectionStart) {
     return el.selectionStart;

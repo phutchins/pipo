@@ -1,12 +1,19 @@
 'use strict';
 
-var ChatManager = require('../chat/index.js');
-var masterUserlist = require('../users/masterUserlist.js');
 var clientNotification = require('../notification/index.js');
 
-var authentication = {};
+function Authentication(managers) {
+  if (!(this instanceof Authentication)) {
+    return new Authentication(encryptionManager);
+  }
 
-authentication.authenticate = function authenticate(data) {
+  this.encryptionManager = managers.encryptionManager;
+  this.socketClient = managers.socketClient;
+  this.chatManager = managers.chatManager;
+  this.masterUserlist = managers.masterUserlist;
+}
+
+Authentication.prototype.authenticate = function(data) {
   var self = this;
   var socket = data.socket;
   var username = localStorage.getItem('username');
@@ -14,8 +21,8 @@ authentication.authenticate = function authenticate(data) {
   console.log("[AUTH] Authenticating with server with username: '"+self.username+"'");
 
   // Generate a new unused nonce and sign it for verification
-  window.encryptionManager.keyManager.sign({}, function(err) {
-    window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+  self.encryptionManager.keyManager.sign({}, function(err) {
+    self.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
       self.getAuthData({}, function(data) {
         console.log('[authentication.authenticate] Auth Data: ', data);
 
@@ -26,7 +33,7 @@ authentication.authenticate = function authenticate(data) {
 };
 
 // This needs to be exported so that it's called every time and knows what last was
-authentication.getNonce = function getNonce(length) {
+Authentication.prototype.getNonce = function(length) {
   var last = null;
   var repeat = 0;
 
@@ -49,13 +56,13 @@ authentication.getNonce = function getNonce(length) {
   };
 };
 
-authentication.apiAuth = function apiAuth(data) {
+Authentication.prototype.apiAuth = function(data) {
   var self = this;
   var username = data.username;
-  var nonce = this.getNonce(8)();
+  var nonce = self.getNonce(8)();
   var signature;
 
-  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
+  self.encryptionManager.sign(nonce.toString(), function(err, sig) {
     signature = btoa(sig);
 
     var postData = querystring.stringify({
@@ -100,15 +107,15 @@ authentication.apiAuth = function apiAuth(data) {
   });
 };
 
-authentication.getAuthData = function getAuthData(data, callback) {
+Authentication.prototype.getAuthData = function(data, callback) {
+  var self = this;
   var username = localStorage.getItem('username');
   var email = localStorage.getItem('email');
   var fullName = localStorage.getItem('fullName');
-
-  var nonce = this.getNonce(32)();
+  var nonce = self.getNonce(32)();
   var signature = null;
 
-  window.encryptionManager.sign(nonce.toString(), function(err, sig) {
+  self.encryptionManager.sign(nonce.toString(), function(err, sig) {
     signature = btoa(sig);
 
     var authData = {
@@ -123,7 +130,8 @@ authentication.getAuthData = function getAuthData(data, callback) {
   });
 };
 
-authentication.authenticated = function authenticated(data) {
+Authentication.prototype.authenticated = function(data) {
+  var self = this;
   var favoriteRooms = data.favoriteRooms;
   var defaultRoomId = data.defaultRoomId;
   var userNameMap = data.userNameMap;
@@ -136,30 +144,26 @@ authentication.authenticated = function authenticated(data) {
 
   if (data.message !== 'ok') {
     return console.log('[SOCKET CLIENT] (addListeners) Error from server during authentication');
-  };
-
-  if (window.activeChat) {
-    ChatManager.activeChat = window.activeChat;
   }
 
-  ChatManager.defaultRoomId = data.defaultRoomId;
+  if (window.activeChat) {
+    self.chatManager.activeChat = window.activeChat;
+  }
 
-  //if (!ChatManager.activeChat) {
-  //  ChatManager.activeChat = { id: defaultRoomId, type: 'room' };
-  //}
+  self.chatManager.defaultRoomId = data.defaultRoomId;
 
-  masterUserlist.update(ChatManager, userlist, function(err) {
+  self.masterUserlist.update(userlist, function(err) {
     console.log("[authentication.authenticated] Updated Main Userlist");
   });
-  ChatManager.userNameMap = userNameMap;
-  ChatManager.userProfile = userProfile;
+  self.chatManager.userNameMap = userNameMap;
+  self.chatManager.userProfile = userProfile;
 
-  ChatManager.updateProfileHeader();
+  self.chatManager.updateProfileHeader();
 
-  window.encryptionManager.keyManager.sign({}, function(err) {
-    window.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
+  self.encryptionManager.keyManager.sign({}, function(err) {
+    self.encryptionManager.keyManager.export_pgp_public({}, function(err, publicKey) {
       // The key we're verifying is not working here. Need to figure out why
-      window.encryptionManager.verifyRemotePublicKey(username, publicKey, function(err, upToDate) {
+      self.encryptionManager.verifyRemotePublicKey(username, publicKey, function(err, upToDate) {
         if (err) { return console.log("[INIT] Error updating remote public key: "+err) };
 
         if (upToDate) {
@@ -172,19 +176,19 @@ authentication.authenticated = function authenticated(data) {
             favoriteRooms.forEach(function(roomId) {
               console.log("[SOCKET] (authenticated) Joining room ",roomId);
               if (roomId && typeof roomId !== 'undefined') {
-                socketClient.joinRoom(roomId, function(err) {
+                self.socketClient.joinRoom(roomId, function(err) {
                   console.log("[SOCKET] (authenticated) Sent join request for room "+roomId);
                 });
               }
             });
           } else {
-            var defaultRoomId = ChatManager.defaultRoomId;
+            var defaultRoomId = self.chatManager.defaultRoomId;
 
             //console.log("[SOCKET] (authenticated) Joining room ",defaultRoomId);
 
-            socketClient.joinRoom(defaultRoomId, function(err) {
+            self.socketClient.joinRoom(defaultRoomId, function(err) {
               console.log("[authentication.authenticated] Joined default room becuase favoriteRooms was empty");
-            })
+            });
           }
         } else {
           // Should not allow updating of remote key without signature from old key or admin making the change
@@ -200,7 +204,7 @@ authentication.authenticated = function authenticated(data) {
             favoriteRooms.forEach(function(room) {
               console.log("[SOCKET] (authenticated) Joining room ",room);
 
-              socketClient.joinRoom(room, function(err) {
+              self.socketClient.joinRoom(room, function(err) {
                 console.log("[SOCKET] (authenticated) Sent join request for room "+room);
               });
             });
@@ -212,4 +216,4 @@ authentication.authenticated = function authenticated(data) {
   });
 };
 
-module.exports = authentication;
+module.exports = Authentication;

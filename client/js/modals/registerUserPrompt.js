@@ -2,6 +2,7 @@
  * Register New User Modal Setup
  */
 
+var user = require('../users/user.js');
 var RegisterUserPrompt = {};
 
 RegisterUserPrompt.init = function init(successCallback) {
@@ -104,7 +105,7 @@ RegisterUserPrompt.init = function init(successCallback) {
         return event.preventDefault();
       };
 
-      socketClient.checkUsernameAvailability(username, checkCallback);
+      user.checkUsernameAvailability(username, checkCallback);
 
       var finish = function finish() {
         //Hides modal on validation success

@@ -38,10 +38,10 @@ SendFileModal.prototype.init = function init(managers) {
 
       self.fileManager.readFiles(files, function(err) {
         if (err) {
-          successCallback(err);
+          self.finish(err);
         }
 
-        successCallback();
+        self.finish();
       });
       return false;
     }
@@ -90,26 +90,23 @@ SendFileModal.prototype.build = function build(callback) {
     $('.ui.form.sendfile').trigger('reset');
     $('.ui.form.createroom .field.error').removeClass('error');
     $('.ui.form.sendfile.error').removeClass('error');
-    self.show(function(data) {
-      self.finish(e);
-    });
+    self.show();
   });
 };
 
-SendFileModal.prototype.showProgress = function() {
-  var container = $('.sendfile .header .progress')[0];
-  debugger;
+SendFileModal.prototype.showProgress = function(callback) {
+  var container = $('.sendfile .progress')[0];
 
   this.bar = new ProgressBar.Circle(container, {
 		color: '#aaa',
 		// This has to be the same size as the maximum width to
 		// prevent clipping
-		strokeWidth: 4,
-		trailWidth: 1,
+		//strokeWidth: 2,
+		//trailWidth: 1,
 		easing: 'easeInOut',
-		duration: 1400,
+		duration: 100,
 		text: {
-			autoStyleContainer: false
+	    autoStyleContainer: false
 		},
 		from: { color: '#aaa', width: 1 },
 		to: { color: '#333', width: 4 },
@@ -124,23 +121,23 @@ SendFileModal.prototype.showProgress = function() {
 			} else {
 				circle.setText(value);
 			}
-
 		}
 	});
 	this.bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
 	this.bar.text.style.fontSize = '2rem';
 
+  return callback();
 };
 
 SendFileModal.prototype.updateProgress = function(progress) {
-	this.bar.animate(progress);  // Number from 0.0 to 1.0
+  var self = this;
+  console.log('Updating progress to %s', progress);
+	self.bar.animate(progress);  // Number from 0.0 to 1.0
 };
 
 SendFileModal.prototype.show = function show(callback) {
-  var self = this;
 
   $('.modal.sendfile').modal('show');
-  return callback;
 };
 
 module.exports = SendFileModal;

@@ -244,8 +244,8 @@ html(lang="en", class="js")
     .ui.small.long.modal.sendfile
       i.close.icon
       .header
-        | Upload File to Chat (encrypted)
-        .progress(id=progress)
+        .title
+          | Upload File to Chat (encrypted)
       .content
         form.ui.form.sendfile
           .ui.segment
@@ -259,6 +259,7 @@ html(lang="en", class="js")
           .ui.ok.green.basic.button
             i.checkmark.icon
             |             Submit
+      .progress(class='progress rotating', id='progress')
     .ui.basic.modal.createroom
       i.close.icon
       .header

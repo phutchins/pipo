@@ -1,3 +1,5 @@
+'use strict';
+
 var NotifyManager = require('./notify');
 var EncryptionManager = require('./encryption');
 var logger = require('../../../config/logger');
@@ -106,15 +108,28 @@ function FileManager() {
 
       fileHash.end();
 
-      // fileHash.on('finish', function() {
-        logger.debug('[socketServer.handleFileStream] fileHash finsihed. Renaming temp file');
+      var sysPubKey = systemUser.publicKey.toString();
+      var sysPrivKey = systemUser.privateKey.toString();
+      var sysUsername = 'pipo';
 
+      // fileHash.on('finish', function() {
+      EncryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
+        logger.debug('[socketServer.handleFileStream] fileHash finsihed. Renaming temp file');
 
         var fileHashString = fileHash.read().toString('hex');
 
         // Rename tmp chunk to hash
         fs.rename(dataDir + tmpFileName, dataDir + fileHashString, function(err) {
           if (err) {
+            var errorData = {
+              err: err,
+              chatType: chatType,
+              fileName: fileName,
+              chatId: chatId,
+              socketServer: socketServer,
+              signingKeyManager: pipoKeyManager
+            };
+            self.notifyError(errorData);
             return callback(err);
           }
 
@@ -125,18 +140,25 @@ function FileManager() {
             logger.debug('[file.handleChunk] Returned from addChunk');
 
             if (err) {
-              return logger.error('[file.handleFileStream] Error adding chunk to pfile: %s', err);
+              var errorData = {
+                err: err,
+                chatType: chatType,
+                fileName: fileName,
+                chatId: chatId,
+                socketServer: socketServer,
+                signingKeyManager: pipoKeyManager
+              };
+              logger.error('[file.handleFileStream] Error adding chunk to pfile: %s', err);
+              self.notifyError(errorData);
+              return callback(err);
             }
 
             logger.debug("[file.handleChunk] Callback called in PFile.addChunk");
 
-            var sysPubKey = systemUser.publicKey.toString();
-            var sysPrivKey = systemUser.privateKey.toString();
-            var sysUsername = 'pipo';
-
-            EncryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
+            //EncryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
               if (err) {
-                return logger.error("[file.handleChunk] Error getting keyManager: " + err);
+                logger.error("[file.handleChunk] Error getting keyManager: " + err);
+                return callback(err);
               }
 
               if (err) {
@@ -174,10 +196,10 @@ function FileManager() {
                   pfile: pfile
                 });
               }
-            });
+            //});
           });
         });
-      //});
+      });
     });
 
     // Save the file stream to disk

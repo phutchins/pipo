@@ -26,6 +26,8 @@ FileManager.prototype.init = function(managers) {
   this.encryptionManager = managers.encryptionManager;
   var sendFileModalOptions = {};
   this.sendFileModal = new SendFileModal(sendFileModalOptions);
+
+  // Might should call sendFileModal with context of FileManager
   managers.fileManager = self;
 
   $(document).ready(function() {
@@ -115,31 +117,37 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
       // Use through stream to send the original data through to the
       // data hash instead of pipe
 
-      fileReader.pipe(cipher).pipe(binStream);;
+      fileReader.pipe(cipher).pipe(binStream);
 
-      self.sendFileModal.showProgress();
+      self.sendFileModal.showProgress(function() {
+        self.sendFileModal.updateProgress(0);
 
-      var tx = 0;
-      binStream.on('data', function(data) {
-        var progressPercent = Math.round(tx+=data.rx*100);
-        console.log('Progress: ' + progressPercent + '%');
+        var tx = 0;
+        binStream.on('data', function(data) {
+          var progressPercent = Math.round(tx+=data.rx*100);
+          console.log('Progress: ' + progressPercent + '%');
 
-        self.sendFileModal.updateProgress(tx+=data.rx);
+          debugger;
 
-        if (progressPercent >= 100) {
-          binStream.end();
+          if (tx) {
+            self.sendFileModal.updateProgress(tx/100);
+          }
 
-          return callback(null);
-        }
+          if (progressPercent >= 100) {
+            binStream.end();
 
-        if (data.end) {
-          dataHash.end();
-          encryptedDataHash.end();
+            return callback(null);
+          }
 
-          // Send the hashes to the server signed by the client
+          if (data.end) {
+            dataHash.end();
+            encryptedDataHash.end();
 
-          return callback(null);
-        }
+            // Send the hashes to the server signed by the client
+
+            return callback(null);
+          }
+        });
       });
     });
   });

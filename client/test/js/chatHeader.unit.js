@@ -1,7 +1,7 @@
 'use strict'
 
 var expect = require('chai').expect;
-var chatHeader = require('../../js/chatHeader.js');
+var chatHeader = require('../../js/chat/header.js');
 
 describe('chatHeader', function() {
 

@@ -25,11 +25,7 @@ function SocketClient() {
   });
 
   this.userlistCtl = new Userlist();
-  this.userlistCtl.init({
-    managers: {
-      chatManager: this.chatManager
-    }
-  });
+  this.userlistCtl.init({ chatManager: this.chatManager });
 
   this.masterUserlist = new MasterUserlist(this, {});
   this.authentication = new Authentication({
@@ -159,7 +155,6 @@ SocketClient.prototype.addListeners = function() {
 
 
   this.socket.on('privateMessage', function(data) {
-    var self = this;
     var message = data.message;
     var chatId = data.chatId;
 

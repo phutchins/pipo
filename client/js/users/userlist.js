@@ -7,14 +7,16 @@
 
 'use strict';
 
-function Userlist() {
+function Userlist(options) {
   if (!(this instanceof Userlist)) {
-    return new Userlist();
+    return new Userlist(options);
   }
+
+  this._options = options;
 }
 
-Userlist.prototype.init = function(options) {
-  this.chatManager = options.managers.chatManager;
+Userlist.prototype.init = function(managers) {
+  this.chatManager = managers.chatManager;
 }
 
 /*

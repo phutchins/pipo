@@ -2,7 +2,11 @@
 
 var stream = require('stream');
 var through = require('through');
-var crypto = require('crypto');
+var nodeCrypto = require('crypto-browserify');
+var SendFileModal = require('../modals/sendFileModal.js');
+
+//var crypto = require('crypto');
+var crypto = nodeCrypto;
 
 window.FlipStream = require('flip-stream-js');
 var BinSocketClient = require('../network/binSocketClient');
@@ -11,7 +15,27 @@ function FileManager(options) {
   if (!(this instanceof FileManager)) {
     return new FileManager(options);
   }
+
+  this._options = options;
 }
+
+FileManager.prototype.init = function(managers) {
+  var self = this;
+
+  this.chatManager = managers.chatManager;
+  this.encryptionManager = managers.encryptionManager;
+  var sendFileModalOptions = {};
+  this.sendFileModal = new SendFileModal(sendFileModalOptions);
+  managers.fileManager = self;
+
+  $(document).ready(function() {
+    self.sendFileModal.init(managers);
+
+    $('.message_input__add .add-button.send').unbind().click(function(e) {
+      self.sendFileModal.show();
+    });
+  });
+};
 
 FileManager.prototype.sendFile = function sendFile(data, callback) {
   var self = this;
@@ -37,7 +61,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
     type: file.type,
     toChatId: toChatId,
     chatType: chatType,
-    uploadedBy: ChatManager.userProfile.id,
+    uploadedBy: self.chatManager.userProfile.id,
     description: description
   };
 
@@ -49,7 +73,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
 
     console.log('[fileManager.sendFile] calling getFileCipher');
-    window.encryptionManager.getFileCipher({
+    self.encryptionManager.getFileCipher({
       chatId: toChatId
     }, function(err, data) {
       var cipher = data.cipher;
@@ -70,7 +94,7 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
         chatType: chatType,
         encryptedKey: encryptedKey,
         iv: iv,
-        uploadedBy: ChatManager.userProfile.id,
+        uploadedBy: self.chatManager.userProfile.id,
         description: description
       };
 
@@ -93,10 +117,14 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
 
       fileReader.pipe(cipher).pipe(binStream);;
 
+      self.sendFileModal.showProgress();
+
       var tx = 0;
       binStream.on('data', function(data) {
         var progressPercent = Math.round(tx+=data.rx*100);
         console.log('Progress: ' + progressPercent + '%');
+
+        self.sendFileModal.updateProgress(tx+=data.rx);
 
         if (progressPercent >= 100) {
           binStream.end();
@@ -219,6 +247,8 @@ FileManager.prototype.handleIncomingFileStream = function handleIncomingFileStre
 
 FileManager.prototype.readFiles = function readFiles(files, callback) {
   var self = this;
+  var activeChatId = self.chatManager.activeChat;
+  var activeChat = self.chatManager.chats[activeChatId];
 
   if (!files.length) {
     return console.log('[sendFileModal.readblob] Need to select a file silly');
@@ -228,8 +258,8 @@ FileManager.prototype.readFiles = function readFiles(files, callback) {
   var binSocketClient = BinSocketClient(options);
 
   var description = "this is the files description";
-  var chatType = ChatManager.chats[ChatManager.activeChat].type;
-  var toChatId = ChatManager.chats[ChatManager.activeChat].id;
+  var chatType = activeChat.type;
+  var toChatId = activeChat.id;
 
   // Only work with one file at a time for now
   var file = files[0];
@@ -276,7 +306,7 @@ FileManager.prototype.getFile = function getFile(data) {
         iv: iv
       };
 
-      window.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
+      self.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
         // Start listening for the file stream itself
         // Can't make this listen for a particular id right now due to requirement to
         // listen for 'stream'

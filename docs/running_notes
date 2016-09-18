@@ -1,0 +1,10 @@
+## Doing
+- Converting sendFileModal into a prototype and passing chatManager to it on init
+- Changing the way that modals init so that they can have managers passed in on init
+- Making sure that we wait for document ready in chatmanager init, then init all modals and move forward
+
+## Questions/To Fix
+- in ChatManager, focus chat, do we really need to be creating a new fileManager instance each time we click the downloadLink?
+- Can we use nodecrypto everywhere, or require crypto??
+- Need to have the server check to see if the files directory exists and if not, create it
+- Is the files directory configurable easily from the config?

@@ -11,7 +11,6 @@ var registerUserPrompt = require('../modals/registerUserPrompt.js');
 var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
 var createRoomModal = require('../modals/createRoomModal.js');
 var editRoomModal = require('../modals/editRoomModal.js');
-var sendFileModal = require('../modals/sendFileModal.js');
 
 /**
  * Handles pretty much everything related to chat
@@ -31,12 +30,6 @@ function ChatManager(options) {
   this.socketClient = options.managers.socketClient;
 
   // Init state
-  this.userlistUtil = new Userlist();
-  this.userlistUtil.init({
-    managers: {
-      chatManager: this
-    }
-  });
   this.chats = {};
   this.userlist = {};
   this.userNameMap  = {};
@@ -45,6 +38,10 @@ function ChatManager(options) {
   this.userProfile = {};
   this.activeChat = null;
   this.lastActiveChat = null;
+
+  var userlistUtilOptions = {};
+  this.userlistUtil = new Userlist(userlistUtilOptions);
+  this.fileManager = new FileManager();
 
   // Network config
   var host = window.location.host;
@@ -82,18 +79,28 @@ function ChatManager(options) {
   });
 }
 
+// Need to make sure this init is being called after $(document).ready so
+// that we can run init on all of the modals from here, passing in managers
 ChatManager.prototype.init = function(callback) {
+  var self = this;
+
   if (window.username) {
-    this.updateProfileHeader();
+    self.updateProfileHeader();
   }
 
-  this.userlistUtil.init({
-    managers: {
-      chatManager: this
-    }
+  var managers = {
+    chatManager: self,
+    encryptionManager: self.encryptionManager
+  };
+
+  self.userlistUtil.init(managers);
+  self.fileManager.init(managers);
+
+  // When the DOM is ready, init the modals
+  $(document).ready(function() {
   });
 
-  this.initDOM();
+  self.initDOM();
 
   if (callback) {
     callback();
@@ -299,11 +306,6 @@ ChatManager.prototype.initDOM = function() {
     cmSelf.populateManageMembersModal({ chatId: cmSelf.activeChat, clearMessages: true });
 
     $('.manage-members-modal').modal('show');
-  });
-
-
-  $('.message_input__add .add-button.send').unbind().click(function(e) {
-    SendFileModal.show();
   });
 };
 
@@ -618,7 +620,7 @@ ChatManager.prototype.initRoom = function initRoom(room, callback) {
    * Should only buldChatKeyRing for private rooms
    * Should build allUserKeyRing once and use that for public rooms
    */
-  self.encryptionManager.buildChatKeyRing.call(self, { chatId: room.id }, function(keyRing) {
+  self.encryptionManager.buildChatKeyRing({ chatId: room.id }, function(keyRing) {
     self.chats[room.id].keyRing = keyRing;
 
     console.log("[ChatManager.initRoom] Starting to decrypt messages for room #" + room.name);
@@ -966,7 +968,6 @@ ChatManager.prototype.focusChat = function focusChat(data, callback) {
       console.log('Pfile link clicked, id: %s', fileId);
 
       var keyRing = self.chats[chatId].keyRing;
-      var fileManager = FileManager();
 
       fileManager.getFile({ keyRing: keyRing, id: fileId });
     };
@@ -1381,7 +1382,8 @@ ChatManager.prototype.handlePrivateMessage = function handlePrivateMessage(data)
       if (err) {
         return console.log(err);
       };
-      var ds = km = null;
+      var km = null;
+      var ds = null;
       ds = messageLiterals[0].get_data_signer();
       if (ds) { km = ds.get_key_manager(); }
       if (km) {

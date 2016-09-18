@@ -315,7 +315,7 @@ EncryptionManager.prototype.buildChatKeyRing = function buildChatKeyRing(data, c
 
   if (membershipRequired) {
     self.chatManager.chats[chatId].members.forEach(function(userId) {
-      var chatUsername = self.userlist[userId].username;
+      var chatUsername = self.chatManager.userlist[userId].username;
       var keyFingerPrint = '';
 
       if (chatUsername != window.username) {

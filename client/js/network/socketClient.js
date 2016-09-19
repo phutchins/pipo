@@ -43,15 +43,6 @@ function SocketClient() {
   };
   this.encryptionManager.init(encryptionOpts);
 
-  console.log('about to init chatManager');
-  this.chatManager.init(function(err) {
-    if (err) {
-      return console.log('Error setting up ChatManager: %s', err);
-    }
-
-    console.log('ChatManager successfully initialized');
-  });
-
   if (window.config) {
     host = window.config.server.host;
     port = window.config.client.port;

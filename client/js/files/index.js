@@ -127,8 +127,6 @@ FileManager.prototype.sendFile = function sendFile(data, callback) {
           var progressPercent = Math.round(tx+=data.rx*100);
           console.log('Progress: ' + progressPercent + '%');
 
-          debugger;
-
           if (tx) {
             self.sendFileModal.updateProgress(tx/100);
           }

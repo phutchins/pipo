@@ -10,6 +10,8 @@ function SendFileModal(options) {
     return new SendFileModal(options);
   }
 
+  console.log('Running constructor for sendFileModal');
+
   this._options = options;
   this.bar = null;
 }
@@ -63,9 +65,15 @@ SendFileModal.prototype.finish = function(err) {
     return false;
   }
 
-  console.log("[sendFileModal.documentReady] SendFileModal complete success");
-  $('.modal.sendfile').modal('hide');
+  console.log('[sendFileModal.documentReady] SendFileModal complete success');
+  //$('.modal.sendfile').modal('hide');
+  // Reset the modal view to done mode
+  this.setStatus('done');
   return false;
+};
+
+SendFileModal.prototype.setStatus = function(status) {
+
 };
 
 SendFileModal.prototype.build = function build(callback) {
@@ -95,36 +103,39 @@ SendFileModal.prototype.build = function build(callback) {
 };
 
 SendFileModal.prototype.showProgress = function(callback) {
-  var container = $('.sendfile .progress')[0];
+  //var container = $('.sendfile .progress')[0];
+  var self = this;
 
-  this.bar = new ProgressBar.Circle(container, {
-		color: '#aaa',
-		// This has to be the same size as the maximum width to
-		// prevent clipping
-		//strokeWidth: 2,
-		//trailWidth: 1,
-		easing: 'easeInOut',
-		duration: 100,
-		text: {
-	    autoStyleContainer: false
-		},
-		from: { color: '#aaa', width: 1 },
-		to: { color: '#333', width: 4 },
-		// Set default step function for all animate calls
-		step: function(state, circle) {
-			circle.path.setAttribute('stroke', state.color);
-			circle.path.setAttribute('stroke-width', state.width);
+  this.bar = new ProgressBar.Line(progress, {
+    strokeWidth: 4,
+    easing: 'easeInOut',
+    duration: 100,
+    color: '#FFEA82',
+    trailColor: '#eee',
+    trailWidth: 1,
+    svgStyle: { width: '100%', height: '100%'},
+    text: {
+      style: {
+        color: '#999',
+        position: 'absolute',
+        right: '0',
+        top: '30px',
+        padding: 0,
+        margin: 0,
+        transform: null
+      },
+      autoStyleContainer: false
+    },
+    from: { color: '#FFEA82' },
+    to: { color: '#ED6A5A' },
+    // Set default step function for all animate calls
+    step: function(state, bar) {
+      bar.setText(Math.round(bar.value() * 100) + ' %');
+    }
+  });
 
-			var value = Math.round(circle.value() * 100);
-			if (value === 0) {
-				circle.setText('');
-			} else {
-				circle.setText(value);
-			}
-		}
-	});
-	this.bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
-	this.bar.text.style.fontSize = '2rem';
+  //this.bar.text.style.fontFamily = '"Raleway", Helvetica, sans-serif';
+  //this.bar.text.style.fontSize = '2rem';
 
   return callback();
 };
@@ -132,7 +143,7 @@ SendFileModal.prototype.showProgress = function(callback) {
 SendFileModal.prototype.updateProgress = function(progress) {
   var self = this;
   console.log('Updating progress to %s', progress);
-	self.bar.animate(progress);  // Number from 0.0 to 1.0
+  self.bar.animate(progress);  // Number from 0.0 to 1.0
 };
 
 SendFileModal.prototype.show = function show(callback) {

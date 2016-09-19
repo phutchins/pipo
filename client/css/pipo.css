@@ -22,23 +22,19 @@ body, html { padding: 0; margin: 0; }
 }
 
 .progress {
-  height: 80px;
-  width: 80px;
-  margin: 10px 30px 30px 10px;
-  float: right;
-  border: 1px solid salmon;
-}
-
-.progress > svg {
-  height: 100%;
   display: block;
+  margin-top: 20px;
+  margin-right: 20px;
+  margin-left: 20px;
+  margin-bottom: 50px;
+  height: 8px;
+  position: relative;
 }
 
 .sendfile .header .title {
 }
 
 .sendfile .actions {
-  float: left;
 }
 
 #chat {

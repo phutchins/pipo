@@ -84,6 +84,8 @@ function ChatManager(options) {
 ChatManager.prototype.init = function(callback) {
   var self = this;
 
+  console.log('Running init on chatManager');
+
   if (window.username) {
     self.updateProfileHeader();
   }

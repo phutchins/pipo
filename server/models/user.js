@@ -1,3 +1,5 @@
+'use strict';
+
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var bcrypt = require('bcrypt-nodejs');
@@ -84,22 +86,29 @@ userSchema.statics.create = function createUser(userData, callback) {
   });
 
   mongoose.model('User').findOne({ username: username }, function(err, user) {
+    if (err) {
+      logger.debug('[user.create] Error creating user: %s', err);
+    }
+
     if (!user) {
-      logger.debug("[USER] Saving user...");
+      logger.debug('[USER] Saving user...');
       newUser.save(function(err) {
-        logger.debug("[USER] Saved user!");
+        logger.debug('[USER] Saved user!');
         if (err) {
-          return callback("error saving new user", null);
+          return callback('error saving new user', null);
         }
-        logger.debug("[USER] saved new user");
-        mongoose.model('User').findOne({ username: username }, function(err, user) {
-          return callback(null, {user: user, newUser: true});
-        })
-      })
+        logger.debug('[user.create] saved new user');
+        mongoose.model('User').findOne(
+          { username: username },
+          function(err, user) {
+            return callback(null, {user: user, newUser: true});
+          }
+        );
+      });
     } else {
       return callback(null, {user: user, newUser: false});
     }
-  })
+  });
 };
 
 /**
@@ -108,14 +117,13 @@ userSchema.statics.create = function createUser(userData, callback) {
  * @param callback
  */
 userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) {
-  var AuthenticationManager = require('../js/managers/authentication');
   var nonce = data.nonce;
   var signature = data.signature;
 
   var self = this;
 
-  if (typeof data != 'object' || !Object.keys(data).length || data == null) {
-    return callback(new Error("No user data included in request"));
+  if (typeof data !== 'object' || !Object.keys(data).length || data === null) {
+    return callback(new Error('No user data included in request'));
   }
 
   if (!data.username) {
@@ -130,7 +138,15 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     //TODO: Check signature
     //return callback(new Error("signature is required"))
   }
-  this.findOne({username: data.username}).populate('membership.rooms._room').populate('membership._autoJoin').exec(function(err, user) {
+
+  mongoose.model('User')
+  .findOne({username: data.username})
+  .populate('membership._autoJoin')
+  .populate('membership._favoriteRooms')
+  .exec(function(err, user) {
+    var Authentication = require('../js/managers/authentication');
+    var authentication = new Authentication();
+
     if (err) {
       logger.error("Error finding or creating user: ",err);
       return callback(err);
@@ -145,13 +161,15 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
     if (user) {
       logger.debug("[USER] Found user '"+data.username+"'");
 
-      if ( user.publicKey == data.publicKey ) {
-        logger.debug("[USER] User '"+data.username+"' has a public key that matches username");
+      if ( user.publicKey === data.publicKey ) {
+        logger.debug('[USER] User %s has key that matches username', data.username);
 
         // Check thte users signature on provided nonce
         // Need to get the nonce from the socket.io call above somewhere
-        AuthenticationManager.verify(user.username, nonce, signature, function(err, verified) {
-          logger.debug("[user.authenticateOrCreate] Verifying user signature. Verified is '" + verified + "'");
+        authentication.verify(user.username, nonce, signature, function(err, verified) {
+          if (err) {
+            logger.debug('user.authenticateOrCreate] Error verifying user: %s', err);
+          }
 
           if (verified) {
             return callback(null, { user: user } );
@@ -256,9 +274,9 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
 userSchema.statics.sanatize = function sanatize(user, callback) {
   var favoriteRoomIds = [];
 
-  if (user.membership._favoriteRooms.length > 0) {
+  if (user.membership && user.membership._favoriteRooms.length > 0) {
     favoriteRoomIds = user.membership._favoriteRooms.map(function(room) {
-      return room.id;
+      return room.id.toString();
     });
   };
 
@@ -299,7 +317,7 @@ userSchema.statics.buildProfile = function buildProfile(data, callback) {
   var self = this;
   var user = data.user;
 
-  this.sanatize(user, function(sanatizedUser) {
+  self.sanatize(user, function(sanatizedUser) {
     logger.debug("[user.buildProfile] User profile built for " + user.username + ", returning profile.");
     return callback(sanatizedUser);
   });

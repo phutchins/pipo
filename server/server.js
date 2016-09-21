@@ -22,7 +22,7 @@ var btoa = require('btoa');
 var BinaryServer = require('binaryjs').BinaryServer;
 
 // Managers
-var AuthenticationManager = require('./js/managers/authentication');
+var Authentication = require('./js/managers/authentication');
 
 //Local modules
 var database = require('./js/database');
@@ -107,7 +107,8 @@ function Server(options) {
   database.connect('development');
 
   // Initialize authentication framework
-  AuthenticationManager.init(this.app);
+  this.authentication = new Authentication();
+  this.authentication.init(this.app);
 
   // Load routes
   var routePath = __dirname + '/routes/';

@@ -133,11 +133,11 @@ Authentication.prototype.getAuthData = function(data, callback) {
 
 Authentication.prototype.authenticated = function(data) {
   var self = this;
-  var favoriteRooms = data.favoriteRooms;
   var defaultRoomId = data.defaultRoomId;
   var userNameMap = data.userNameMap;
   var userlist = data.userlist;
   var userProfile = data.userProfile;
+  var favoriteRooms = userProfile.membership.favoriteRooms;
   var username = localStorage.getItem('username');
 
   // Ensure that we have permission to show notifications and prompt if we don't
@@ -172,7 +172,7 @@ Authentication.prototype.authenticated = function(data) {
           console.log("[AUTHENTICATED] Authenticated successfully");
 
           // Use cilent keys and enable chat for each room user is currently in
-          if (favoriteRooms.length > 0) {
+          if (favoriteRooms && favoriteRooms.length > 0) {
 
             favoriteRooms.forEach(function(roomId) {
               console.log("[SOCKET] (authenticated) Joining room ",roomId);

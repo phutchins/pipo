@@ -1,3 +1,5 @@
+'use strict';
+
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var Message = require('./message');
@@ -106,6 +108,8 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
   var keys = [];
   var keyRing = new kbpgp.keyring.KeyRing();
+  var EncryptionManager = require('../js/managers/encryption');
+  var encryptionManager = new EncryptionManager();
 
   mongoose.model('Room').findOne({ _id: roomId }).populate('_subscribers _members').exec(function(err, room) {
     if (err) {
@@ -143,7 +147,7 @@ roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
 
     //logger.debug("[room.getPubKeys] keys array: ", keys);
     logger.debug("[room.getPubKeys] Done building keys array. About to build keyRing.");
-    EncryptionManager.buildKeyRing(keys, function(err, keyRing) {
+    encryptionManager.buildKeyRing(keys, function(err, keyRing) {
       //logger.debug("[room.getPubKeys] keyRing is: ", keyRing);
       logger.debug("[room.getPubKeys] Built keyRing, returning it now...");
       return callback(null, keyRing);

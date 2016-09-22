@@ -48,12 +48,15 @@ function SocketServer(namespace) {
     }
   }
 
+  this.encryptionManager = new EncryptionManager({});
+
   var managers = {
     socketServer: this,
     encryptionManager: this.encryptionManager
   };
 
-  this.encryptionManager = new EncryptionManager({});
+  logger.debug('[socketServer.constructor] encryptionManager is: ', Object.prototype.toString.call(this.encryptionManager));
+
   this.fileManager = new FileManager(managers);
 }
 

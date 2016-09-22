@@ -16,6 +16,7 @@ function Userlist(options) {
 }
 
 Userlist.prototype.init = function(managers) {
+  // Should this chat manager stuff go in the constructor?
   this.chatManager = managers.chatManager;
 }
 
@@ -26,7 +27,7 @@ Userlist.prototype.update = function update(data) {
   var self = this;
   var chatId = data.chatId;
   var socket = window.socketClient.socket;
-  var chat = self.chatManager.chats[chatId];
+  var chat = this.chatManager.chats[chatId];
   var type = chat.type;
   var members = chat.members;
   var participants = chat.participants;

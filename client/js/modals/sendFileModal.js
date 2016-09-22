@@ -109,7 +109,7 @@ SendFileModal.prototype.showProgress = function(callback) {
   this.bar = new ProgressBar.Line(progress, {
     strokeWidth: 4,
     easing: 'easeInOut',
-    duration: 100,
+    duration: 10,
     color: '#FFEA82',
     trailColor: '#eee',
     trailWidth: 1,

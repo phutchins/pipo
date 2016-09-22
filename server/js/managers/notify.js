@@ -15,6 +15,7 @@ function NotifyManager(managers, options) {
 }
 
 NotifyManager.prototype.sendToChat = function(data) {
+  var self = this;
   var message = data.message;
   var chatId = data.chatId;
   var socketServer = data.socketServer;
@@ -23,14 +24,14 @@ NotifyManager.prototype.sendToChat = function(data) {
   var err = data.err;
 
   logger.debug("[notify.sendToChat] chatType is: " + chatType);
-  if (chatType == 'chat') {
+  if (chatType === 'chat') {
     logger.debug("[notify.sendToChat] Getting pubkeys for Chat with id: " + chatId);
     Chat.getPubKeys(chatId, function(err, keyRing) {
       finish(keyRing, signingKeyManager);
     });
   }
 
-  if (chatType == 'room') {
+  if (chatType === 'room') {
     logger.debug("[notify.sendToChat] Getting pubkeys for Room with id: " + chatId);
     Room.getPubKeys(chatId, function(err, keyRing) {
       finish(keyRing, signingKeyManager);
@@ -46,7 +47,7 @@ NotifyManager.prototype.sendToChat = function(data) {
       keys.push(keyRing._kms[id]);
     });
 
-    this.encryptionManager.encryptChatMessage(keys, signingKeyManager, message, function(err, encryptedMessage) {
+    self.encryptionManager.encryptChatMessage(keys, signingKeyManager, message, function(err, encryptedMessage) {
       if (err) {
         return logger.debug("[notify.sendToChat] Error encrypting message: " + err);
       };

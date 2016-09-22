@@ -1,7 +1,6 @@
 'use strict';
 
 var NotifyManager = require('./notify');
-var EncryptionManager = require('./encryption');
 var logger = require('../../../config/logger');
 var PFile = require('../../models/pfile');
 var ss = require('socket.io-stream');
@@ -12,16 +11,13 @@ function FileManager(managers) {
   if (!(this instanceof FileManager)) {
     return new FileManager(managers);
   }
-}
-
-FileManager.prototype.init = function() {
-  var managers = {
-    fileManager: this
-  };
 
   this.notifyManager = new NotifyManager(managers, {});
   this.socketServer = managers.socketServer;
-  this.encryptionManager = managers.encryptionManager;
+  this.encryptionManager = this.socketServer.encryptionManager;
+}
+
+FileManager.prototype.init = function() {
 };
 
 FileManager.prototype.notifyNewFile = function(data) {
@@ -56,7 +52,7 @@ FileManager.prototype.notifyNewFile = function(data) {
   logger.debug("[FileManager.notifyNewFile] Sending call to NotifyManager with chatId: ", chatId);
 
   // Server should let users of a chat know that a file has been uploaded (in case the user fails to notify after success upload)
-  NotifyManager.sendToChat(messageData);
+  this.notifyManager.sendToChat(messageData);
 };
 
 // TODO: This should create a popup or something, not send message to the room...
@@ -81,7 +77,7 @@ FileManager.prototype.notifyError = function(data) {
     signingKeyManager: signingKeyManager
   };
 
-  NotifyManager.sendToChat(messageData);
+  this.notifyManager.sendToChat(messageData);
 };
 
 FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
@@ -99,8 +95,7 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
   var fileHash = crypto.createHash('rmd160').setEncoding('hex');
   var socketServer = data.socketServer;
   var fileName = data.fileName;
-  logger.debug('this.encryptionManager.systemUser: ', this.encryptionManager.systemUser);
-  var systemUser = this.encryptionManager.systemUser;
+  var systemUser = self.encryptionManager.systemUser;
   var chatType = data.chatType;
   var chatId = data.toChatId;
   var chunkNumber = data.chunkNumber;
@@ -109,9 +104,11 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
 
   // Report back with percentage of file received
   fileStream.on('data', function(chunkBuffer) {
-    logger.debug('[socketServer.onBinarySocketConnection] Got data from stream...');
-
+    try {
     fileHash.update(chunkBuffer);
+    } catch(err) {
+      logger.warning('Error updating file hash: %s', err);
+    }
 
     fileStream.write({rx: chunkBuffer.length / data.size});
   });
@@ -124,12 +121,12 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
 
     fileHash.end();
 
-    var sysPubKey = self.systemUser.publicKey.toString();
-    var sysPrivKey = self.systemUser.privateKey.toString();
+    var sysPubKey = systemUser.publicKey.toString();
+    var sysPrivKey = systemUser.privateKey.toString();
     var sysUsername = 'pipo';
 
     // fileHash.on('finish', function() {
-    this.encryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
+    self.encryptionManager.buildKeyManager(sysPubKey, sysPrivKey, sysUsername, function(err, pipoKeyManager) {
       logger.debug('[socketServer.handleFileStream] fileHash finsihed. Renaming temp file');
 
       var fileHashString = fileHash.read().toString('hex');

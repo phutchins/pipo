@@ -311,13 +311,10 @@ FileManager.prototype.getFile = function getFile(data) {
         iv: iv
       };
 
-      debugger;
-
       self.encryptionManager.getFileDecipher(decipherData, function(err, decipher) {
         // Start listening for the file stream itself
         // Can't make this listen for a particular id right now due to requirement to
         // listen for 'stream'
-        debugger;
 
         binSocketClient.listenForFileStream(function(fileStream, metadata) {
           metadata.decipher = decipher;

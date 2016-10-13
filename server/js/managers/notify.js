@@ -67,7 +67,6 @@ NotifyManager.prototype.sendToChat = function(data) {
         user: socketServer.namespace.userMap[fromUserId]
       };
 
-      console.log('encryptionManager.systemUser is: %j', self.encryptionManager.systemUser);
       console.log('Looking for user %s socket', fromUserId);
       console.log('userMap is: %j', socketServer.namespace.userMap);
 

@@ -971,7 +971,7 @@ ChatManager.prototype.focusChat = function focusChat(data, callback) {
 
       var keyRing = self.chats[chatId].keyRing;
 
-      fileManager.getFile({ keyRing: keyRing, id: fileId });
+      self.fileManager.getFile({ keyRing: keyRing, id: fileId });
     };
 
     $(document).off("click", ".pfile-link");

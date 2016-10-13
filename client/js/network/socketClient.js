@@ -66,6 +66,10 @@ function SocketClient() {
     console.log("Connected to socket.io server");
   });
 
+  this.socket.on('disconnect', function() {
+    console.log('Disconnected from server...');
+  });
+
   this.socket.on('certificate', function(certificate) {
     console.log("[socketClient] (certificate) Got server certificate. Verifying...");
     self.encryptionManager.verifyCertificate(certificate, function(err) {
@@ -236,6 +240,8 @@ SocketClient.prototype.addListeners = function() {
 SocketClient.prototype.init = function() {
   var self = this;
   console.log("[INIT] Loading client keypair...");
+
+  // Need to clean up all local state in case this is a reconnect
 
   self.encryptionManager.loadClientKeyPair(function (err, loaded) {
     if (err) {

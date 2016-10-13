@@ -55,6 +55,8 @@ SendFileModal.prototype.init = function init(managers) {
     console.log("[sendFileModal.init] Done building modal");
   });
 
+  // Avoid creating the form multiple times
+  $('.ui.form.sendfile').form('destroy');
   $('.ui.form.sendfile').form(this.sendfileFormSettings);
 
 };

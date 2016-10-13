@@ -366,13 +366,21 @@ roomSchema.statics.join = function join(data, callback) {
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
 
-        user.membership._currentRooms.push(room._id);
+        var currentRooms = user.membership._currentRooms;
+
+        var inCurrentRooms = currentRooms.some(function(id) {
+          return id.toString() === room._id.toString();
+        });
+
+        if (!inCurrentRooms) {
+          logger.debug('[room.join] Adding room %s to %s\'s current rooms', room._id.toString(), username);
+
+          user.membership._currentRooms.push(room._id);
+        }
 
         user.save(function(err) {
           if (err) {
             logger.error("[room.join] Error while adding room to _currentRooms: " + err);
-          } else {
-            logger.debug("[room.join] Added room to users _currentRooms array");
           }
         });
 

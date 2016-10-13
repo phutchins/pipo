@@ -4080,6 +4080,8 @@ SendFileModal.prototype.build = function build(callback) {
     }
   };
 
+  $('.sendfile .progress').html('');
+
   console.log("[sendFileModal.build] Building send file modal");
 
   $('.modal.sendfile').modal(sendFileModalSettings);

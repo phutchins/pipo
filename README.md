@@ -195,9 +195,14 @@ We're still working through gathering the proper toolset to do frontend testing.
   + Unit Testing
     + mocha-jsdom - For mocking simple dom bits
     +
-Possibly go with something that does all aroudn testing
   + Browser framework
     + https://github.com/theintern/intern-tutorial
+ #### Links
+    + http://developer.telerik.com/featured/journey-client-side-testing-javascript/
+    + https://derickbailey.com/2014/06/18/testing-browserify-modules-in-a-headless-browser/
+    + http://krasimirtsonev.com/blog/article/unit-test-your-client-side-javascript-jsdom-nodejs
+    + https://nicolas.perriault.net/code/2013/testing-frontend-javascript-code-using-mocha-chai-and-sinon/
+    + https://github.com/nathanboktae/mocha-phantomjs
 Statically compile pug templates
 
 ### Running

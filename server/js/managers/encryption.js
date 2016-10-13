@@ -4,6 +4,7 @@ var crypto = require('crypto');
 var kbpgp = require('kbpgp');
 var fs = require('fs');
 var logger = require('../../../config/logger');
+var config = require('../../../config/pipo')(process.env.NODE_ENV);
 
 function Encryption(options) {
   if (!(this instanceof Encryption)) {
@@ -15,12 +16,9 @@ function Encryption(options) {
   this.keyRing = new kbpgp.keyring.KeyRing();
 
   // Need to merge this with createSystemUser so we're not defining things in multiple places...
-  this.systemUser = {
-    username: 'pipo',
-    publicKey: fs.readFileSync(__dirname + '/../../../keys/pipo.pub'),
-    privateKey: fs.readFileSync(__dirname + '/../../../keys/pipo.key'),
-    email: 'pipo@pipo.chat'
-  };
+
+  this.systemUserData = this._options.systemUserData;
+  this.systemUser = this._options.systemUser;
 }
 
 Encryption.prototype.getKeyFingerprint = function (key, callback) {

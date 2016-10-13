@@ -7,6 +7,7 @@ var crypto = require('crypto');
 var Room = require('./room');
 var Chat = require('./chat');
 var logger = require('../../config/logger');
+var config = require('../../config/pipo')(process.env.NODE_ENV);
 
 /*
  * User Status Definitions
@@ -269,6 +270,31 @@ userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
     });
     return callback(userlist);
   })
+};
+
+userSchema.statics.getSystemUser = function getSystemUser(callback) {
+  var self = this;
+
+  this.findOne({ username: 'pipo' }, function(err, systemUser) {
+    if (err) {
+      return callback(err);
+    }
+
+    if (!systemUser) {
+      User.create(config.systemUser, function(err, systemUser) {
+        console.log('SystemUser: %j', systemUser);
+        sanatizeAndReturn(systemUser);
+      });
+    } else {
+      sanatizeAndReturn(systemUser);
+    }
+  });
+
+  var sanatizeAndReturn = function(systemUser) {
+    self.sanatize(systemUser, function(sanatizedSystemUser) {
+      return callback(null, sanatizedSystemUser);
+    });
+  }
 };
 
 userSchema.statics.sanatize = function sanatize(user, callback) {

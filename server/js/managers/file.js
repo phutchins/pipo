@@ -95,7 +95,7 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
   var fileHash = crypto.createHash('rmd160').setEncoding('hex');
   var socketServer = data.socketServer;
   var fileName = data.fileName;
-  var systemUser = self.encryptionManager.systemUser;
+  var systemUserData = self.encryptionManager.systemUserData;
   var chatType = data.chatType;
   var chatId = data.toChatId;
   var chunkNumber = data.chunkNumber;
@@ -107,7 +107,7 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
     try {
     fileHash.update(chunkBuffer);
     } catch(err) {
-      logger.warning('Error updating file hash: %s', err);
+      logger.warn('Error updating file hash: %s', err);
     }
 
     fileStream.write({rx: chunkBuffer.length / data.size});
@@ -121,8 +121,8 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
 
     fileHash.end();
 
-    var sysPubKey = systemUser.publicKey.toString();
-    var sysPrivKey = systemUser.privateKey.toString();
+    var sysPubKey = systemUserData.publicKey.toString();
+    var sysPrivKey = systemUserData.privateKey.toString();
     var sysUsername = 'pipo';
 
     // fileHash.on('finish', function() {

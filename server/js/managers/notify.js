@@ -18,6 +18,7 @@ NotifyManager.prototype.sendToChat = function(data) {
   var self = this;
   var message = data.message;
   var chatId = data.chatId;
+  var fromUserId = self.encryptionManager.systemUser.id;
   var socketServer = data.socketServer;
   var chatType = data.chatType;
   var signingKeyManager = data.signingKeyManager;
@@ -47,10 +48,11 @@ NotifyManager.prototype.sendToChat = function(data) {
       keys.push(keyRing._kms[id]);
     });
 
-    self.encryptionManager.encryptChatMessage(keys, signingKeyManager, message, function(err, encryptedMessage) {
+    // Should break this out into its own method but need to expose it
+    var sendMessage = function(err, encryptedMessage) {
       if (err) {
-        return logger.debug("[notify.sendToChat] Error encrypting message: " + err);
-      };
+        return logger.debug('[notify.sendToChat] Error encrypting: %s', err);
+      }
 
       var messageData = {
         chatId: chatId,
@@ -58,18 +60,38 @@ NotifyManager.prototype.sendToChat = function(data) {
       };
 
       // emit message to users in chat using onMessage
-      logger.debug("[NotifyManager.sendToChat] Sending notification to a '" + chatType + "' with id '" + chatId + "'");
+      logger.debug('[NotifyManager.sendToChat] Sending notification to a ' +
+                   '%s with id %s', chatType, chatId);
 
-      if (chatType == 'chat') {
-        return socketServer.onPrivateMessage(socketServer.socket, messageData);
+      var socket = {
+        user: socketServer.namespace.userMap[fromUserId]
+      };
+
+      console.log('encryptionManager.systemUser is: %j', self.encryptionManager.systemUser);
+      console.log('Looking for user %s socket', fromUserId);
+      console.log('userMap is: %j', socketServer.namespace.userMap);
+
+      if (chatType === 'chat') {
+        return socketServer.onPrivateMessage(socket, messageData);
       }
 
-      if (chatType == 'room') {
-        return socketServer.onMessage(socketServer.socket, messageData);
+      if (chatType === 'room') {
+        return socketServer.onMessage(socket, messageData);
       }
 
-      logger.debug("[NotifyManager.sendToChat] chatType was not during finish");
-    });
+      logger.debug('[NotifyManager.sendToChat] chatType was not during finish');
+    };
+
+    var encryptParams = [
+      keys,
+      signingKeyManager,
+      message
+    ];
+
+    //logger.debug('[notify.sendToChat] encrypt keys is: ', keys);
+    //logger.debug('[notify.sendToChat] encrypt signingKeyManager is: ', signingKeyManager);
+
+    self.encryptionManager.encryptChatMessage(keys, signingKeyManager, message, sendMessage);
   };
 };
 

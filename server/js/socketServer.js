@@ -1070,7 +1070,7 @@ SocketServer.prototype.membership = function membership(socket, data) {
     })
   }
   if (type == 'modify') {
-    modifyData = ({
+    var modifyData = ({
       memberName: data.member,
       chatId: data.chatId,
       memberId: data.memberId,

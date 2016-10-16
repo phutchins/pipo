@@ -100,13 +100,12 @@ ChatManager.prototype.init = function(callback) {
 
   // When the DOM is ready, init the modals
   $(document).ready(function() {
+    self.initDOM();
+
+    if (callback) {
+      callback();
+    }
   });
-
-  self.initDOM();
-
-  if (callback) {
-    callback();
-  }
 };
 
 ChatManager.prototype.initDOM = function() {
@@ -276,7 +275,7 @@ ChatManager.prototype.initDOM = function() {
     $('.manage-members-modal .membername').val('');
   })
 
-  $(document).ready( cmSelf.buildRoomListModal );
+  cmSelf.buildRoomListModal();
 
   /*
    * Catch clicks on room options dropdown
@@ -302,8 +301,6 @@ ChatManager.prototype.initDOM = function() {
     }
   });
 
-
-
   $('.chat-header__settings .room-options.manage-members').unbind().click(function(e) {
     cmSelf.populateManageMembersModal({ chatId: cmSelf.activeChat, clearMessages: true });
 
@@ -313,7 +310,7 @@ ChatManager.prototype.initDOM = function() {
 
 
 
-ChatManager.prototype.buildRoomListModal = function() {
+ChatManager.prototype.buildRoomListModal = function buildRoomListModal() {
   var cmSelf = this;
 
   $('.modal.join-room-list-modal').modal({
@@ -392,23 +389,24 @@ ChatManager.prototype.populateManageMembersModal = function populateManageMember
   // There are circumstances where this is populating a modal for a private chat which does not currently have an owner
   // There might should be at least two owners for a private chat which would default to the first two participants
 
-  if (!ChatManager.activeChat || !ChatManager.chats[ChatManager.activeChat]) {
+  if (!data.chatId && ( !self.activeChat || !self.chats[self.activeChat] )) {
     return;
   };
 
-  var chatId = (typeof data.chatId === 'undefined') ? ChatManager.activeChat : data.chatId;
-  var chatName = ChatManager.chats[chatId].name;
+  var chatId = (typeof data.chatId === 'undefined') ? self.activeChat : data.chatId;
+  var chatName = self.chats[chatId].name;
   var clearMessages = (typeof data.clearMessages === 'undefined') ? true : data.clearMessages;
 
-  var members = ChatManager.chats[chatId].members || [];
-  var admins = ChatManager.chats[chatId].admins || [];
-  var ownerId = ChatManager.chats[chatId].owner;
+  var members = self.chats[chatId].members || [];
+  var admins = self.chats[chatId].admins || [];
+  var ownerId = self.chats[chatId].owner;
 
   // Clear notifications
   if (clearMessages) {
     $('.manage-members-modal #manageMembersError').text('');
     $('.manage-members-modal #manageMembersMessage').text('');
   }
+
 
   var manageMembersList = $('.manage-members-modal .manage-members-list');
   $('.manage-members-modal .chatname').val(chatName);
@@ -421,7 +419,7 @@ ChatManager.prototype.populateManageMembersModal = function populateManageMember
   var memberList = {};
 
   var autoCompleteUsers = [];
-  Object.keys(ChatManager.userNameMap).forEach(function(username) {
+  Object.keys(self.userNameMap).forEach(function(username) {
     autoCompleteUsers.push({title: username});
   });
 
@@ -486,6 +484,7 @@ ChatManager.prototype.populateManageMembersModal = function populateManageMember
     // TODO: Need to add the users ID to the userlist object
     $('.manage-members-list .button.save.' + memberId).unbind().click(function(e) {
       console.log("[ADD MEMBER] Caught membership save button click");
+
 
       // TODO: need to allow for change of room name
       var chatName = $('.manage-members-modal .chatname').val();
@@ -890,7 +889,7 @@ ChatManager.prototype.arrayHash = function arrayHash(array, callback) {
  */
 ChatManager.prototype.destroyChat = function destroyChat(chatId, callback) {
   var self = this;
-  delete ChatManager.chats[chatId];
+  delete self.chats[chatId];
 
   self.focusLastChat(function(err) {
     if (err) {
@@ -906,7 +905,7 @@ ChatManager.prototype.destroyChat = function destroyChat(chatId, callback) {
  */
 ChatManager.prototype.partChat = function partChat(chatId, callback) {
   var self = this;
-  ChatManager.chats[chatId].joined = false;
+  self.chats[chatId].joined = false;
 
   self.focusLastChat(function(err) {
     callback(err);
@@ -918,21 +917,23 @@ ChatManager.prototype.partChat = function partChat(chatId, callback) {
  * Focus on the last active chat
  */
 ChatManager.prototype.focusLastChat = function focusLastChat(callback) {
+  var self = this;
+
   // Create a sorted list of chats that are joined
-  var sortedChats = Object.keys(ChatManager.chats).sort().filter(function(chatId) {
-    return ChatManager.chats[chatId].joined;
+  var sortedChats = Object.keys(self.chats).sort().filter(function(chatId) {
+    return self.chats[chatId].joined;
   });
 
   // Should check here for an empty chat list and do something sane if we have parted the last chat
-  var lastChat = ChatManager.chats[sortedChats[sortedChats.length - 1]];
-  ChatManager.activeChat = lastChat;
-  // TODO: Make this focusChat and do th elogic inside of the function to determine what to do for private chats vs rooms
-  ChatManager.focusChat({ id: lastChat.id }, function(err) {
+  var lastChat = self.chats[sortedChats[sortedChats.length - 1]];
+  self.activeChat = lastChat;
+
+  self.focusChat({ id: lastChat.id }, function(err) {
     if (err) {
       return callback(err);
     };
 
-    ChatManager.updateRoomList(function(err) {
+    self.updateRoomList(function(err) {
       callback(null);
     });
   });

@@ -18,7 +18,7 @@ function Userlist(options) {
 Userlist.prototype.init = function(managers) {
   // Should this chat manager stuff go in the constructor?
   this.chatManager = managers.chatManager;
-}
+};
 
 /*
  * Update the user list on the right bar
@@ -26,21 +26,28 @@ Userlist.prototype.init = function(managers) {
 Userlist.prototype.update = function update(data) {
   var self = this;
   var chatId = data.chatId;
-  var socket = window.socketClient.socket;
+
+  // Figure out why this.chatManager.chats is undefined
+  // Its only undefined the second time it gets called.
+  // It shouldn't be getting called twice... Why is it??
+  debugger;
+
   var chat = this.chatManager.chats[chatId];
   var type = chat.type;
   var members = chat.members;
   var participants = chat.participants;
   var subscribers = chat.subscribers;
+  var userIdArray;
+  var count;
 
-  console.log("[userlist.update] members: "+JSON.stringify(members));
-  console.log("[userlist.update] chats: ", Object.keys(self.chatManager.chats));
+  console.log('[userlist.update] members: '+JSON.stringify(members));
+  console.log('[userlist.update] chats: ', Object.keys(self.chatManager.chats));
 
-  if (type == 'room') {
+  if (type === 'room') {
     if (subscribers && subscribers.length > 0) {
-      var userIdArray = [];
+      userIdArray = [];
       var subscriberCount = subscribers.length;
-      var count = 0;
+      count = 0;
       subscribers.forEach(function(userId) {
         userIdArray.push(userId);
         count++;
@@ -54,14 +61,14 @@ Userlist.prototype.update = function update(data) {
 
   if (type === 'chat') {
     if (participants && participants.length > 0) {
-      var userIdArray = [];
+      userIdArray = [];
       var participantCount = participants.length;
-      var count = 0;
+      count = 0;
       participants.forEach(function(userId) {
         userIdArray.push(userId);
         count++;
       });
-      if (participantCount == count) {
+      if (participantCount === count) {
         self.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
         self.initPopups({ userIdArray: userIdArray });
       }

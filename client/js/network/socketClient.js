@@ -24,6 +24,8 @@ function SocketClient() {
     }
   });
 
+  this.chatManager.init();
+
   this.userlistCtl = new Userlist();
   this.userlistCtl.init({ chatManager: this.chatManager });
 
@@ -507,6 +509,8 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
 };
 
 SocketClient.prototype.handleMembershipUpdateComplete = function(data) {
+  var self = this;
+
   var success = data.success;
   var message = data.message;
 
@@ -543,7 +547,7 @@ SocketClient.prototype.serverCommandComplete = function(data) {
 SocketClient.prototype.membership = function(data) {
   var self = this;
 
-  console.log("[MEMBERSHIP] Emitting membership");
+  console.log("[MEMBERSHIP] Emitting membership with data - ", data);
   self.socket.emit('membership', data);
 };
 

@@ -1,6 +1,5 @@
 /node_modules
-/adminData/
-/config/
+/config/adminData
 *.log
 /dist
 /packages

@@ -91,6 +91,7 @@
     "passport": "^0.3.2",
     "passport-keyverify": "0.0.3",
     "passport-publickey": "^1.0.3",
+    "progressbar.js": "^1.0.1",
     "pug": "^2.0.0-beta6",
     "querystring": "^0.2.0",
     "requirejs": "^2.1.17",

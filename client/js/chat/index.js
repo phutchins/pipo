@@ -528,8 +528,9 @@ ChatManager.prototype.showErrorOnModal = function showErrorOnModal(data) {
 ChatManager.prototype.updateProfileHeader = function updateProfileHeader() {
   // TODO: This should be smarter and have a sane default in the DB as well as a better default image
   var self = this;
-  var emailHash = "0";
-  var username = this.userNameMap[window.username];
+  var emailHash = self.userProfile.emailHash;
+  var username = self.userProfile.username;
+  var headerTitle = username || "Sign In";
 
 
   if (self.userlist[username]) {
@@ -539,7 +540,8 @@ ChatManager.prototype.updateProfileHeader = function updateProfileHeader() {
   $('#menu-header-profile .ui.dropdown').dropdown({ action: 'select' });
 
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
-  $('#menu-header-profile .ui.dropdown .text.username').text(window.username);
+
+  $('#menu-header-profile .ui.dropdown .text.username').text(headerTitle);
 };
 
 

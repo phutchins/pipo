@@ -816,8 +816,9 @@ ChatManager.prototype.showErrorOnModal = function showErrorOnModal(data) {
 ChatManager.prototype.updateProfileHeader = function updateProfileHeader() {
   // TODO: This should be smarter and have a sane default in the DB as well as a better default image
   var self = this;
-  var emailHash = "0";
-  var username = this.userNameMap[window.username];
+  var emailHash = self.userProfile.emailHash;
+  var username = self.userProfile.username;
+  var headerTitle = username || "Sign In";
 
 
   if (self.userlist[username]) {
@@ -827,7 +828,8 @@ ChatManager.prototype.updateProfileHeader = function updateProfileHeader() {
   $('#menu-header-profile .ui.dropdown').dropdown({ action: 'select' });
 
   $('#menu-header-profile .ui.dropdown .avatar').attr("style", "background-image: url('https://www.gravatar.com/avatar/" + emailHash + "?s=64')");
-  $('#menu-header-profile .ui.dropdown .text.username').text(window.username);
+
+  $('#menu-header-profile .ui.dropdown .text.username').text(headerTitle);
 };
 
 
@@ -4783,7 +4785,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       if (self.chatManager.activeChat && self.chatManager.activeChat == id) {
-        self.userlistCtl.update.call(self.chatManager, { chatId: id });
+        self.userlistCtl.update({ chatId: id });
       }
 
       self.chatManager.updateRoomList(function() {
@@ -5112,7 +5114,7 @@ function Userlist(options) {
 Userlist.prototype.init = function(managers) {
   // Should this chat manager stuff go in the constructor?
   this.chatManager = managers.chatManager;
-}
+};
 
 /*
  * Update the user list on the right bar
@@ -5120,25 +5122,28 @@ Userlist.prototype.init = function(managers) {
 Userlist.prototype.update = function update(data) {
   var self = this;
   var chatId = data.chatId;
-  var socket = window.socketClient.socket;
+
   // Figure out why this.chatManager.chats is undefined
   // Its only undefined the second time it gets called.
   // It shouldn't be getting called twice... Why is it??
   debugger;
+
   var chat = this.chatManager.chats[chatId];
   var type = chat.type;
   var members = chat.members;
   var participants = chat.participants;
   var subscribers = chat.subscribers;
+  var userIdArray;
+  var count;
 
-  console.log("[userlist.update] members: "+JSON.stringify(members));
-  console.log("[userlist.update] chats: ", Object.keys(self.chatManager.chats));
+  console.log('[userlist.update] members: '+JSON.stringify(members));
+  console.log('[userlist.update] chats: ', Object.keys(self.chatManager.chats));
 
-  if (type == 'room') {
+  if (type === 'room') {
     if (subscribers && subscribers.length > 0) {
-      var userIdArray = [];
+      userIdArray = [];
       var subscriberCount = subscribers.length;
-      var count = 0;
+      count = 0;
       subscribers.forEach(function(userId) {
         userIdArray.push(userId);
         count++;
@@ -5152,14 +5157,14 @@ Userlist.prototype.update = function update(data) {
 
   if (type === 'chat') {
     if (participants && participants.length > 0) {
-      var userIdArray = [];
+      userIdArray = [];
       var participantCount = participants.length;
-      var count = 0;
+      count = 0;
       participants.forEach(function(userId) {
         userIdArray.push(userId);
         count++;
       });
-      if (participantCount == count) {
+      if (participantCount === count) {
         self.build({ userIdArray: userIdArray, chatId: chatId, type: 'chat' });
         self.initPopups({ userIdArray: userIdArray });
       }
@@ -26609,7 +26614,7 @@ module.exports = Sha512
 
 }).call(this,require("buffer").Buffer)
 },{"./hash":149,"buffer":62,"inherits":111}],157:[function(require,module,exports){
-/* shifty - v1.5.2 - 2016-02-10 - http://jeremyckahn.github.io/shifty */
+/* shifty - v1.5.3 - 2016-10-03 - http://jeremyckahn.github.io/shifty */
 ;(function () {
   var root = this || Function('return this')();
 
@@ -27890,7 +27895,7 @@ var Tweenable = (function () {
     } else if (chunks.length === 1 ||
       // ...or if the string starts with a number component (".", "-", or a
       // digit)...
-    formattedString[0].match(R_NUMBER_COMPONENT)) {
+    formattedString.charAt(0).match(R_NUMBER_COMPONENT)) {
       // ...prepend an empty string here to make sure that the formatted number
       // is properly replaced by VALUE_PLACEHOLDER
       chunks.unshift('');

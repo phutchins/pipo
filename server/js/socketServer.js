@@ -123,7 +123,6 @@ SocketServer.prototype.onSocket = function(socket) {
   this.init();
 
   logger.debug('[CONNECTION] Socket %s connected to main', socket.client.id);
-  logger.debug('[CONNECTION] userMap: ', self.namespace.userMap);
 
   socket.on('authenticate', function(data) {
     self.authenticate(socket, data);

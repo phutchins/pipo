@@ -490,7 +490,7 @@ SocketClient.prototype.handleRoomUpdate = function(data) {
       console.log("Init'd room " + rooms[id].name + " from room update");
 
       if (self.chatManager.activeChat && self.chatManager.activeChat == id) {
-        self.userlistCtl.update.call(self.chatManager, { chatId: id });
+        self.userlistCtl.update({ chatId: id });
       }
 
       self.chatManager.updateRoomList(function() {

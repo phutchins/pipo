@@ -5122,12 +5122,6 @@ Userlist.prototype.init = function(managers) {
 Userlist.prototype.update = function update(data) {
   var self = this;
   var chatId = data.chatId;
-
-  // Figure out why this.chatManager.chats is undefined
-  // Its only undefined the second time it gets called.
-  // It shouldn't be getting called twice... Why is it??
-  debugger;
-
   var chat = this.chatManager.chats[chatId];
   var type = chat.type;
   var members = chat.members;

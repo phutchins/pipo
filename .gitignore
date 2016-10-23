@@ -1,6 +1,5 @@
 /node_modules
-/adminData/
-/config/
+/config/adminData
 *.log
 /dist
 /packages
@@ -10,3 +9,4 @@
 /files/
 /coverage/
 .idea
+/client/bundle.js

@@ -1,0 +1,69 @@
+## Clean up Directory Structure
+### First Iteration
+  + server/
+    + server.js
+    + models/
+      + chat.js
+      + keyid.js
+      + keypair.js
+      + membership.js
+      + message.js
+      + pfile.js
+      + privatechat.js
+      + privkey.js
+      + room.js
+      + user.js
+    + routes/
+      + auth.js
+      + client.js
+      + keys.js
+      + membership.js
+      + user.js
+    + js/
+      + database.js
+      + socketServer.js
+      + bower_components
+      + authentication
+        + index.js
+      + files/ (set these up as prototypes? or leave as a function?, notifyError should be
+            made to be reusable somewhere in messaging)
+          + index.js (has handlers in it, need to be cleaned up)
+          + get.js (handleGetFile bits broken out)
+          + put.js (handleChunk bits broken out)
+        + notify.js
+  + client/
+    + client.js
+    + views/
+    + js/ (contains src for bundles and other js files)
+      + client/
+        + index.js (maybe should have this be the web client and move ../client.js to electron.js in this folder)
+          - everything could then be included from the ../client.js to be built by browserify? Will this work with electron somehow?
+    + bundles/ (contains conpiled bundles)
+
+  Questions:
+    + How to build only one file to get all files bundled?
+    + Which files do I have left to bundle?
+    + Compile pug templates then browserify that? (would need to have require)
+    + Why are we using Userlist and masterUserlist? Do we need both?
+
+
+### Second Iteration
+  + Add src directory
+  + Src dir files are compiled into client/[specific_dir]
+  + specific_dir files are git ignored
+  + Set up bower to correctly install and then git ignore the components folder
+
+Make `npm run build` build all browserify things
+
+Exclude built files from git
+
+Clean up test directories
+
+
+## Tech Debt
++ Need to make accessing username (used to be window.username) consistent
++ Determine how to pass along references to socket, chatManager, etc...
++ modals should probably be managed from a single lib that requires them all
+
+## Questions (input required from trusted devs)
++ Which modules should be prototypes and which should me modeled like utils where it simpyl exports functions?

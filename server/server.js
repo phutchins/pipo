@@ -22,7 +22,7 @@ var btoa = require('btoa');
 var BinaryServer = require('binaryjs').BinaryServer;
 
 // Managers
-var AuthenticationManager = require('./js/managers/authentication');
+var Authentication = require('./js/managers/authentication');
 
 //Local modules
 var database = require('./js/database');
@@ -80,18 +80,18 @@ function Server(options) {
   this.bs = BinaryServer({server: this.binWebServer});
 
   //Express
-  this.app.set('views', path.join(__dirname, '../public/views'));
+  this.app.set('views', path.join(__dirname, '../client/views'));
   this.app.set('view engine', 'pug');
   this.app.set('x-powered-by', false);
 
   //Middleware
-  this.app.use(favicon(__dirname + '/../public/img/favicon.ico'));
+  this.app.use(favicon(__dirname + '/../client/img/favicon.ico'));
   this.app.use(bodyParser.json());
   this.app.use(bodyParser.urlencoded({extended: true}));
 
   //Static assets
   // TODO: Change this to point to 'dist' folder and compile (copy) everything over to that?
-  this.app.use(express['static'](path.join(__dirname, '../public')));
+  this.app.use(express['static'](path.join(__dirname, '../client')));
 
   //Logger
   //app.use(morgan('dev'));
@@ -107,7 +107,8 @@ function Server(options) {
   database.connect('development');
 
   // Initialize authentication framework
-  AuthenticationManager.init(this.app);
+  this.authentication = new Authentication();
+  this.authentication.init(this.app);
 
   // Load routes
   var routePath = __dirname + '/routes/';

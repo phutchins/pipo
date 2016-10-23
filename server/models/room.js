@@ -1,3 +1,5 @@
+'use strict';
+
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var Message = require('./message');
@@ -106,6 +108,8 @@ roomSchema.statics.getByName = function getByName(name, callback) {
 roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
   var keys = [];
   var keyRing = new kbpgp.keyring.KeyRing();
+  var EncryptionManager = require('../js/managers/encryption');
+  var encryptionManager = new EncryptionManager();
 
   mongoose.model('Room').findOne({ _id: roomId }).populate('_subscribers _members').exec(function(err, room) {
     if (err) {
@@ -143,7 +147,7 @@ roomSchema.statics.getPubKeys = function getPubKeys(roomId, callback) {
 
     //logger.debug("[room.getPubKeys] keys array: ", keys);
     logger.debug("[room.getPubKeys] Done building keys array. About to build keyRing.");
-    EncryptionManager.buildKeyRing(keys, function(err, keyRing) {
+    encryptionManager.buildKeyRing(keys, function(err, keyRing) {
       //logger.debug("[room.getPubKeys] keyRing is: ", keyRing);
       logger.debug("[room.getPubKeys] Built keyRing, returning it now...");
       return callback(null, keyRing);
@@ -362,13 +366,21 @@ roomSchema.statics.join = function join(data, callback) {
         // Set the member to active in room._activeUsers
         mongoose.model('Room').findOneAndUpdate({ $addToSet: { _activeUsers: user._id } });
 
-        user.membership._currentRooms.push(room._id);
+        var currentRooms = user.membership._currentRooms;
+
+        var inCurrentRooms = currentRooms.some(function(id) {
+          return id.toString() === room._id.toString();
+        });
+
+        if (!inCurrentRooms) {
+          logger.debug('[room.join] Adding room %s to %s\'s current rooms', room._id.toString(), username);
+
+          user.membership._currentRooms.push(room._id);
+        }
 
         user.save(function(err) {
           if (err) {
             logger.error("[room.join] Error while adding room to _currentRooms: " + err);
-          } else {
-            logger.debug("[room.join] Added room to users _currentRooms array");
           }
         });
 

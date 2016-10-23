@@ -1,5 +1,7 @@
 'use strict';
 
+var fs = require('fs');
+
 module.exports = function(){
   var development = {
     environment: 'development',
@@ -8,6 +10,12 @@ module.exports = function(){
     chats: {
       messagesPerPage: 50,
       initialPagesToLoad: 1
+    },
+    systemUser: {
+      username: 'pipo',
+      publicKey: fs.readFileSync(__dirname + '/../keys/pipo.pub'),
+      privateKey: fs.readFileSync(__dirname + '/../keys/pipo.key'),
+      email: 'pipo@pipo.chat'
     },
     server: {
       ssl: false,
@@ -38,6 +46,12 @@ module.exports = function(){
     chats: {
       messagesPerPage: 50,
       initialPagesToLoad: 1
+    },
+    systemUser: {
+      username: 'pipo',
+      publicKey: fs.readFileSync(__dirname + '/../keys/pipo.pub'),
+      privateKey: fs.readFileSync(__dirname + '/../keys/pipo.key'),
+      email: 'pipo@pipo.chat'
     },
     server: {
       ssl: false,

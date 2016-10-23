@@ -14,10 +14,10 @@ var stream = require('stream');
 
 // Managers
 var FileManager = require('./managers/file');
-var EncryptionManager = require('../js/managers/encryption');
+var EncryptionManager = require('./managers/encryption');
 
 // Config
-var config = require('../../config/pipo')();
+var config = require('../../config/pipo')(process.env.NODE_ENV);
 var logger = require('../../config/logger');
 
 // Admin Data
@@ -34,6 +34,10 @@ var crypto = require('crypto');
  * @constructor
  */
 function SocketServer(namespace) {
+  if (!(this instanceof SocketServer)) {
+    return new SocketServer(namespace);
+  }
+
   this.namespace = namespace;
   if (this.namespace) {
     if (!this.namespace.socketMap) {
@@ -43,7 +47,52 @@ function SocketServer(namespace) {
       this.namespace.userMap = {};
     }
   }
+
 }
+
+SocketServer.prototype.init = function init() {
+  var self = this;
+
+  var systemUserData = config.systemUser;
+
+  User.getSystemUser(function(err, systemUser) {
+    if (err) {
+      return logger.error('[socketServer.init] Error getting system user: %s', err);
+    }
+
+    // Add the system user to the userMap
+    self.namespace.userMap[systemUser.id] = systemUser;
+
+    var encryptionManagerOptions = {
+      systemUserData: systemUserData,
+      systemUser: systemUser
+    };
+
+    self.encryptionManager = new EncryptionManager(encryptionManagerOptions);
+
+    var managers = {
+      socketServer: self,
+      encryptionManager: self.encryptionManager
+    };
+
+    logger.debug('[socketServer.constructor] encryptionManager is: ', Object.prototype.toString.call(self.encryptionManager));
+
+    self.fileManager = new FileManager(managers);
+  });
+
+  // Make sure we have a key for the PiPo user
+  if (config.encryptionScheme === 'masterKey') {
+    // Do master key things
+    this.initMasterKeyPair(function(err) {
+      if (err) {
+        return logger.error("[INIT] Error updating master key pair: "+err);
+      }
+      logger.info("[INIT] Finsihed updating master key pair");
+    });
+  } else {
+    // Do client key things
+  }
+};
 
 SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
   this.binSocket = binSocket;
@@ -57,7 +106,7 @@ SocketServer.prototype.onBinarySocketConnection = function(binSocket) {
     logger.debug('[socketServer.onBinarySocketConnection.stream] Got sendFile socket event');
 
     // Pass the fileStream to the file stream handler in fileManager
-    FileManager.handleFileStream(fileStream, data, function(err) {
+    self.fileManager.handleFileStream(fileStream, data, function(err) {
       if (err) {
         return console.log('Error handling file stream: %s', err);
       }
@@ -74,7 +123,6 @@ SocketServer.prototype.onSocket = function(socket) {
   this.init();
 
   logger.debug('[CONNECTION] Socket %s connected to main', socket.client.id);
-  logger.debug('[CONNECTION] userMap: ', self.namespace.userMap);
 
   socket.on('authenticate', function(data) {
     self.authenticate(socket, data);
@@ -134,23 +182,6 @@ SocketServer.prototype.onSocket = function(socket) {
   });
 };
 
-SocketServer.prototype.init = function init() {
-  var self = this;
-  // Make sure we have a key for the PiPo user
-
-  if (config.encryptionScheme == 'masterKey') {
-    // Do master key things
-    this.initMasterKeyPair(function(err) {
-      if (err) {
-        return logger.error("[INIT] Error updating master key pair: "+err);
-      }
-      logger.info("[INIT] Finsihed updating master key pair");
-    });
-  } else {
-    // Do client key things
-  }
-};
-
 
 /*
  * Get the default room or create it if it does not exist
@@ -158,37 +189,21 @@ SocketServer.prototype.init = function init() {
 SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
   var self = this;
   // get the default room name
-  // This needs to be set in the config somewhere and passed to the client in a config block
-  var systemusername = 'pipo';
 
-  // System user is also getting created in server.js so one of these should be removed
-  var systemUserData = {
-    username: 'pipo',
-    publicKey: '-----BEGIN PGP PUBLIC KEY BLOCK-----\nVersion: OpenPGP.js v1.0.1\nComment: http://openpgpjs.org\n\nxsBNBFYHKFYBCAC2+gs6wGupdqKwAAHsNfTMqpBJkezYox9fRnHXBgkOzWty\nTzBdItmKRRBr7RCpeQ9nPS4WtEq6d3iUcP4MQmL35gou4mQIH6ClhVUAZykJ\niYXugvPgZXZl6qK8/k7EaLl2kAiYM0n9NSQhOGkZXAtH6MGw0gR4bhw7Dcp7\n3GSOMpgT/n4nBOWbiATKy9Kl3FrW5DrLkt8l0P3ocwVmGC418fkqJSkuNJR1\nFi87L2E2kEcn4EHL9Z4uVTI1mdBp9oLkriW2lMrR1aKMa/I5L5U6ayNALYnS\nNC7pieG3ZuxX7crFcaWa9krFinLSf6AxATQFLpJQLPLTF68yjYhNHzSDABEB\nAAHNDGZsaXBfZmlyZWZveMLAcgQQAQgAJgUCVgcoVwYLCQgHAwIJEKb6o/qa\nk5gaBBUIAgoDFgIBAhsDAh4BAABuWQf5AagTGdxjkpWreAEbqBcolqEIP8I5\nBIHsJcpDoI7VPKsrb4H0qLdE0YTIeD59yPBbs8NPPSh3veebMGU8fVr+5HoN\nQpg8JJImlSvTnZM83fpygsOrMzULgNIqsACDM933Bu34v43dodQ/1n7SN88c\nmpxJSzjoAJdMQ6ItFg6bsPp7Us9KfCeXBSNXHnuBrky9YqyIoAbBmi9mefzh\ngTRI2OnezCIGuNvu/fK2whgjK+qx831EVepqf8JM+IVfA22eZBq9wPFbYkof\n3q1yjuyGePPpn1uTZgQSlw/Ql/uuyQe66PxLuXm2eBrbzbPGdapllywThQ6j\nhfzSR5B6hyiPGM7ATQRWByhWAQgAwXw97JA9goeBP3K3FOb8TVLq/E/Vi13i\ndsrrc2A9D9g/ISCky9Ax211rCZg7IjzKWO7tNU14f25eOoD+pPKxC4iJkmVx\nAXQGIp744g7NmA0WhgzrnM/lId2OvypUihEMq5d3EFVO8g5DKhsRHHkReE6s\nmiagfKlhHT6epZu7lBhU3uUUtwfsdl/cbwpaZb27FeiKvp+5hL03de3g8v+v\nHO81XmS8q2wWOI2OR+419iYDlmXVD9NKxiDMRaJjCDbgJUsM82QgaTnG5WvZ\nAap5OzCL/AKfnN0KQgZsF9oxsl5izmGDuu6faAzO/hyDQ4EK3WwvFtzEtsK8\nGdS6l6ROjwARAQABwsBfBBgBCAATBQJWByhXCRCm+qP6mpOYGgIbDAAAAqIH\n/jLpXcPZhnwCYG3W/9XsAA3xMfzPAiYmv0NeWuLsovPvsOkQGgD6iPoNmdCm\nJrL8dYqmwUSAn+SELYYtLjGk/0XvgCi2l3I46mO4Z8of0cjyHRr6n2j7xRRb\nKRFOj3DTrhhqHSA/rXzrR+r8dT75/EUcIlQZ/3CiI4lF474c5+793DjyCXDC\nkZdurRkTA6UWT2fvnq4HqKlBMZEGMwO5keXMcaQL+mcZOCjgNJxwVqk6DtiY\ntUX8Tvo0QvbOaFhRMaKFqeMBlSrQZmzzBmTXYOBtupfxAFIqjYLqO2AsRXUr\nk8vffgzuYy6uRINhhTfz/iGKsQAVWAWzQ+ndSj86jRE=\n=83fL\n-----END PGP PUBLIC KEY BLOCK-----',
-    email: 'pipo@pipo.chat',
-  }
-
-  // Move this to User.getSystemUser
-  User.findOne({ username: systemusername }, function(err, systemUser) {
-    logger.debug("[getDefaultRoom] systemUser is: ", systemUser.username);
-    if (!systemUser) {
-      logger.debug("[getDefaultRoom] NO system user found!")
-      User.create(systemUserData, function(data) {
-        self.getDefaultRoom(function(newDefaultRoom) {
-          logger.debug("[getDefaultRoom] Created new DEFAULT room '" + newDefaultRoom.name + "'");
-          return callback(newDefaultRoom);
-        })
-      })
+  User.getSystemUser(function(err, systemUser) {
+    if (err) {
+      logger.error('[socketServer.getDefaultRoom] Error getting default room');
     }
-    logger.debug("[getDefaultRoom] System user found!");
+
+    logger.debug("[getDefaultRoom] systemUser is: ", systemUser.username);
 
     var defaultRoomName = 'pipo';
 
     var defaultRoomData = {
       username: 'pipo',
       name: 'pipo',
-      topic: "Welcome to PiPo.",
-      group: "default",
+      topic: 'Welcome to PiPo.',
+      group: 'default',
       membershipRequired: false,
       keepHistory: true,
       encryptionScheme: 'clientkey',
@@ -215,8 +230,8 @@ SocketServer.prototype.getDefaultRoom = function getDefaultRoom(callback) {
       } else {
         return callback(defaultRoom);
       }
-    })
-  })
+    });
+  });
 };
 
 
@@ -253,39 +268,39 @@ SocketServer.prototype.checkUsernameAvailability = function checkUsernameAvailab
 SocketServer.prototype.authenticate = function authenticate(socket, data) {
   var self = this;
 
-  logger.debug('Authenticating new socket');
+  logger.debug('Authenticating new socket with data: ', data);
 
   User.authenticateOrCreate(data, function(err, authData) {
-    if (err) {
-      return socket.emit('errorMessage', {message: 'authentication failed: ' + err});
-    }
-
-    var user = new User;
-    user = authData.user;
+    logger.debug('blam');
+    // Why are we doing this like this here??
+    var user = authData.user;
     var newUser = authData.newUser;
+    self.socket.user = user;
 
     if (err) {
       logger.warn('Authentication error', err);
-      return socket.emit('errorMessage', {message: 'Error authenticating you ' + err});
+      return socket.emit(
+        'errorMessage',
+        {message: 'Error authenticating you ' + err}
+      );
     }
 
     if (!user) {
-      logger.warn("[INIT] Problem initializing connection, no error, but no user");
-      return socket.emit('errorMessage', {message: "An unknown error has occurred"});
+      logger.warn('[INIT] Problem initializing connection, no error, but no user');
+      return socket.emit(
+        'errorMessage',
+        {message: 'An unknown error has occurred'}
+      );
     }
 
+    // This helps keep track of when users sign up so that
+    // we can emit the new user data to all clients
     if (newUser) {
-      logger.debug("User", data.username, " not in the master cached userlist so adding them");
-      // This helps keep track of when users sign up so that we can emit the new user data to all clients
+      logger.debug('Adding %s to master userlist', data.username);
       self.updateUserList({scope: 'all'});
     }
 
     var socketMapKeys = Object.keys(self.namespace.socketMap);
-    socketMapKeys.forEach(function(socketKey) {
-      console.log('[socketServer.authenticate][BEFORE] socket: %s, username: %s, userid %s', socketKey, self.namespace.socketMap[socketKey].username, self.namespace.socketMap[socketKey].userId);
-    });
-
-    //logger.debug('[socketServer.authenticate] socketMap before edit: ', self.namespace.socketMap);
 
     logger.debug('[socketServer.authenticate] Added user if needed, socket.id: %s username: %s userId: %s', socket.id, user.username, user._id.toString());
 
@@ -296,12 +311,6 @@ SocketServer.prototype.authenticate = function authenticate(socket, data) {
       publicKey: user.publicKey
     };
 
-    var socketMapKeys2 = Object.keys(self.namespace.socketMap);
-    socketMapKeys2.forEach(function(socketKey) {
-      console.log('[socketServer.authenticate][AFTER] socket: %s, username: %s, userid %s', socketKey, self.namespace.socketMap[socketKey].username, self.namespace.socketMap[socketKey].userId);
-    });
-    //logger.debug('[socketServer.authenticate] socketMap after edit: ', self.namespace.socketMap);
-
     // Init the user in the userMap if they don't exist yet
     if (!self.namespace.userMap[user._id.toString()])
       self.namespace.userMap[user._id.toString()] = [];
@@ -309,80 +318,64 @@ SocketServer.prototype.authenticate = function authenticate(socket, data) {
     // Push the current socket to the users socketMap arary
     self.namespace.userMap[user._id.toString()].push(socket.id);
 
-    // Should call user.setActive(true) here
-    // Need to figure out how to call without passing user object?
-    User.setActive({ userId: user._id, active: true }, function(err) {
+    User.setActive({ userId: user._id.toString(), active: true }, function(err) {
       self.updateUserList({ scope: 'all' });
     });
 
-    // Does this above work?
-
-    socket.user = user;
-    logger.debug("[INIT] Init'd user " + user.username);
-
-    // TODO: Split this off into it's own method
-    // TODO: enable this to get messages to add to each room before sending
-    var favoriteRooms = [];
-    User.populate(user, { path: 'membership._favoriteRooms' }, function(err, populatedUser) {
-      if (populatedUser.membership._favoriteRooms.length > 0) {
-        logger.debug("[socketServer.authenticate] populatedUser.membership._favoriteRooms.length: ", populatedUser.membership._favoriteRooms.length);
-        logger.debug("[socketServer.authenticate] Building favorite rooms for " + user.username);
-        populatedUser.membership._favoriteRooms.forEach(function(room) {
-          var roomId = room._id;
-          logger.debug("Adding room #" + room.name + " with id '" + roomId + "' to auto join array");
-          favoriteRooms.push(roomId);
-        })
-      }
-
-      // Get complete userlist to send to client on initial connection
-      logger.debug("[INIT] getting userlist for user...");
-      self.getDefaultRoom(function(defaultRoom) {
-        logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
+    logger.debug("[INIT] getting userlist for user...");
+    self.getDefaultRoom(function(defaultRoom) {
+      logger.debug("[socketServer.authenticate] defaultRoom.name: " + defaultRoom.name);
 
 
-        Message.get({ chatId: defaultRoom.id, type: 'room' }, function(err, messages) {
-          logger.debug("[socketServer.authenticate] Got messages for default room. Message count is " + messages.length);
+      Message.get({ chatId: defaultRoom.id, type: 'room' }, function(err, messages) {
+        logger.debug("[socketServer.authenticate] Got messages for default room. Message count is " + messages.length);
 
-          defaultRoom.messages = messages;
-          // Check that we're getting messages here
-          // Are messages making it here??
+        defaultRoom.messages = messages;
 
-          logger.debug("[socketServer.authenticate] sanatize 1");
+        Room.sanatize(defaultRoom, function(sanatizedRoom) {
+          logger.debug("Sanatized default room #",sanatizedRoom.name,"running User.getAllUsers");
+          User.getAllUsers({}, function(userlist) {
+            logger.debug("[socketServer.authenticate] Got all users, running User.buildUserIdMap");
+            User.buildUserNameMap({ userlist: userlist}, function(userNameMap) {
+              logger.debug("[socketServer.authenticate] Built user ID Map, running user.buildProfile for user %s", user._id.toString());
+              logger.debug('[socketServer.authenticate] user._favoriteRooms: ', user._favoriteRooms);
 
-          Room.sanatize(defaultRoom, function(sanatizedRoom) {
-            logger.debug("Sanatized default room #",sanatizedRoom.name,"running User.getAllUsers");
-            User.getAllUsers({}, function(userlist) {
-              logger.debug("[socketServer.authenticate] Got all users, running User.buildUserIdMap");
-              User.buildUserNameMap({ userlist: userlist}, function(userNameMap) {
-                logger.debug("[socketServer.authenticate] Built user ID Map, running user.buildProfile");
-                User.buildProfile({ user: user }, function(userProfile) {
-                  // Should send userProfile separate from userlist
-                  logger.debug("[socketServer.authenticate] Done building users profile, sending 'authenticated' to " + user.username);
-                  socket.emit('authenticated', {message: 'ok', userProfile: userProfile, favoriteRooms: favoriteRooms, userlist: userlist, userNameMap: userNameMap, defaultRoomId: sanatizedRoom.id });
-                });
+              User.buildProfile({ user: user }, function(userProfile) {
+                // Should send userProfile separate from userlist
+                logger.debug("[socketServer.authenticate] Done building users profile, sending 'authenticated' to " + user.username);
+
+                var authenticationData = {
+                  message: 'ok',
+                  userProfile: userProfile,
+                  userlist: userlist,
+                  userNameMap: userNameMap,
+                  defaultRoomId: sanatizedRoom.id
+                };
+
+                self.socket.emit('authenticated', authenticationData);
               });
             });
           });
         });
+      });
 
-        logger.debug("[socketServer.authenticate] getting available room list for ", user.username);
+      logger.debug("[socketServer.authenticate] getting available room list for ", user.username);
 
-        // Send the available rooms to the user
-        User.availableRooms({ userId: user._id }, function(err, roomData) {
-          if (err) {
-            logger.error("[socketServer.authenticate] Authentication failed getting available rooms: ", err);
-            return socket.emit('roomUpdate', { err: "Room update failed: " + err });
-          }
+      // Send the available rooms to the user
+      User.availableRooms({ userId: user.id }, function(err, roomData) {
+        if (err) {
+          logger.error("[socketServer.authenticate] Authentication failed getting available rooms: ", err);
+          return socket.emit('roomUpdate', { err: "Room update failed: " + err });
+        }
 
-          // Go ahead and send the room objects to the user even if they haven't joined it yet
-          // - Need to figure out how to have the client only decrypt messages once when joining
-          //   as there is no need to decrypt twice. If there is a legit roomUpdate later tho,
-          //   we may want to decrypt messages again? When could this happen?
-          Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
-            logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
-            socket.emit('roomUpdate', { rooms: sanatizedRooms });
-          });
-        })
+        // Go ahead and send the room objects to the user even if they haven't joined it yet
+        // - Need to figure out how to have the client only decrypt messages once when joining
+        //   as there is no need to decrypt twice. If there is a legit roomUpdate later tho,
+        //   we may want to decrypt messages again? When could this happen?
+        Room.sanatizeRooms(roomData.rooms, function(sanatizedRooms) {
+          logger.debug("[socketServer.authenticate] Running roomUpdate from authenticate");
+          socket.emit('roomUpdate', { rooms: sanatizedRooms });
+        });
       })
     })
   })
@@ -520,6 +513,8 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
     return socket.emit('errorMessage', {message: 401});
   }
 
+  console.log('Sending message from user %s', socket.user._id.toString());
+
   var fromUser = socket.user._id.toString();
   //logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
 
@@ -650,7 +645,7 @@ SocketServer.prototype.onSendFile = function(socket, data){
 
   logger.debug('[socketServer.onSendFile] Got sendFile socket event');
 
-  FileManager.handleChunk(data);
+  this.fileManager.handleChunk(data);
 };
 
 SocketServer.prototype.onGetFile = function(socket, data){
@@ -665,7 +660,7 @@ SocketServer.prototype.onGetFile = function(socket, data){
   data.socket = socket;
   data.binSocket = self.binSocket;
 
-  FileManager.handleGetFile(data);
+  this.fileManager.handleGetFile(data);
 };
 
 SocketServer.prototype.onFileReceiveSuccess = function onFileReceiveSuccess(file) {
@@ -1074,7 +1069,7 @@ SocketServer.prototype.membership = function membership(socket, data) {
     })
   }
   if (type == 'modify') {
-    modifyData = ({
+    var modifyData = ({
       memberName: data.member,
       chatId: data.chatId,
       memberId: data.memberId,
@@ -1441,7 +1436,5 @@ SocketServer.prototype.disconnect = function disconnect(socket) {
   }
 
 };
-
-
 
 module.exports = SocketServer;

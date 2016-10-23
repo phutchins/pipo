@@ -1,0 +1,3 @@
+/*
+ * Web client starting point
+ */

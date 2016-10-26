@@ -1865,7 +1865,7 @@ ChatManager.prototype.initialPromptForCredentials = function initialPromptForCre
     .modal("show");
 
   $('.ui.button.register').unbind().click(function(e) {
-    RegisterUserPrompt.show(function(data) {
+    registerUserPrompt.show(function(data) {
       // Do something when registration is succcessful
     });
   });
@@ -1887,7 +1887,7 @@ ChatManager.prototype.configureUIForSignin = function configureUIForSignin(callb
 ChatManager.prototype.promptForCredentials = function promptForCredentials(callback) {
   var self = this;
   console.log("Prompting for credentials!");
-  RegisterUserPrompt.show(function(data) {
+  registerUserPrompt.show(function(data) {
     return callback()
   });
 }

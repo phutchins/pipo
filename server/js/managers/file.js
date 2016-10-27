@@ -86,7 +86,15 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
   logger.debug('[file.handleFileStream] Handling file stream');
 
   // Should add a way to track each users usage via file size in pfiles
+  // And should move this to init probably
   var dataDir = 'files/';
+
+  var dataDirExists = fs.existsSync(dataDir);
+
+  if (!dataDirExists) {
+    fs.mkdirSync(dataDir);
+  }
+
   var tmpFileName = crypto.randomBytes(16).toString('hex');
 
   // Write temp file first, then rename when done

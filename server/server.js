@@ -97,12 +97,12 @@ function Server(options) {
   //app.use(morgan('dev'));
 
   //L33t asci
-  logger.debug('  __________.____________           ');
-  logger.debug('  \\______   \\__\\______   \\____  ');
-  logger.debug('   |     ___/  ||     ___/  _ \\    ');
-  logger.debug('   |    |   |  ||    |  (  <_> )'    );
-  logger.debug('   |____|   |__||____|   \\____/    ');
-  logger.debug('');
+  logger.info('  __________.____________           ');
+  logger.info('  \\______   \\__\\______   \\____  ');
+  logger.info('   |     ___/  ||     ___/  _ \\    ');
+  logger.info('   |    |   |  ||    |  (  <_> )'    );
+  logger.info('   |____|   |__||____|   \\____/    ');
+  logger.info('');
 
   database.connect('development');
 

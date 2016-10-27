@@ -1,9 +1,9 @@
+'use strict'
+
 /**
  * @module pipo/users/user
  * @license LGPL-3.0
  */
-
-'use strict';
 
 /**
  * Things relating to managing users
@@ -15,12 +15,16 @@ function User() {
   }
 }
 
+User.prototype.init = function init(managers) {
+  this.socketClient = managers.socketClient;
+};
+
 User.prototype.checkAvailability = function checkAvailability(username, callback) {
   var self = this;
   var usernameCallback = callback;
 
   // Create a listener tied to the username we are checking
-  self.socket.on('availability-' + username, function(data) {
+  self.socketClient.socket.on('availability-' + username, function(data) {
     console.log("[socketClient.checkUsernameAvailability] Got availability callback");
     var available = data.available;
     var error = data.error;
@@ -31,10 +35,12 @@ User.prototype.checkAvailability = function checkAvailability(username, callback
       // Show error on modal
     };
 
-    self.socket.removeListener('availability-' + username);
+    self.socketClient.socket.removeListener('availability-' + username);
     usernameCallback({ available: available });
   });
 
   // Send the socket request to check the username
-  self.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });
-}
+  self.socketClient.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });
+};
+
+module.exports = User;

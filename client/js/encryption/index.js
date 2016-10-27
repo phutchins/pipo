@@ -50,7 +50,13 @@ EncryptionManager.prototype.generateClientKeyPair = function(numBits, userId, pa
 
   console.log("Generating client keypair, please wait...");
 
+  debugger;
   window.kbpgp.KeyManager.generate_rsa(options, function(err, generatedKeyPair) {
+    debugger;
+    if (err) {
+      return callback(err);
+    }
+
     generatedKeyPair.sign({}, function(err) {
       if (err) {
         return callback(err, null);

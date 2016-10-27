@@ -295,7 +295,7 @@ var utils = require('../utils.js');
 var FileManager = require('../files/index.js');
 
 // Modals
-var registerUserPrompt = require('../modals/registerUserPrompt.js');
+var RegisterUserPrompt = require('../modals/registerUserPrompt.js');
 var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
 var createRoomModal = require('../modals/createRoomModal.js');
 var editRoomModal = require('../modals/editRoomModal.js');
@@ -330,6 +330,7 @@ function ChatManager(options) {
   var userlistUtilOptions = {};
   this.userlistUtil = new Userlist(userlistUtilOptions);
   this.fileManager = new FileManager();
+  this.registerUserPrompt = new RegisterUserPrompt({});
 
   // Network config
   var host = window.location.host;
@@ -385,6 +386,7 @@ ChatManager.prototype.init = function(callback) {
 
   self.userlistUtil.init(managers);
   self.fileManager.init(managers);
+  self.registerUserPrompt.init(managers);
 
   // When the DOM is ready, init the modals
   $(document).ready(function() {
@@ -2292,7 +2294,13 @@ EncryptionManager.prototype.generateClientKeyPair = function(numBits, userId, pa
 
   console.log("Generating client keypair, please wait...");
 
+  debugger;
   window.kbpgp.KeyManager.generate_rsa(options, function(err, generatedKeyPair) {
+    debugger;
+    if (err) {
+      return callback(err);
+    }
+
     generatedKeyPair.sign({}, function(err) {
       if (err) {
         return callback(err, null);
@@ -3829,28 +3837,35 @@ $(document).ready( function() {
 
 
 },{}],8:[function(require,module,exports){
+'use strict';
 /*
  * Register New User Modal Setup
  */
 
-var user = require('../users/user.js');
-var RegisterUserPrompt = {};
+var User = require('../users/user.js');
 
-RegisterUserPrompt.init = function init(successCallback) {
-  var buildRegisterModal = function() {
-    console.log("Building register new user modal");
+function RegisterUserPrompt(options) {
+  if (!(this instanceof RegisterUserPrompt)) {
+    return new RegisterUserPrompt(options);
+  }
 
-    $('.ui.form.register').trigger('reset');
-    $('.ui.modal.register').modal({
-      detachable: true,
-      closable: false,
-      transition: 'fade up'
-    });
-  };
+  this._options = options;
+  this.user = new User();
+}
 
-  $(document).ready( buildRegisterModal );
+RegisterUserPrompt.prototype.init = function init(managers) {
+  this.chatManager = managers.chatManager;
+  this.encryptionManager = managers.encryptionManager;
 
-  var registerFormSettings = {
+  this.user.init({
+    socketClient: this.chatManager.socketClient
+  });
+};
+
+RegisterUserPrompt.prototype.initModal = function initModal() {
+  var self = this;
+
+  this.registerFormSettings = {
     inline: true,
     on: 'blur',
     debug: true,
@@ -3918,17 +3933,17 @@ RegisterUserPrompt.init = function init(successCallback) {
     },
     onSuccess : function(event) {
       console.log("Form submitted success 1!");
-      var username = $('.register.form .username').val().toString();
-      var fullName = $('.register.form .name').val().toString();
-      var password = $('.register.form .registerPassword').val().toString();
-      var email = $('.register.form .email').val().toString();
+      self.username = $('.register.form .username').val().toString();
+      self.fullName = $('.register.form .name').val().toString();
+      self.password = $('.register.form .registerPassword').val().toString();
+      self.email = $('.register.form .email').val().toString();
 
       // Check with the server if the name is in use
       var checkCallback = function checkCallback(data) {
         var available = data.available;
 
         if (available) {
-          return finish();
+          return self.finish();
         }
 
         // Show error stating that username is not available
@@ -3936,40 +3951,7 @@ RegisterUserPrompt.init = function init(successCallback) {
         return event.preventDefault();
       };
 
-      user.checkUsernameAvailability(username, checkCallback);
-
-      var finish = function finish() {
-        //Hides modal on validation success
-        $('.ui.modal.register').modal('hide');
-
-        ChatManager.updateChatStatus({ status: 'generating' });
-
-        $('.ui.modal.generate').modal('show');
-
-        // Clear all local storage and window variables here?
-        // This should include chat history etc...
-
-        window.encryptionManager.generateClientKeyPair(2048, username, password, function(err, generatedKeypair) {
-          if (err) {
-            console.log("Error generating client keypair: "+err);
-          } else {
-            window.username = username;
-            window.email = email;
-            window.fullName = fullName;
-
-            localStorage.setItem('username', username);
-            localStorage.setItem('fullName', fullName);
-            localStorage.setItem('email', email);
-
-            // Save newly generated keypair
-            localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
-            // Need to unload an old keypair if it existed
-            window.encryptionManager.clientCredentialsLoaded = false;
-
-            socketClient.init();
-          }
-        });
-      };
+      self.user.checkAvailability(self.username, checkCallback);
 
       // Probabally don't need both of these here
       event.preventDefault();
@@ -3977,18 +3959,70 @@ RegisterUserPrompt.init = function init(successCallback) {
     }
   }
 
-  $(document).ready(function() {
-    $('.ui.form.register').form(registerFormSettings);
+  this.build(function() {
+    console.log('[registerUserPrompt] Done building modal');
+  });
+
+  $('.ui.form.register').form('destroy');
+  $('.ui.form.register').form(this.registerFormSettings);
+};
+
+RegisterUserPrompt.prototype.build = function() {
+  console.log('Building register new user modal');
+
+  $('.ui.form.register').trigger('reset');
+  $('.ui.modal.register').modal({
+    detachable: true,
+    closable: false,
+    transition: 'fade up'
   });
 };
 
-RegisterUserPrompt.show = function show(callback) {
+
+RegisterUserPrompt.prototype.show = function show(callback) {
   var self = this;
 
   $('.ui.modal.register').modal('show');
-  self.init(callback);
+  self.initModal(callback);
 };
 
+RegisterUserPrompt.prototype.finish = function finish() {
+  var self = this;
+
+  //Hides modal on validation success
+  $('.ui.modal.register').modal('hide');
+
+  self.chatManager.updateChatStatus({ status: 'generating' });
+
+  $('.ui.modal.generate').modal('show');
+
+  // Clear all local storage and window variables here?
+  // This should include chat history etc...
+
+  self.encryptionManager.generateClientKeyPair(2048, self.username, self.password, function(err, generatedKeypair) {
+    if (err) {
+      console.log("Error generating client keypair: "+err);
+    } else {
+      window.username = self.username;
+      window.email = self.email;
+      window.fullName = self.fullName;
+
+      localStorage.setItem('username', self.username);
+      localStorage.setItem('fullName', self.fullName);
+      localStorage.setItem('email', self.email);
+
+      // Save newly generated keypair
+      localStorage.setItem('keyPair', JSON.stringify(generatedKeypair));
+      // Need to unload an old keypair if it existed
+      self.encryptionManager.clientCredentialsLoaded = false;
+
+      // Connect to the server (do we need to do this here?)
+      self.chatManager.socketClient.init();
+    }
+  });
+};
+
+module.exports = RegisterUserPrompt;
 
 },{"../users/user.js":15}],9:[function(require,module,exports){
 'use strict'
@@ -5052,12 +5086,12 @@ MasterUserlist.prototype.update = function update(userlist, callback) {
 module.exports = MasterUserlist;
 
 },{}],15:[function(require,module,exports){
+'use strict'
+
 /**
  * @module pipo/users/user
  * @license LGPL-3.0
  */
-
-'use strict';
 
 /**
  * Things relating to managing users
@@ -5069,12 +5103,16 @@ function User() {
   }
 }
 
+User.prototype.init = function init(managers) {
+  this.socketClient = managers.socketClient;
+};
+
 User.prototype.checkAvailability = function checkAvailability(username, callback) {
   var self = this;
   var usernameCallback = callback;
 
   // Create a listener tied to the username we are checking
-  self.socket.on('availability-' + username, function(data) {
+  self.socketClient.socket.on('availability-' + username, function(data) {
     console.log("[socketClient.checkUsernameAvailability] Got availability callback");
     var available = data.available;
     var error = data.error;
@@ -5085,13 +5123,15 @@ User.prototype.checkAvailability = function checkAvailability(username, callback
       // Show error on modal
     };
 
-    self.socket.removeListener('availability-' + username);
+    self.socketClient.socket.removeListener('availability-' + username);
     usernameCallback({ available: available });
   });
 
   // Send the socket request to check the username
-  self.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });
-}
+  self.socketClient.socket.emit('checkUsernameAvailability', { username: username, socketCallback: 'availability-' + username });
+};
+
+module.exports = User;
 
 },{}],16:[function(require,module,exports){
 /**

@@ -7,7 +7,7 @@ var utils = require('../utils.js');
 var FileManager = require('../files/index.js');
 
 // Modals
-var registerUserPrompt = require('../modals/registerUserPrompt.js');
+var RegisterUserPrompt = require('../modals/registerUserPrompt.js');
 var unlockClientKeyPairModal = require('../modals/unlockClientKeyPairModal.js');
 var createRoomModal = require('../modals/createRoomModal.js');
 var editRoomModal = require('../modals/editRoomModal.js');
@@ -42,6 +42,7 @@ function ChatManager(options) {
   var userlistUtilOptions = {};
   this.userlistUtil = new Userlist(userlistUtilOptions);
   this.fileManager = new FileManager();
+  this.registerUserPrompt = new RegisterUserPrompt({});
 
   // Network config
   var host = window.location.host;
@@ -97,6 +98,7 @@ ChatManager.prototype.init = function(callback) {
 
   self.userlistUtil.init(managers);
   self.fileManager.init(managers);
+  self.registerUserPrompt.init(managers);
 
   // When the DOM is ready, init the modals
   $(document).ready(function() {

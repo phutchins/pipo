@@ -93,6 +93,8 @@ FileManager.prototype.handleFileStream = function(fileStream, data, callback) {
 
   if (!dataDirExists) {
     fs.mkdirSync(dataDir);
+
+    logger.info('[fileManager.handleFileStream] Created file directory because it did not exist');
   }
 
   var tmpFileName = crypto.randomBytes(16).toString('hex');

@@ -545,6 +545,10 @@ EncryptionManager.prototype.getFileCipher = function encryptFileStream(data, cal
   // Init the cyper bits
   var cipher = crypto.createCipheriv('aes-128-cbc', sessionKeyBuffer, ivBuffer);
 
+  // Need to figure out why the file isn't being encyrpted to all users in a chat
+  debugger;
+  // Should move this block below to a getChatKeys('all' or something like that
+
   // Create an object mapping userids to their keyid and public key
   // - Later we will use this to get rid of kbpgp and encrypt the session key to all users
   Object.keys(self.chatManager.chats[chatId].keyRing._kms).forEach(function(userId) {

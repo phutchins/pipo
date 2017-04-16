@@ -113,47 +113,8 @@ ChatManager.prototype.init = function(callback) {
 ChatManager.prototype.initDOM = function() {
   var cmSelf = this;
 
-  function fitToContent(id, maxHeight) {
-    var text = id && id.style ? id : document.getElementById(id);
-    if ( !text )
-      return;
+  console.log('Running initDOM');
 
-    /* Accounts for rows being deleted, pixel value may need adjusting */
-    if (text.clientHeight == text.scrollHeight) {
-      text.style.height = "30px";
-    }
-
-    var adjustedHeight = text.clientHeight;
-    if ( !maxHeight || maxHeight > adjustedHeight ) {
-      adjustedHeight = Math.max(text.scrollHeight, adjustedHeight);
-      if ( maxHeight )
-        adjustedHeight = Math.min(maxHeight, adjustedHeight);
-      if ( adjustedHeight > text.clientHeight )
-        text.style.height = adjustedHeight + "px";
-    }
-  }
-
-  $('#message-input').unbind().keyup(function (event) {
-    if (event.keyCode == 13 && event.shiftKey) {
-      var content = this.value;
-      var caret = utils.getCaret(this);
-      this.value = content.substring(0,caret)+content.substring(caret,content.length);
-      event.stopPropagation();
-      console.log("got shift+enter");
-      var $messageInput = $('#message-input');
-      fitToContent('message-input', 156);
-      $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
-      return false;
-    } else if(event.keyCode == 13) {
-      console.log("[ChatManager.message-input.keyup] Calling ChatManager.sendMessage");
-      cmSelf.sendMessage(function() {
-        fitToContent('message-input', 156);
-        return false;
-      })
-    } else {
-      fitToContent('message-input', 156);
-    };
-  });
 
   $('.dropdown')
     .dropdown({
@@ -1248,24 +1209,60 @@ ChatManager.prototype.enableMessageInput = function enableMessageInput() {
   $('#send-button').prop('disabled', false);
   $('#loading-icon').hide();
 
-  $("#input-container").find('textarea.message-input').keydown(function (event) {
+  $('#message-input').unbind();
+
+  function fitToContent(id, maxHeight) {
+    var text = id && id.style ? id : document.getElementById(id);
+    if ( !text )
+      return;
+
+    /* Accounts for rows being deleted, pixel value may need adjusting */
+    if (text.clientHeight == text.scrollHeight) {
+      text.style.height = "30px";
+    }
+
+    var adjustedHeight = text.clientHeight;
+    if ( !maxHeight || maxHeight > adjustedHeight ) {
+      adjustedHeight = Math.max(text.scrollHeight, adjustedHeight);
+      if ( maxHeight )
+        adjustedHeight = Math.min(maxHeight, adjustedHeight);
+      if ( adjustedHeight > text.clientHeight )
+        text.style.height = adjustedHeight + "px";
+    }
+  }
+
+  $("#input-container").find('textarea.message-input').unbind().keydown(function (event) {
     var element = this;
 
     //Prevent shift+enter from sending
     if (event.keyCode === 13 && event.shiftKey) {
+      // Should use element instead of the var below?
+      var $messageInput = $('#message-input');
+
       var content = element.value;
-      var caret = utils.getCaret(this);
+      var caret = utils.getCaret(element);
 
       element.value = content.substring(0, caret) + "\n" + content.substring(caret, content.length);
       event.stopPropagation();
 
-      var $messageInput = $('#message-input');
+      fitToContent('message-input', 156);
+
       $messageInput[0].scrollTop = $messageInput[0].scrollHeight;
       return false;
     }
     else if (event.keyCode === 13) {
-      $('#main-input-form').submit();
+      self.sendMessage(function() {
+        fitToContent('message-input', 156);
+
+        return false;
+      })
+
+      //$('#main-input-form').submit();
+
       return false;
+    } else {
+      // Resize the input window for any keypress to catch rollover to next line
+      fitToContent('message-input', 156);
     }
   });
 

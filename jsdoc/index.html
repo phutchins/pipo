@@ -1,0 +1,444 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>JSDoc: Home</title>
+
+    <script src="scripts/prettify/prettify.js"> </script>
+    <script src="scripts/prettify/lang-css.js"> </script>
+    <!--[if lt IE 9]>
+      <script src="//html5shiv.googlecode.com/svn/trunk/html5.js"></script>
+    <![endif]-->
+    <link type="text/css" rel="stylesheet" href="styles/prettify-tomorrow.css">
+    <link type="text/css" rel="stylesheet" href="styles/jsdoc-default.css">
+</head>
+
+<body>
+
+<div id="main">
+
+    <h1 class="page-title">Home</h1>
+
+    
+
+
+
+    
+
+
+    <h3> </h3>
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+    <section>
+        <article><h1>PiPo - A secure chat client with client side encryption written in NodeJS</h1><h2>Goal</h2><p>PiPo's goal is to make secure communication easy to use and open source. It is a client server appilcation that aims to remove the server from being a vulnerable point in the communication chain.</p>
+<h2>Features</h2><ul>
+<li>Client side encryption using AES-256 keys</li>
+<li>Your private key never leaves your device</li>
+<li>Key backup and restore</li>
+<li>Markdown using the Marked Library and React (https://github.com/chjj/marked, https://facebook.github.io/react/)</li>
+<li>Avatars from Gravatar</li>
+</ul>
+<h2>Encryption</h2><p>Currently PiPo uses the KbPGP library to do PGP encryption. Behind this is AES-256 with 4096 bit keys.</p>
+<h2>Data Flow</h2><h3>Uploading Files</h3><p>The following is the the process in which a file traverses when being sent from the client to the server and then is retrieved.</p>
+<ul>
+<li><p>File is selected by the modal and passed to the JS
+At this point, files is an array of <code>File</code> objects. These file objects are a specific kind of <code>Blob</code>.
+<code>var files = document.getElementById('sendfile-file-input').files;</code></p>
+</li>
+<li><p>The modal passes the files object to the fileManager.readFiles method
+<code>fileManager.readFiles(files, function(err){...</code></p>
+</li>
+<li><p>A binary socket (via BinaryJS) is opened to the server</p>
+</li>
+<li><p>We set the file chunk size in <code>chunkSize</code>
+<code>var chunkSize = 1048576;</code></p>
+</li>
+<li><p>We break the file up into chunks per the chunkSize
+The resulting chunks are <code>Blob</code> objects.
+```
+// Upload a whole chunk which is ( currentChunk <em> chunkSize )
+if (currentChunk &lt; wholeChunks) {
+start = ( currentChunk </em> chunkSize );
+end = (( currentChunk  + 1 ) * chunkSize );
+}</p>
+</li>
+</ul>
+<p>// If this is the last chunk, set final bytes
+// to ( currentChunk <em> chunkSize ) + finalChunk
+if (currentChunk === wholeChunks) {
+  start = ( currentChunk </em> chunkSize );
+  end = ( currentChunk * chunkSize ) + finalChunk;
+}</p>
+<p>var blob = file.slice(start,end);</p>
+<pre class="prettyprint source"><code>
++ We begin reading chunks and sending them until we've read them all
+Here the `Blobs` are read as an ArrayBuffer and evt.target.result returned as an ArrayBuffer
+
+* It appears that we should be using FileReader.readAsArrayBuffer() instead as the method has been removed from the FileAPI standard *</code></pre><p>reader.readAsArrayBuffer(blob);
+currentChunk++;</p>
+<p>while (currentChunk &lt;= wholeChunks) {
+  ...
+  reader.onloadend = (function(chunkNum) {
+    return function(evt) {
+      if (evt.target.readyState == FileReader.DONE) {
+        self.sendFile({
+          fileChunkArrayBuffer: evt.target.result,
+          ...
+        }, function...</p>
+<pre class="prettyprint source"><code>
++ For each chunk, we convert the ArrayBuffer (fileArrayBuffer) into a kbpgp.Buffer (fileBuffer)</code></pre><p>// fileManager.js
+window.encryptionManager.encryptFile({
+  file: fileChunkArrayBuffer,
+  ...</p>
+<p>// encryptionManager.js
+var fileArrayBuffer = data.file;
+var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);</p>
+<ul>
+<li><p>Then we encrypt using the <code>fileBuffer</code> and return a kbpgp.buffer (raw binary data buffer) <code>resultBuffer</code></p>
+<pre class="prettyprint source"><code>window.kbpgp.box({
+msg: fileBuffer,
+encrypt_for: keys,
+sign_with: self.keyManager
+}, function(err, resultString, resultBuffer) {
+  callback(err, resultBuffer);
+});</code></pre></li>
+<li><p>Now we send the encryptedChunkBuffer via binaryJS to the server
+```
+var binStream = binSocketClient.binSocket.send(encryptedChunkBuffer, {
+fileName: fileName,
+...
+});</p>
+</li>
+</ul>
+<p>binStream.end();</p>
+<pre class="prettyprint source"><code>+ When the server (server.js) gets a binSocket connection, it pass it along to socketServer.onBinarySocketConnection(binSocket) (socketServer.js)
+
++ When the SocketServer (socketServer.js) gets a `stream`, it pushes each chunk (which is a Buffer) into an array (parts)
+
++ When we get the `end` event on the `fileStream`, we use Buffer.concat(parts) to put the pieces back together
+This may be an issue as the file is then saved in memory. Also we need to make sure that it is reassembeled correctly here.
+
++ The `fileBuffer` and metadata is then sent to `FileManager.handleChunk(data);` which handles each chunk of the file
+We're really only chunking the file right now to save us from having to hold the entire file in memory while encrypting
+
++ `FileManager.handleChunk(data)` directly sends this data to the `PFile` model (models/file.js) to add the chunk and save it to disk</code></pre><p>PFile.addChunk(data, function(err, pfile) {
+  ...</p>
+<pre class="prettyprint source"><code>
++ The `PFile` model does an `fs.writeFile` to write the file to disk with binary encoding</code></pre><p>fs.writeFile(&quot;files/&quot; + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
+  ...
+```</p>
+<h3>Downloading Files</h3><h2>Screenshots</h2><p><img src="./docs/screenshots/pipo_phutchins.png" alt="User1">
+<img src="./docs/screenshots/pipo_flip.png" alt="User2"></p>
+<h2>How it works...</h2><p>When a user signs up with their username, email address and password, an AES-256 keypair is generated within their browser. The public part of that keypair is then uploaded to the server and associated with that username. From here, access is granted to private rooms by an admin. The addition of this user is signed in a transaction that can then be verified by all clients back to one of the original two administrators. This removes the possibliity of a malitious attacker injecting their public key onto a compromised server and tricking users into sending them messages thinking they are someone else.</p>
+<h2>Requirements</h2><ul>
+<li>MongoDB</li>
+<li>Node.js</li>
+</ul>
+<h2>Quick Setup (Dev/Test)</h2><p>To try out PiPo, I've included a sample adminCertificate. You should not use these for production as you do not have the private keys associated with these admin certificates.</p>
+<ul>
+<li><p>Install the node modules</p>
+<pre class="prettyprint source"><code>  npm install</code></pre></li>
+<li><p>Copy adminData.sample to adminData</p>
+</li>
+<li>The app will now start up in Client Key mode</li>
+<li>Make sure MongoDB is running locally</li>
+<li><p>Start the app</p>
+<pre class="prettyprint source"><code>  npm start</code></pre></li>
+</ul>
+<h2>Setup</h2><ul>
+<li>Place two admins public keys in adminData in the format username.pub<ul>
+<li>Generate Two Keys (repeat this process for the second key)<ul>
+<li><code>gpg --gen-key</code></li>
+<li>Choose RSA and RSA</li>
+<li>keysize should be at least 2048</li>
+<li>Choose an amount of time for the key to expire</li>
+<li>Your real name should be your username for pipo</li>
+<li>Enter your email address</li>
+<li>Comment can be blank if you like</li>
+<li>Use a secure passphrase to protect your key</li>
+</ul>
+</li>
+<li>Export your public and private key to a file<ul>
+<li>List your secret keys to find the userID of your key which is a combination of full name (your username that you entered) along with email and comment<ul>
+<li><code>gpg --list-secret-keys</code></li>
+</ul>
+</li>
+<li><code>gpg --export -a &quot;username &lt;username@mydomain.com&gt;&quot; --output adminData/username.pub</code></li>
+<li>Place the two username.pub files in the adminData directory</li>
+</ul>
+</li>
+<li>Run setup again: <code>npm run setup</code></li>
+<li>Generate a clearsign signature from each secret key for the generated adminPayload<ul>
+<li><code>gpg --clearsign -u &quot;username &lt;username@mydomain.com&gt;&quot; adminData/adminPayload --output adminData/username.sig</code></li>
+</ul>
+</li>
+<li>Run seutp again: <code>npm run setup</code><ul>
+<li>You should see the server start and tell you that out found the signatures</li>
+<li>This will generate the adminCertificate</li>
+</ul>
+</li>
+<li>Run <code>npm start</code> to start the server (make sure Mongo is running)</li>
+<li>Run <code>npm run start-client</code> to start the electron client</li>
+</ul>
+</li>
+</ul>
+<h2>Testing</h2><h3>Framework</h3><ul>
+<li>Mocha - Test runner</li>
+<li>Chai - Expectation / Assertion</li>
+<li>Sinon - Stubs &amp; Spies</li>
+<li>Proxyquire - Dependency Injection</li>
+</ul>
+<h3>Front End Testing</h3><p>We're still working through gathering the proper toolset to do frontend testing. Here are the pieces we are considering.</p>
+<ul>
+<li>Unit Testing<ul>
+<li>mocha-jsdom - For mocking simple dom bits
++</li>
+</ul>
+</li>
+<li>Browser framework<ul>
+<li>https://github.com/theintern/intern-tutorial<h4>Links</h4></li>
+<li>http://developer.telerik.com/featured/journey-client-side-testing-javascript/</li>
+<li>https://derickbailey.com/2014/06/18/testing-browserify-modules-in-a-headless-browser/</li>
+<li>http://krasimirtsonev.com/blog/article/unit-test-your-client-side-javascript-jsdom-nodejs</li>
+<li>https://nicolas.perriault.net/code/2013/testing-frontend-javascript-code-using-mocha-chai-and-sinon/</li>
+<li>https://github.com/nathanboktae/mocha-phantomjs
+Statically compile pug templates</li>
+</ul>
+</li>
+</ul>
+<h3>Running</h3><p>  <code>npm test</code></p>
+<h2>Protocol Outline &amp; Planning Considerations</h2><h3>Authentication</h3><ul>
+<li>Initial Signup<ul>
+<li>signature verification, user creates invite object with a random token created by the client</li>
+<li>this token is sha256 hashed and sent to the server,</li>
+<li>the client pgp encrpts the non-hashed token and sends it to the invitee</li>
+<li>then only the invitee can decrypt the token and then can send it to the server,</li>
+<li>which can do a sha256</li>
+</ul>
+</li>
+<li>authenticate and sign of request using pgp keys?</li>
+<li>node_http_signature<ul>
+<li>Positives</li>
+<li>Negatives<ul>
+<li>Whitepaper not quite complete yet</li>
+<li>Have not addressed two factor</li>
+<li>Does not include eliptical curve in their docs</li>
+<li><ul>
+<li>Does not have revocation for identity in case of compromise *</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>sqrl<ul>
+<li>Positives<ul>
+<li>Creates QR codes to scan with phnoe for authentication with sessions which is easy</li>
+<li>Creates revocation</li>
+<li>Allows you to print QR code for private key so it does not exist elictroncially</li>
+</ul>
+</li>
+<li>Negatives<ul>
+<li>Seems over engineered</li>
+<li>Uniqe terms for all types of keys so it is cryptic cryptography</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+<h3>Sessions</h3><ul>
+<li>Use keyid to verify user and do not use sessions?</li>
+<li>How do we indicate that the data is encrypted?</li>
+</ul>
+<h3>Server Management of Keys</h3><ul>
+<li>Server generates a shared private key</li>
+<li>Server encrypts private key to all users that are granted access using their personal public key</li>
+<li>Server destroys unencrypted shared private key</li>
+<li>Server sends new encrypted private key to users as they sign on<ul>
+<li>Possible to have client with rights to add user create the private key and encrypt to all users then upload to server</li>
+</ul>
+</li>
+</ul>
+<h2>Mobile</h2><ul>
+<li>Ionic or Famous &amp; Socket.io<ul>
+<li>Famous - Is very new but quite powerful and fast</li>
+<li>Ionic - Been around for a while</li>
+</ul>
+</li>
+</ul>
+<h2>Desktop &amp; Browser</h2><ul>
+<li>NodeJS &amp; Electron</li>
+</ul>
+<h3>Problem &amp; Solution Walkthrough</h3><ul>
+<li>Problem<ul>
+<li>Easy passwords are easy to hack, more secure passwords are hard to remember and use</li>
+</ul>
+</li>
+<li>Solution<ul>
+<li>Use key pairs or something similar (Something like PGP)</li>
+</ul>
+</li>
+<li>Problem<ul>
+<li>Want to proove identification and communicate securely</li>
+</ul>
+</li>
+<li>Solution<ul>
+<li>Encryption should be done client side
++</li>
+</ul>
+</li>
+<li>Problem<ul>
+<li>PGP is hard for the normal user</li>
+</ul>
+</li>
+<li><p>Solution</p>
+</li>
+<li><p>Problem</p>
+<ul>
+<li>Managing Keys is tricky</li>
+</ul>
+</li>
+<li><p>Solution</p>
+</li>
+<li><p>Problem</p>
+<ul>
+<li>Communication in this way is hard with multiple people</li>
+</ul>
+</li>
+</ul>
+<h1>UX Flow</h1><ul>
+<li><p>User Signup / Login</p>
+<ul>
+<li>User visits the PiPo URL</li>
+<li>If the user has cached login info in their browser, go to Path B</li>
+<li>If the user does not have cached login data, prompt to Register (Path A) or Authenticate (Path B)</li>
+<li>Path A - Register ( never registered )<ul>
+<li>Path 1 - Open registration<ul>
+<li>User asked to Generate new Key Pair or Upload Existing Key Pair<ul>
+<li>Genreate<ul>
+<li>User prompted for userName, fullName, email, password (for their private key)</li>
+<li>Keypair is generated showing a prompt while the user waits</li>
+<li>User is dropped into the default chat room</li>
+<li>User gets NEW USER path or Straight to chat</li>
+</ul>
+</li>
+<li>Upload<ul>
+<li>User prompted for public &amp; private keys</li>
+<li>User prompted for userName, fullName, email, password (for their private key)<ul>
+<li>decrypt private key locally with password success or failure</li>
+<li>re-prompt for password if failure (give the option to upload a different keypair)</li>
+</ul>
+</li>
+<li>User is dropped into default chat room</li>
+<li>User gets NEW USER path or Straight to chat</li>
+</ul>
+</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Path 2 - Signup request<ul>
+<li>User is notified that registration is on approval only basis and given the option to request approval</li>
+<li>User is prompted to upload public &amp; private keys</li>
+<li>User is prompted for userName, fullName, email, password (for their private key)</li>
+<li>User is notified that their application has been submitted and will be reviewed</li>
+<li>Upon approval user is sent an email stating that it has been approved and the user would proceed down Path B</li>
+</ul>
+</li>
+<li>Path 3 - Email domain confirmation<ul>
+<li>User is notified that registration is available to a restricted user set only and given the option to continue registration</li>
+<li>User is prompted to upload public &amp; private key</li>
+<li>User is prompted for userName, fullName, email, password (for their private key)</li>
+<li>If the email matches the approved domain list<ul>
+<li>User is notified that they will receive an email with a link to active their account</li>
+<li>Upon activation link<ul>
+<li>User is prompted to decrypt their private key</li>
+<li>User is notified that their account is being activated</li>
+<li>If activation link is valid<ul>
+<li>User is dropped into default chat room</li>
+<li>User gets NEW USER path or Straight to chat</li>
+</ul>
+</li>
+<li>If activation link is not valid, sorry, resend activation email or contact an admin</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>If the email does not match the approved domain list<ul>
+<li>User is notified that they are not approved to register and to contact the admin if they think this is an error</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Path 4 - Signup by invite URL<ul>
+<li>User receives invite URL and visits</li>
+<li>User follows Path 1 from here</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>Path B - Already Registered ( load credentials and authenticate )<ul>
+<li>User follows Path 1 &gt; Upload</li>
+<li>User does not get prompted for NEW USER path</li>
+</ul>
+</li>
+</ul>
+</li>
+<li><p>NEW USER path</p>
+<ul>
+<li>User has the option to be guided through uploading avatar and how to use pipo</li>
+</ul>
+</li>
+</ul>
+<h1>MVP Feature List</h1><ul>
+<li>Ability to generate revocation key</li>
+<li>Use revocation key to change current key</li>
+<li>Emoticons</li>
+<li>Finish notifications<ul>
+<li>Highlight Room or Chat until clicked</li>
+<li>Title bar should flash until selected</li>
+<li>Email notification<ul>
+<li>Email for messages when offline</li>
+<li>Email after certain time of message not being viewed when online</li>
+</ul>
+</li>
+</ul>
+</li>
+<li>File transfer (peer to peer)</li>
+</ul></article>
+    </section>
+
+
+
+
+
+
+</div>
+
+<nav>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-pipo_users_user.html">pipo/users/user</a></li><li><a href="module-pipo_users_userlist.html">pipo/users/userlist</a></li><li><a href="module-pipo_utils.html">pipo/utils</a></li></ul><h3>Classes</h3><ul><li><a href="ChatManager.html">ChatManager</a></li><li><a href="SocketServer.html">SocketServer</a></li></ul>
+</nav>
+
+<br class="clear">
+
+<footer>
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun May 07 2017 20:25:15 GMT-0400 (EDT)
+</footer>
+
+<script> prettyPrint(); </script>
+<script src="scripts/linenumber.js"> </script>
+</body>
+</html>

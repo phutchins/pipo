@@ -1718,6 +1718,7 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
 
         // Create a message ID using the current time and a random number
         var messageId = self.createMessageId();
+        var sendToIds = self.chats[activeChatId].participants;
 
         var messageData = {
           messageId: messageId,
@@ -1727,45 +1728,22 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
           date: date
         };
 
-        if (activeChatType == 'room') {
-          console.log("Sending message to room #"+ activeChatName);
+        var messageObj = {
+          messageId: messageId,
+          chatId: activeChatId,
+          type: activeChatType,
+          toUserIds: sendToIds,
+          message: preparedInput
+        };
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage(messageData);
+        console.log("Sending message to room #"+ activeChatName);
 
-          window.socketClient.sendMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            message: preparedInput
-          });
+        // Add the message to the chat locally and wait for it to be confirmed
+        self.handleLocalMessage(messageData);
 
-          return callback();
-        }
-        else if (activeChatType == 'chat') {
-          var sendToIds = self.chats[activeChatId].participants;
+        window.socketClient.sendMessage(messageObj);
 
-          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-          console.log(
-            "[chatManager.sendMessage] Sending private message for chatId '" +
-            activeChatId +
-            "'"
-          );
-
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage(messageData);
-
-          socketClient.sendPrivateMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            toUserIds: sendToIds,
-            message: preparedInput
-          });
-
-          return callback();
-        }
-        else {
-          return console.log("ERROR: No activeChatType!");
-        }
+        return callback();
       })
     }
   }, 0);

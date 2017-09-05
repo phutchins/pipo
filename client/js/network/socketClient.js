@@ -323,41 +323,20 @@ SocketClient.prototype.sendMessage = function(data) {
   var self = this;
   var messageId = data.messageId;
   var chatId = data.chatId;
+  var toUserIds = data.toUserIds;
   var message = data.message;
 
   console.log("Encrypting message: " + message);
-  self.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+  self.encryptionManager.encryptMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
-      self.socket.emit('roomMessage', { messageId: messageId, chatId: chatId, pgpMessage: pgpMessage});
-      //$('#message-input').val('');
+      self.socket.emit('message', { messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage});
     }
   });
 };
-
-
-SocketClient.prototype.sendPrivateMessage = function(data) {
-  var self = this;
-  var messageId = data.messageId;
-  var chatId = data.chatId;
-  var toUserIds = data.toUserIds;
-  var message = data.message;
-
-  self.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
-    if (err) {
-      console.log("Error Encrypting Message: " + err);
-    }
-
-    else {
-      self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
-      $('#message-input').val('');
-    }
-  });
-};
-
 
 SocketClient.prototype.joinComplete = function(data) {
   var self = this;

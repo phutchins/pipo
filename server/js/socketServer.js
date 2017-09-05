@@ -160,11 +160,8 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('membership', function(data) {
     self.membership(socket, data);
   });
-  socket.on('roomMessage', function(data) {
+  socket.on('essage', function(data) {
     self.onMessage(socket, data);
-  });
-  socket.on('privateMessage', function(data) {
-    self.onPrivateMessage(socket, data);
   });
   socket.on('toggleFavorite', function(data) {
     self.toggleFavorite(socket, data);
@@ -469,7 +466,7 @@ SocketServer.prototype.onMessage = function onMessage(socket, data) {
       if (room.keepHistory) {
         var message = new Message({
           _room: chatId,
-          type: 'room',
+          type: data.type,
           _fromUser: user,
           messageId: data.messageId,
           date: new Date(),

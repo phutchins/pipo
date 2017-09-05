@@ -582,6 +582,8 @@ ChatManager.prototype.initRoom = function initRoom(room, callback) {
    * the date/time that they were added to a room
    */
 
+  debugger;
+
   /*
    * Should only buldChatKeyRing for private rooms
    * Should build allUserKeyRing once and use that for public rooms
@@ -1717,36 +1719,46 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
         // Create a message ID using the current time and a random number
         var messageId = self.createMessageId();
 
+        var messageData = {
+          messageId: messageId,
+          chatId: activeChatId,
+          messageString: preparedInput,
+          fromUserId: self.userNameMap[window.username],
+          date: date
+        };
+
         if (activeChatType == 'room') {
           console.log("Sending message to room #"+ activeChatName);
 
           // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
+          self.handleLocalMessage(messageData);
+
+          window.socketClient.sendMessage({
             messageId: messageId,
             chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
+            message: preparedInput
           });
 
-          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
           return callback();
         }
         else if (activeChatType == 'chat') {
           var sendToIds = self.chats[activeChatId].participants;
 
           // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
-
-          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+          console.log(
+            "[chatManager.sendMessage] Sending private message for chatId '" +
+            activeChatId +
+            "'"
+          );
 
           // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
+          self.handleLocalMessage(messageData);
+
+          socketClient.sendPrivateMessage({
             messageId: messageId,
             chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
+            toUserIds: sendToIds,
+            message: preparedInput
           });
 
           return callback();

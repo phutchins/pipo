@@ -346,17 +346,15 @@ SocketClient.prototype.sendPrivateMessage = function(data) {
   var toUserIds = data.toUserIds;
   var message = data.message;
 
-  self.chatManager.prepareMessage(message, function(err, preparedMessage) {
-    self.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
-      if (err) {
-        console.log("Error Encrypting Message: " + err);
-      }
+  self.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
+    if (err) {
+      console.log("Error Encrypting Message: " + err);
+    }
 
-      else {
-        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
-        $('#message-input').val('');
-      }
-    });
+    else {
+      self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
+      $('#message-input').val('');
+    }
   });
 };
 

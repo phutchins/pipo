@@ -635,6 +635,10 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
   var encryptedMessage = data.encryptedMessage;
   var keyRing = data.keyRing;
 
+  if (!keyRing) {
+    return callback("keyRing does not exist");
+  }
+
   Object.keys(keyRing._keys).forEach(function(keyId) {
     console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");
   });

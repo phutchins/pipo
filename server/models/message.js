@@ -94,6 +94,24 @@ messageSchema.statics.get = function get(data, callback) {
   }
 };
 
+messageSchema.statics.create = function create(data, callback) {
+  var message = new this(data);
+
+  message.save(function(err) {
+    if (err) {
+      if (err.name == 'ValidationError') {
+        for (field in err.errors) {
+          logger.error("[socketServer.onPrivateMessage] Error saving message: " + field);
+        }
+      } else {
+        logger.error("[ERROR] Error saving message: ", err);
+        return callback(err);
+      }
+    }
+    return callback(null);
+  });
+};
+
 
 messageSchema.statics.sanatize = function sanatize(message, callback) {
   var toUsersArray = [];

@@ -146,19 +146,14 @@ SocketClient.prototype.addListeners = function() {
     self.handleMembershipUpdateComplete(data);
   });
 
-  self.socket.on('roomMessage', function(data) {
-    self.chatManager.handleMessage(data);
-  });
+  this.socket.on('message', function(data) {
+    if (data.type == 'room') {
+      self.chatManager.handleMessage(data);
+    }
 
-
-  this.socket.on('privateMessage', function(data) {
-    var message = data.message;
-    var chatId = data.chatId;
-
-    console.log('[socketClient] (privateMessage) Got private message event. Data is: ', data);
-    data.socket = self;
-
-    self.chatManager.handlePrivateMessage(data);
+    if (data.type == 'chat') {
+      self.chatManager.handlePrivateMessage(data);
+    }
   });
 
   this.socket.on('newMasterKey', function(data) {

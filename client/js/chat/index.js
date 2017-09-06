@@ -582,8 +582,6 @@ ChatManager.prototype.initRoom = function initRoom(room, callback) {
    * the date/time that they were added to a room
    */
 
-  debugger;
-
   /*
    * Should only buldChatKeyRing for private rooms
    * Should build allUserKeyRing once and use that for public rooms

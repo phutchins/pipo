@@ -870,8 +870,6 @@ ChatManager.prototype.initRoom = function initRoom(room, callback) {
    * the date/time that they were added to a room
    */
 
-  debugger;
-
   /*
    * Should only buldChatKeyRing for private rooms
    * Should build allUserKeyRing once and use that for public rooms
@@ -2006,44 +2004,32 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
 
         // Create a message ID using the current time and a random number
         var messageId = self.createMessageId();
+        var sendToIds = self.chats[activeChatId].participants;
 
-        if (activeChatType == 'room') {
-          console.log("Sending message to room #"+ activeChatName);
+        var messageData = {
+          messageId: messageId,
+          chatId: activeChatId,
+          messageString: preparedInput,
+          fromUserId: self.userNameMap[window.username],
+          date: date
+        };
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
+        var messageObj = {
+          messageId: messageId,
+          chatId: activeChatId,
+          type: activeChatType,
+          toUserIds: sendToIds,
+          message: preparedInput
+        };
 
-          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
-          return callback();
-        }
-        else if (activeChatType == 'chat') {
-          var sendToIds = self.chats[activeChatId].participants;
+        console.log("Sending message to room #"+ activeChatName);
 
-          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+        // Add the message to the chat locally and wait for it to be confirmed
+        self.handleLocalMessage(messageData);
 
-          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+        window.socketClient.sendMessage(messageObj);
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
-
-          return callback();
-        }
-        else {
-          return console.log("ERROR: No activeChatType!");
-        }
+        return callback();
       })
     }
   }, 0);
@@ -2683,33 +2669,16 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
  * @param message
  * @param callback
  */
-EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(data, callback) {
+EncryptionManager.prototype.encryptMessage = function encryptRoomMessage(data, callback) {
   var chatId = data.chatId;
   var message = data.message;
   var self = this;
   var keys = self.getChatKeys(chatId);
 
   //Encrypt the message
-  if (self.chatManager.chats[chatId].encryptionScheme == "masterKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
-
-    self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else if (self.chatManager.chats[chatId].encryptionScheme == "clientKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
-    console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
-
-    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else {
-    console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
-
-    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  }
+  self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
+    callback(err, pgpMessage );
+  });
 
 };
 
@@ -2730,33 +2699,6 @@ EncryptionManager.prototype.getChatKeys = function getChatKeys(chatId) {
 
   return keys;
 };
-
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(data, callback) {
-  var self = this;
-  var chatId = data.chatId;
-  var message = data.message;
-  var keys = [];
-  var keyFingerPrints = {};
-
-  /*
-  toUserIds.forEach(function(userId) {
-    keys.push(ChatManager.userlist[userId].keyInstance);
-  });
-  */
-
-  Object.keys(self.chatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(self.chatManager.chats[chatId].keyRing._kms[userId]);
-  });
-
-  self.chatManager.chats[chatId].participants.forEach(function(userId) {
-    keyFingerPrints[self.chatManager.userlist[userId].username] = self.chatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
-  });
-
-  self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-    callback(err, pgpMessage );
-  });
-};
-
 
 /*
  * This should return a CipherIV from node crypto
@@ -4480,19 +4422,14 @@ SocketClient.prototype.addListeners = function() {
     self.handleMembershipUpdateComplete(data);
   });
 
-  self.socket.on('roomMessage', function(data) {
-    self.chatManager.handleMessage(data);
-  });
+  this.socket.on('message', function(data) {
+    if (data.type == 'room') {
+      self.chatManager.handleMessage(data);
+    }
 
-
-  this.socket.on('privateMessage', function(data) {
-    var message = data.message;
-    var chatId = data.chatId;
-
-    console.log('[socketClient] (privateMessage) Got private message event. Data is: ', data);
-    data.socket = self;
-
-    self.chatManager.handlePrivateMessage(data);
+    if (data.type == 'chat') {
+      self.chatManager.handlePrivateMessage(data);
+    }
   });
 
   this.socket.on('newMasterKey', function(data) {
@@ -4657,43 +4594,20 @@ SocketClient.prototype.sendMessage = function(data) {
   var self = this;
   var messageId = data.messageId;
   var chatId = data.chatId;
+  var toUserIds = data.toUserIds;
   var message = data.message;
 
   console.log("Encrypting message: " + message);
-  self.encryptionManager.encryptRoomMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+  self.encryptionManager.encryptMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
-      self.socket.emit('roomMessage', { messageId: messageId, chatId: chatId, pgpMessage: pgpMessage});
-      //$('#message-input').val('');
+      self.socket.emit('message', { messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage});
     }
   });
 };
-
-
-SocketClient.prototype.sendPrivateMessage = function(data) {
-  var self = this;
-  var messageId = data.messageId;
-  var chatId = data.chatId;
-  var toUserIds = data.toUserIds;
-  var message = data.message;
-
-  self.chatManager.prepareMessage(message, function(err, preparedMessage) {
-    self.encryptionManager.encryptPrivateMessage({ chatId: chatId, message: preparedMessage }, function(err, pgpMessage) {
-      if (err) {
-        console.log("Error Encrypting Message: " + err);
-      }
-
-      else {
-        self.socket.emit('privateMessage', {messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage });
-        $('#message-input').val('');
-      }
-    });
-  });
-};
-
 
 SocketClient.prototype.joinComplete = function(data) {
   var self = this;

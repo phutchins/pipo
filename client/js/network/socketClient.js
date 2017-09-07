@@ -147,6 +147,8 @@ SocketClient.prototype.addListeners = function() {
   });
 
   this.socket.on('message', function(data) {
+    console.log('[SOCKET] Got message from server of type %s', data.type);
+
     if (data.type == 'room') {
       self.chatManager.handleMessage(data);
     }
@@ -320,15 +322,25 @@ SocketClient.prototype.sendMessage = function(data) {
   var chatId = data.chatId;
   var toUserIds = data.toUserIds;
   var message = data.message;
+  var type = data.type;
 
   console.log("Encrypting message: " + message);
-  self.encryptionManager.encryptMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
+  self.encryptionManager.encryptMessage({
+    chatId: chatId,
+    message: message
+  }, function(err, pgpMessage) {
     if (err) {
       console.log("Error Encrypting Message: " + err);
     }
     else {
       console.log("[socketClient.sendMessage] Sending encrypted message to chat ID: ", chatId);
-      self.socket.emit('message', { messageId: messageId, chatId: chatId, toUserIds: toUserIds, pgpMessage: pgpMessage});
+      self.socket.emit('message', {
+        messageId: messageId,
+        chatId: chatId,
+        type: type,
+        toUserIds: toUserIds,
+        pgpMessage: pgpMessage
+      });
     }
   });
 };

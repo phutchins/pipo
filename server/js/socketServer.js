@@ -448,9 +448,11 @@ SocketServer.prototype.onMessage = function onMessage(socket, data) {
     return socket.emit('errorMessage', {message: 401});
   }
 
-  logger.info("[socketServer.onMessage] Server got chat message from " + socket.user.username);
+  logger.info("[socketServer.onMessage] Server got message type %s from %s", data.type, socket.user.username);
 
   if (data.type == 'room') {
+    logger.debug('[MSG] handling room message');
+
     Room.findOne({ _id: chatId }, function(err, room) {
       // Confirm that user has permission to send message to this room
       if (err) {
@@ -493,6 +495,8 @@ SocketServer.prototype.onMessage = function onMessage(socket, data) {
   }
 
   if (data.type == 'chat') {
+    logger.debug('[MSG] handling chat message');
+
     self.handleChatMessage(socket, data);
   }
 
@@ -561,13 +565,15 @@ SocketServer.prototype.handleChatMessage = function onPrivateMessage(socket, dat
       signature: data.signature
     };
 
-    if (!chat) {
-      logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
-      Chat.create({
+    var chatData = {
         type: "chat",
         chatHash: chatId,
         participantIds: toUserIds
-      }, function(err, chat) {
+    }
+
+    if (!chat) {
+      logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
+      Chat.create(chatData, function(err, chat) {
         messageData._chat = chat.id;
         Message.create(messageData, function(err) {
           emitToSockets(targetSockets, emitData);
@@ -579,7 +585,7 @@ SocketServer.prototype.handleChatMessage = function onPrivateMessage(socket, dat
       logger.debug("[socketServer.onPrivateMessage] Found chat with participantIds: ", toUserIds);
       messageData._chat = chat.id;
 
-      createMessage(messageData, function(err) {
+      Message.create(messageData, function(err) {
         emitToSockets(targetSockets, emitData);
       });
     };
@@ -596,10 +602,10 @@ SocketServer.prototype.handleChatMessage = function onPrivateMessage(socket, dat
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
 
-      socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
+      socket.broadcast.to(targetSocket).emit('message', emitData);
     });
     // Must emit to self becuase broadcast.to does not emit back to itself
-    socket.emit('privateMessage', emitData);
+    socket.emit('message', emitData);
   };
 };
 

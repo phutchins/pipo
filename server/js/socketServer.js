@@ -269,6 +269,15 @@ SocketServer.prototype.authenticate = function authenticate(socket, data) {
 
   User.authenticateOrCreate(data, function(err, authData) {
     logger.debug('blam');
+
+    if (!authData) {
+      logger.warn('Authentication error: no auth data provided by user');
+
+      return socket.emit('errorMessage',
+                         { message: 'Authentication error: no auth data provided' }
+                        );
+    }
+
     // Why are we doing this like this here??
     var user = authData.user;
     var newUser = authData.newUser;

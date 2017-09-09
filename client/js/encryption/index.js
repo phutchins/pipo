@@ -440,33 +440,16 @@ EncryptionManager.prototype.encryptClientKeyMessage = function encryptClientKeyM
  * @param message
  * @param callback
  */
-EncryptionManager.prototype.encryptRoomMessage = function encryptRoomMessage(data, callback) {
+EncryptionManager.prototype.encryptMessage = function encryptRoomMessage(data, callback) {
   var chatId = data.chatId;
   var message = data.message;
   var self = this;
   var keys = self.getChatKeys(chatId);
 
   //Encrypt the message
-  if (self.chatManager.chats[chatId].encryptionScheme == "masterKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using masterKey scheme");
-
-    self.encryptMasterKeyMessage({ chatId: chatId, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else if (self.chatManager.chats[chatId].encryptionScheme == "clientKey") {
-    console.log("[ENCRYPT ROOM MESSAGE] Using clientKey scheme");
-    console.log("[DEBUG] Encrypting message: "+message+" for room: "+chatId);
-
-    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  } else {
-    console.log("[ENCRYPT ROOM MESSAGE] Using default scheme");
-
-    self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-      callback(err, pgpMessage );
-    });
-  }
+  self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
+    callback(err, pgpMessage );
+  });
 
 };
 
@@ -487,33 +470,6 @@ EncryptionManager.prototype.getChatKeys = function getChatKeys(chatId) {
 
   return keys;
 };
-
-EncryptionManager.prototype.encryptPrivateMessage = function encryptPrivateMessage(data, callback) {
-  var self = this;
-  var chatId = data.chatId;
-  var message = data.message;
-  var keys = [];
-  var keyFingerPrints = {};
-
-  /*
-  toUserIds.forEach(function(userId) {
-    keys.push(ChatManager.userlist[userId].keyInstance);
-  });
-  */
-
-  Object.keys(self.chatManager.chats[chatId].keyRing._kms).forEach(function(userId) {
-    keys.push(self.chatManager.chats[chatId].keyRing._kms[userId]);
-  });
-
-  self.chatManager.chats[chatId].participants.forEach(function(userId) {
-    keyFingerPrints[self.chatManager.userlist[userId].username] = self.chatManager.userlist[userId].keyInstance.get_pgp_fingerprint_str();
-  });
-
-  self.encryptClientKeyMessage({ chatId: chatId, keys: keys, message: message }, function(err, pgpMessage) {
-    callback(err, pgpMessage );
-  });
-};
-
 
 /*
  * This should return a CipherIV from node crypto
@@ -634,6 +590,10 @@ EncryptionManager.prototype.decryptMessage = function decryptMessage(data, callb
   var self = this;
   var encryptedMessage = data.encryptedMessage;
   var keyRing = data.keyRing;
+
+  if (!keyRing) {
+    return callback("keyRing does not exist");
+  }
 
   Object.keys(keyRing._keys).forEach(function(keyId) {
     console.log("[ENCRYPTION MANAGER] (decryptMessage) Decrypting clientKey message with key ID '" + keyRing._keys[keyId].km.get_pgp_fingerprint().toString('hex') + "'");

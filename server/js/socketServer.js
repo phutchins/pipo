@@ -160,11 +160,8 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('membership', function(data) {
     self.membership(socket, data);
   });
-  socket.on('roomMessage', function(data) {
+  socket.on('message', function(data) {
     self.onMessage(socket, data);
-  });
-  socket.on('privateMessage', function(data) {
-    self.onPrivateMessage(socket, data);
   });
   socket.on('toggleFavorite', function(data) {
     self.toggleFavorite(socket, data);
@@ -272,6 +269,15 @@ SocketServer.prototype.authenticate = function authenticate(socket, data) {
 
   User.authenticateOrCreate(data, function(err, authData) {
     logger.debug('blam');
+
+    if (!authData) {
+      logger.warn('Authentication error: no auth data provided by user');
+
+      return socket.emit('errorMessage',
+                         { message: 'Authentication error: no auth data provided' }
+                        );
+    }
+
     // Why are we doing this like this here??
     var user = authData.user;
     var newUser = authData.newUser;
@@ -451,49 +457,57 @@ SocketServer.prototype.onMessage = function onMessage(socket, data) {
     return socket.emit('errorMessage', {message: 401});
   }
 
-  logger.info("[socketServer.onMessage] Server got chat message from " + socket.user.username);
+  logger.info("[socketServer.onMessage] Server got message type %s from %s", data.type, socket.user.username);
 
-  //TODO: Log messages
-  Room.findOne({ _id: chatId }, function(err, room) {
-    // Confirm that user has permission to send message to this room
-    if (err) {
-      return logger.error("[socketServer.onMessage] Error when finding room to send message: ", err);
-    };
+  if (data.type == 'room') {
+    logger.debug('[MSG] handling room message');
 
-    if (!room) {
-      return logger.error("[socketServer.onMessage] No room found for message");
-    };
+    Room.findOne({ _id: chatId }, function(err, room) {
+      // Confirm that user has permission to send message to this room
+      if (err) {
+        return logger.error("[socketServer.onMessage] Error when finding room to send message: ", err);
+      };
 
-    User.findOne({ username: socket.user.username }, function(err, user) {
-      // Add message to room.messages
-      if (room.keepHistory) {
-        var message = new Message({
-          _room: chatId,
+      if (!room) {
+        return logger.error("[socketServer.onMessage] No room found for message");
+      };
+
+      User.findOne({ username: socket.user.username }, function(err, user) {
+        // Add message to room.messages
+        if (room.keepHistory) {
+          var message = new Message({
+            _room: chatId,
+            type: data.type,
+            _fromUser: user,
+            messageId: data.messageId,
+            date: new Date(),
+            fromUser: user._id.toString(),
+            encryptedMessage: data.pgpMessage
+          });
+
+          message.save(function(err) {
+            logger.debug("[MSG] Pushing message to room message history");
+          })
+        }
+
+        logger.debug("[socketServer.onMessage] MessageId: %s fromUserId: %s", data.messageid, user._id.toString());
+
+        self.namespace.emit('message', {
+          chatId: room.id,
           type: 'room',
-          _fromUser: user,
+          fromUserId: user._id.toString(),
           messageId: data.messageId,
-          date: new Date(),
-          fromUser: user._id.toString(),
-          encryptedMessage: data.pgpMessage
+          message: data.pgpMessage
         });
-
-        message.save(function(err) {
-          logger.debug("[MSG] Pushing message to room message history");
-          //room._messages.push(message);
-          //room.save();
-        })
-      }
-
-      logger.debug("[socketServer.onMessage] MessageId: %s fromUserId: %s", data.messageid, user._id.toString());
-
-      self.namespace.emit('roomMessage', {
-        chatId: room.id,
-        fromUserId: user._id.toString(),
-        messageId: data.messageId,
-        message: data.pgpMessage
       });
-    });
-  })
+    })
+  }
+
+  if (data.type == 'chat') {
+    logger.debug('[MSG] handling chat message');
+
+    self.handleChatMessage(socket, data);
+  }
 
   logger.info("[MSG] Server emitted chat message to users");
 };
@@ -503,7 +517,7 @@ SocketServer.prototype.onMessage = function onMessage(socket, data) {
 /**
  * Private message from client
  */
-SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data) {
+SocketServer.prototype.handleChatMessage = function onPrivateMessage(socket, data) {
   var self = this;
   var messageId = data.messageId;
   var targetSockets = [];
@@ -516,11 +530,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
   console.log('Sending message from user %s', socket.user._id.toString());
 
   var fromUser = socket.user._id.toString();
-  //logger.debug("[SocketServer.onPrivateMessage] fromUser: " + fromUser);
-
-  //Chat.findOne({ chatHash: data.chatId }, function(err, chat) {
   var chatId = data.chatId;
-  //logger.debug("[SocketServer.onPrivateMessage] chatId: " + chatId);
   var toUserIds = data.toUserIds;
 
   // Get the socketId's for each participant
@@ -535,40 +545,6 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
       // Notify the sending user that the receiving user is not currently online
     }
   });
-
-  var createMessage = function createMessage(data, callback) {
-    var message = new Message(data);
-
-    message.save(function(err) {
-      if (err) {
-        if (err.name == 'ValidationError') {
-          for (field in err.errors) {
-            logger.error("[socketServer.onPrivateMessage] Error saving message: " + field);
-          }
-        } else {
-          logger.error("[ERROR] Error saving message: ", err);
-          return callback(err);
-        }
-      }
-      return callback(null);
-    });
-  }
-
-  var createChat = function createChat(data, callback) {
-    var chat = new Chat({
-      type: data.type,
-      chatHash: data.chatId,
-      _participants: data.toUserIds,
-    });
-
-    //TODO:
-    //Create a socketio room from this chat and emit to the room instead of individual sockets save the room
-    //somewhere for later use...
-    chat.save(function(err, savedChat) {
-      return callback(savedChat.id);
-    });
-  };
-
 
   var userMapKeys = Object.keys(self.namespace.userMap);
 
@@ -598,15 +574,17 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
       signature: data.signature
     };
 
-    if (!chat) {
-      logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
-      self.createChat({
+    var chatData = {
         type: "chat",
         chatHash: chatId,
-        toUserIds: toUserIds
-      }, function(err, chatId) {
-        messageData._chat = chatId;
-        createMessage(messageData, function(err) {
+        participantIds: toUserIds
+    }
+
+    if (!chat) {
+      logger.debug("[socketServer.onPrivateMessage] No chat found with requested participants. Creating new chat.");
+      Chat.create(chatData, function(err, chat) {
+        messageData._chat = chat.id;
+        Message.create(messageData, function(err) {
           emitToSockets(targetSockets, emitData);
         });
       });
@@ -616,7 +594,7 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
       logger.debug("[socketServer.onPrivateMessage] Found chat with participantIds: ", toUserIds);
       messageData._chat = chat.id;
 
-      createMessage(messageData, function(err) {
+      Message.create(messageData, function(err) {
         emitToSockets(targetSockets, emitData);
       });
     };
@@ -628,14 +606,15 @@ SocketServer.prototype.onPrivateMessage = function onPrivateMessage(socket, data
     }
   });
 
+  // Should have chats work like rooms and create a room to emit to instead of individual sockets
   var emitToSockets = function emitToSockets(targetSockets, emitData) {
     targetSockets.forEach(function(targetSocket) {
       logger.debug("[socketServer.onPrivateMessage] Emitting private message to socket: " + targetSocket);
 
-      socket.broadcast.to(targetSocket).emit('privateMessage', emitData);
+      socket.broadcast.to(targetSocket).emit('message', emitData);
     });
     // Must emit to self becuase broadcast.to does not emit back to itself
-    socket.emit('privateMessage', emitData);
+    socket.emit('message', emitData);
   };
 };
 
@@ -1293,7 +1272,7 @@ SocketServer.prototype.getActiveUsers = function(chatId, callback) {
   logger.debug('[socketServer.getActiveUsers] Getting active users for chatId %s', chatId);
 
   if (typeof this.namespace.adapter.rooms[chatId] !== 'undefined') {
-    console.log('[socketServer.getActiveUsers] Found room in namespace');
+    logger.debug('[socketServer.getActiveUsers] Found room in namespace');
 
     activeUserIds = Object.keys(self.namespace.adapter.rooms[chatId].sockets).filter(function(sid) {
       return sid;

@@ -1716,44 +1716,32 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
 
         // Create a message ID using the current time and a random number
         var messageId = self.createMessageId();
+        var sendToIds = self.chats[activeChatId].participants;
 
-        if (activeChatType == 'room') {
-          console.log("Sending message to room #"+ activeChatName);
+        var messageData = {
+          messageId: messageId,
+          chatId: activeChatId,
+          messageString: preparedInput,
+          fromUserId: self.userNameMap[window.username],
+          date: date
+        };
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
+        var messageObj = {
+          messageId: messageId,
+          chatId: activeChatId,
+          type: activeChatType,
+          toUserIds: sendToIds,
+          message: preparedInput
+        };
 
-          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
-          return callback();
-        }
-        else if (activeChatType == 'chat') {
-          var sendToIds = self.chats[activeChatId].participants;
+        console.log("Sending message to room #"+ activeChatName);
 
-          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+        // Add the message to the chat locally and wait for it to be confirmed
+        self.handleLocalMessage(messageData);
 
-          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+        window.socketClient.sendMessage(messageObj);
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
-
-          return callback();
-        }
-        else {
-          return console.log("ERROR: No activeChatType!");
-        }
+        return callback();
       })
     }
   }, 0);

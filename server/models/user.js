@@ -42,7 +42,8 @@ var userSchema = new Schema({
   _chats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat" }],
   membership: {
     _currentRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
-    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }]
+    _favoriteRooms: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Room", default: [] }],
+    _currentChats: [{ type: mongoose.SchemaTypes.ObjectId, ref: "Chat", default: [] }]
   },
   masterKeyPair: {
     // masterKey: [{ type: mongoose.SchemaTypes.ObjectId, ref: "KeyPair" }],
@@ -144,6 +145,8 @@ userSchema.statics.authenticateOrCreate = function authOrCreate(data, callback) 
   .findOne({username: data.username})
   .populate('membership._autoJoin')
   .populate('membership._favoriteRooms')
+  .populate('membership._currentRooms')
+  .populate('membership._currentChats')
   .exec(function(err, user) {
     var Authentication = require('../js/managers/authentication');
     var authentication = new Authentication();
@@ -214,6 +217,7 @@ userSchema.statics.addAutoJoin = function addAutoJoin(data, callback) {
 userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
   var username = data.username;
   var roomName = data.roomName;
+
   this.findOne({ username: username }).populate('membership._autoJoin').exec(function(err, user) {
     Room.findOne({ name: roomName }, function(err, room) {
       user.membership.autoJoin.pull(room);
@@ -221,6 +225,43 @@ userSchema.statics.removeAutoJoin = function removeAutoJoin(data, callback) {
       return callback(err);
     })
   })
+};
+
+userSchema.statics.addCurrentChat = function addCurrentChat(userId, chatHash, callback) {
+  this.findOne({ _id: userId }).populate('membership._currentChats').exec(function(err, user) {
+    var user = user;
+
+    if (err) {
+      return callback(err);
+    };
+
+    Chat.findOne({ chatHash: chatHash }, function(err, chat) {
+      if (err) {
+        return callback(err);
+      };
+
+      if (!chat) {
+        err = 'No chat found';
+
+        return callback(err);
+      }
+
+      user.membership._currentChats.addToSet(chat._id);
+      user.save();
+
+      return callback();
+    });
+  });
+};
+
+userSchema.statics.removeCurrentChat = function removeCurrentChat(userId, chatHash, callback) {
+  this.findOne({ id: userId }).populate('membership._currentChats').exec(function(err, user) {
+    Chat.findOne({ chatHash: chatHash}, function(err, chat) {
+      user.membership._currentChats.pull(chat._id);
+      user.save();
+      return callback(err);
+    })
+  });
 };
 
 /*
@@ -261,7 +302,7 @@ userSchema.statics.getEmailHash = function getEmailHash(data, callback) {
 userSchema.statics.getAllUsers = function getAllUsers(data, callback) {
   var self = this;
   var userlist = {};
-  this.find({}, function(err, users) {
+  this.find({}).populate('membership._currentChats').exec(function(err, users) {
     if (err) { return logger.error("[GET ALL USERS] Error getting all users: ",err) }
     users.forEach(function(user) {
       self.sanatize(user, function(sanatizedUser) {
@@ -299,10 +340,17 @@ userSchema.statics.getSystemUser = function getSystemUser(callback) {
 
 userSchema.statics.sanatize = function sanatize(user, callback) {
   var favoriteRoomIds = [];
+  var currentChatIds = [];
 
   if (user.membership && user.membership._favoriteRooms.length > 0) {
     favoriteRoomIds = user.membership._favoriteRooms.map(function(room) {
       return room.id.toString();
+    });
+  };
+
+  if (user.membership && user.membership._currentChats.length > 0) {
+    currentChatIds = user.membership._currentChats.map(function(chat) {
+      return chat.chatHash.toString();
     });
   };
 
@@ -316,7 +364,8 @@ userSchema.statics.sanatize = function sanatize(user, callback) {
     emailHash: user.emailHash,
     title: user.title,
     membership: {
-      favoriteRooms: favoriteRoomIds
+      favoriteRooms: favoriteRoomIds,
+      currentChats: currentChatIds
     }
   };
 

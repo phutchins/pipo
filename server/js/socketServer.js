@@ -154,6 +154,9 @@ SocketServer.prototype.onSocket = function(socket) {
   socket.on('getChat', function(data) {
     self.getChat(socket, data);
   });
+  socket.on('joinChat', function(data) {
+    self.joinChat(socket, data);
+  });
   socket.on('getPreviousPage', function(data) {
     self.getPreviousPage(socket, data);
   });
@@ -689,10 +692,6 @@ SocketServer.prototype.getChat = function getChat(socket, data) {
       return logger.error("[socketServer.getChat] Error getting chat: " + err);
     };
 
-    if (!sanatizedChat) {
-      logger.debug("[socketServer.getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
-    }
-
     finish(sanatizedChat);
   });
 
@@ -707,7 +706,7 @@ SocketServer.prototype.getChat = function getChat(socket, data) {
         return socket.emit('chatUpdate', { chat: sanatizedChat });
       };
     } else {
-      logger.debug("[socketServer.getChat finish] Finishing without a chat");
+      logger.debug("[socketServer.getChat] No chat found! Will create a new one with hash '" + chatHash + "'");
 
       // This may be redundant as the client is doing the array hash also but we could check it here to make sure it matches?
       self.arrayHash(participantIds, function(chatHash) {
@@ -729,6 +728,19 @@ SocketServer.prototype.getChat = function getChat(socket, data) {
       });
     };
   };
+};
+
+SocketServer.prototype.joinChat = function joinChat(socket, data) {
+  var userId = socket.user.id;
+  var chatHash = data.chatHash;
+
+  User.addCurrentChat(userId, chatHash, function(err) {
+    if (err) {
+      return logger.error('Error joining chat: ', err);
+    }
+
+    return logger.info('User %s has joined chat %s', socket.user.username, data.chatHash);
+  });
 };
 
 

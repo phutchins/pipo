@@ -5,6 +5,7 @@ var clientNotification = require('../notification/index.js');
 var Userlist = require('../users/userlist.js');
 var utils = require('../utils.js');
 var FileManager = require('../files/index.js');
+var ServerCommand = require('../messaging/serverCommand.js');
 
 // Modals
 var RegisterUserPrompt = require('../modals/registerUserPrompt.js');
@@ -43,6 +44,7 @@ function ChatManager(options) {
   this.userlistUtil = new Userlist(userlistUtilOptions);
   this.fileManager = new FileManager();
   this.registerUserPrompt = new RegisterUserPrompt({});
+  this.serverCommand = new ServerCommand(options.managers);
 
   // Network config
   var host = window.location.host;
@@ -99,6 +101,7 @@ ChatManager.prototype.init = function(callback) {
   self.userlistUtil.init(managers);
   self.fileManager.init(managers);
   self.registerUserPrompt.init(managers);
+  self.serverCommand.init(managers);
 
   // When the DOM is ready, init the modals
   $(document).ready(function() {
@@ -1432,6 +1435,9 @@ ChatManager.prototype.handlePrivateMessage = function handlePrivateMessage(data)
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
+      console.log('Sending joinChat to server for chatHash %s', chatHash);
+      window.socketClient.socket.emit('joinChat', { chatHash: chatHash });
+
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
         self.handleChatUpdate(data, function() {
         });
@@ -1694,18 +1700,16 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
     var commandRegex = /^\/(.*)$/;
     var regexResult = input.match(commandRegex);
 
+    console.log("ServerCommand regex results: ", regexResult);
+
     if (input === "") {
       return callback();
-    }
-
-    else if (regexResult !== null) {
-      ServerCommand.parse(regexResult, function() {
+    } else if (regexResult !== null) {
+      // Split up server commands and client commands
+      self.serverCommand.parse(regexResult, function() {
         return callback();
       });
-    }
-
-    else {
-
+    } else {
       self.prepareMessage(input, function(err, preparedInput) {
         var activeChatId = self.activeChat;
         var activeChatType = self.chats[activeChatId].type;

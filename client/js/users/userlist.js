@@ -190,9 +190,10 @@ Userlist.prototype.populateUserPopup = function populateUserPopup(data) {
     if (username !== window.username) {
       // Should save this to the user profile object and push that to the server also so it can be re-opened on reconnect
       self.chatManager.arrayHash(participantIds, function(chatHash) {
-        console.log("[userlist.populateUserPopup] Emitting getChat for private message");
+        console.log("[userlist.populateUserPopup] Emitting getChat for private message with chatHash %s", chatHash);
 
         window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
+        window.socketClient.socket.emit('joinChat', { chatHash: chatHash });
 
         window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
           console.log("[chatManager.populateUserPopup] Got chatUpdate for chatHash '" + chatHash + "', running handleChatUpdate");

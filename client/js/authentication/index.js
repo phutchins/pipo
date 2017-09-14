@@ -137,6 +137,7 @@ Authentication.prototype.authenticated = function(data) {
   var userlist = data.userlist;
   var userProfile = data.userProfile;
   var favoriteRooms = userProfile.membership.favoriteRooms;
+  var currentChats = userProfile.membership.currentChats;
   var username = localStorage.getItem('username');
 
   // Ensure that we have permission to show notifications and prompt if we don't
@@ -188,6 +189,16 @@ Authentication.prototype.authenticated = function(data) {
 
             self.socketClient.joinRoom(defaultRoomId, function(err) {
               console.log("[authentication.authenticated] Joined default room becuase favoriteRooms was empty");
+            });
+          }
+
+          if (currentChats && currentChats > 0) {
+            currentChats.forEach(function(chatHash) {
+              console.log('[SOCKET] Joining chat %s', chatHash);
+
+              self.socketClient.joinChat(chatHash, function(err) {
+                console.log('[SOCKET] Sent join request for chat %s', chatHash)
+              });
             });
           }
         } else {

@@ -27,8 +27,6 @@ chatSchema.statics.join = function join(chat, callback) {
     // Would use this signature when a user sends a message to one of the other users
     // in the chat. How the heck do we do this? :)
   // Join the socket namespace for this chat
-
-  //
 };
 
 

@@ -6,6 +6,7 @@ var MasterUserlist = require('../users/masterUserlist.js');
 var chatHeader = require('../chat/header.js');
 var Userlist = require('../users/userlist.js');
 var EncryptionManager = require('../encryption/index.js');
+var ServerCommand = require('../messaging/serverCommand.js');
 
 function SocketClient() {
   var self = this;
@@ -313,6 +314,12 @@ SocketClient.prototype.partRoom = function(data, callback) {
   var chatId = data.chatId;
   console.log("[PART ROOM] Parting room #" + self.chatManager.chats[chatId].name);
   self.socket.emit('part', { chatId: chatId } );
+  callback(null);
+};
+
+SocketClient.prototype.joinChat = function(chatHash, callback) {
+  var self = this;
+  self.socket.emit('getChat', { chatHash: chatHash });
   callback(null);
 };
 

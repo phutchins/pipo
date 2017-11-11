@@ -33,6 +33,7 @@ var clientNotification = require('../notification/index.js');
 var Userlist = require('../users/userlist.js');
 var utils = require('../utils.js');
 var FileManager = require('../files/index.js');
+var ServerCommand = require('../messaging/serverCommand.js');
 
 // Modals
 var RegisterUserPrompt = require('../modals/registerUserPrompt.js');
@@ -71,6 +72,7 @@ function ChatManager(options) {
   this.userlistUtil = new Userlist(userlistUtilOptions);
   this.fileManager = new FileManager();
   this.registerUserPrompt = new RegisterUserPrompt({});
+  this.serverCommand = new ServerCommand(options.managers);
 
   // Network config
   var host = window.location.host;
@@ -127,6 +129,7 @@ ChatManager.prototype.init = function(callback) {
   self.userlistUtil.init(managers);
   self.fileManager.init(managers);
   self.registerUserPrompt.init(managers);
+  self.serverCommand.init(managers);
 
   // When the DOM is ready, init the modals
   $(document).ready(function() {
@@ -1460,6 +1463,9 @@ ChatManager.prototype.handlePrivateMessage = function handlePrivateMessage(data)
 
       window.socketClient.socket.emit('getChat', { chatHash: chatHash, participantIds: participantIds });
 
+      console.log('Sending joinChat to server for chatHash %s', chatHash);
+      window.socketClient.socket.emit('joinChat', { chatHash: chatHash });
+
       window.socketClient.socket.on('chatUpdate-' + chatHash, function(data) {
         self.handleChatUpdate(data, function() {
         });
@@ -1722,18 +1728,16 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
     var commandRegex = /^\/(.*)$/;
     var regexResult = input.match(commandRegex);
 
+    console.log("ServerCommand regex results: ", regexResult);
+
     if (input === "") {
       return callback();
-    }
-
-    else if (regexResult !== null) {
-      ServerCommand.parse(regexResult, function() {
+    } else if (regexResult !== null) {
+      // Split up server commands and client commands
+      self.serverCommand.parse(regexResult, function() {
         return callback();
       });
-    }
-
-    else {
-
+    } else {
       self.prepareMessage(input, function(err, preparedInput) {
         var activeChatId = self.activeChat;
         var activeChatType = self.chats[activeChatId].type;
@@ -1744,44 +1748,32 @@ ChatManager.prototype.sendMessage = function sendMessage(callback) {
 
         // Create a message ID using the current time and a random number
         var messageId = self.createMessageId();
+        var sendToIds = self.chats[activeChatId].participants;
 
-        if (activeChatType == 'room') {
-          console.log("Sending message to room #"+ activeChatName);
+        var messageData = {
+          messageId: messageId,
+          chatId: activeChatId,
+          messageString: preparedInput,
+          fromUserId: self.userNameMap[window.username],
+          date: date
+        };
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
+        var messageObj = {
+          messageId: messageId,
+          chatId: activeChatId,
+          type: activeChatType,
+          toUserIds: sendToIds,
+          message: preparedInput
+        };
 
-          window.socketClient.sendMessage({ messageId: messageId, chatId: activeChatId, message: preparedInput });
-          return callback();
-        }
-        else if (activeChatType == 'chat') {
-          var sendToIds = self.chats[activeChatId].participants;
+        console.log("Sending message to room #"+ activeChatName);
 
-          // Need to get the private message ID here to pass to sendPrivateMessage so we can encrypt to the keyRing
-          console.log("[chatManager.sendMessage] Sending private message for chatId '" + activeChatId + "'");
+        // Add the message to the chat locally and wait for it to be confirmed
+        self.handleLocalMessage(messageData);
 
-          socketClient.sendPrivateMessage({ messageId: messageId, chatId: activeChatId, toUserIds: sendToIds, message: preparedInput });
+        window.socketClient.sendMessage(messageObj);
 
-          // Add the message to the chat locally and wait for it to be confirmed
-          self.handleLocalMessage({
-            messageId: messageId,
-            chatId: activeChatId,
-            messageString: preparedInput,
-            fromUserId: self.userNameMap[window.username],
-            date: date
-          });
-
-          return callback();
-        }
-        else {
-          return console.log("ERROR: No activeChatType!");
-        }
+        return callback();
       })
     }
   }, 0);
@@ -1986,13 +1978,13 @@ module.exports = ChatManager;
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-pipo_users_user.html">pipo/users/user</a></li><li><a href="module-pipo_users_userlist.html">pipo/users/userlist</a></li><li><a href="module-pipo_utils.html">pipo/utils</a></li></ul><h3>Classes</h3><ul><li><a href="ChatManager.html">ChatManager</a></li><li><a href="SocketServer.html">SocketServer</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-pipo_users_user.html">pipo/users/user</a></li><li><a href="module-pipo_users_userlist.html">pipo/users/userlist</a></li><li><a href="module-pipo_utils.html">pipo/utils</a></li></ul><h3>Classes</h3><ul><li><a href="ChatManager.html">ChatManager</a></li><li><a href="SocketServer.html">SocketServer</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-codebaseRefactorAndCleanup.html">codebaseRefactorAndCleanup</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun May 07 2017 20:25:15 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.4</a> on Sat Nov 11 2017 07:06:20 GMT-1000 (HST)
 </footer>
 
 <script> prettyPrint(); </script>

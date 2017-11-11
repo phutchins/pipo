@@ -28,7 +28,7 @@
 
 <header>
     
-        <h2>SocketServer</h2>
+        <h2><span class="attribs"><span class="type-signature"></span></span>SocketServer<span class="signature">(namespace)</span><span class="type-signature"> &rarr; {function}</span></h2>
         
     
 </header>
@@ -40,7 +40,9 @@
 
     
 
+    
     <h4 class="name" id="SocketServer"><span class="type-signature"></span>new SocketServer<span class="signature">(namespace)</span><span class="type-signature"> &rarr; {function}</span></h4>
+    
 
     
 
@@ -179,6 +181,8 @@
 
 
 
+
+
     
     </div>
 
@@ -188,7 +192,9 @@
 
     
 
-     
+    
+
+    
 
     
 
@@ -202,7 +208,9 @@
 
     
 
+    
     <h4 class="name" id="authenticate"><span class="type-signature"></span>authenticate<span class="signature">()</span><span class="type-signature"></span></h4>
+    
 
     
 
@@ -279,12 +287,16 @@
 
 
 
+
+
         
             
 
     
 
+    
     <h4 class="name" id="getMasterKeyPairForUser"><span class="type-signature"></span>getMasterKeyPairForUser<span class="signature">()</span><span class="type-signature"></span></h4>
+    
 
     
 
@@ -335,7 +347,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line425">line 425</a>
+        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line434">line 434</a>
     </li></ul></dd>
     
 
@@ -361,86 +373,6 @@
 
 
 
-        
-            
-
-    
-
-    <h4 class="name" id="joinRoom"><span class="type-signature"></span>joinRoom<span class="signature">()</span><span class="type-signature"></span></h4>
-
-    
-
-
-
-<div class="description">
-    Client join room
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line836">line 836</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
         
@@ -448,89 +380,9 @@
 
     
 
-    <h4 class="name" id="onMessage"><span class="type-signature"></span>onMessage<span class="signature">()</span><span class="type-signature"></span></h4>
-
     
-
-
-
-<div class="description">
-    Message broadcast from client
-</div>
-
-
-
-
-
-
-
-
-
-
-
-
-
-<dl class="details">
-
+    <h4 class="name" id="handleChatMessage"><span class="type-signature"></span>handleChatMessage<span class="signature">()</span><span class="type-signature"></span></h4>
     
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-
-    
-    <dt class="tag-source">Source:</dt>
-    <dd class="tag-source"><ul class="dummy"><li>
-        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line440">line 440</a>
-    </li></ul></dd>
-    
-
-    
-
-    
-
-    
-</dl>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-        
-            
-
-    
-
-    <h4 class="name" id="onPrivateMessage"><span class="type-signature"></span>onPrivateMessage<span class="signature">()</span><span class="type-signature"></span></h4>
 
     
 
@@ -581,7 +433,7 @@
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line506">line 506</a>
+        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line523">line 523</a>
     </li></ul></dd>
     
 
@@ -607,12 +459,188 @@
 
 
 
+
+
         
             
 
     
 
+    
+    <h4 class="name" id="joinRoom"><span class="type-signature"></span>joinRoom<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Client join room
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line827">line 827</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
+    <h4 class="name" id="onMessage"><span class="type-signature"></span>onMessage<span class="signature">()</span><span class="type-signature"></span></h4>
+    
+
+    
+
+
+
+<div class="description">
+    Message broadcast from client
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<dl class="details">
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+
+    
+    <dt class="tag-source">Source:</dt>
+    <dd class="tag-source"><ul class="dummy"><li>
+        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line449">line 449</a>
+    </li></ul></dd>
+    
+
+    
+
+    
+
+    
+</dl>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        
+            
+
+    
+
+    
     <h4 class="name" id="updateActiveUsers"><span class="type-signature"></span>updateActiveUsers<span class="signature">()</span><span class="type-signature"></span></h4>
+    
 
     
 
@@ -666,7 +694,7 @@ Should this go in the room or chat model?
     
     <dt class="tag-source">Source:</dt>
     <dd class="tag-source"><ul class="dummy"><li>
-        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line1266">line 1266</a>
+        <a href="server_js_socketServer.js.html">server/js/socketServer.js</a>, <a href="server_js_socketServer.js.html#line1257">line 1257</a>
     </li></ul></dd>
     
 
@@ -676,6 +704,8 @@ Should this go in the room or chat model?
 
     
 </dl>
+
+
 
 
 
@@ -708,13 +738,13 @@ Should this go in the room or chat model?
 </div>
 
 <nav>
-    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-pipo_users_user.html">pipo/users/user</a></li><li><a href="module-pipo_users_userlist.html">pipo/users/userlist</a></li><li><a href="module-pipo_utils.html">pipo/utils</a></li></ul><h3>Classes</h3><ul><li><a href="ChatManager.html">ChatManager</a></li><li><a href="SocketServer.html">SocketServer</a></li></ul>
+    <h2><a href="index.html">Home</a></h2><h3>Modules</h3><ul><li><a href="module-pipo_users_user.html">pipo/users/user</a></li><li><a href="module-pipo_users_userlist.html">pipo/users/userlist</a></li><li><a href="module-pipo_utils.html">pipo/utils</a></li></ul><h3>Classes</h3><ul><li><a href="ChatManager.html">ChatManager</a></li><li><a href="SocketServer.html">SocketServer</a></li></ul><h3>Tutorials</h3><ul><li><a href="tutorial-codebaseRefactorAndCleanup.html">codebaseRefactorAndCleanup</a></li></ul>
 </nav>
 
 <br class="clear">
 
 <footer>
-    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.4.0</a> on Sun May 07 2017 20:25:15 GMT-0400 (EDT)
+    Documentation generated by <a href="https://github.com/jsdoc3/jsdoc">JSDoc 3.5.4</a> on Sat Nov 11 2017 07:06:20 GMT-1000 (HST)
 </footer>
 
 <script> prettyPrint(); </script>

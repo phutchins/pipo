@@ -35,7 +35,8 @@ At this point, files is an array of `File` objects. These file objects are a spe
 
 + We break the file up into chunks per the chunkSize
 The resulting chunks are `Blob` objects.
-```
+
+```javascript
 // Upload a whole chunk which is ( currentChunk * chunkSize )
 if (currentChunk < wholeChunks) {
   start = ( currentChunk * chunkSize );
@@ -56,7 +57,8 @@ var blob = file.slice(start,end);
 Here the `Blobs` are read as an ArrayBuffer and evt.target.result returned as an ArrayBuffer
 
 * It appears that we should be using FileReader.readAsArrayBuffer() instead as the method has been removed from the FileAPI standard *
-```
+
+```javascript
 reader.readAsArrayBuffer(blob);
 currentChunk++;
 
@@ -72,7 +74,8 @@ while (currentChunk <= wholeChunks) {
 ```
 
 + For each chunk, we convert the ArrayBuffer (fileArrayBuffer) into a kbpgp.Buffer (fileBuffer)
-```
+
+```javascript
 // fileManager.js
 window.encryptionManager.encryptFile({
   file: fileChunkArrayBuffer,
@@ -81,9 +84,10 @@ window.encryptionManager.encryptFile({
 // encryptionManager.js
 var fileArrayBuffer = data.file;
 var fileBuffer = new kbpgp.Buffer(fileArrayBuffer);
-
-+ Then we encrypt using the `fileBuffer` and return a kbpgp.buffer (raw binary data buffer) `resultBuffer`
 ```
++ Then we encrypt using the `fileBuffer` and return a kbpgp.buffer (raw binary data buffer) `resultBuffer`
+
+```javascript
 window.kbpgp.box({
   msg: fileBuffer,
   encrypt_for: keys,
@@ -94,7 +98,8 @@ window.kbpgp.box({
 ```
 
 + Now we send the encryptedChunkBuffer via binaryJS to the server
-```
+
+```javascript
 var binStream = binSocketClient.binSocket.send(encryptedChunkBuffer, {
   fileName: fileName,
   ...
@@ -119,7 +124,8 @@ PFile.addChunk(data, function(err, pfile) {
 ```
 
 + The `PFile` model does an `fs.writeFile` to write the file to disk with binary encoding
-```
+
+```javascript
 fs.writeFile("files/" + pfileChunkName, fileBuffer, { encoding: 'binary' }, function(err) {
   ...
 ```
@@ -197,12 +203,18 @@ We're still working through gathering the proper toolset to do frontend testing.
     +
   + Browser framework
     + https://github.com/theintern/intern-tutorial
- #### Links
-    + http://developer.telerik.com/featured/journey-client-side-testing-javascript/
-    + https://derickbailey.com/2014/06/18/testing-browserify-modules-in-a-headless-browser/
-    + http://krasimirtsonev.com/blog/article/unit-test-your-client-side-javascript-jsdom-nodejs
-    + https://nicolas.perriault.net/code/2013/testing-frontend-javascript-code-using-mocha-chai-and-sinon/
-    + https://github.com/nathanboktae/mocha-phantomjs
+ 
+#### Links
++ http://developer.telerik.com/featured/journey-client-side-testing-javascript/
+
++ https://derickbailey.com/2014/06/18/testing-browserify-modules-in-a-headless-browser/
+
++ http://krasimirtsonev.com/blog/article/unit-test-your-client-side-javascript-jsdom-nodejs
+
++ https://nicolas.perriault.net/code/2013/testing-frontend-javascript-code-using-mocha-chai-and-sinon/
+
++ https://github.com/nathanboktae/mocha-phantomjs
+
 Statically compile pug templates
 
 ### Running
